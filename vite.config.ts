@@ -42,7 +42,8 @@ export default defineConfig({
         clientsClaim: true
       },
       devOptions: {
-        enabled: true
+        enabled: true,
+        suppressWarnings: true
       }
     })
   ],
