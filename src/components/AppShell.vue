@@ -131,7 +131,10 @@ async function applyUpdate() {
 
 <style scoped>
 .shell {
+  --shell-page-padding: 1.25rem;
+  --shell-dock-height: 4.5rem;
   min-height: 100vh;
+  min-height: 100dvh;
   padding: 1.25rem;
 }
 
@@ -139,6 +142,10 @@ async function applyUpdate() {
   width: min(100%, 72rem);
   margin: 0 auto;
   min-height: calc(100vh - 2.5rem);
+  min-height: calc(100dvh - (var(--shell-page-padding) * 2));
+  padding-bottom: calc(
+    var(--shell-dock-height) + var(--shell-page-padding) + env(safe-area-inset-bottom)
+  );
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
   gap: 1rem;
@@ -323,6 +330,12 @@ async function applyUpdate() {
 }
 
 .shell__dock {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--shell-page-padding) + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 20;
+  width: min(calc(100vw - (var(--shell-page-padding) * 2)), 72rem);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.65rem;
@@ -362,6 +375,7 @@ async function applyUpdate() {
 
 @media (min-width: 760px) {
   .shell {
+    --shell-page-padding: 1.75rem;
     padding: 1.75rem;
   }
 
@@ -382,6 +396,7 @@ async function applyUpdate() {
 
 @media (max-width: 540px) {
   .shell {
+    --shell-page-padding: 0.85rem;
     padding: 0.85rem;
   }
 
