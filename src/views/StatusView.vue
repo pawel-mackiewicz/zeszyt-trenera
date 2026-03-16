@@ -2,7 +2,7 @@
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
-import { db } from '@/db'
+import { db } from '@/infra/db'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
