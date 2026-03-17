@@ -1,5 +1,5 @@
 import type { DomainEvent } from '@/domain/events/DomainEvent'
 
 export interface EventRepoPort {
-  save(event: DomainEvent): void
+  save(event: DomainEvent): Promise<void>
 }
