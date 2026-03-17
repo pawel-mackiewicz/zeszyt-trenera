@@ -10,7 +10,7 @@ describe('db', () => {
     expect(db.tables[0]?.name).toBe('clubs')
     expect(db.tables[0]?.schema.primKey.name).toBe('id')
     expect(db.tables[0]?.schema.indexes.map((index) => index.name)).toEqual([
-      '_name',
+      '_name'
     ])
   })
 })

@@ -9,7 +9,7 @@ export class TrainerNotebookDb extends Dexie {
     super('trainer-notebook')
 
     this.version(1).stores({
-      clubs: 'id, _name',
+      clubs: 'id, _name'
     })
   }
 }

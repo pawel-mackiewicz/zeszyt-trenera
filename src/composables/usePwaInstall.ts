@@ -30,8 +30,13 @@ export function usePwaInstall() {
   }
 
   onMounted(() => {
-    appStore.setInstalled(window.matchMedia('(display-mode: standalone)').matches)
-    window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt as EventListener)
+    appStore.setInstalled(
+      window.matchMedia('(display-mode: standalone)').matches
+    )
+    window.addEventListener(
+      'beforeinstallprompt',
+      onBeforeInstallPrompt as EventListener
+    )
     window.addEventListener('appinstalled', onAppInstalled)
   })
 

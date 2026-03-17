@@ -12,7 +12,9 @@ export function useAppUpdate() {
     },
     onRegisterError: (error) => {
       appStore.setUpdateError(
-        error instanceof Error ? error.message : 'Service worker registration failed.'
+        error instanceof Error
+          ? error.message
+          : 'Service worker registration failed.'
       )
     }
   })

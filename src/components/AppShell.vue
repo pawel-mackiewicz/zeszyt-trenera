@@ -64,9 +64,15 @@ async function applyUpdate() {
         </div>
 
         <div class="shell__badges" aria-label="Application status">
-          <span class="shell__chip" :class="`shell__chip--${shellTone}`">{{ shellStateLabel }}</span>
-          <span v-if="swRegistered" class="shell__chip shell__chip--neutral">SW active</span>
-          <span v-if="dbConnected" class="shell__chip shell__chip--neutral">Dexie wired</span>
+          <span class="shell__chip" :class="`shell__chip--${shellTone}`">{{
+            shellStateLabel
+          }}</span>
+          <span v-if="swRegistered" class="shell__chip shell__chip--neutral"
+            >SW active</span
+          >
+          <span v-if="dbConnected" class="shell__chip shell__chip--neutral"
+            >Dexie wired</span
+          >
         </div>
 
         <p class="shell__summary">
@@ -95,15 +101,27 @@ async function applyUpdate() {
         </div>
       </header>
 
-      <div v-if="offlineReady && !needRefresh" class="shell__banner shell__banner--offline">
-        <p>The shell is cached. After the first load, this app now boots offline.</p>
-        <button type="button" class="shell__banner-action" @click="appStore.dismissOfflineReady()">
+      <div
+        v-if="offlineReady && !needRefresh"
+        class="shell__banner shell__banner--offline"
+      >
+        <p>
+          The shell is cached. After the first load, this app now boots offline.
+        </p>
+        <button
+          type="button"
+          class="shell__banner-action"
+          @click="appStore.dismissOfflineReady()"
+        >
           Dismiss
         </button>
       </div>
 
       <div v-if="!isOnline" class="shell__banner shell__banner--network">
-        <p>You are offline. Local data remains available; remote features can layer in later.</p>
+        <p>
+          You are offline. Local data remains available; remote features can
+          layer in later.
+        </p>
       </div>
 
       <main class="shell__content">
@@ -144,7 +162,8 @@ async function applyUpdate() {
   min-height: calc(100vh - 2.5rem);
   min-height: calc(100dvh - (var(--shell-page-padding) * 2));
   padding-bottom: calc(
-    var(--shell-dock-height) + var(--shell-page-padding) + env(safe-area-inset-bottom)
+    var(--shell-dock-height) + var(--shell-page-padding) +
+      env(safe-area-inset-bottom)
   );
   display: grid;
   grid-template-rows: auto auto auto 1fr auto;
@@ -158,7 +177,11 @@ async function applyUpdate() {
   border: 1px solid rgba(16, 59, 55, 0.12);
   border-radius: 1.75rem;
   background:
-    linear-gradient(145deg, rgba(255, 251, 243, 0.92), rgba(220, 230, 215, 0.78)),
+    linear-gradient(
+      145deg,
+      rgba(255, 251, 243, 0.92),
+      rgba(220, 230, 215, 0.78)
+    ),
     linear-gradient(135deg, rgba(16, 59, 55, 0.08), transparent 42%);
   box-shadow: var(--shadow-strong);
 }
@@ -170,7 +193,11 @@ async function applyUpdate() {
   width: 11rem;
   height: 11rem;
   border-radius: 2rem;
-  background: linear-gradient(145deg, rgba(77, 128, 146, 0.14), rgba(199, 106, 43, 0.2));
+  background: linear-gradient(
+    145deg,
+    rgba(77, 128, 146, 0.14),
+    rgba(199, 106, 43, 0.2)
+  );
   transform: rotate(16deg);
 }
 
@@ -369,7 +396,11 @@ async function applyUpdate() {
 }
 
 .shell__nav-link--active {
-  background: linear-gradient(135deg, rgba(199, 106, 43, 0.92), rgba(15, 107, 87, 0.92));
+  background: linear-gradient(
+    135deg,
+    rgba(199, 106, 43, 0.92),
+    rgba(15, 107, 87, 0.92)
+  );
   color: #fff5ea;
 }
 

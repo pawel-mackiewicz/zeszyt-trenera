@@ -6,8 +6,15 @@ import { db } from '@/infra/db'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
-const { canInstall, dbConnected, installed, isOnline, needRefresh, offlineReady, swRegistered } =
-  storeToRefs(appStore)
+const {
+  canInstall,
+  dbConnected,
+  installed,
+  isOnline,
+  needRefresh,
+  offlineReady,
+  swRegistered
+} = storeToRefs(appStore)
 
 const runtimeRows = computed(() => [
   {
@@ -16,11 +23,19 @@ const runtimeRows = computed(() => [
   },
   {
     label: 'Install action',
-    value: canInstall.value ? 'Available' : installed.value ? 'Installed' : 'Hidden'
+    value: canInstall.value
+      ? 'Available'
+      : installed.value
+        ? 'Installed'
+        : 'Hidden'
   },
   {
     label: 'Update signal',
-    value: needRefresh.value ? 'Waiting' : offlineReady.value ? 'Current shell cached' : 'Idle'
+    value: needRefresh.value
+      ? 'Waiting'
+      : offlineReady.value
+        ? 'Current shell cached'
+        : 'Idle'
   },
   {
     label: 'Service worker',
@@ -42,7 +57,11 @@ const storageRows = computed(() => [
       <p class="status-card__eyebrow">Runtime</p>
       <h2 class="status-card__title">PWA signals</h2>
       <dl class="status-list">
-        <div v-for="row in runtimeRows" :key="row.label" class="status-list__row">
+        <div
+          v-for="row in runtimeRows"
+          :key="row.label"
+          class="status-list__row"
+        >
           <dt>{{ row.label }}</dt>
           <dd>{{ row.value }}</dd>
         </div>
@@ -53,7 +72,11 @@ const storageRows = computed(() => [
       <p class="status-card__eyebrow">Storage</p>
       <h2 class="status-card__title">Dexie bootstrap</h2>
       <dl class="status-list">
-        <div v-for="row in storageRows" :key="row.label" class="status-list__row">
+        <div
+          v-for="row in storageRows"
+          :key="row.label"
+          class="status-list__row"
+        >
           <dt>{{ row.label }}</dt>
           <dd>{{ row.value }}</dd>
         </div>
@@ -78,7 +101,11 @@ const storageRows = computed(() => [
 
 .status-card--storage {
   background:
-    linear-gradient(150deg, rgba(220, 230, 215, 0.72), rgba(255, 255, 255, 0.88)),
+    linear-gradient(
+      150deg,
+      rgba(220, 230, 215, 0.72),
+      rgba(255, 255, 255, 0.88)
+    ),
     var(--bg-panel);
 }
 
