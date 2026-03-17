@@ -1,6 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie'
 
-import type { Club } from '@/domain/model/club'
+export type PersistedClub = {
+  id: string
+  name: string
+  foundingDate: Date
+  createdAt: Date
+}
 
 export type PersistedDomainEvent<TPayload> = {
   eventId: string
@@ -10,11 +15,11 @@ export type PersistedDomainEvent<TPayload> = {
 }
 
 export class TrainerNotebookDb extends Dexie {
-  public clubs!: EntityTable<Club, 'id'>
+  public clubs!: EntityTable<PersistedClub, 'id'>
   public events!: EntityTable<PersistedDomainEvent<unknown>, 'eventId'>
 
-  public constructor() {
-    super('trainer-notebook')
+  public constructor(databaseName = 'trainer-notebook') {
+    super(databaseName)
 
     this.version(1).stores({
       clubs: 'id, _name'

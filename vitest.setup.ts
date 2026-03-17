@@ -1,3 +1,5 @@
+import 'fake-indexeddb/auto'
+
 import { config } from '@vue/test-utils'
 
 config.global.stubs = {
