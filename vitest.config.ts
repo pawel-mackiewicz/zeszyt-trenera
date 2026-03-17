@@ -7,7 +7,10 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url))
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'virtual:pwa-register/vue': fileURLToPath(
+        new URL('./src/test/mocks/virtual-pwa-register-vue.ts', import.meta.url)
+      )
     }
   },
   test: {

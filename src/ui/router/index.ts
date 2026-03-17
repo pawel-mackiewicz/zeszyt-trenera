@@ -1,9 +1,9 @@
-import type { RouteLocationNormalizedLoaded } from '@/router/runtime'
-import { createRouter, createWebHistory } from '@/router/runtime'
+import type { RouteLocationNormalizedLoaded } from '@/ui/router/runtime'
+import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
-import HomeView from '@/views/HomeView.vue'
-import SettingsView from '@/views/SettingsView.vue'
-import StatusView from '@/views/StatusView.vue'
+import HomeView from '@/ui/views/HomeView.vue'
+import SettingsView from '@/ui/views/SettingsView.vue'
+import StatusView from '@/ui/views/StatusView.vue'
 
 export const navigationItems = [
   { name: 'home', label: 'Home', to: '/' },

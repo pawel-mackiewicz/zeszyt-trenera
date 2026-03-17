@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted } from 'vue'
 
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/ui/stores/app'
 
 export function useNetworkStatus() {
   const appStore = useAppStore()

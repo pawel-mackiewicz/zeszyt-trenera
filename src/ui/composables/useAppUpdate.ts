@@ -1,7 +1,7 @@
 import { watch } from 'vue'
 
-import { registerPwa } from '@/pwa/register'
-import { useAppStore } from '@/stores/app'
+import { registerPwa } from '@/ui/pwa/register'
+import { useAppStore } from '@/ui/stores/app'
 
 export function useAppUpdate() {
   const appStore = useAppStore()

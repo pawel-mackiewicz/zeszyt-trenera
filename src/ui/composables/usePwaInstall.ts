@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, shallowRef } from 'vue'
 
-import { useAppStore } from '@/stores/app'
+import { useAppStore } from '@/ui/stores/app'
 
 type BeforeInstallPromptOutcome = {
   outcome: 'accepted' | 'dismissed'

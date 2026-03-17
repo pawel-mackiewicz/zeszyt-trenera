@@ -3,12 +3,12 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
 
-import AppShell from '@/components/AppShell.vue'
-import { createMemoryHistory, createRouter } from '@/router/runtime'
-import HomeView from '@/views/HomeView.vue'
-import { useAppStore } from '@/stores/app'
+import AppShell from '@/ui/components/AppShell.vue'
+import { createMemoryHistory, createRouter } from '@/ui/router/runtime'
+import HomeView from '@/ui/views/HomeView.vue'
+import { useAppStore } from '@/ui/stores/app'
 
-vi.mock('@/pwa/register', () => ({
+vi.mock('@/ui/pwa/register', () => ({
   registerPwa: () => ({
     needRefresh: ref(true),
     offlineReady: ref(false),

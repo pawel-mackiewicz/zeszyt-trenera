@@ -2,13 +2,13 @@
 import { storeToRefs } from 'pinia'
 import { computed } from 'vue'
 
-import BrandMark from '@/components/BrandMark.vue'
-import { useAppUpdate } from '@/composables/useAppUpdate'
-import { useNetworkStatus } from '@/composables/useNetworkStatus'
-import { usePwaInstall } from '@/composables/usePwaInstall'
-import { navigationItems } from '@/router'
-import { RouterLink, RouterView, useRoute } from '@/router/runtime'
-import { useAppStore } from '@/stores/app'
+import BrandMark from '@/ui/components/BrandMark.vue'
+import { useAppUpdate } from '@/ui/composables/useAppUpdate'
+import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
+import { usePwaInstall } from '@/ui/composables/usePwaInstall'
+import { navigationItems } from '@/ui/router'
+import { RouterLink, RouterView, useRoute } from '@/ui/router/runtime'
+import { useAppStore } from '@/ui/stores/app'
 
 const route = useRoute()
 const appStore = useAppStore()

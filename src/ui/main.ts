@@ -2,7 +2,7 @@ import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
 import App from './App.vue'
-import { db } from './infra/db'
+import { db } from '../infra/db'
 import router from './router'
 import { useAppStore } from './stores/app'
 import './style.css'
