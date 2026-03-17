@@ -33,11 +33,11 @@ const baseRoutes = [
     name: 'home',
     component: HomeView,
     meta: {
-      title: 'Fieldbook Boilerplate',
-      eyebrow: 'Mobile-first shell',
+      title: 'Register Club',
+      eyebrow: 'First setup',
       summary:
-        'Vue, Pinia, PWA wiring, and Dexie bootstrapping without domain baggage.',
-      navLabel: 'Home'
+        'Create the first local club record and matching event before the rest of the notebook grows around it.',
+      navLabel: 'Club'
     }
   },
   {

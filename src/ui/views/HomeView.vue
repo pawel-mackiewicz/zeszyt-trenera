@@ -1,79 +1,306 @@
+<script setup lang="ts">
+import { computed, reactive, ref } from 'vue'
+
+import { createRegisterClubUseCase } from '@/infra/createRegisterClubUseCase'
+
+type SetupSignal = {
+  label: string
+  value: string
+}
+
+type SetupStep = {
+  title: string
+  detail: string
+}
+
+type SuccessState = {
+  clubName: string
+  foundingDateLabel: string
+}
+
+const registerClubUseCase = createRegisterClubUseCase()
+
+const setupSignals: SetupSignal[] = [
+  { label: 'Storage', value: 'Dexie writes club + event rows' },
+  { label: 'Mode', value: 'Works offline after first shell load' },
+  { label: 'Scope', value: 'Local-first foundation for training notebooks' }
+]
+
+const setupSteps: SetupStep[] = [
+  {
+    title: 'Create the anchor record',
+    detail:
+      'The club becomes the first durable entity in local storage and the base for future training, roster, and event workflows.'
+  },
+  {
+    title: 'Capture a stable founding date',
+    detail:
+      'The founding date is saved as a real date object so later screens can reuse it without reparsing free-form text.'
+  },
+  {
+    title: 'Confirm local persistence early',
+    detail:
+      'This flow proves the app can write real domain data before sync, auth, or remote APIs are introduced.'
+  }
+]
+
+const whatHappensNext: SetupStep[] = [
+  {
+    title: 'Club snapshot is saved',
+    detail:
+      'The club name, founding date, generated id, and creation timestamp are stored in IndexedDB.'
+  },
+  {
+    title: 'Domain event is recorded',
+    detail:
+      'A matching `club.created` event is persisted beside the club row for auditability and later replay paths.'
+  },
+  {
+    title: 'The app stays on setup',
+    detail:
+      'You get immediate confirmation on this screen instead of being redirected into an unfinished workflow.'
+  }
+]
+
+const form = reactive({
+  clubName: '',
+  foundingDate: ''
+})
+
+const isSubmitting = ref(false)
+const submitError = ref('')
+const successState = ref<SuccessState | null>(null)
+
+const canSubmit = computed(
+  () =>
+    form.clubName.trim().length > 0 &&
+    form.foundingDate.length > 0 &&
+    !isSubmitting.value
+)
+
+function formatFoundingDateLabel(value: string) {
+  const date = new Date(`${value}T00:00:00Z`)
+
+  return new Intl.DateTimeFormat('en-GB', {
+    dateStyle: 'long',
+    timeZone: 'UTC'
+  }).format(date)
+}
+
+async function handleSubmit() {
+  submitError.value = ''
+  successState.value = null
+
+  const clubName = form.clubName.trim()
+
+  if (!clubName || !form.foundingDate) {
+    submitError.value = 'Enter the club name and founding date before saving.'
+    return
+  }
+
+  isSubmitting.value = true
+
+  try {
+    await registerClubUseCase.handle({
+      clubName,
+      foundingDate: new Date(`${form.foundingDate}T00:00:00Z`)
+    })
+
+    successState.value = {
+      clubName,
+      foundingDateLabel: formatFoundingDateLabel(form.foundingDate)
+    }
+
+    form.clubName = ''
+    form.foundingDate = ''
+  } catch {
+    submitError.value =
+      'The club could not be saved locally. Keep the values, check the device state, and try again.'
+  } finally {
+    isSubmitting.value = false
+  }
+}
+</script>
+
 <template>
-  <section class="view-grid">
-    <article class="panel panel--hero">
-      <p class="panel__eyebrow">Starting point</p>
-      <h2 class="panel__title">A shell built for the sideline, not for a desktop demo.</h2>
-      <p class="panel__copy">
-        This starter keeps the app lightweight and domain-neutral, but the critical PWA
-        behaviors are already in place: mobile navigation, install flow, service worker updates,
-        and a local database entrypoint ready for the first real records.
+  <section class="setup-grid">
+    <article class="setup-card setup-card--hero">
+      <p class="setup-card__eyebrow">First real workflow</p>
+      <h2 class="setup-card__title">Register the club before the notebook grows around it.</h2>
+      <p class="setup-card__copy">
+        This replaces the starter placeholder with the first domain-backed action in the app:
+        saving a club record and the matching domain event in local storage. The shell still
+        handles install, offline state, and updates around it.
       </p>
-      <div class="panel__stats">
-        <div>
-          <strong>Vue 3</strong>
-          <span>Strict TypeScript app shell</span>
-        </div>
-        <div>
-          <strong>Dexie</strong>
-          <span>Schema versioning reserved up front</span>
-        </div>
-        <div>
-          <strong>PWA</strong>
-          <span>Install prompt and update path included</span>
+
+      <div class="setup-card__signals" aria-label="Workflow signals">
+        <div
+          v-for="signal in setupSignals"
+          :key="signal.label"
+          class="setup-card__signal"
+        >
+          <strong>{{ signal.label }}</strong>
+          <span>{{ signal.value }}</span>
         </div>
       </div>
     </article>
 
-    <article class="panel">
-      <p class="panel__eyebrow">Included now</p>
-      <h3 class="panel__subtitle">What the boilerplate already proves</h3>
-      <ul class="checklist">
-        <li>App shell is cached after first load, so the UI can reopen offline.</li>
-        <li>Pinia owns shared runtime state such as network, install, and update signals.</li>
-        <li>Vue Router is in place with a mobile-first dock pattern instead of a placeholder page.</li>
-        <li>Dexie is bootstrapped behind one module, ready for the first table version.</li>
-      </ul>
+    <article class="setup-card setup-card--form">
+      <div class="setup-card__heading">
+        <p class="setup-card__eyebrow">Club setup</p>
+        <h3 class="setup-card__subtitle">Save the first local record</h3>
+        <p class="setup-card__copy setup-card__copy--compact">
+          Use the same Dexie-backed registration flow already covered by the infrastructure spec.
+        </p>
+      </div>
+
+      <div
+        v-if="successState"
+        class="message-banner message-banner--success"
+        role="status"
+      >
+        <strong>{{ successState.clubName }} saved offline.</strong>
+        <span>Founding date recorded as {{ successState.foundingDateLabel }}.</span>
+      </div>
+
+      <div
+        v-if="submitError"
+        class="message-banner message-banner--danger"
+        role="alert"
+      >
+        <strong>Save failed.</strong>
+        <span>{{ submitError }}</span>
+      </div>
+
+      <form class="setup-form" @submit.prevent="handleSubmit">
+        <label class="form-control" for="clubName">
+          <span class="form-control__label">Club name</span>
+          <input
+            id="clubName"
+            v-model="form.clubName"
+            class="form-control__input"
+            name="clubName"
+            type="text"
+            autocomplete="organization"
+            placeholder="ZKS Wlokniarz Czestochowa"
+            required
+          />
+        </label>
+
+        <label class="form-control" for="foundingDate">
+          <span class="form-control__label">Founding date</span>
+          <input
+            id="foundingDate"
+            v-model="form.foundingDate"
+            class="form-control__input"
+            name="foundingDate"
+            type="date"
+            required
+          />
+        </label>
+
+        <div class="setup-form__footer">
+          <p class="setup-form__hint">
+            The date is converted to a UTC midnight timestamp before it reaches the use case.
+          </p>
+          <button
+            class="button-brand"
+            type="submit"
+            :disabled="!canSubmit"
+          >
+            {{ isSubmitting ? 'Saving club...' : 'Register club' }}
+          </button>
+        </div>
+      </form>
     </article>
 
-    <article class="panel panel--warm">
-      <p class="panel__eyebrow">Intentionally deferred</p>
-      <h3 class="panel__subtitle">What waits for the first real feature</h3>
-      <ul class="checklist">
-        <li>Domain entities, repositories, and sync conflict rules.</li>
-        <li>Remote APIs, authentication, and background synchronization.</li>
-        <li>Feature-specific state flows that would lock in the wrong abstractions too early.</li>
+    <article class="setup-card">
+      <p class="setup-card__eyebrow">Why this matters</p>
+      <h3 class="setup-card__subtitle">The setup flow proves the app shape</h3>
+      <ol class="setup-list">
+        <li v-for="step in setupSteps" :key="step.title" class="setup-list__item">
+          <strong>{{ step.title }}</strong>
+          <span>{{ step.detail }}</span>
+        </li>
+      </ol>
+    </article>
+
+    <article class="setup-card setup-card--deep">
+      <p class="setup-card__eyebrow">After save</p>
+      <h3 class="setup-card__subtitle">What happens next in storage</h3>
+      <ul class="setup-list setup-list--unordered">
+        <li
+          v-for="step in whatHappensNext"
+          :key="step.title"
+          class="setup-list__item"
+        >
+          <strong>{{ step.title }}</strong>
+          <span>{{ step.detail }}</span>
+        </li>
       </ul>
     </article>
   </section>
 </template>
 
 <style scoped>
-.view-grid {
+.setup-grid {
   display: grid;
   gap: 1rem;
 }
 
-.panel {
-  padding: 1.3rem;
+.setup-card {
+  position: relative;
+  overflow: hidden;
+  padding: 1.35rem;
   border-radius: var(--radius-card);
   border: 1px solid var(--line);
   background: var(--bg-panel);
   box-shadow: var(--shadow-soft);
 }
 
-.panel--hero {
+.setup-card--hero {
   background:
-    linear-gradient(140deg, rgba(255, 251, 243, 0.95), rgba(220, 230, 215, 0.78)),
-    linear-gradient(135deg, rgba(77, 128, 146, 0.1), transparent 50%);
+    linear-gradient(145deg, rgba(255, 250, 242, 0.96), rgba(220, 230, 215, 0.78)),
+    linear-gradient(135deg, rgba(77, 128, 146, 0.08), transparent 48%);
 }
 
-.panel--warm {
-  background:
-    linear-gradient(140deg, rgba(255, 248, 241, 0.96), rgba(248, 231, 214, 0.78)),
-    rgba(255, 251, 243, 0.94);
+.setup-card--hero::after {
+  content: '';
+  position: absolute;
+  inset: auto -2.5rem -3rem auto;
+  width: 11rem;
+  height: 11rem;
+  border-radius: 2rem;
+  background: linear-gradient(
+    145deg,
+    rgba(77, 128, 146, 0.2),
+    rgba(199, 106, 43, 0.22)
+  );
+  transform: rotate(12deg);
 }
 
-.panel__eyebrow {
+.setup-card--form {
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(247, 240, 223, 0.92)),
+    var(--bg-panel);
+}
+
+.setup-card--deep {
+  background:
+    linear-gradient(155deg, rgba(16, 59, 55, 0.94), rgba(15, 107, 87, 0.88)),
+    rgba(16, 59, 55, 0.94);
+  color: #eff5ea;
+}
+
+.setup-card__heading,
+.setup-card__signals,
+.setup-card__title,
+.setup-card__copy {
+  position: relative;
+  z-index: 1;
+}
+
+.setup-card__eyebrow {
   margin: 0 0 0.5rem;
   color: var(--accent);
   font: 700 0.82rem/1 var(--font-display);
@@ -81,91 +308,131 @@
   text-transform: uppercase;
 }
 
-.panel__title,
-.panel__subtitle {
+.setup-card--deep .setup-card__eyebrow {
+  color: rgba(239, 245, 234, 0.72);
+}
+
+.setup-card__title,
+.setup-card__subtitle {
   margin: 0;
   font-family: var(--font-display);
   line-height: 0.98;
   letter-spacing: -0.02em;
 }
 
-.panel__title {
-  font-size: clamp(1.95rem, 5.6vw, 3rem);
-  max-width: 12ch;
+.setup-card__title {
+  max-width: 13ch;
+  font-size: clamp(2rem, 5.5vw, 3.25rem);
 }
 
-.panel__subtitle {
-  font-size: 1.6rem;
+.setup-card__subtitle {
+  font-size: 1.65rem;
 }
 
-.panel__copy {
-  max-width: 40rem;
+.setup-card__copy {
   margin: 1rem 0 0;
+  max-width: 40rem;
   color: var(--ink-soft);
   line-height: 1.6;
 }
 
-.panel__stats {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
+.setup-card__copy--compact {
+  max-width: 32rem;
 }
 
-.panel__stats div {
+.setup-card--deep .setup-card__copy,
+.setup-card--deep .setup-list__item span {
+  color: rgba(239, 245, 234, 0.82);
+}
+
+.setup-card__signals {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.4rem;
+}
+
+.setup-card__signal {
   padding: 0.95rem 1rem;
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(6px);
 }
 
-.panel__stats strong,
-.panel__stats span {
+.setup-card__signal strong,
+.setup-card__signal span {
   display: block;
 }
 
-.panel__stats strong {
+.setup-card__signal strong {
   font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-size: 1.08rem;
 }
 
-.panel__stats span {
+.setup-card__signal span {
   margin-top: 0.25rem;
   color: var(--ink-soft);
+  line-height: 1.45;
 }
 
-.checklist {
-  margin: 1rem 0 0;
-  padding: 0;
-  list-style: none;
+.setup-form {
   display: grid;
-  gap: 0.8rem;
+  gap: 1rem;
+  margin-top: 1.25rem;
 }
 
-.checklist li {
-  position: relative;
-  padding-left: 1.45rem;
+.setup-form__footer {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.setup-form__hint {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.setup-list {
+  margin: 1rem 0 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.9rem;
+}
+
+.setup-list--unordered {
+  list-style: none;
+  padding-left: 0;
+}
+
+.setup-list__item {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.setup-list__item strong {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+}
+
+.setup-list__item span {
   color: var(--ink-soft);
   line-height: 1.55;
 }
 
-.checklist li::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0.4rem;
-  width: 0.6rem;
-  height: 0.6rem;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--accent), var(--accent-hot));
-}
-
 @media (min-width: 900px) {
-  .view-grid {
-    grid-template-columns: 1.4fr 1fr 1fr;
+  .setup-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(20rem, 1fr);
     align-items: start;
   }
 
-  .panel--hero {
+  .setup-card--hero {
     min-height: 100%;
+    grid-column: 1;
+  }
+
+  .setup-card--form {
+    grid-column: 2;
+    grid-row: 1 / span 2;
   }
 }
 </style>
