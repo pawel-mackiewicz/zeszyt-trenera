@@ -33,6 +33,9 @@ const {
 const summary = computed(() => route.meta.summary)
 const title = computed(() => route.meta.title)
 const eyebrow = computed(() => route.meta.eyebrow)
+const dockStyle = computed(() => ({
+  '--shell-dock-columns': String(navigationItems.length)
+}))
 
 const shellStateLabel = computed(() => {
   if (needRefresh.value) {
@@ -132,7 +135,7 @@ async function applyUpdate() {
         </RouterView>
       </main>
 
-      <nav class="shell__dock" aria-label="Primary">
+      <nav class="shell__dock" :style="dockStyle" aria-label="Primary">
         <RouterLink
           v-for="item in navigationItems"
           :key="item.name"
@@ -364,7 +367,7 @@ async function applyUpdate() {
   z-index: 20;
   width: min(calc(100vw - (var(--shell-page-padding) * 2)), 72rem);
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--shell-dock-columns), minmax(0, 1fr));
   gap: 0.65rem;
   padding: 0.75rem;
   border-radius: 1.5rem;

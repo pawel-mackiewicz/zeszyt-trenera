@@ -1,0 +1,108 @@
+import type { Table } from 'dexie'
+import { onMounted, ref } from 'vue'
+
+import { db, type TrainerNotebookDb } from '@/infra/db'
+
+export type IndexedDbTableSnapshot = {
+  name: string
+  primaryKey: string
+  indexes: string[]
+  rowCount: number
+  columns: string[]
+  rows: Array<Record<string, unknown>>
+}
+
+export type IndexedDbSnapshot = {
+  databaseName: string
+  schemaVersion: number
+  tableSnapshots: IndexedDbTableSnapshot[]
+}
+
+function normalizeRow(row: unknown): Record<string, unknown> {
+  if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
+    return row as Record<string, unknown>
+  }
+
+  return { value: row }
+}
+
+function collectColumns(rows: Array<Record<string, unknown>>): string[] {
+  const columns = new Set<string>()
+
+  for (const row of rows) {
+    for (const key of Object.keys(row)) {
+      columns.add(key)
+    }
+  }
+
+  return [...columns]
+}
+
+async function inspectTable(table: Table): Promise<IndexedDbTableSnapshot> {
+  const rows = (await table.toArray()).map((row) => normalizeRow(row))
+
+  return {
+    name: table.name,
+    primaryKey: table.schema.primKey.name ?? '(none)',
+    indexes: table.schema.indexes.map((index) => index.name),
+    rowCount: rows.length,
+    columns: collectColumns(rows),
+    rows
+  }
+}
+
+export async function inspectIndexedDb(
+  database: TrainerNotebookDb
+): Promise<IndexedDbSnapshot> {
+  if (!database.isOpen()) {
+    await database.open()
+  }
+
+  const tableSnapshots = await Promise.all(
+    database.tables.map((table) => inspectTable(table))
+  )
+
+  return {
+    databaseName: database.name,
+    schemaVersion: database.verno,
+    tableSnapshots
+  }
+}
+
+export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
+  const databaseName = ref(database.name)
+  const schemaVersion = ref(database.verno)
+  const tableSnapshots = ref<Array<IndexedDbTableSnapshot>>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  async function reload() {
+    loading.value = true
+    error.value = null
+
+    try {
+      const snapshot = await inspectIndexedDb(database)
+      databaseName.value = snapshot.databaseName
+      schemaVersion.value = snapshot.schemaVersion
+      tableSnapshots.value = snapshot.tableSnapshots
+    } catch (reason: unknown) {
+      error.value = 'Failed to inspect IndexedDB tables.'
+      console.error('Failed to inspect IndexedDB tables.', reason)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  onMounted(() => {
+    void reload()
+  })
+
+  return {
+    databaseName,
+    schemaVersion,
+    tableSnapshots,
+    loading,
+    error,
+    reload
+  }
+}
