@@ -28,4 +28,21 @@ describe('Club Model', () => {
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
   })
+
+  it('restores an existing club from persisted state', () => {
+    const club = Club.restore({
+      id: 'club-1',
+      name: 'Test Club',
+      foundingDate: new Date('2023-01-01T00:00:00Z'),
+      createdAt: new Date('2024-01-01T00:00:00Z')
+    })
+
+    expect(club).toBeInstanceOf(Club)
+    expect(club).toMatchObject({
+      id: 'club-1',
+      name: 'Test Club',
+      foundingDate: new Date('2023-01-01T00:00:00Z'),
+      createdAt: new Date('2024-01-01T00:00:00Z')
+    })
+  })
 })

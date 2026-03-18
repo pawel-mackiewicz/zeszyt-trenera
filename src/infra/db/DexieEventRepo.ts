@@ -14,9 +14,10 @@ export type PersistedClubCreatedPayload = {
   club: PersistedClubSnapshot
 }
 
-export type PersistedClubCreatedEvent = PersistedDomainEvent<PersistedClubCreatedPayload> & {
-  eventName: 'club.created'
-}
+export type PersistedClubCreatedEvent =
+  PersistedDomainEvent<PersistedClubCreatedPayload> & {
+    eventName: 'club.created'
+  }
 
 export class DexieEventRepo implements EventRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}
@@ -25,21 +26,15 @@ export class DexieEventRepo implements EventRepoPort {
     await this.database.events.add(this.toPersistedEvent(event))
   }
 
-  private toPersistedEvent(
-    event: DomainEvent
-  ): PersistedDomainEvent<unknown> {
+  private toPersistedEvent(event: DomainEvent): PersistedDomainEvent<unknown> {
     if (event instanceof ClubCreatedDomainEvent) {
       return {
         eventId: event.eventId,
         eventName: event.eventName,
         occurredAt: event.occurredAt,
         payload: {
-          club: {
-            id: event.club.id,
-            name: event.club.name,
-            foundingDate: event.club.foundingDate,
-            createdAt: event.club.createdAt
-          }
+          // The event log reuses the same club snapshot as the main table so replay data matches persisted state.
+          club: event.club.toSnapshot()
         } satisfies PersistedClubCreatedPayload
       } satisfies PersistedClubCreatedEvent
     }

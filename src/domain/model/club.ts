@@ -1,6 +1,13 @@
 import { v7 as uuidv7 } from 'uuid'
 import { DomainEvent } from '@/domain/events/DomainEvent'
 
+export type ClubSnapshot = {
+  id: string
+  name: string
+  foundingDate: Date
+  createdAt: Date
+}
+
 export class Club {
   public readonly id: string
   private _createdAt: Date
@@ -8,9 +15,14 @@ export class Club {
   private _name: string
   private _foundingDate: Date
 
-  private constructor(name: string, foundingDate: Date) {
-    this.id = uuidv7()
-    this._createdAt = new Date()
+  private constructor(
+    name: string,
+    foundingDate: Date,
+    id: string = uuidv7(),
+    createdAt: Date = new Date()
+  ) {
+    this.id = id
+    this._createdAt = createdAt
     this._name = name
     this._foundingDate = foundingDate
   }
@@ -21,6 +33,25 @@ export class Club {
   ): ClubCreatedDomainEvent {
     const newClub = new Club(name, foundingDate)
     return new ClubCreatedDomainEvent(newClub)
+  }
+
+  public static restore(snapshot: ClubSnapshot): Club {
+    return new Club(
+      snapshot.name,
+      snapshot.foundingDate,
+      snapshot.id,
+      snapshot.createdAt
+    )
+  }
+
+  // Persistence adapters and event serializers share one snapshot so stored club data cannot drift apart.
+  public toSnapshot(): ClubSnapshot {
+    return {
+      id: this.id,
+      name: this.name,
+      foundingDate: this.foundingDate,
+      createdAt: this.createdAt
+    }
   }
 
   public get name() {
@@ -41,5 +72,12 @@ export class ClubCreatedDomainEvent extends DomainEvent {
 
   constructor(public readonly club: Club) {
     super()
+  }
+}
+
+export class ClubAlreadyExistsError extends Error {
+  public constructor() {
+    super('Club already exists')
+    this.name = 'ClubAlreadyExistsError'
   }
 }

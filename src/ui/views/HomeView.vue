@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
+import { ClubAlreadyExistsError } from '@/domain/model/club'
 import { createRegisterClubUseCase } from '@/infra/createRegisterClubUseCase'
 
 type SetupSignal = {
@@ -87,6 +88,15 @@ function formatFoundingDateLabel(value: string) {
   }).format(date)
 }
 
+// Duplicate-club failures need dedicated guidance because retrying the same form cannot succeed while setup stays single-club.
+function toSubmitError(error: unknown) {
+  if (error instanceof ClubAlreadyExistsError) {
+    return 'A club is already registered on this device. Reuse the saved club instead of creating a second one.'
+  }
+
+  return 'The club could not be saved locally. Keep the values, check the device state, and try again.'
+}
+
 async function handleSubmit() {
   submitError.value = ''
   successState.value = null
@@ -113,9 +123,8 @@ async function handleSubmit() {
 
     form.clubName = ''
     form.foundingDate = ''
-  } catch {
-    submitError.value =
-      'The club could not be saved locally. Keep the values, check the device state, and try again.'
+  } catch (error) {
+    submitError.value = toSubmitError(error)
   } finally {
     isSubmitting.value = false
   }
@@ -126,11 +135,14 @@ async function handleSubmit() {
   <section class="setup-grid">
     <article class="setup-card setup-card--hero">
       <p class="setup-card__eyebrow">First real workflow</p>
-      <h2 class="setup-card__title">Register the club before the notebook grows around it.</h2>
+      <h2 class="setup-card__title">
+        Register the club before the notebook grows around it.
+      </h2>
       <p class="setup-card__copy">
-        This replaces the starter placeholder with the first domain-backed action in the app:
-        saving a club record and the matching domain event in local storage. The shell still
-        handles install, offline state, and updates around it.
+        This replaces the starter placeholder with the first domain-backed
+        action in the app: saving a club record and the matching domain event in
+        local storage. The shell still handles install, offline state, and
+        updates around it.
       </p>
 
       <div class="setup-card__signals" aria-label="Workflow signals">
@@ -150,7 +162,8 @@ async function handleSubmit() {
         <p class="setup-card__eyebrow">Club setup</p>
         <h3 class="setup-card__subtitle">Save the first local record</h3>
         <p class="setup-card__copy setup-card__copy--compact">
-          Use the same Dexie-backed registration flow already covered by the infrastructure spec.
+          Use the same Dexie-backed registration flow already covered by the
+          infrastructure spec.
         </p>
       </div>
 
@@ -160,7 +173,9 @@ async function handleSubmit() {
         role="status"
       >
         <strong>{{ successState.clubName }} saved offline.</strong>
-        <span>Founding date recorded as {{ successState.foundingDateLabel }}.</span>
+        <span
+          >Founding date recorded as {{ successState.foundingDateLabel }}.</span
+        >
       </div>
 
       <div
@@ -201,13 +216,10 @@ async function handleSubmit() {
 
         <div class="setup-form__footer">
           <p class="setup-form__hint">
-            The date is converted to a UTC midnight timestamp before it reaches the use case.
+            The date is converted to a UTC midnight timestamp before it reaches
+            the use case.
           </p>
-          <button
-            class="button-brand"
-            type="submit"
-            :disabled="!canSubmit"
-          >
+          <button class="button-brand" type="submit" :disabled="!canSubmit">
             {{ isSubmitting ? 'Saving club...' : 'Register club' }}
           </button>
         </div>
@@ -218,7 +230,11 @@ async function handleSubmit() {
       <p class="setup-card__eyebrow">Why this matters</p>
       <h3 class="setup-card__subtitle">The setup flow proves the app shape</h3>
       <ol class="setup-list">
-        <li v-for="step in setupSteps" :key="step.title" class="setup-list__item">
+        <li
+          v-for="step in setupSteps"
+          :key="step.title"
+          class="setup-list__item"
+        >
           <strong>{{ step.title }}</strong>
           <span>{{ step.detail }}</span>
         </li>
@@ -260,7 +276,11 @@ async function handleSubmit() {
 
 .setup-card--hero {
   background:
-    linear-gradient(145deg, rgba(255, 250, 242, 0.96), rgba(220, 230, 215, 0.78)),
+    linear-gradient(
+      145deg,
+      rgba(255, 250, 242, 0.96),
+      rgba(220, 230, 215, 0.78)
+    ),
     linear-gradient(135deg, rgba(77, 128, 146, 0.08), transparent 48%);
 }
 
@@ -281,7 +301,11 @@ async function handleSubmit() {
 
 .setup-card--form {
   background:
-    linear-gradient(160deg, rgba(255, 255, 255, 0.96), rgba(247, 240, 223, 0.92)),
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.96),
+      rgba(247, 240, 223, 0.92)
+    ),
     var(--bg-panel);
 }
 

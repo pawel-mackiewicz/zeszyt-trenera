@@ -1,4 +1,4 @@
-import { Club } from '@/domain/model/club'
+import { Club, ClubAlreadyExistsError } from '@/domain/model/club'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
@@ -12,6 +12,11 @@ export class RegisterClubUseCase {
   ) {}
 
   public async handle(dto: RegisterClubCommand): Promise<void> {
+    // The notebook currently supports a single club, so duplicate registration must fail before opening a unit of work.
+    if (await this.clubRepo.exists()) {
+      throw new ClubAlreadyExistsError()
+    }
+
     const event = Club.register(dto.clubName, dto.foundingDate)
 
     await this.uow.execute(async () => {

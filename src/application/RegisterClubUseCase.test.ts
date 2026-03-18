@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RegisterClubUseCase } from './RegisterClubUseCase'
 import { type RegisterClubCommand } from './requests/RegisterClubCommand'
-import { Club } from '@/domain/model/club'
+import { Club, ClubAlreadyExistsError } from '@/domain/model/club'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
@@ -16,9 +16,14 @@ class FakeUnitOfWork implements UnitOfWork {
 
 class FakeClubRepo implements ClubRepoPort {
   public readonly savedClubs: Club[] = []
+  public loadedClub: Club | undefined
 
   async save(club: Club): Promise<void> {
     this.savedClubs.push(club)
+  }
+
+  async exists(): Promise<boolean> {
+    return this.loadedClub != null
   }
 }
 
@@ -66,5 +71,24 @@ describe('RegisterClubUseCase', () => {
     const savedEvent = eventRepo.savedEvents[0]
     expect(savedEvent.eventName).toBe('club.created')
     expect(savedEvent).toMatchObject({ club: savedClub })
+  })
+
+  it('should throw when trying to register a second club', async () => {
+    clubRepo.loadedClub = Club.restore({
+      id: 'club-1',
+      name: 'Existing Club',
+      foundingDate: new Date('1946-01-01T00:00:00Z'),
+      createdAt: new Date('2024-01-01T00:00:00Z')
+    })
+
+    const dto: RegisterClubCommand = {
+      clubName: 'ZKS Włókniarz Częstochowa',
+      foundingDate: new Date('1946-01-01T00:00:00Z')
+    }
+
+    await expect(useCase.handle(dto)).rejects.toThrow(ClubAlreadyExistsError)
+    expect(uow.execute).not.toHaveBeenCalled()
+    expect(clubRepo.savedClubs).toHaveLength(0)
+    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

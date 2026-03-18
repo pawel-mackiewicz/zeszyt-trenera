@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { ClubAlreadyExistsError } from '@/domain/model/club'
 import HomeView from '@/ui/views/HomeView.vue'
 
 const { handleMock } = vi.hoisted(() => ({
@@ -51,9 +52,9 @@ describe('HomeView', () => {
 
     expect(wrapper.text()).toContain('saved offline')
     expect(wrapper.text()).toContain('ZKS Wlokniarz Czestochowa')
-    expect(
-      (wrapper.get('#clubName').element as HTMLInputElement).value
-    ).toBe('')
+    expect((wrapper.get('#clubName').element as HTMLInputElement).value).toBe(
+      ''
+    )
     expect(
       (wrapper.get('#foundingDate').element as HTMLInputElement).value
     ).toBe('')
@@ -71,9 +72,29 @@ describe('HomeView', () => {
 
     expect(wrapper.text()).toContain('Save failed.')
     expect(wrapper.text()).toContain('could not be saved locally')
+    expect((wrapper.get('#clubName').element as HTMLInputElement).value).toBe(
+      'Skra'
+    )
     expect(
-      (wrapper.get('#clubName').element as HTMLInputElement).value
-    ).toBe('Skra')
+      (wrapper.get('#foundingDate').element as HTMLInputElement).value
+    ).toBe('1926-03-08')
+  })
+
+  it('shows a dedicated error when a club already exists', async () => {
+    handleMock.mockRejectedValue(new ClubAlreadyExistsError())
+
+    const wrapper = mount(HomeView)
+
+    await wrapper.get('#clubName').setValue('Skra')
+    await wrapper.get('#foundingDate').setValue('1926-03-08')
+    await wrapper.get('form').trigger('submit.prevent')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Save failed.')
+    expect(wrapper.text()).toContain('already registered on this device')
+    expect((wrapper.get('#clubName').element as HTMLInputElement).value).toBe(
+      'Skra'
+    )
     expect(
       (wrapper.get('#foundingDate').element as HTMLInputElement).value
     ).toBe('1926-03-08')

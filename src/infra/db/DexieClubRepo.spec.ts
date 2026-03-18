@@ -40,4 +40,19 @@ describe('DexieClubRepo', () => {
       createdAt: event.club.createdAt
     })
   })
+
+  it('reports when no club exists yet', async () => {
+    await expect(repository.exists()).resolves.toBe(false)
+  })
+
+  it('reports when a club is already persisted', async () => {
+    const event = Club.register(
+      'ZKS Włókniarz Częstochowa',
+      new Date('1946-01-01T00:00:00Z')
+    )
+
+    await repository.save(event.club)
+
+    await expect(repository.exists()).resolves.toBe(true)
+  })
 })

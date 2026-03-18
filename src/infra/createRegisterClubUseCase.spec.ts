@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import { ClubAlreadyExistsError } from '@/domain/model/club'
 import type { PersistedDomainEvent } from '@/infra/db'
 import {
   createRegisterClubUseCase
@@ -50,5 +51,24 @@ describe('createRegisterClubUseCase', () => {
         }
       }
     })
+  })
+
+  it('throws a domain error when trying to register a second club', async () => {
+    const useCase = createRegisterClubUseCase(database)
+
+    await useCase.handle({
+      clubName: 'ZKS Włókniarz Częstochowa',
+      foundingDate: new Date('1946-01-01T00:00:00Z')
+    })
+
+    expect(
+      useCase.handle({
+        clubName: 'Falubaz Zielona Gora',
+        foundingDate: new Date('1946-01-01T00:00:00Z')
+      })
+    ).rejects.toThrow(ClubAlreadyExistsError)
+
+    expect(database.clubs.toArray()).resolves.toHaveLength(1)
+    expect(database.events.toArray()).resolves.toHaveLength(1)
   })
 })

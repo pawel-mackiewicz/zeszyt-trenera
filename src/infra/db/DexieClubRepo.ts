@@ -9,12 +9,14 @@ export class DexieClubRepo implements ClubRepoPort {
     await this.database.clubs.add(this.toPersistedClub(club))
   }
 
+  public async exists(): Promise<boolean> {
+    // Setup only needs a single-club guard for now, so the repo keeps a narrow existence query instead of premature hydration.
+    const persistedClub = await this.database.clubs.toCollection().first()
+
+    return persistedClub != null
+  }
+
   private toPersistedClub(club: Club): PersistedClub {
-    return {
-      id: club.id,
-      name: club.name,
-      foundingDate: club.foundingDate,
-      createdAt: club.createdAt
-    }
+    return club.toSnapshot()
   }
 }
