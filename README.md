@@ -19,6 +19,8 @@ Vue 3 boilerplate for a mobile-first, offline-ready PWA. The starter is intentio
 - `pnpm preview`
 - `pnpm typecheck`
 - `pnpm lint`
+- `pnpm lint:fix`
+- `pnpm format`
 - `pnpm test`
 
 ## What ships in the boilerplate

@@ -11,9 +11,9 @@
     "prepare": "pnpm run hooks:install",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
-    "lint:fix": "eslint --fix",
+    "lint:fix": "sh scripts/run-lint-fix.sh",
     "hooks:install": "sh scripts/install-git-hooks.sh",
-    "format": "prettier --write .",
+    "format": "sh scripts/run-prettier.sh",
     "test": "vitest run"
   },
   "dependencies": {
