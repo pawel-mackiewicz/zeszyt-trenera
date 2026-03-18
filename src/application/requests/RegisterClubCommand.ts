@@ -1,5 +1,4 @@
-
 export type RegisterClubCommand = {
-    clubName: string;
-    foundingDate: Date;
-};
+  clubName: string
+  foundingDate: Date
+}

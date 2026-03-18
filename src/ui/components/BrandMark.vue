@@ -6,8 +6,22 @@
     fill="none"
     xmlns="http://www.w3.org/2000/svg"
   >
-    <rect x="10" y="10" width="140" height="140" rx="34" class="brand-mark__outer" />
-    <rect x="34" y="28" width="82" height="104" rx="18" class="brand-mark__book" />
+    <rect
+      x="10"
+      y="10"
+      width="140"
+      height="140"
+      rx="34"
+      class="brand-mark__outer"
+    />
+    <rect
+      x="34"
+      y="28"
+      width="82"
+      height="104"
+      rx="18"
+      class="brand-mark__book"
+    />
     <path d="M54 56H94" class="brand-mark__line brand-mark__line--primary" />
     <path d="M54 76H106" class="brand-mark__line brand-mark__line--warm" />
     <path d="M54 96H86" class="brand-mark__line brand-mark__line--cool" />

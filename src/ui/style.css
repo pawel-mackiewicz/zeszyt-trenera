@@ -1,7 +1,8 @@
 :root {
   color-scheme: light;
   font-family: 'Trebuchet MS', 'Gill Sans', 'Segoe UI', sans-serif;
-  --font-display: 'Avenir Next Condensed', 'Arial Narrow', 'Franklin Gothic Medium',
+  --font-display:
+    'Avenir Next Condensed', 'Arial Narrow', 'Franklin Gothic Medium',
     sans-serif;
   --bg-page: #f4eee0;
   --bg-tint: #dce6d7;
@@ -45,8 +46,16 @@
 html {
   font-size: 16px;
   background:
-    radial-gradient(circle at top left, rgba(77, 128, 146, 0.24), transparent 34%),
-    radial-gradient(circle at right 12%, rgba(199, 106, 43, 0.16), transparent 26%),
+    radial-gradient(
+      circle at top left,
+      rgba(77, 128, 146, 0.24),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at right 12%,
+      rgba(199, 106, 43, 0.16),
+      transparent 26%
+    ),
     linear-gradient(180deg, #f7f0df 0%, var(--bg-page) 48%, #e6eedf 100%);
   min-height: 100%;
 }
@@ -58,7 +67,9 @@ body {
   background:
     linear-gradient(rgba(16, 59, 55, 0.045) 1px, transparent 1px),
     linear-gradient(90deg, rgba(16, 59, 55, 0.02) 1px, transparent 1px);
-  background-size: 100% 2.75rem, 2.75rem 100%;
+  background-size:
+    100% 2.75rem,
+    2.75rem 100%;
 }
 
 body::before {
@@ -66,8 +77,16 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 10%, rgba(15, 107, 87, 0.12), transparent 24%),
-    radial-gradient(circle at 80% 24%, rgba(199, 106, 43, 0.12), transparent 22%);
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(15, 107, 87, 0.12),
+      transparent 24%
+    ),
+    radial-gradient(
+      circle at 80% 24%,
+      rgba(199, 106, 43, 0.12),
+      transparent 22%
+    );
   pointer-events: none;
   z-index: -1;
 }
@@ -179,13 +198,21 @@ a {
 
 .message-banner--success {
   border-color: rgba(38, 127, 92, 0.16);
-  background: linear-gradient(135deg, var(--success-soft), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(
+    135deg,
+    var(--success-soft),
+    rgba(255, 255, 255, 0.92)
+  );
   color: var(--success);
 }
 
 .message-banner--danger {
   border-color: rgba(161, 63, 48, 0.16);
-  background: linear-gradient(135deg, var(--danger-soft), rgba(255, 255, 255, 0.92));
+  background: linear-gradient(
+    135deg,
+    var(--danger-soft),
+    rgba(255, 255, 255, 0.92)
+  );
   color: var(--danger);
 }
 

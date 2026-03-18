@@ -21,7 +21,9 @@ const nextSteps = [
       <p class="sheet__eyebrow">Locked in</p>
       <h2 class="sheet__title">Starter conventions</h2>
       <ul class="decision-list">
-        <li v-for="decision in starterDecisions" :key="decision">{{ decision }}</li>
+        <li v-for="decision in starterDecisions" :key="decision">
+          {{ decision }}
+        </li>
       </ul>
     </article>
 

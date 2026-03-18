@@ -2,9 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
 import type { PersistedDomainEvent } from '@/infra/db'
-import {
-  createRegisterClubUseCase
-} from '@/infra/createRegisterClubUseCase'
+import { createRegisterClubUseCase } from '@/infra/createRegisterClubUseCase'
 import { TrainerNotebookDb } from '@/infra/db'
 import type { PersistedClubCreatedPayload } from '@/infra/db/DexieEventRepo'
 
