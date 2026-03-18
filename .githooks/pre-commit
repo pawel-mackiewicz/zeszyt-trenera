@@ -1,0 +1,15 @@
+#!/usr/bin/env sh
+set -eu
+
+staged_lintable_files() {
+  # Limit auto-fixes to files already being committed so the hook does not rewrite unrelated work.
+  git diff --cached --name-only --diff-filter=ACMR -z -- \
+    '*.js' '*.cjs' '*.mjs' '*.ts' '*.cts' '*.mts' '*.vue'
+}
+
+if ! staged_lintable_files | xargs -0 --no-run-if-empty pnpm run lint:fix --; then
+  exit 1
+fi
+
+# Re-stage any lint fixes so the commit contains the code that just passed the hook.
+staged_lintable_files | xargs -0 --no-run-if-empty git add --
