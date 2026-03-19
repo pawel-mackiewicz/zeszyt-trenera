@@ -2,6 +2,10 @@
 import { computed, reactive, ref } from 'vue'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
+import {
+  InvalidMemberPhoneNumberError,
+  MemberAlreadyExistsError
+} from '@/domain/model/member'
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
 
@@ -24,13 +28,23 @@ type TrainerSuccessState = {
   trainerName: string
 }
 
+type MemberSuccessState = {
+  memberName: string
+  dateOfBirthLabel?: string
+  joinedAtLabel?: string
+}
+
 const { useCases } = useAppServices()
-// Reading both setup workflows from one shared service bag keeps the view aligned with the DI rules while letting each form stay independent.
+// Reading all setup workflows from one shared service bag keeps the view aligned with the DI rules while letting each form stay independent.
 const registerClubUseCase = useCases.registerClub
+const registerMemberUseCase = useCases.registerMember
 const registerTrainerUseCase = useCases.registerTrainer
 
 const setupSignals: SetupSignal[] = [
-  { label: 'Storage', value: 'Dexie writes club, trainer, and event rows' },
+  {
+    label: 'Storage',
+    value: 'Dexie writes club, trainer, member, and event rows'
+  },
   { label: 'Mode', value: 'Works offline after first shell load' },
   { label: 'Scope', value: 'Local-first foundation for training notebooks' }
 ]
@@ -47,9 +61,9 @@ const setupSteps: SetupStep[] = [
       'Saving the trainer during setup gives later roster and planning flows a real local owner instead of placeholder copy.'
   },
   {
-    title: 'Capture a stable founding date',
+    title: 'Register the first member identity',
     detail:
-      'The founding date is saved as a real date object so later screens can reuse it without reparsing free-form text.'
+      'Saving a member with canonical phone data proves the roster workflow can reuse the same offline-first write path without adding new DI seams.'
   }
 ]
 
@@ -80,12 +94,23 @@ const trainerForm = reactive({
   trainerName: ''
 })
 
-// Keeping the submit states separate avoids coupling two local-first writes into one UI transaction with unclear rollback rules.
+const memberForm = reactive({
+  firstName: '',
+  lastName: '',
+  phoneNumber: '',
+  dateOfBirth: '',
+  joinedAt: ''
+})
+
+// Keeping the submit states separate avoids coupling several local-first writes into one UI transaction with unclear rollback rules.
 const isSubmittingClub = ref(false)
+const isSubmittingMember = ref(false)
 const isSubmittingTrainer = ref(false)
 const clubSubmitError = ref('')
+const memberSubmitError = ref('')
 const trainerSubmitError = ref('')
 const clubSuccessState = ref<ClubSuccessState | null>(null)
+const memberSuccessState = ref<MemberSuccessState | null>(null)
 const trainerSuccessState = ref<TrainerSuccessState | null>(null)
 
 const canSubmitClub = computed(
@@ -99,13 +124,26 @@ const canSubmitTrainer = computed(
   () => trainerForm.trainerName.trim().length > 0 && !isSubmittingTrainer.value
 )
 
-function formatFoundingDateLabel(value: string) {
+const canSubmitMember = computed(
+  () =>
+    memberForm.firstName.trim().length > 0 &&
+    memberForm.lastName.trim().length > 0 &&
+    memberForm.phoneNumber.trim().length > 0 &&
+    !isSubmittingMember.value
+)
+
+function formatDateLabel(value: string) {
   const date = new Date(`${value}T00:00:00Z`)
 
   return new Intl.DateTimeFormat('en-GB', {
     dateStyle: 'long',
     timeZone: 'UTC'
   }).format(date)
+}
+
+function toUtcDate(value: string) {
+  // Native date inputs emit calendar-only strings, so the UI fixes them to UTC midnight before persistence can replay the same day consistently.
+  return new Date(`${value}T00:00:00Z`)
 }
 
 // Duplicate-club failures need dedicated guidance because retrying the same form cannot succeed while setup stays single-club.
@@ -126,6 +164,19 @@ function toTrainerSubmitError(error: unknown) {
   return 'The trainer could not be saved locally. Keep the value, check the device state, and try again.'
 }
 
+// Member failures need roster-specific copy because retry guidance differs when the identity already exists versus when the phone number never reaches the canonical format the workflow requires.
+function toMemberSubmitError(error: unknown) {
+  if (error instanceof InvalidMemberPhoneNumberError) {
+    return 'Enter the phone number in international format, for example +48 123 456 789.'
+  }
+
+  if (error instanceof MemberAlreadyExistsError) {
+    return 'A member with the same full name and phone number is already registered on this device.'
+  }
+
+  return 'The member could not be saved locally. Keep the values, check the device state, and try again.'
+}
+
 async function handleClubSubmit() {
   clubSubmitError.value = ''
   clubSuccessState.value = null
@@ -143,12 +194,12 @@ async function handleClubSubmit() {
   try {
     await registerClubUseCase.handle({
       clubName,
-      foundingDate: new Date(`${clubForm.foundingDate}T00:00:00Z`)
+      foundingDate: toUtcDate(clubForm.foundingDate)
     })
 
     clubSuccessState.value = {
       clubName,
-      foundingDateLabel: formatFoundingDateLabel(clubForm.foundingDate)
+      foundingDateLabel: formatDateLabel(clubForm.foundingDate)
     }
 
     clubForm.clubName = ''
@@ -189,6 +240,57 @@ async function handleTrainerSubmit() {
     isSubmittingTrainer.value = false
   }
 }
+
+async function handleMemberSubmit() {
+  memberSubmitError.value = ''
+  memberSuccessState.value = null
+
+  const firstName = memberForm.firstName.trim()
+  const lastName = memberForm.lastName.trim()
+  const phoneNumber = memberForm.phoneNumber.trim()
+
+  if (!firstName || !lastName || !phoneNumber) {
+    memberSubmitError.value =
+      'Enter the member first name, last name, and phone number before saving.'
+    return
+  }
+
+  isSubmittingMember.value = true
+
+  try {
+    await registerMemberUseCase.handle({
+      firstName,
+      lastName,
+      phoneNumber,
+      ...(memberForm.dateOfBirth
+        ? { dateOfBirth: toUtcDate(memberForm.dateOfBirth) }
+        : {}),
+      ...(memberForm.joinedAt
+        ? { joinedAt: toUtcDate(memberForm.joinedAt) }
+        : {})
+    })
+
+    memberSuccessState.value = {
+      memberName: `${firstName} ${lastName}`,
+      ...(memberForm.dateOfBirth
+        ? { dateOfBirthLabel: formatDateLabel(memberForm.dateOfBirth) }
+        : {}),
+      ...(memberForm.joinedAt
+        ? { joinedAtLabel: formatDateLabel(memberForm.joinedAt) }
+        : {})
+    }
+
+    memberForm.firstName = ''
+    memberForm.lastName = ''
+    memberForm.phoneNumber = ''
+    memberForm.dateOfBirth = ''
+    memberForm.joinedAt = ''
+  } catch (error) {
+    memberSubmitError.value = toMemberSubmitError(error)
+  } finally {
+    isSubmittingMember.value = false
+  }
+}
 </script>
 
 <template>
@@ -196,13 +298,14 @@ async function handleTrainerSubmit() {
     <article class="setup-card setup-card--hero">
       <p class="setup-card__eyebrow">First real workflow</p>
       <h2 class="setup-card__title">
-        Register the club and trainer before the notebook grows around them.
+        Register the club, trainer, and first member before the notebook grows
+        around them.
       </h2>
       <p class="setup-card__copy">
         This replaces the starter placeholder with the first domain-backed setup
-        actions in the app: saving club and trainer records with matching domain
-        events in local storage. The shell still handles install, offline state,
-        and updates around them.
+        actions in the app: saving club, trainer, and member records with
+        matching domain events in local storage. The shell still handles
+        install, offline state, and updates around them.
       </p>
 
       <div class="setup-card__signals" aria-label="Workflow signals">
@@ -223,7 +326,8 @@ async function handleTrainerSubmit() {
         <h3 class="setup-card__subtitle">Save the first local records</h3>
         <p class="setup-card__copy setup-card__copy--compact">
           Both forms use the shared service bag, so the view stays unaware of
-          Dexie adapters while setup still writes real offline data.
+          Dexie adapters while setup still writes real offline data through the
+          same workflow seam the rest of the app will reuse.
         </p>
       </div>
 
@@ -377,6 +481,136 @@ async function handleTrainerSubmit() {
               >
                 {{
                   isSubmittingTrainer ? 'Saving trainer...' : 'Register trainer'
+                }}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="setup-form-panel" aria-labelledby="member-setup-title">
+          <div class="setup-form-panel__heading">
+            <h4 id="member-setup-title" class="setup-form-panel__title">
+              Member setup
+            </h4>
+            <p class="setup-form-panel__copy">
+              Save the first roster entry now so attendance, plans, and future
+              grading flows can attach to a real local member record.
+            </p>
+          </div>
+
+          <div
+            v-if="memberSuccessState"
+            data-testid="member-success"
+            class="message-banner message-banner--success"
+            role="status"
+          >
+            <strong>{{ memberSuccessState.memberName }} saved offline.</strong>
+            <span
+              >The phone number passed through the shared member workflow and
+              the matching `member.created` event was recorded locally.</span
+            >
+            <span v-if="memberSuccessState.dateOfBirthLabel">
+              Birth date recorded as {{ memberSuccessState.dateOfBirthLabel }}.
+            </span>
+            <span v-if="memberSuccessState.joinedAtLabel">
+              Joined date recorded as {{ memberSuccessState.joinedAtLabel }}.
+            </span>
+          </div>
+
+          <div
+            v-if="memberSubmitError"
+            data-testid="member-error"
+            class="message-banner message-banner--danger"
+            role="alert"
+          >
+            <strong>Save failed.</strong>
+            <span>{{ memberSubmitError }}</span>
+          </div>
+
+          <form
+            class="setup-form"
+            data-testid="member-setup-form"
+            @submit.prevent="handleMemberSubmit"
+          >
+            <label class="form-control" for="memberFirstName">
+              <span class="form-control__label">First name</span>
+              <input
+                id="memberFirstName"
+                v-model="memberForm.firstName"
+                class="form-control__input"
+                name="memberFirstName"
+                type="text"
+                autocomplete="given-name"
+                placeholder="Jan"
+                required
+              />
+            </label>
+
+            <label class="form-control" for="memberLastName">
+              <span class="form-control__label">Last name</span>
+              <input
+                id="memberLastName"
+                v-model="memberForm.lastName"
+                class="form-control__input"
+                name="memberLastName"
+                type="text"
+                autocomplete="family-name"
+                placeholder="Kowalski"
+                required
+              />
+            </label>
+
+            <label class="form-control" for="memberPhoneNumber">
+              <span class="form-control__label">Phone number</span>
+              <input
+                id="memberPhoneNumber"
+                v-model="memberForm.phoneNumber"
+                class="form-control__input"
+                name="memberPhoneNumber"
+                type="tel"
+                autocomplete="tel"
+                inputmode="tel"
+                placeholder="+48 123 456 789"
+                required
+              />
+            </label>
+
+            <label class="form-control" for="memberDateOfBirth">
+              <span class="form-control__label">Date of birth</span>
+              <input
+                id="memberDateOfBirth"
+                v-model="memberForm.dateOfBirth"
+                class="form-control__input"
+                name="memberDateOfBirth"
+                type="date"
+              />
+            </label>
+
+            <label class="form-control" for="memberJoinedAt">
+              <span class="form-control__label">Joined on</span>
+              <input
+                id="memberJoinedAt"
+                v-model="memberForm.joinedAt"
+                class="form-control__input"
+                name="memberJoinedAt"
+                type="date"
+              />
+            </label>
+
+            <div class="setup-form__footer">
+              <p class="setup-form__hint">
+                The member form submits the shared workflow contract directly,
+                so roster UI stays decoupled from storage and phone parsing
+                adapters.
+              </p>
+              <button
+                data-testid="member-submit"
+                class="button-brand setup-form__submit"
+                type="submit"
+                :disabled="!canSubmitMember"
+              >
+                {{
+                  isSubmittingMember ? 'Saving member...' : 'Register member'
                 }}
               </button>
             </div>

@@ -36,7 +36,7 @@ const baseRoutes = [
       title: 'Notebook Setup',
       eyebrow: 'First setup',
       summary:
-        'Create the first local club and trainer records with matching events before the rest of the notebook grows around them.',
+        'Create the first local club, trainer, and member records with matching events before the rest of the notebook grows around them.',
       navLabel: 'Setup'
     }
   },
