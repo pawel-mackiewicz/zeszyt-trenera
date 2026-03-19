@@ -15,6 +15,9 @@ function mountHomeView() {
     useCases: {
       registerClub: {
         handle: handleMock
+      },
+      registerTrainer: {
+        handle: vi.fn()
       }
     }
   }

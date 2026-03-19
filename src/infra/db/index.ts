@@ -7,6 +7,12 @@ export type PersistedClub = {
   createdAt: Date
 }
 
+export type PersistedTrainer = {
+  id: string
+  name: string
+  createdAt: Date
+}
+
 export type PersistedDomainEvent<TPayload> = {
   eventId: string
   eventName: string
@@ -16,6 +22,7 @@ export type PersistedDomainEvent<TPayload> = {
 
 export class TrainerNotebookDb extends Dexie {
   public clubs!: EntityTable<PersistedClub, 'id'>
+  public trainers!: EntityTable<PersistedTrainer, 'id'>
   public events!: EntityTable<PersistedDomainEvent<unknown>, 'eventId'>
 
   public constructor(databaseName = 'trainer-notebook') {
@@ -28,6 +35,12 @@ export class TrainerNotebookDb extends Dexie {
     this.version(2).stores({
       clubs: 'id, _name',
       events: 'eventId, eventName, occurredAt'
+    })
+
+    this.version(3).stores({
+      clubs: 'id, _name',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id, name'
     })
   }
 }

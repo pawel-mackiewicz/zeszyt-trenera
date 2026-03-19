@@ -56,3 +56,10 @@ export class TrainerCreatedDomainEvent extends DomainEvent {
     super()
   }
 }
+
+export class TrainerAlreadyExistsError extends Error {
+  public constructor() {
+    super('Trainer already exists')
+    this.name = 'TrainerAlreadyExistsError'
+  }
+}

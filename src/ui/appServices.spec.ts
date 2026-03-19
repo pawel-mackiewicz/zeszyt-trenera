@@ -27,6 +27,9 @@ describe('uiAppServices', () => {
       useCases: {
         registerClub: {
           handle
+        },
+        registerTrainer: {
+          handle
         }
       }
     }

@@ -2,9 +2,11 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DomainEvent } from '@/domain/events/DomainEvent'
 import { Club } from '@/domain/model/club'
+import { Trainer } from '@/domain/model/trainer'
 import {
   DexieEventRepo,
-  type PersistedClubCreatedEvent
+  type PersistedClubCreatedEvent,
+  type PersistedTrainerCreatedEvent
 } from '@/infra/db/DexieEventRepo'
 import { TrainerNotebookDb } from '@/infra/db'
 
@@ -57,6 +59,29 @@ describe('DexieEventRepo', () => {
           name: event.club.name,
           foundingDate: event.club.foundingDate,
           createdAt: event.club.createdAt
+        }
+      }
+    })
+  })
+
+  it('persists a trainer.created event into the generic event log', async () => {
+    const event = Trainer.register('Jane Doe', 'trainer-1')
+
+    await repository.save(event)
+
+    const persistedEvents = await database.events.toArray()
+    const persistedEvent = persistedEvents[0] as PersistedTrainerCreatedEvent
+
+    expect(persistedEvents).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventId: event.eventId,
+      eventName: 'trainer.created',
+      occurredAt: event.occurredAt,
+      payload: {
+        trainer: {
+          id: event.trainer.id,
+          name: event.trainer.name,
+          createdAt: event.trainer.createdAt
         }
       }
     })

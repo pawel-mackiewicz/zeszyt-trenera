@@ -51,6 +51,9 @@ describe('AppShell', () => {
       useCases: {
         registerClub: {
           handle: vi.fn()
+        },
+        registerTrainer: {
+          handle: vi.fn()
         }
       }
     }

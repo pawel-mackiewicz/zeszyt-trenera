@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
+import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/infra/db'
 import {
   clearIndexedDb,
@@ -58,10 +59,13 @@ describe('inspectIndexedDb', () => {
     const eventsTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'events'
     )
+    const trainersTable = snapshot.tableSnapshots.find(
+      (table) => table.name === 'trainers'
+    )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(2)
-    expect(snapshot.tableSnapshots).toHaveLength(2)
+    expect(snapshot.schemaVersion).toBe(3)
+    expect(snapshot.tableSnapshots).toHaveLength(3)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       indexes: ['_name'],
@@ -93,6 +97,12 @@ describe('inspectIndexedDb', () => {
         }
       }
     })
+    expect(trainersTable).toMatchObject({
+      primaryKey: 'id',
+      indexes: ['name'],
+      rowCount: 0,
+      columns: []
+    })
   })
 
   it('clears rows from every store without removing the declared schema', async () => {
@@ -101,6 +111,7 @@ describe('inspectIndexedDb', () => {
       new Date('1926-01-01T00:00:00Z'),
       'club-2'
     )
+    const trainerEvent = Trainer.register('Jane Doe', 'trainer-1')
 
     await database.open()
     await database.clubs.add({
@@ -108,6 +119,11 @@ describe('inspectIndexedDb', () => {
       name: event.club.name,
       foundingDate: event.club.foundingDate,
       createdAt: event.club.createdAt
+    })
+    await database.trainers.add({
+      id: trainerEvent.trainer.id,
+      name: trainerEvent.trainer.name,
+      createdAt: trainerEvent.trainer.createdAt
     })
     await database.events.add({
       eventId: event.eventId,
@@ -128,11 +144,13 @@ describe('inspectIndexedDb', () => {
     // The debug route still needs table metadata after a reset, so the clear action must only remove rows.
     expect(snapshot.tableSnapshots).toMatchObject([
       { name: 'clubs', rowCount: 0 },
-      { name: 'events', rowCount: 0 }
+      { name: 'events', rowCount: 0 },
+      { name: 'trainers', rowCount: 0 }
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
-      'events'
+      'events',
+      'trainers'
     ])
   })
 })

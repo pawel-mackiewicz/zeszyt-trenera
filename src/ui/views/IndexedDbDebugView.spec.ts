@@ -38,6 +38,7 @@ describe('IndexedDbDebugView', () => {
       'IndexedDB tables, as they exist in this browser.'
     )
     expect(wrapper.text()).toContain('events')
+    expect(wrapper.text()).toContain('trainers')
     expect(wrapper.text()).toContain('No records stored in this table yet.')
   })
 
