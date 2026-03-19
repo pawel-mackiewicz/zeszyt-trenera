@@ -1,5 +1,7 @@
-import { v7 as uuidv7 } from 'uuid'
 import { DomainEvent } from '@/domain/events/DomainEvent'
+
+// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
+const copyDate = (value: Date): Date => new Date(value.getTime())
 
 export type TrainerSnapshot = {
   id: string
@@ -9,22 +11,19 @@ export type TrainerSnapshot = {
 
 export class Trainer {
   public readonly id: string
-  public readonly createdAt: Date
+  private _createdAt: Date
 
   private _name: string
 
-  private constructor(
-    name: string,
-    id: string = uuidv7(),
-    createdAt: Date = new Date()
-  ) {
+  private constructor(name: string, id: string, createdAt: Date = new Date()) {
     this.id = id
-    this.createdAt = createdAt
+    this._createdAt = copyDate(createdAt)
     this._name = name
   }
 
-  public static register(name: string): TrainerCreatedDomainEvent {
-    const newTrainer = new Trainer(name)
+  public static register(name: string, id: string): TrainerCreatedDomainEvent {
+    // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
+    const newTrainer = new Trainer(name, id)
     return new TrainerCreatedDomainEvent(newTrainer)
   }
 
@@ -32,8 +31,21 @@ export class Trainer {
     return new Trainer(snapshot.name, snapshot.id, snapshot.createdAt)
   }
 
+  // Persistence adapters and event serializers share one snapshot so stored trainer data cannot drift apart.
+  public toSnapshot(): TrainerSnapshot {
+    return {
+      id: this.id,
+      name: this.name,
+      createdAt: this.createdAt
+    }
+  }
+
   public get name() {
     return this._name
+  }
+
+  public get createdAt() {
+    return copyDate(this._createdAt)
   }
 }
 

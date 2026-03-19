@@ -47,4 +47,35 @@ describe('Club Model', () => {
       createdAt: new Date('2024-01-01T00:00:00Z')
     })
   })
+
+  it('keeps foundingDate and createdAt immutable when callers mutate shared references', () => {
+    const foundingDate = new Date('2023-01-01T00:00:00Z')
+    const createdAt = new Date('2024-01-01T00:00:00Z')
+    const club = Club.restore({
+      id: 'club-1',
+      name: 'Test Club',
+      foundingDate,
+      createdAt
+    })
+
+    // Mutating persistence-owned dates after restore must not rewrite aggregate state through shared objects.
+    foundingDate.setUTCFullYear(2030)
+    createdAt.setUTCFullYear(2031)
+
+    expect(club.foundingDate).toEqual(new Date('2023-01-01T00:00:00Z'))
+    expect(club.createdAt).toEqual(new Date('2024-01-01T00:00:00Z'))
+
+    // Getter and snapshot consumers also receive copies so the aggregate keeps exclusive ownership of its timeline.
+    const exposedFoundingDate = club.foundingDate
+    const exposedCreatedAt = club.createdAt
+    const snapshot = club.toSnapshot()
+
+    exposedFoundingDate.setUTCFullYear(2032)
+    exposedCreatedAt.setUTCFullYear(2033)
+    snapshot.foundingDate.setUTCFullYear(2034)
+    snapshot.createdAt.setUTCFullYear(2035)
+
+    expect(club.foundingDate).toEqual(new Date('2023-01-01T00:00:00Z'))
+    expect(club.createdAt).toEqual(new Date('2024-01-01T00:00:00Z'))
+  })
 })

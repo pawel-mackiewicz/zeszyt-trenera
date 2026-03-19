@@ -1,5 +1,8 @@
 import { DomainEvent } from '@/domain/events/DomainEvent'
 
+// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
+const copyDate = (value: Date): Date => new Date(value.getTime())
+
 export type ClubSnapshot = {
   id: string
   name: string
@@ -21,9 +24,9 @@ export class Club {
     createdAt: Date = new Date()
   ) {
     this.id = id
-    this._createdAt = createdAt
+    this._createdAt = copyDate(createdAt)
     this._name = name
-    this._foundingDate = foundingDate
+    this._foundingDate = copyDate(foundingDate)
   }
 
   public static register(
@@ -60,11 +63,11 @@ export class Club {
   }
 
   public get foundingDate() {
-    return this._foundingDate
+    return copyDate(this._foundingDate)
   }
 
   public get createdAt() {
-    return this._createdAt
+    return copyDate(this._createdAt)
   }
 }
 
