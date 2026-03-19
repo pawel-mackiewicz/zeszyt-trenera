@@ -33,11 +33,11 @@ const baseRoutes = [
     name: 'home',
     component: HomeView,
     meta: {
-      title: 'Register Club',
+      title: 'Notebook Setup',
       eyebrow: 'First setup',
       summary:
-        'Create the first local club record and matching event before the rest of the notebook grows around it.',
-      navLabel: 'Club'
+        'Create the first local club and trainer records with matching events before the rest of the notebook grows around them.',
+      navLabel: 'Setup'
     }
   },
   {

@@ -2,6 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
+import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
 
 type SetupSignal = {
@@ -14,70 +15,88 @@ type SetupStep = {
   detail: string
 }
 
-type SuccessState = {
+type ClubSuccessState = {
   clubName: string
   foundingDateLabel: string
 }
 
-// Reading workflows straight from the shared service bag keeps new use cases additive without forcing edits in the UI DI module.
-const registerClubUseCase = useAppServices().useCases.registerClub
+type TrainerSuccessState = {
+  trainerName: string
+}
+
+const { useCases } = useAppServices()
+// Reading both setup workflows from one shared service bag keeps the view aligned with the DI rules while letting each form stay independent.
+const registerClubUseCase = useCases.registerClub
+const registerTrainerUseCase = useCases.registerTrainer
 
 const setupSignals: SetupSignal[] = [
-  { label: 'Storage', value: 'Dexie writes club + event rows' },
+  { label: 'Storage', value: 'Dexie writes club, trainer, and event rows' },
   { label: 'Mode', value: 'Works offline after first shell load' },
   { label: 'Scope', value: 'Local-first foundation for training notebooks' }
 ]
 
 const setupSteps: SetupStep[] = [
   {
-    title: 'Create the anchor record',
+    title: 'Create the club anchor',
     detail:
       'The club becomes the first durable entity in local storage and the base for future training, roster, and event workflows.'
+  },
+  {
+    title: 'Name the trainer early',
+    detail:
+      'Saving the trainer during setup gives later roster and planning flows a real local owner instead of placeholder copy.'
   },
   {
     title: 'Capture a stable founding date',
     detail:
       'The founding date is saved as a real date object so later screens can reuse it without reparsing free-form text.'
-  },
-  {
-    title: 'Confirm local persistence early',
-    detail:
-      'This flow proves the app can write real domain data before sync, auth, or remote APIs are introduced.'
   }
 ]
 
 const whatHappensNext: SetupStep[] = [
   {
-    title: 'Club snapshot is saved',
+    title: 'A setup snapshot is saved',
     detail:
-      'The club name, founding date, generated id, and creation timestamp are stored in IndexedDB.'
+      'Each successful submit stores the generated id, creation timestamp, and form data in IndexedDB.'
   },
   {
-    title: 'Domain event is recorded',
+    title: 'A matching domain event is recorded',
     detail:
-      'A matching `club.created` event is persisted beside the club row for auditability and later replay paths.'
+      'Every saved record persists its paired domain event beside the row for auditability and later replay paths.'
   },
   {
     title: 'The app stays on setup',
     detail:
-      'You get immediate confirmation on this screen instead of being redirected into an unfinished workflow.'
+      'You get immediate confirmation on this screen instead of being redirected into unfinished club or trainer workflows.'
   }
 ]
 
-const form = reactive({
+const clubForm = reactive({
   clubName: '',
   foundingDate: ''
 })
 
-const isSubmitting = ref(false)
-const submitError = ref('')
-const successState = ref<SuccessState | null>(null)
+const trainerForm = reactive({
+  trainerName: ''
+})
 
-const canSubmit = computed(
+// Keeping the submit states separate avoids coupling two local-first writes into one UI transaction with unclear rollback rules.
+const isSubmittingClub = ref(false)
+const isSubmittingTrainer = ref(false)
+const clubSubmitError = ref('')
+const trainerSubmitError = ref('')
+const clubSuccessState = ref<ClubSuccessState | null>(null)
+const trainerSuccessState = ref<TrainerSuccessState | null>(null)
+
+const canSubmitClub = computed(
   () =>
-    form.clubName.trim().length > 0 &&
-    form.foundingDate.length > 0 &&
-    !isSubmitting.value
+    clubForm.clubName.trim().length > 0 &&
+    clubForm.foundingDate.length > 0 &&
+    !isSubmittingClub.value
+)
+
+const canSubmitTrainer = computed(
+  () => trainerForm.trainerName.trim().length > 0 && !isSubmittingTrainer.value
 )
 
 function formatFoundingDateLabel(value: string) {
@@ -90,7 +109,7 @@ function formatFoundingDateLabel(value: string) {
 }
 
 // Duplicate-club failures need dedicated guidance because retrying the same form cannot succeed while setup stays single-club.
-function toSubmitError(error: unknown) {
+function toClubSubmitError(error: unknown) {
   if (error instanceof ClubAlreadyExistsError) {
     return 'A club is already registered on this device. Reuse the saved club instead of creating a second one.'
   }
@@ -98,36 +117,76 @@ function toSubmitError(error: unknown) {
   return 'The club could not be saved locally. Keep the values, check the device state, and try again.'
 }
 
-async function handleSubmit() {
-  submitError.value = ''
-  successState.value = null
+// Trainer setup follows the same singleton rule, so the UI should explain why another submit can never succeed on this device.
+function toTrainerSubmitError(error: unknown) {
+  if (error instanceof TrainerAlreadyExistsError) {
+    return 'A trainer is already registered on this device. Reuse the saved trainer instead of creating a second one.'
+  }
 
-  const clubName = form.clubName.trim()
+  return 'The trainer could not be saved locally. Keep the value, check the device state, and try again.'
+}
 
-  if (!clubName || !form.foundingDate) {
-    submitError.value = 'Enter the club name and founding date before saving.'
+async function handleClubSubmit() {
+  clubSubmitError.value = ''
+  clubSuccessState.value = null
+
+  const clubName = clubForm.clubName.trim()
+
+  if (!clubName || !clubForm.foundingDate) {
+    clubSubmitError.value =
+      'Enter the club name and founding date before saving.'
     return
   }
 
-  isSubmitting.value = true
+  isSubmittingClub.value = true
 
   try {
     await registerClubUseCase.handle({
       clubName,
-      foundingDate: new Date(`${form.foundingDate}T00:00:00Z`)
+      foundingDate: new Date(`${clubForm.foundingDate}T00:00:00Z`)
     })
 
-    successState.value = {
+    clubSuccessState.value = {
       clubName,
-      foundingDateLabel: formatFoundingDateLabel(form.foundingDate)
+      foundingDateLabel: formatFoundingDateLabel(clubForm.foundingDate)
     }
 
-    form.clubName = ''
-    form.foundingDate = ''
+    clubForm.clubName = ''
+    clubForm.foundingDate = ''
   } catch (error) {
-    submitError.value = toSubmitError(error)
+    clubSubmitError.value = toClubSubmitError(error)
   } finally {
-    isSubmitting.value = false
+    isSubmittingClub.value = false
+  }
+}
+
+async function handleTrainerSubmit() {
+  trainerSubmitError.value = ''
+  trainerSuccessState.value = null
+
+  const trainerName = trainerForm.trainerName.trim()
+
+  if (!trainerName) {
+    trainerSubmitError.value = 'Enter the trainer name before saving.'
+    return
+  }
+
+  isSubmittingTrainer.value = true
+
+  try {
+    await registerTrainerUseCase.handle({
+      trainerName
+    })
+
+    trainerSuccessState.value = {
+      trainerName
+    }
+
+    trainerForm.trainerName = ''
+  } catch (error) {
+    trainerSubmitError.value = toTrainerSubmitError(error)
+  } finally {
+    isSubmittingTrainer.value = false
   }
 }
 </script>
@@ -137,13 +196,13 @@ async function handleSubmit() {
     <article class="setup-card setup-card--hero">
       <p class="setup-card__eyebrow">First real workflow</p>
       <h2 class="setup-card__title">
-        Register the club before the notebook grows around it.
+        Register the club and trainer before the notebook grows around them.
       </h2>
       <p class="setup-card__copy">
-        This replaces the starter placeholder with the first domain-backed
-        action in the app: saving a club record and the matching domain event in
-        local storage. The shell still handles install, offline state, and
-        updates around it.
+        This replaces the starter placeholder with the first domain-backed setup
+        actions in the app: saving club and trainer records with matching domain
+        events in local storage. The shell still handles install, offline state,
+        and updates around them.
       </p>
 
       <div class="setup-card__signals" aria-label="Workflow signals">
@@ -160,71 +219,170 @@ async function handleSubmit() {
 
     <article class="setup-card setup-card--form">
       <div class="setup-card__heading">
-        <p class="setup-card__eyebrow">Club setup</p>
-        <h3 class="setup-card__subtitle">Save the first local record</h3>
+        <p class="setup-card__eyebrow">Notebook setup</p>
+        <h3 class="setup-card__subtitle">Save the first local records</h3>
         <p class="setup-card__copy setup-card__copy--compact">
-          Use the same Dexie-backed registration flow already covered by the
-          infrastructure spec.
+          Both forms use the shared service bag, so the view stays unaware of
+          Dexie adapters while setup still writes real offline data.
         </p>
       </div>
 
-      <div
-        v-if="successState"
-        class="message-banner message-banner--success"
-        role="status"
-      >
-        <strong>{{ successState.clubName }} saved offline.</strong>
-        <span
-          >Founding date recorded as {{ successState.foundingDateLabel }}.</span
-        >
+      <div class="setup-form-stack">
+        <section class="setup-form-panel" aria-labelledby="club-setup-title">
+          <div class="setup-form-panel__heading">
+            <h4 id="club-setup-title" class="setup-form-panel__title">
+              Club setup
+            </h4>
+            <p class="setup-form-panel__copy">
+              Save the anchor record that future training plans and rosters can
+              attach to.
+            </p>
+          </div>
+
+          <div
+            v-if="clubSuccessState"
+            data-testid="club-success"
+            class="message-banner message-banner--success"
+            role="status"
+          >
+            <strong>{{ clubSuccessState.clubName }} saved offline.</strong>
+            <span
+              >Founding date recorded as
+              {{ clubSuccessState.foundingDateLabel }}.</span
+            >
+          </div>
+
+          <div
+            v-if="clubSubmitError"
+            data-testid="club-error"
+            class="message-banner message-banner--danger"
+            role="alert"
+          >
+            <strong>Save failed.</strong>
+            <span>{{ clubSubmitError }}</span>
+          </div>
+
+          <form
+            class="setup-form"
+            data-testid="club-setup-form"
+            @submit.prevent="handleClubSubmit"
+          >
+            <label class="form-control" for="clubName">
+              <span class="form-control__label">Club name</span>
+              <input
+                id="clubName"
+                v-model="clubForm.clubName"
+                class="form-control__input"
+                name="clubName"
+                type="text"
+                autocomplete="organization"
+                placeholder="ZKS Wlokniarz Czestochowa"
+                required
+              />
+            </label>
+
+            <label class="form-control" for="foundingDate">
+              <span class="form-control__label">Founding date</span>
+              <input
+                id="foundingDate"
+                v-model="clubForm.foundingDate"
+                class="form-control__input"
+                name="foundingDate"
+                type="date"
+                required
+              />
+            </label>
+
+            <div class="setup-form__footer">
+              <p class="setup-form__hint">
+                The date is converted to a UTC midnight timestamp before it
+                reaches the use case.
+              </p>
+              <button
+                data-testid="club-submit"
+                class="button-brand setup-form__submit"
+                type="submit"
+                :disabled="!canSubmitClub"
+              >
+                {{ isSubmittingClub ? 'Saving club...' : 'Register club' }}
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="setup-form-panel" aria-labelledby="trainer-setup-title">
+          <div class="setup-form-panel__heading">
+            <h4 id="trainer-setup-title" class="setup-form-panel__title">
+              Trainer setup
+            </h4>
+            <p class="setup-form-panel__copy">
+              Save the local trainer identity now so later workflows can build
+              around a real owner instead of placeholder data.
+            </p>
+          </div>
+
+          <div
+            v-if="trainerSuccessState"
+            data-testid="trainer-success"
+            class="message-banner message-banner--success"
+            role="status"
+          >
+            <strong
+              >{{ trainerSuccessState.trainerName }} saved offline.</strong
+            >
+            <span
+              >The matching `trainer.created` event was recorded locally.</span
+            >
+          </div>
+
+          <div
+            v-if="trainerSubmitError"
+            data-testid="trainer-error"
+            class="message-banner message-banner--danger"
+            role="alert"
+          >
+            <strong>Save failed.</strong>
+            <span>{{ trainerSubmitError }}</span>
+          </div>
+
+          <form
+            class="setup-form"
+            data-testid="trainer-setup-form"
+            @submit.prevent="handleTrainerSubmit"
+          >
+            <label class="form-control" for="trainerName">
+              <span class="form-control__label">Trainer name</span>
+              <input
+                id="trainerName"
+                v-model="trainerForm.trainerName"
+                class="form-control__input"
+                name="trainerName"
+                type="text"
+                autocomplete="name"
+                placeholder="Jane Doe"
+                required
+              />
+            </label>
+
+            <div class="setup-form__footer">
+              <p class="setup-form__hint">
+                The trainer is saved through the same shared UI seam, so the
+                view never imports storage adapters directly.
+              </p>
+              <button
+                data-testid="trainer-submit"
+                class="button-brand setup-form__submit"
+                type="submit"
+                :disabled="!canSubmitTrainer"
+              >
+                {{
+                  isSubmittingTrainer ? 'Saving trainer...' : 'Register trainer'
+                }}
+              </button>
+            </div>
+          </form>
+        </section>
       </div>
-
-      <div
-        v-if="submitError"
-        class="message-banner message-banner--danger"
-        role="alert"
-      >
-        <strong>Save failed.</strong>
-        <span>{{ submitError }}</span>
-      </div>
-
-      <form class="setup-form" @submit.prevent="handleSubmit">
-        <label class="form-control" for="clubName">
-          <span class="form-control__label">Club name</span>
-          <input
-            id="clubName"
-            v-model="form.clubName"
-            class="form-control__input"
-            name="clubName"
-            type="text"
-            autocomplete="organization"
-            placeholder="ZKS Wlokniarz Czestochowa"
-            required
-          />
-        </label>
-
-        <label class="form-control" for="foundingDate">
-          <span class="form-control__label">Founding date</span>
-          <input
-            id="foundingDate"
-            v-model="form.foundingDate"
-            class="form-control__input"
-            name="foundingDate"
-            type="date"
-            required
-          />
-        </label>
-
-        <div class="setup-form__footer">
-          <p class="setup-form__hint">
-            The date is converted to a UTC midnight timestamp before it reaches
-            the use case.
-          </p>
-          <button class="button-brand" type="submit" :disabled="!canSubmit">
-            {{ isSubmitting ? 'Saving club...' : 'Register club' }}
-          </button>
-        </div>
-      </form>
     </article>
 
     <article class="setup-card">
@@ -243,8 +401,8 @@ async function handleSubmit() {
     </article>
 
     <article class="setup-card setup-card--deep">
-      <p class="setup-card__eyebrow">After save</p>
-      <h3 class="setup-card__subtitle">What happens next in storage</h3>
+      <p class="setup-card__eyebrow">After each save</p>
+      <h3 class="setup-card__subtitle">What the local setup writes</h3>
       <ul class="setup-list setup-list--unordered">
         <li
           v-for="step in whatHappensNext"
@@ -405,9 +563,52 @@ async function handleSubmit() {
   margin-top: 1.25rem;
 }
 
+.setup-form-stack {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.35rem;
+}
+
+.setup-form-panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(16, 59, 55, 0.08);
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.82),
+      rgba(247, 240, 223, 0.7)
+    ),
+    rgba(255, 255, 255, 0.72);
+}
+
+.setup-form-panel__heading {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.setup-form-panel__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+}
+
+.setup-form-panel__copy {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.55;
+}
+
 .setup-form__footer {
   display: grid;
   gap: 0.85rem;
+}
+
+.setup-form__submit {
+  width: 100%;
+  justify-content: center;
 }
 
 .setup-form__hint {
@@ -458,6 +659,15 @@ async function handleSubmit() {
   .setup-card--form {
     grid-column: 2;
     grid-row: 1 / span 2;
+  }
+
+  .setup-card--deep {
+    grid-column: 1 / -1;
+  }
+
+  .setup-form__submit {
+    width: auto;
+    min-width: 12rem;
   }
 }
 </style>
