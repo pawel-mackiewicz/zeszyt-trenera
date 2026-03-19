@@ -8,13 +8,22 @@ const props = defineProps<{
   database?: TrainerNotebookDb
 }>()
 
-const { databaseName, schemaVersion, tableSnapshots, loading, error, reload } =
-  useIndexedDbInspector(props.database ?? db)
+const {
+  databaseName,
+  schemaVersion,
+  tableSnapshots,
+  loading,
+  clearing,
+  error,
+  reload,
+  clearDatabase
+} = useIndexedDbInspector(props.database ?? db)
 
 const tableCount = computed(() => tableSnapshots.value.length)
 const totalRows = computed(() =>
   tableSnapshots.value.reduce((sum, table) => sum + table.rowCount, 0)
 )
+const busy = computed(() => loading.value || clearing.value)
 
 function isComplexValue(value: unknown) {
   return value !== null && typeof value === 'object' && !(value instanceof Date)
@@ -35,6 +44,19 @@ function formatCellValue(value: unknown) {
 
   return String(value)
 }
+
+function handleClearDatabase() {
+  // The browser confirmation reduces the chance of wiping local test data by accident from a screen meant for quick inspection.
+  if (
+    !window.confirm(
+      'Clear all IndexedDB rows for this app in this browser? This cannot be undone.'
+    )
+  ) {
+    return
+  }
+
+  void clearDatabase()
+}
 </script>
 
 <template>
@@ -48,20 +70,30 @@ function formatCellValue(value: unknown) {
           </h2>
         </div>
 
-        <button
-          class="debug-card__action"
-          type="button"
-          :disabled="loading"
-          @click="reload"
-        >
-          {{ loading ? 'Refreshing…' : 'Refresh snapshot' }}
-        </button>
+        <div class="debug-card__actions">
+          <button
+            class="debug-card__action"
+            type="button"
+            :disabled="busy"
+            @click="reload"
+          >
+            {{ loading ? 'Refreshing…' : 'Refresh snapshot' }}
+          </button>
+          <button
+            class="debug-card__action debug-card__action--danger"
+            type="button"
+            :disabled="busy"
+            @click="handleClearDatabase"
+          >
+            {{ clearing ? 'Clearing…' : 'Clear database' }}
+          </button>
+        </div>
       </div>
 
       <p class="debug-card__copy">
-        This is a read-only view over the declared Dexie object stores. Use it
-        to inspect primary keys, secondary indexes, record counts, and the raw
-        values currently persisted in IndexedDB.
+        Inspect the declared Dexie object stores, or wipe every stored row in
+        this browser when you need a clean local state without touching the
+        schema.
       </p>
 
       <div class="debug-stats" aria-label="Database summary">
@@ -319,6 +351,18 @@ function formatCellValue(value: unknown) {
     opacity var(--speed-fast) var(--ease-standard);
 }
 
+.debug-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.debug-card__action--danger {
+  background: linear-gradient(135deg, rgba(161, 63, 48, 0.94), #7c2418);
+  box-shadow: 0 10px 24px rgba(124, 36, 24, 0.18);
+}
+
 .debug-card__action:hover,
 .debug-card__action:focus-visible {
   transform: translateY(-1px);
@@ -503,6 +547,10 @@ function formatCellValue(value: unknown) {
   .debug-card__topline,
   .debug-table-card__header {
     flex-direction: column;
+  }
+
+  .debug-card__actions {
+    width: 100%;
   }
 
   .debug-card__action {

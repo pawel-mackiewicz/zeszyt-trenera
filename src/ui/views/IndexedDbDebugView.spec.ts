@@ -17,6 +17,7 @@ describe('IndexedDbDebugView', () => {
 
   afterEach(async () => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
     database.close()
     await database.delete()
   })
@@ -81,6 +82,57 @@ describe('IndexedDbDebugView', () => {
     expect(wrapper.text()).toContain('club.created')
     expect(wrapper.text()).toContain('1946-01-01T00:00:00.000Z')
     expect(wrapper.text()).toContain('"club"')
+  })
+
+  it('clears persisted rows when the reset action is confirmed', async () => {
+    const confirmSpy = vi.fn(() => true)
+    vi.stubGlobal('confirm', confirmSpy)
+    const foundingDate = new Date('1946-01-01T00:00:00.000Z')
+    const createdAt = new Date('2025-03-17T14:00:00.000Z')
+    const occurredAt = new Date('2025-03-17T14:01:00.000Z')
+
+    await database.open()
+    await database.clubs.add({
+      id: 'club-1',
+      name: 'ZKS Włókniarz Częstochowa',
+      foundingDate,
+      createdAt
+    })
+    await database.events.add({
+      eventId: 'event-1',
+      eventName: 'club.created',
+      occurredAt,
+      payload: {
+        club: {
+          id: 'club-1',
+          name: 'ZKS Włókniarz Częstochowa'
+        }
+      }
+    })
+
+    const wrapper = mount(IndexedDbDebugView, {
+      props: {
+        database
+      }
+    })
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('ZKS Włókniarz Częstochowa')
+    })
+
+    await wrapper.get('.debug-card__action--danger').trigger('click')
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('No records stored in this table yet.')
+    })
+
+    // Keeping the empty-state cards visible after reset makes it obvious that the wipe succeeded.
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Clear all IndexedDB rows for this app in this browser? This cannot be undone.'
+    )
+    expect(await database.clubs.count()).toBe(0)
+    expect(await database.events.count()).toBe(0)
   })
 
   it('shows an error banner when the database snapshot cannot be read', async () => {

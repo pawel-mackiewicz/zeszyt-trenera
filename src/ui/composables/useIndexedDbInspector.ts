@@ -69,11 +69,26 @@ export async function inspectIndexedDb(
   }
 }
 
+export async function clearIndexedDb(
+  database: TrainerNotebookDb
+): Promise<void> {
+  if (!database.isOpen()) {
+    await database.open()
+  }
+
+  // Clearing declared stores instead of deleting the whole database keeps the schema available for the next debug snapshot.
+  // The debug flow reloads immediately after reset, so individual clears avoid Dexie transaction timing issues without changing the end result.
+  for (const table of database.tables) {
+    await table.clear()
+  }
+}
+
 export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
   const databaseName = ref(database.name)
   const schemaVersion = ref(database.verno)
   const tableSnapshots = ref<Array<IndexedDbTableSnapshot>>([])
   const loading = ref(false)
+  const clearing = ref(false)
   const error = ref<string | null>(null)
 
   async function reload() {
@@ -93,6 +108,21 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
     }
   }
 
+  async function clearDatabase() {
+    clearing.value = true
+    error.value = null
+
+    try {
+      await clearIndexedDb(database)
+      await reload()
+    } catch (reason: unknown) {
+      error.value = 'Failed to clear IndexedDB tables.'
+      console.error('Failed to clear IndexedDB tables.', reason)
+    } finally {
+      clearing.value = false
+    }
+  }
+
   onMounted(() => {
     void reload()
   })
@@ -102,7 +132,9 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
     schemaVersion,
     tableSnapshots,
     loading,
+    clearing,
     error,
-    reload
+    reload,
+    clearDatabase
   }
 }

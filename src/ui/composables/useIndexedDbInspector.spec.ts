@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
 import { TrainerNotebookDb } from '@/infra/db'
-import { inspectIndexedDb } from '@/ui/composables/useIndexedDbInspector'
+import {
+  clearIndexedDb,
+  inspectIndexedDb
+} from '@/ui/composables/useIndexedDbInspector'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
@@ -89,5 +92,45 @@ describe('inspectIndexedDb', () => {
         }
       }
     })
+  })
+
+  it('clears rows from every store without removing the declared schema', async () => {
+    const event = Club.register(
+      'Skra Częstochowa',
+      new Date('1926-01-01T00:00:00Z')
+    )
+
+    await database.open()
+    await database.clubs.add({
+      id: event.club.id,
+      name: event.club.name,
+      foundingDate: event.club.foundingDate,
+      createdAt: event.club.createdAt
+    })
+    await database.events.add({
+      eventId: event.eventId,
+      eventName: event.eventName,
+      occurredAt: event.occurredAt,
+      payload: {
+        club: {
+          id: event.club.id,
+          name: event.club.name
+        }
+      }
+    })
+
+    await clearIndexedDb(database)
+
+    const snapshot = await inspectIndexedDb(database)
+
+    // The debug route still needs table metadata after a reset, so the clear action must only remove rows.
+    expect(snapshot.tableSnapshots).toMatchObject([
+      { name: 'clubs', rowCount: 0 },
+      { name: 'events', rowCount: 0 }
+    ])
+    expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
+      'clubs',
+      'events'
+    ])
   })
 })
