@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
-import { createRegisterClubUseCase } from '@/infra/createRegisterClubUseCase'
+import { useAppServices } from '@/ui/appServices'
 
 type SetupSignal = {
   label: string
@@ -19,7 +19,8 @@ type SuccessState = {
   foundingDateLabel: string
 }
 
-const registerClubUseCase = createRegisterClubUseCase()
+// Reading workflows straight from the shared service bag keeps new use cases additive without forcing edits in the UI DI module.
+const registerClubUseCase = useAppServices().useCases.registerClub
 
 const setupSignals: SetupSignal[] = [
   { label: 'Storage', value: 'Dexie writes club + event rows' },

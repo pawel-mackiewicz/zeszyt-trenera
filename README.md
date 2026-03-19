@@ -31,6 +31,10 @@ Vue 3 boilerplate for a mobile-first, offline-ready PWA. The starter is intentio
 - Online/offline runtime signal
 - Minimal Dexie database bootstrap with schema versioning reserved from day one
 
+## Architecture notes
+
+- Dependency injection and adding new workflows: `docs/dependency-injection.md`
+
 ## Adding the first Dexie table
 
 1. Open `src/db/index.ts`.

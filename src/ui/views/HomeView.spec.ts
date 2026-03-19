@@ -2,17 +2,29 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
+import { createAppServicesProvides, type UiAppServices } from '@/ui/appServices'
 import HomeView from '@/ui/views/HomeView.vue'
 
 const { handleMock } = vi.hoisted(() => ({
   handleMock: vi.fn()
 }))
 
-vi.mock('@/infra/createRegisterClubUseCase', () => ({
-  createRegisterClubUseCase: () => ({
-    handle: handleMock
+function mountHomeView() {
+  // Tests stub the shared service bag so the view keeps the same seam it uses in production while avoiding real infra wiring.
+  const appServices: UiAppServices = {
+    useCases: {
+      registerClub: {
+        handle: handleMock
+      }
+    }
+  }
+
+  return mount(HomeView, {
+    global: {
+      provide: createAppServicesProvides(appServices)
+    }
   })
-}))
+}
 
 describe('HomeView', () => {
   beforeEach(() => {
@@ -20,7 +32,7 @@ describe('HomeView', () => {
   })
 
   it('keeps submit disabled until both required fields are present', async () => {
-    const wrapper = mount(HomeView)
+    const wrapper = mountHomeView()
 
     const submitButton = wrapper.get('button[type="submit"]')
 
@@ -36,7 +48,7 @@ describe('HomeView', () => {
   it('submits the mapped register-club command and resets on success', async () => {
     handleMock.mockResolvedValue(undefined)
 
-    const wrapper = mount(HomeView)
+    const wrapper = mountHomeView()
 
     await wrapper.get('#clubName').setValue('ZKS Wlokniarz Czestochowa')
     await wrapper.get('#foundingDate').setValue('1946-01-01')
@@ -63,7 +75,7 @@ describe('HomeView', () => {
   it('shows an error and preserves form values when saving fails', async () => {
     handleMock.mockRejectedValue(new Error('save failed'))
 
-    const wrapper = mount(HomeView)
+    const wrapper = mountHomeView()
 
     await wrapper.get('#clubName').setValue('Skra')
     await wrapper.get('#foundingDate').setValue('1926-03-08')
@@ -83,7 +95,7 @@ describe('HomeView', () => {
   it('shows a dedicated error when a club already exists', async () => {
     handleMock.mockRejectedValue(new ClubAlreadyExistsError())
 
-    const wrapper = mount(HomeView)
+    const wrapper = mountHomeView()
 
     await wrapper.get('#clubName').setValue('Skra')
     await wrapper.get('#foundingDate').setValue('1926-03-08')
