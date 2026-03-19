@@ -1,4 +1,3 @@
-import { v7 as uuidv7 } from 'uuid'
 import { DomainEvent } from '@/domain/events/DomainEvent'
 
 export type ClubSnapshot = {
@@ -18,7 +17,7 @@ export class Club {
   private constructor(
     name: string,
     foundingDate: Date,
-    id: string = uuidv7(),
+    id: string,
     createdAt: Date = new Date()
   ) {
     this.id = id
@@ -29,9 +28,11 @@ export class Club {
 
   public static register(
     name: string,
-    foundingDate: Date
+    foundingDate: Date,
+    id: string
   ): ClubCreatedDomainEvent {
-    const newClub = new Club(name, foundingDate)
+    // Registration receives the ID from outside so the aggregate does not depend on external identifier generators.
+    const newClub = new Club(name, foundingDate, id)
     return new ClubCreatedDomainEvent(newClub)
   }
 

@@ -6,6 +6,7 @@ import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
+import type { IdGeneratorPort } from '@/application/ports/IdGeneratorPort'
 
 // Fake implementations
 class FakeUnitOfWork implements UnitOfWork {
@@ -35,20 +36,32 @@ class FakeEventRepo implements EventRepoPort {
   }
 }
 
+class FakeIdGenerator implements IdGeneratorPort {
+  public readonly generatedIds: string[] = []
+
+  public generate(): string {
+    const id = 'club-generated-by-test'
+    this.generatedIds.push(id)
+    return id
+  }
+}
+
 describe('RegisterClubUseCase', () => {
   let uow: FakeUnitOfWork
   let clubRepo: FakeClubRepo
   let eventRepo: FakeEventRepo
+  let idGenerator: FakeIdGenerator
   let useCase: RegisterClubUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     clubRepo = new FakeClubRepo()
     eventRepo = new FakeEventRepo()
+    idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
 
-    useCase = new RegisterClubUseCase(uow, clubRepo, eventRepo)
+    useCase = new RegisterClubUseCase(uow, clubRepo, eventRepo, idGenerator)
   })
 
   it('should register a new club via UoW, saving the club and the related domain event', async () => {
@@ -65,7 +78,9 @@ describe('RegisterClubUseCase', () => {
     const savedClub = clubRepo.savedClubs[0]
     expect(savedClub.name).toBe('ZKS Włókniarz Częstochowa')
     expect(savedClub.foundingDate).toEqual(new Date('1946-01-01T00:00:00Z'))
-    expect(savedClub.id).toBeDefined()
+    // The test fixes the generated ID so the workflow proves it consumes the injected generator instead of creating IDs internally.
+    expect(savedClub.id).toBe('club-generated-by-test')
+    expect(idGenerator.generatedIds).toEqual(['club-generated-by-test'])
 
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
@@ -88,6 +103,7 @@ describe('RegisterClubUseCase', () => {
 
     await expect(useCase.handle(dto)).rejects.toThrow(ClubAlreadyExistsError)
     expect(uow.execute).not.toHaveBeenCalled()
+    expect(idGenerator.generatedIds).toHaveLength(0)
     expect(clubRepo.savedClubs).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
   })

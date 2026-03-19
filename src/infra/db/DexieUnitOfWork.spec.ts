@@ -31,7 +31,8 @@ describe('DexieUnitOfWork', () => {
   it('rolls back writes across all tables when the transaction fails', async () => {
     const event = Club.register(
       'ZKS Włókniarz Częstochowa',
-      new Date('1946-01-01T00:00:00Z')
+      new Date('1946-01-01T00:00:00Z'),
+      'club-1'
     )
 
     await expect(

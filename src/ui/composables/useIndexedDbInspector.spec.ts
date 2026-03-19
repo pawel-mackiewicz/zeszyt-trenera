@@ -26,7 +26,8 @@ describe('inspectIndexedDb', () => {
   it('captures schema metadata and rows for every declared Dexie table', async () => {
     const event = Club.register(
       'ZKS Włókniarz Częstochowa',
-      new Date('1946-01-01T00:00:00Z')
+      new Date('1946-01-01T00:00:00Z'),
+      'club-1'
     )
 
     await database.open()
@@ -97,7 +98,8 @@ describe('inspectIndexedDb', () => {
   it('clears rows from every store without removing the declared schema', async () => {
     const event = Club.register(
       'Skra Częstochowa',
-      new Date('1926-01-01T00:00:00Z')
+      new Date('1926-01-01T00:00:00Z'),
+      'club-2'
     )
 
     await database.open()

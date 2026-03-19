@@ -3,15 +3,17 @@ import { Club } from '@/domain/model/club'
 
 describe('Club Model', () => {
   it('should create a club with all required properties', () => {
+    const id = 'club-1'
     const name = 'Test Club'
     const foundingDate = new Date('2023-01-01')
     const beforeCreation = new Date()
 
-    const event = Club.register(name, foundingDate)
+    // Passing the ID explicitly proves the aggregate no longer reaches for an external ID generator by itself.
+    const event = Club.register(name, foundingDate, id)
 
     const afterCreation = new Date()
 
-    expect(event.club.id).toBeDefined()
+    expect(event.club.id).toBe(id)
 
     expect(event.club.name).toBe(name)
     expect(event.club.foundingDate).toEqual(foundingDate)

@@ -5,6 +5,7 @@ import { db, type TrainerNotebookDb } from '@/infra/db'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
+import { IdGenerator } from '@/infra/IdGenerator'
 
 export type AppUseCases = {
   readonly registerClub: UseCase<RegisterClubCommand>
@@ -28,12 +29,15 @@ export function createAppServices(
   const resolveUnitOfWork = lazy(() => new DexieUnitOfWork(database))
   const resolveClubRepo = lazy(() => new DexieClubRepo(database))
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
+  // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
+  const resolveIdGenerator = lazy(() => new IdGenerator())
   const resolveRegisterClub = lazy(
     () =>
       new RegisterClubUseCase(
         resolveUnitOfWork(),
         resolveClubRepo(),
-        resolveEventRepo()
+        resolveEventRepo(),
+        resolveIdGenerator()
       )
   )
 
