@@ -486,7 +486,9 @@ async function handleTrainerSubmit() {
 .setup-card__eyebrow {
   margin: 0 0 0.5rem;
   color: var(--accent);
-  font: 700 0.82rem/1 var(--font-display);
+  font:
+    700 0.82rem/1 var(--font-display),
+    sans-serif;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
@@ -498,7 +500,7 @@ async function handleTrainerSubmit() {
 .setup-card__title,
 .setup-card__subtitle {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-display), sans-serif;
   line-height: 0.98;
   letter-spacing: -0.02em;
 }
@@ -547,7 +549,7 @@ async function handleTrainerSubmit() {
 }
 
 .setup-card__signal strong {
-  font-family: var(--font-display);
+  font-family: var(--font-display), sans-serif;
   font-size: 1.08rem;
 }
 
@@ -591,7 +593,7 @@ async function handleTrainerSubmit() {
 
 .setup-form-panel__title {
   margin: 0;
-  font-family: var(--font-display);
+  font-family: var(--font-display), sans-serif;
   font-size: 1.35rem;
 }
 
@@ -636,7 +638,7 @@ async function handleTrainerSubmit() {
 }
 
 .setup-list__item strong {
-  font-family: var(--font-display);
+  font-family: var(--font-display), sans-serif;
   font-size: 1.05rem;
 }
 
