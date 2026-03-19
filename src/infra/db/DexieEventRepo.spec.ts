@@ -2,10 +2,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DomainEvent } from '@/domain/events/DomainEvent'
 import { Club } from '@/domain/model/club'
+import { Member } from '@/domain/model/member'
 import { Trainer } from '@/domain/model/trainer'
 import {
   DexieEventRepo,
   type PersistedClubCreatedEvent,
+  type PersistedMemberCreatedEvent,
   type PersistedTrainerCreatedEvent
 } from '@/infra/db/DexieEventRepo'
 import { TrainerNotebookDb } from '@/infra/db'
@@ -82,6 +84,42 @@ describe('DexieEventRepo', () => {
           id: event.trainer.id,
           name: event.trainer.name,
           createdAt: event.trainer.createdAt
+        }
+      }
+    })
+  })
+
+  it('persists a member.created event into the generic event log', async () => {
+    const event = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '+48123456789',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+        joinedAt: new Date('2024-09-01T00:00:00Z')
+      },
+      'member-1'
+    )
+
+    await repository.save(event)
+
+    const persistedEvents = await database.events.toArray()
+    const persistedEvent = persistedEvents[0] as PersistedMemberCreatedEvent
+
+    expect(persistedEvents).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventId: event.eventId,
+      eventName: 'member.created',
+      occurredAt: event.occurredAt,
+      payload: {
+        member: {
+          id: event.member.id,
+          firstName: event.member.firstName,
+          lastName: event.member.lastName,
+          phoneNumber: event.member.phoneNumber,
+          dateOfBirth: event.member.dateOfBirth,
+          joinedAt: event.member.joinedAt,
+          createdAt: event.member.createdAt
         }
       }
     })

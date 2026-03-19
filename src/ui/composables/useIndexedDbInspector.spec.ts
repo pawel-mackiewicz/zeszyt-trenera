@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
+import { Member } from '@/domain/model/member'
 import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/infra/db'
 import {
@@ -62,10 +63,13 @@ describe('inspectIndexedDb', () => {
     const trainersTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'trainers'
     )
+    const membersTable = snapshot.tableSnapshots.find(
+      (table) => table.name === 'members'
+    )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(3)
-    expect(snapshot.tableSnapshots).toHaveLength(3)
+    expect(snapshot.schemaVersion).toBe(4)
+    expect(snapshot.tableSnapshots).toHaveLength(4)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       indexes: ['_name'],
@@ -103,6 +107,12 @@ describe('inspectIndexedDb', () => {
       rowCount: 0,
       columns: []
     })
+    expect(membersTable).toMatchObject({
+      primaryKey: 'id',
+      indexes: ['[firstName+lastName+phoneNumber]'],
+      rowCount: 0,
+      columns: []
+    })
   })
 
   it('clears rows from every store without removing the declared schema', async () => {
@@ -112,6 +122,14 @@ describe('inspectIndexedDb', () => {
       'club-2'
     )
     const trainerEvent = Trainer.register('Jane Doe', 'trainer-1')
+    const memberEvent = Member.register(
+      {
+        firstName: 'Jan',
+        lastName: 'Kowalski',
+        phoneNumber: '+48111222333'
+      },
+      'member-1'
+    )
 
     await database.open()
     await database.clubs.add({
@@ -124,6 +142,13 @@ describe('inspectIndexedDb', () => {
       id: trainerEvent.trainer.id,
       name: trainerEvent.trainer.name,
       createdAt: trainerEvent.trainer.createdAt
+    })
+    await database.members.add({
+      id: memberEvent.member.id,
+      firstName: memberEvent.member.firstName,
+      lastName: memberEvent.member.lastName,
+      phoneNumber: memberEvent.member.phoneNumber,
+      createdAt: memberEvent.member.createdAt
     })
     await database.events.add({
       eventId: event.eventId,
@@ -145,12 +170,14 @@ describe('inspectIndexedDb', () => {
     expect(snapshot.tableSnapshots).toMatchObject([
       { name: 'clubs', rowCount: 0 },
       { name: 'events', rowCount: 0 },
-      { name: 'trainers', rowCount: 0 }
+      { name: 'trainers', rowCount: 0 },
+      { name: 'members', rowCount: 0 }
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
       'events',
-      'trainers'
+      'trainers',
+      'members'
     ])
   })
 })

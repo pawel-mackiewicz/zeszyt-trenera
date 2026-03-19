@@ -52,6 +52,9 @@ describe('AppShell', () => {
         registerClub: {
           handle: vi.fn()
         },
+        registerMember: {
+          handle: vi.fn()
+        },
         registerTrainer: {
           handle: vi.fn()
         }

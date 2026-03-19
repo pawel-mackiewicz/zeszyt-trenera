@@ -1,12 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
+import { MemberAlreadyExistsError } from '@/domain/model/member'
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { createAppServices } from '@/infra/appServices'
 import type { PersistedDomainEvent } from '@/infra/db'
 import { TrainerNotebookDb } from '@/infra/db'
 import type {
   PersistedClubCreatedPayload,
+  PersistedMemberCreatedPayload,
   PersistedTrainerCreatedPayload
 } from '@/infra/db/DexieEventRepo'
 
@@ -32,6 +34,9 @@ describe('appServices', () => {
     // Reusing one workflow instance keeps writes deterministic while the app resolves the same workflow from different UI entry points.
     expect(services.database).toBe(database)
     expect(services.useCases.registerClub).toBe(services.useCases.registerClub)
+    expect(services.useCases.registerMember).toBe(
+      services.useCases.registerMember
+    )
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
     )
@@ -131,5 +136,116 @@ describe('appServices', () => {
 
     await expect(database.trainers.toArray()).resolves.toHaveLength(1)
     await expect(database.events.toArray()).resolves.toHaveLength(1)
+  })
+
+  it('assembles Dexie adapters that persist a member and matching event row', async () => {
+    const services = createAppServices(database)
+    const useCase = services.useCases.registerMember
+
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+      joinedAt: new Date('2024-09-01T00:00:00Z')
+    })
+
+    const persistedMembers = await database.members.toArray()
+    const persistedEvents = await database.events.toArray()
+    const persistedMember = persistedMembers[0]
+    const persistedEvent =
+      persistedEvents[0] as PersistedDomainEvent<PersistedMemberCreatedPayload>
+
+    expect(persistedMembers).toHaveLength(1)
+    expect(persistedEvents).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventName: 'member.created',
+      payload: {
+        member: {
+          id: persistedMember.id,
+          firstName: persistedMember.firstName,
+          lastName: persistedMember.lastName,
+          phoneNumber: '+48123456789',
+          dateOfBirth: persistedMember.dateOfBirth,
+          joinedAt: persistedMember.joinedAt,
+          createdAt: persistedMember.createdAt
+        }
+      }
+    })
+  })
+
+  it('throws a domain error when trying to register the same member identity twice', async () => {
+    const services = createAppServices(database)
+    const useCase = services.useCases.registerMember
+
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+
+    await expect(
+      useCase.handle({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '+48123456789'
+      })
+    ).rejects.toThrow(MemberAlreadyExistsError)
+
+    await expect(database.members.toArray()).resolves.toHaveLength(1)
+    await expect(database.events.toArray()).resolves.toHaveLength(1)
+  })
+
+  it('keeps a concurrent double-submit of the same member identity to one row and one event', async () => {
+    const services = createAppServices(database)
+    const useCase = services.useCases.registerMember
+
+    const results = await Promise.allSettled([
+      useCase.handle({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '+48 123 456 789'
+      }),
+      useCase.handle({
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '+48123456789'
+      })
+    ])
+
+    expect(
+      results.filter((result) => result.status === 'fulfilled')
+    ).toHaveLength(1)
+    expect(
+      results.filter((result) => result.status === 'rejected')
+    ).toHaveLength(1)
+    expect(
+      results.find(
+        (result): result is PromiseRejectedResult =>
+          result.status === 'rejected'
+      )?.reason
+    ).toBeInstanceOf(MemberAlreadyExistsError)
+    await expect(database.members.toArray()).resolves.toHaveLength(1)
+    await expect(database.events.toArray()).resolves.toHaveLength(1)
+  })
+
+  it('allows registering many members when their identity differs', async () => {
+    const services = createAppServices(database)
+    const useCase = services.useCases.registerMember
+
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48123456789'
+    })
+
+    await useCase.handle({
+      firstName: 'John',
+      lastName: 'Doe',
+      phoneNumber: '+48123456789'
+    })
+
+    await expect(database.members.toArray()).resolves.toHaveLength(2)
+    await expect(database.events.toArray()).resolves.toHaveLength(2)
   })
 })

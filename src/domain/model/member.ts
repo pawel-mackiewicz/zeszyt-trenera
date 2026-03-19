@@ -130,7 +130,7 @@ export class MemberCreatedDomainEvent extends DomainEvent {
 
 export class MemberAlreadyExistsError extends Error {
   public constructor() {
-    super('Member already exists')
+    super('Member with the same name and phone number already exists')
     this.name = 'MemberAlreadyExistsError'
   }
 }

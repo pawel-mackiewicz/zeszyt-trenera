@@ -6,12 +6,15 @@ import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { createAppServicesProvides, type UiAppServices } from '@/ui/appServices'
 import HomeView from '@/ui/views/HomeView.vue'
 
-const { registerClubHandleMock, registerTrainerHandleMock } = vi.hoisted(
-  () => ({
-    registerClubHandleMock: vi.fn(),
-    registerTrainerHandleMock: vi.fn()
-  })
-)
+const {
+  registerClubHandleMock,
+  registerMemberHandleMock,
+  registerTrainerHandleMock
+} = vi.hoisted(() => ({
+  registerClubHandleMock: vi.fn(),
+  registerMemberHandleMock: vi.fn(),
+  registerTrainerHandleMock: vi.fn()
+}))
 
 function mountHomeView() {
   // Tests stub the shared service bag so the view keeps the same seam it uses in production while avoiding real infra wiring.
@@ -19,6 +22,9 @@ function mountHomeView() {
     useCases: {
       registerClub: {
         handle: registerClubHandleMock
+      },
+      registerMember: {
+        handle: registerMemberHandleMock
       },
       registerTrainer: {
         handle: registerTrainerHandleMock
@@ -36,6 +42,7 @@ function mountHomeView() {
 describe('HomeView', () => {
   beforeEach(() => {
     registerClubHandleMock.mockReset()
+    registerMemberHandleMock.mockReset()
     registerTrainerHandleMock.mockReset()
   })
 
