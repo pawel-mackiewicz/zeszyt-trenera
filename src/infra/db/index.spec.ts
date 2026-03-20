@@ -5,12 +5,12 @@ import { db } from '@/infra/db'
 describe('db', () => {
   it('exposes a named Dexie instance with club, trainer, member, and event table schemas', () => {
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(4)
+    expect(db.verno).toBe(5)
     expect(db.tables).toHaveLength(4)
     expect(db.tables[0]?.name).toBe('clubs')
     expect(db.tables[0]?.schema.primKey.name).toBe('id')
     expect(db.tables[0]?.schema.indexes.map((index) => index.name)).toEqual([
-      '_name'
+      'name'
     ])
     expect(db.tables[1]?.name).toBe('events')
     expect(db.tables[1]?.schema.primKey.name).toBe('eventId')

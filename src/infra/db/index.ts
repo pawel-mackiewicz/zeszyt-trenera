@@ -61,6 +61,15 @@ export class TrainerNotebookDb extends Dexie {
       // The compound identity index lets offline duplicate checks stay deterministic without scanning the whole member table.
       members: 'id, [firstName+lastName+phoneNumber]'
     })
+
+    this.version(5).stores({
+      // The local-first schema must index the persisted club snapshot contract, not the aggregate's private field names.
+      clubs: 'id, name',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id, name',
+      // The compound identity index lets offline duplicate checks stay deterministic without scanning the whole member table.
+      members: 'id, [firstName+lastName+phoneNumber]'
+    })
   }
 }
 

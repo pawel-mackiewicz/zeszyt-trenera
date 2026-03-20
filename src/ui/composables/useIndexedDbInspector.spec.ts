@@ -68,11 +68,11 @@ describe('inspectIndexedDb', () => {
     )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(4)
+    expect(snapshot.schemaVersion).toBe(5)
     expect(snapshot.tableSnapshots).toHaveLength(4)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
-      indexes: ['_name'],
+      indexes: ['name'],
       rowCount: 1,
       columns: ['id', 'name', 'foundingDate', 'createdAt']
     })
