@@ -1,0 +1,112 @@
+import { DomainEvent } from '@/domain/events/DomainEvent'
+
+// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
+const copyDate = (value: Date): Date => new Date(value.getTime())
+
+// Offline filters and future Dexie indexes need one timezone-free month key, so the domain only accepts already-canonical YYYY-MM values instead of date-like inputs.
+const assertCoveredMonth = (value: string): string => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value)) {
+    throw new InvalidMembershipPaymentCoveredMonthError(value)
+  }
+
+  return value
+}
+
+export type RecordMembershipPaymentInput = {
+  memberId: string
+  coveredMonth: string
+}
+
+export type MembershipPaymentSnapshot = {
+  id: string
+  memberId: string
+  coveredMonth: string
+  createdAt: Date
+}
+
+export class MembershipPayment {
+  public readonly id: string
+
+  private _memberId: string
+  private _coveredMonth: string
+  private _createdAt: Date
+
+  private constructor(
+    input: RecordMembershipPaymentInput,
+    id: string,
+    createdAt: Date = new Date()
+  ) {
+    this.id = id
+    this._memberId = input.memberId
+    this._coveredMonth = assertCoveredMonth(input.coveredMonth)
+    this._createdAt = copyDate(createdAt)
+  }
+
+  public static record(
+    input: RecordMembershipPaymentInput,
+    id: string
+  ): MembershipPaymentRecordedDomainEvent {
+    // Recording receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
+    const newPayment = new MembershipPayment(input, id)
+    return new MembershipPaymentRecordedDomainEvent(newPayment)
+  }
+
+  public static restore(
+    snapshot: MembershipPaymentSnapshot
+  ): MembershipPayment {
+    return new MembershipPayment(
+      {
+        memberId: snapshot.memberId,
+        coveredMonth: snapshot.coveredMonth
+      },
+      snapshot.id,
+      snapshot.createdAt
+    )
+  }
+
+  // Persistence adapters and event serializers share one snapshot so stored membership payment data cannot drift apart.
+  public toSnapshot(): MembershipPaymentSnapshot {
+    return {
+      id: this.id,
+      memberId: this.memberId,
+      coveredMonth: this.coveredMonth,
+      createdAt: this.createdAt
+    }
+  }
+
+  public get memberId() {
+    return this._memberId
+  }
+
+  public get coveredMonth() {
+    return this._coveredMonth
+  }
+
+  public get createdAt() {
+    return copyDate(this._createdAt)
+  }
+}
+
+export class MembershipPaymentRecordedDomainEvent extends DomainEvent {
+  public readonly eventName = 'membership-payment.recorded'
+
+  constructor(public readonly payment: MembershipPayment) {
+    super()
+  }
+}
+
+export class MembershipPaymentAlreadyExistsError extends Error {
+  public constructor() {
+    super('Membership payment for this member and covered month already exists')
+    this.name = 'MembershipPaymentAlreadyExistsError'
+  }
+}
+
+export class InvalidMembershipPaymentCoveredMonthError extends Error {
+  public constructor(coveredMonth: string) {
+    super(`Membership payment covered month must use YYYY-MM: ${coveredMonth}`)
+    this.name = 'InvalidMembershipPaymentCoveredMonthError'
+  }
+}
+
+// Real-world payment timestamps stay out of v1 payment state until the product needs to distinguish when money changed hands from when the notebook recorded the month as paid.
