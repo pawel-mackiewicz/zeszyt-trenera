@@ -68,11 +68,12 @@ describe('inspectIndexedDb', () => {
     )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(5)
+    expect(snapshot.schemaVersion).toBe(6)
     expect(snapshot.tableSnapshots).toHaveLength(4)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
-      indexes: ['name'],
+      // The inspector should reflect that club writes no longer maintain an unused secondary index on local devices.
+      indexes: [],
       rowCount: 1,
       columns: ['id', 'name', 'foundingDate', 'createdAt']
     })
@@ -103,7 +104,7 @@ describe('inspectIndexedDb', () => {
     })
     expect(trainersTable).toMatchObject({
       primaryKey: 'id',
-      indexes: ['name'],
+      indexes: [],
       rowCount: 0,
       columns: []
     })

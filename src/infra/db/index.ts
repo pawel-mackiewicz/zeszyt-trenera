@@ -70,6 +70,15 @@ export class TrainerNotebookDb extends Dexie {
       // The compound identity index lets offline duplicate checks stay deterministic without scanning the whole member table.
       members: 'id, [firstName+lastName+phoneNumber]'
     })
+
+    this.version(6).stores({
+      // Club and trainer setup stays single-record today, so removing unused name indexes avoids extra write work on mobile devices.
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // The compound identity index lets offline duplicate checks stay deterministic without scanning the whole member table.
+      members: 'id, [firstName+lastName+phoneNumber]'
+    })
   }
 }
 
