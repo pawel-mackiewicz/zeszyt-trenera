@@ -103,7 +103,6 @@ describe('RegisterTrainerUseCase', () => {
     }
 
     await expect(useCase.handle(dto)).rejects.toThrow(TrainerAlreadyExistsError)
-    expect(uow.execute).not.toHaveBeenCalled()
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(trainerRepo.savedTrainers).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)

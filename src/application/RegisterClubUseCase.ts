@@ -15,12 +15,12 @@ export class RegisterClubUseCase implements UseCase<RegisterClubCommand> {
   ) {}
 
   public async handle(dto: RegisterClubCommand): Promise<void> {
-    // The notebook supports a single club, so duplicate registration must fail before opening a unit of work.
-    if (await this.clubRepo.exists()) {
-      throw new ClubAlreadyExistsError()
-    }
-
     await this.uow.execute(async () => {
+      // The notebook supports a single club, so duplicate registration must fail before opening a unit of work.
+      // inside transaction to avoid race conditions
+      if (await this.clubRepo.exists()) {
+        throw new ClubAlreadyExistsError()
+      }
       // The use case decides when a new club ID is allocated, while the generator stays injected for deterministic tests and infrastructure isolation.
       const event = Club.register(
         dto.clubName,

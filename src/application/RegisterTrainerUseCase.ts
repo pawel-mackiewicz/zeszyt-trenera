@@ -15,13 +15,12 @@ export class RegisterTrainerUseCase implements UseCase<RegisterTrainerCommand> {
   ) {}
 
   public async handle(dto: RegisterTrainerCommand): Promise<void> {
-    // Trainer setup follows the same singleton rule as club setup, so duplicates must fail before a write transaction starts.
-    if (await this.trainerRepo.exists()) {
-      throw new TrainerAlreadyExistsError()
-    }
-
     await this.uow.execute(async () => {
       // The workflow owns identifier allocation so the aggregate stays deterministic in tests and isolated from infrastructure concerns.
+      // check inside transaction to avoid race conditions
+      if (await this.trainerRepo.exists()) {
+        throw new TrainerAlreadyExistsError()
+      }
       const event = Trainer.register(
         dto.trainerName,
         this.idGenerator.generate()

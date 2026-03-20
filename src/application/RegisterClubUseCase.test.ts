@@ -102,7 +102,6 @@ describe('RegisterClubUseCase', () => {
     }
 
     await expect(useCase.handle(dto)).rejects.toThrow(ClubAlreadyExistsError)
-    expect(uow.execute).not.toHaveBeenCalled()
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(clubRepo.savedClubs).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
