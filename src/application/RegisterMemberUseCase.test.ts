@@ -48,6 +48,10 @@ class FakeMemberRepo implements MemberRepoPort {
     this.savedMembers.push(member)
   }
 
+  async existsById(memberId: string): Promise<boolean> {
+    return this.savedMembers.some((member) => member.id === memberId)
+  }
+
   async existsByNameAndPhone(
     firstName: string,
     lastName: string,

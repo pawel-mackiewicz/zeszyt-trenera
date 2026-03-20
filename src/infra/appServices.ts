@@ -1,15 +1,18 @@
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
+import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
 import type { PhoneNumberNormalizerPort } from '@/application/ports/PhoneNumberNormalizerPort'
 import type { UseCase } from '@/application/UseCase'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
+import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
 import { db, type TrainerNotebookDb } from '@/infra/db'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
+import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRepo'
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
@@ -18,6 +21,7 @@ import { LibPhoneNumberNormalizer } from '@/infra/phone/LibPhoneNumberNormalizer
 export type AppUseCases = {
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
+  readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
 }
 
@@ -39,6 +43,9 @@ export function createAppServices(
   const resolveUnitOfWork = lazy(() => new DexieUnitOfWork(database))
   const resolveClubRepo = lazy(() => new DexieClubRepo(database))
   const resolveMemberRepo = lazy(() => new DexieMemberRepo(database))
+  const resolveMembershipPaymentRepo = lazy(
+    () => new DexieMembershipPaymentRepo(database)
+  )
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
@@ -66,6 +73,16 @@ export function createAppServices(
         resolvePhoneNumberNormalizer()
       )
   )
+  const resolveRegisterMembershipPayment = lazy(
+    () =>
+      new RegisterMembershipPaymentUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveMembershipPaymentRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
   const resolveRegisterTrainer = lazy(
     () =>
       new RegisterTrainerUseCase(
@@ -83,6 +100,9 @@ export function createAppServices(
     },
     get registerMember() {
       return resolveRegisterMember()
+    },
+    get registerMembershipPayment() {
+      return resolveRegisterMembershipPayment()
     },
     get registerTrainer() {
       return resolveRegisterTrainer()

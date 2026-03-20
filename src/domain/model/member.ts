@@ -135,6 +135,13 @@ export class MemberAlreadyExistsError extends Error {
   }
 }
 
+export class MemberNotFoundError extends Error {
+  public constructor(memberId: string) {
+    super(`Member not found: ${memberId}`)
+    this.name = 'MemberNotFoundError'
+  }
+}
+
 export class InvalidMemberPhoneNumberError extends Error {
   public constructor(phoneNumber: string) {
     super(`Member phone number must be a valid E.164 number: ${phoneNumber}`)

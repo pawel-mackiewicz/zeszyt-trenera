@@ -1,7 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
-import { MemberAlreadyExistsError } from '@/domain/model/member'
+import { MembershipPaymentAlreadyExistsError } from '@/domain/model/MembershipPayment'
+import {
+  MemberAlreadyExistsError,
+  MemberNotFoundError
+} from '@/domain/model/member'
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { createAppServices } from '@/infra/appServices'
 import type { PersistedDomainEvent } from '@/infra/db'
@@ -9,6 +13,7 @@ import { TrainerNotebookDb } from '@/infra/db'
 import type {
   PersistedClubCreatedPayload,
   PersistedMemberCreatedPayload,
+  PersistedMembershipPaymentRecordedPayload,
   PersistedTrainerCreatedPayload
 } from '@/infra/db/DexieEventRepo'
 
@@ -36,6 +41,9 @@ describe('appServices', () => {
     expect(services.useCases.registerClub).toBe(services.useCases.registerClub)
     expect(services.useCases.registerMember).toBe(
       services.useCases.registerMember
+    )
+    expect(services.useCases.registerMembershipPayment).toBe(
+      services.useCases.registerMembershipPayment
     )
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
@@ -247,5 +255,89 @@ describe('appServices', () => {
 
     await expect(database.members.toArray()).resolves.toHaveLength(2)
     await expect(database.events.toArray()).resolves.toHaveLength(2)
+  })
+
+  it('assembles Dexie adapters that persist a membership payment and matching event row', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+
+    const persistedMember = (await database.members.toArray())[0]
+
+    await services.useCases.registerMembershipPayment.handle({
+      memberId: persistedMember.id,
+      coveredMonth: '2026-03'
+    })
+
+    const persistedPayments = await database.membershipPayments.toArray()
+    const persistedEvents = await database.events.toArray()
+    const persistedPayment = persistedPayments[0]
+    const persistedEvent = persistedEvents.find(
+      (event) => event.eventName === 'membership-payment.recorded'
+    ) as
+      | PersistedDomainEvent<PersistedMembershipPaymentRecordedPayload>
+      | undefined
+
+    expect(persistedPayments).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventName: 'membership-payment.recorded',
+      payload: {
+        payment: {
+          id: persistedPayment.id,
+          memberId: persistedPayment.memberId,
+          coveredMonth: persistedPayment.coveredMonth,
+          createdAt: persistedPayment.createdAt
+        }
+      }
+    })
+  })
+
+  it('throws a domain error when trying to register the same member-month payment twice', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+
+    const persistedMember = (await database.members.toArray())[0]
+
+    await services.useCases.registerMembershipPayment.handle({
+      memberId: persistedMember.id,
+      coveredMonth: '2026-03'
+    })
+
+    await expect(
+      services.useCases.registerMembershipPayment.handle({
+        memberId: persistedMember.id,
+        coveredMonth: '2026-03'
+      })
+    ).rejects.toThrow(MembershipPaymentAlreadyExistsError)
+
+    const persistedPaymentEvents = (await database.events.toArray()).filter(
+      (event) => event.eventName === 'membership-payment.recorded'
+    )
+
+    await expect(database.membershipPayments.toArray()).resolves.toHaveLength(1)
+    expect(persistedPaymentEvents).toHaveLength(1)
+  })
+
+  it('throws a domain error when trying to register a membership payment for an unknown member', async () => {
+    const services = createAppServices(database)
+
+    await expect(
+      services.useCases.registerMembershipPayment.handle({
+        memberId: 'missing-member',
+        coveredMonth: '2026-03'
+      })
+    ).rejects.toThrow(MemberNotFoundError)
+
+    await expect(database.membershipPayments.toArray()).resolves.toHaveLength(0)
+    await expect(database.events.toArray()).resolves.toHaveLength(0)
   })
 })

@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DomainEvent } from '@/domain/events/DomainEvent'
 import { Club } from '@/domain/model/club'
+import { MembershipPayment } from '@/domain/model/MembershipPayment'
 import { Member } from '@/domain/model/member'
 import { Trainer } from '@/domain/model/trainer'
 import {
   DexieEventRepo,
   type PersistedClubCreatedEvent,
   type PersistedMemberCreatedEvent,
+  type PersistedMembershipPaymentRecordedEvent,
   type PersistedTrainerCreatedEvent
 } from '@/infra/db/DexieEventRepo'
 import { TrainerNotebookDb } from '@/infra/db'
@@ -120,6 +122,37 @@ describe('DexieEventRepo', () => {
           dateOfBirth: event.member.dateOfBirth,
           joinedAt: event.member.joinedAt,
           createdAt: event.member.createdAt
+        }
+      }
+    })
+  })
+
+  it('persists a membership-payment.recorded event into the generic event log', async () => {
+    const event = MembershipPayment.record(
+      {
+        memberId: 'member-1',
+        coveredMonth: '2026-03'
+      },
+      'payment-1'
+    )
+
+    await repository.save(event)
+
+    const persistedEvents = await database.events.toArray()
+    const persistedEvent =
+      persistedEvents[0] as PersistedMembershipPaymentRecordedEvent
+
+    expect(persistedEvents).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventId: event.eventId,
+      eventName: 'membership-payment.recorded',
+      occurredAt: event.occurredAt,
+      payload: {
+        payment: {
+          id: event.payment.id,
+          memberId: event.payment.memberId,
+          coveredMonth: event.payment.coveredMonth,
+          createdAt: event.payment.createdAt
         }
       }
     })

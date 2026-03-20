@@ -56,6 +56,10 @@ describe('DexieMemberRepo', () => {
     ).resolves.toBe(false)
   })
 
+  it('reports when no member exists for the given id', async () => {
+    await expect(repository.existsById('member-1')).resolves.toBe(false)
+  })
+
   it('reports when the same name and phone number already exist', async () => {
     const event = Member.register(
       {
@@ -88,5 +92,20 @@ describe('DexieMemberRepo', () => {
     await expect(
       repository.existsByNameAndPhone('John', 'Doe', '+48123456789')
     ).resolves.toBe(false)
+  })
+
+  it('reports when a member exists for the given id', async () => {
+    const event = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '+48123456789'
+      },
+      'member-1'
+    )
+
+    await repository.save(event.member)
+
+    await expect(repository.existsById('member-1')).resolves.toBe(true)
   })
 })

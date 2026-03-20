@@ -1,6 +1,7 @@
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
 import { ClubCreatedDomainEvent } from '@/domain/model/club'
+import { MembershipPaymentRecordedDomainEvent } from '@/domain/model/MembershipPayment'
 import { MemberCreatedDomainEvent } from '@/domain/model/member'
 import { TrainerCreatedDomainEvent } from '@/domain/model/trainer'
 import type { PersistedDomainEvent, TrainerNotebookDb } from '@/infra/db'
@@ -55,6 +56,22 @@ export type PersistedMemberCreatedEvent =
     eventName: 'member.created'
   }
 
+export type PersistedMembershipPaymentSnapshot = {
+  id: string
+  memberId: string
+  coveredMonth: string
+  createdAt: Date
+}
+
+export type PersistedMembershipPaymentRecordedPayload = {
+  payment: PersistedMembershipPaymentSnapshot
+}
+
+export type PersistedMembershipPaymentRecordedEvent =
+  PersistedDomainEvent<PersistedMembershipPaymentRecordedPayload> & {
+    eventName: 'membership-payment.recorded'
+  }
+
 export class DexieEventRepo implements EventRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}
 
@@ -97,6 +114,18 @@ export class DexieEventRepo implements EventRepoPort {
           member: event.member.toSnapshot()
         } satisfies PersistedMemberCreatedPayload
       } satisfies PersistedMemberCreatedEvent
+    }
+
+    if (event instanceof MembershipPaymentRecordedDomainEvent) {
+      return {
+        eventId: event.eventId,
+        eventName: event.eventName,
+        occurredAt: event.occurredAt,
+        payload: {
+          // Payment events reuse the stored snapshot so the offline event log can replay the same month state that the primary table persists.
+          payment: event.payment.toSnapshot()
+        } satisfies PersistedMembershipPaymentRecordedPayload
+      } satisfies PersistedMembershipPaymentRecordedEvent
     }
 
     throw new Error(`Unsupported domain event: ${event.eventName}`)

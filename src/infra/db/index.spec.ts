@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { db } from '@/infra/db'
 
 describe('db', () => {
-  it('exposes a named Dexie instance with club, trainer, member, and event table schemas', () => {
+  it('exposes a named Dexie instance with club, trainer, member, membership payment, and event table schemas', () => {
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(6)
-    expect(db.tables).toHaveLength(4)
+    expect(db.verno).toBe(7)
+    expect(db.tables).toHaveLength(5)
     expect(db.tables[0]?.name).toBe('clubs')
     expect(db.tables[0]?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
@@ -24,6 +24,11 @@ describe('db', () => {
     expect(db.tables[3]?.schema.primKey.name).toBe('id')
     expect(db.tables[3]?.schema.indexes.map((index) => index.name)).toEqual([
       '[firstName+lastName+phoneNumber]'
+    ])
+    expect(db.tables[4]?.name).toBe('membershipPayments')
+    expect(db.tables[4]?.schema.primKey.name).toBe('id')
+    expect(db.tables[4]?.schema.indexes.map((index) => index.name)).toEqual([
+      '[memberId+coveredMonth]'
     ])
   })
 })
