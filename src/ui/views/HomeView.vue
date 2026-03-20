@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
 import {
   InvalidMemberPhoneNumberError,
-  MemberAlreadyExistsError
+  MemberAlreadyExistsError,
+  MemberNotFoundError
 } from '@/domain/model/member'
+import {
+  InvalidMembershipPaymentCoveredMonthError,
+  MembershipPaymentAlreadyExistsError
+} from '@/domain/model/MembershipPayment'
+import { db, type PersistedMember, type TrainerNotebookDb } from '@/infra/db'
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
 
@@ -34,16 +40,28 @@ type MemberSuccessState = {
   joinedAtLabel?: string
 }
 
+type MembershipPaymentSuccessState = {
+  memberId: string
+  memberLabel: string
+  coveredMonthLabel: string
+}
+
+const props = defineProps<{
+  database?: TrainerNotebookDb
+}>()
+
+const database = props.database ?? db
 const { useCases } = useAppServices()
 // Reading all setup workflows from one shared service bag keeps the view aligned with the DI rules while letting each form stay independent.
 const registerClubUseCase = useCases.registerClub
 const registerMemberUseCase = useCases.registerMember
+const registerMembershipPaymentUseCase = useCases.registerMembershipPayment
 const registerTrainerUseCase = useCases.registerTrainer
 
 const setupSignals: SetupSignal[] = [
   {
     label: 'Storage',
-    value: 'Dexie writes club, trainer, member, and event rows'
+    value: 'Dexie writes club, trainer, member, payment, and event rows'
   },
   { label: 'Mode', value: 'Works offline after first shell load' },
   { label: 'Scope', value: 'Local-first foundation for training notebooks' }
@@ -64,6 +82,11 @@ const setupSteps: SetupStep[] = [
     title: 'Register the first member identity',
     detail:
       'Saving a member with canonical phone data proves the roster workflow can reuse the same offline-first write path without adding new DI seams.'
+  },
+  {
+    title: 'Mark the first paid month',
+    detail:
+      'Recording one covered month on the same screen verifies the member lookup and duplicate guard that future billing views will depend on.'
   }
 ]
 
@@ -82,6 +105,11 @@ const whatHappensNext: SetupStep[] = [
     title: 'The app stays on setup',
     detail:
       'You get immediate confirmation on this screen instead of being redirected into unfinished club or trainer workflows.'
+  },
+  {
+    title: 'Duplicate months are blocked',
+    detail:
+      'Submitting the same member and covered month twice should surface the workflow guard instead of creating a second local payment row.'
   }
 ]
 
@@ -102,15 +130,29 @@ const memberForm = reactive({
   joinedAt: ''
 })
 
+const membershipPaymentForm = reactive({
+  memberId: '',
+  coveredMonth: getCurrentCoveredMonth()
+})
+
+const savedMembers = ref<PersistedMember[]>([])
+
 // Keeping the submit states separate avoids coupling several local-first writes into one UI transaction with unclear rollback rules.
 const isSubmittingClub = ref(false)
 const isSubmittingMember = ref(false)
+const isSubmittingMembershipPayment = ref(false)
 const isSubmittingTrainer = ref(false)
+const isLoadingSavedMembers = ref(false)
 const clubSubmitError = ref('')
 const memberSubmitError = ref('')
+const membershipPaymentSubmitError = ref('')
+const savedMembersError = ref('')
 const trainerSubmitError = ref('')
 const clubSuccessState = ref<ClubSuccessState | null>(null)
 const memberSuccessState = ref<MemberSuccessState | null>(null)
+const membershipPaymentSuccessState = ref<MembershipPaymentSuccessState | null>(
+  null
+)
 const trainerSuccessState = ref<TrainerSuccessState | null>(null)
 
 const canSubmitClub = computed(
@@ -132,6 +174,26 @@ const canSubmitMember = computed(
     !isSubmittingMember.value
 )
 
+const canSubmitMembershipPayment = computed(
+  () =>
+    membershipPaymentForm.memberId.trim().length > 0 &&
+    membershipPaymentForm.coveredMonth.length > 0 &&
+    !isSubmittingMembershipPayment.value
+)
+
+const selectedMembershipPaymentMember = computed(
+  () =>
+    savedMembers.value.find(
+      (member) => member.id === membershipPaymentForm.memberId.trim()
+    ) ?? null
+)
+
+function getCurrentCoveredMonth() {
+  const now = new Date()
+
+  return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
+}
+
 function formatDateLabel(value: string) {
   const date = new Date(`${value}T00:00:00Z`)
 
@@ -141,9 +203,30 @@ function formatDateLabel(value: string) {
   }).format(date)
 }
 
+function formatCoveredMonthLabel(value: string) {
+  const date = new Date(`${value}-01T00:00:00Z`)
+
+  return new Intl.DateTimeFormat('en-GB', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  }).format(date)
+}
+
+function formatMemberLabel(member: PersistedMember) {
+  return `${member.firstName} ${member.lastName}`
+}
+
 function toUtcDate(value: string) {
   // Native date inputs emit calendar-only strings, so the UI fixes them to UTC midnight before persistence can replay the same day consistently.
   return new Date(`${value}T00:00:00Z`)
+}
+
+function sortMembersByNewestCreatedAt(
+  left: PersistedMember,
+  right: PersistedMember
+) {
+  return right.createdAt.getTime() - left.createdAt.getTime()
 }
 
 // Duplicate-club failures need dedicated guidance because retrying the same form cannot succeed while setup stays single-club.
@@ -175,6 +258,53 @@ function toMemberSubmitError(error: unknown) {
   }
 
   return 'The member could not be saved locally. Keep the values, check the device state, and try again.'
+}
+
+// Payment failures need workflow-specific copy because this screen doubles as the manual test harness for member lookup and duplicate-month protection.
+function toMembershipPaymentSubmitError(error: unknown) {
+  if (error instanceof MemberNotFoundError) {
+    return 'No saved member matches this id. Register the member first or paste a different member id.'
+  }
+
+  if (error instanceof MembershipPaymentAlreadyExistsError) {
+    return 'This member and covered month are already marked as paid on this device.'
+  }
+
+  if (error instanceof InvalidMembershipPaymentCoveredMonthError) {
+    return 'Enter the covered month in YYYY-MM format.'
+  }
+
+  return 'The membership payment could not be saved locally. Keep the values, check the device state, and try again.'
+}
+
+async function loadSavedMembers() {
+  isLoadingSavedMembers.value = true
+  savedMembersError.value = ''
+
+  try {
+    // The setup screen is the current test harness, so it needs local member ids on hand without forcing the user into a separate inspection view.
+    await database.open()
+    const members = await database.members.toArray()
+    const sortedMembers = [...members].sort(sortMembersByNewestCreatedAt)
+    savedMembers.value = sortedMembers
+    return sortedMembers
+  } catch (error) {
+    savedMembersError.value =
+      'Saved members could not be loaded from local storage. You can still paste a member id manually.'
+    console.error(
+      'Failed to load saved members for membership payment testing.',
+      error
+    )
+    return []
+  } finally {
+    isLoadingSavedMembers.value = false
+  }
+}
+
+function handleMembershipPaymentMemberSelect(event: Event) {
+  membershipPaymentSubmitError.value = ''
+  membershipPaymentSuccessState.value = null
+  membershipPaymentForm.memberId = (event.target as HTMLSelectElement).value
 }
 
 async function handleClubSubmit() {
@@ -285,12 +415,64 @@ async function handleMemberSubmit() {
     memberForm.phoneNumber = ''
     memberForm.dateOfBirth = ''
     memberForm.joinedAt = ''
+
+    const matchingSavedMember = (await loadSavedMembers()).find(
+      (member) =>
+        member.firstName === firstName &&
+        member.lastName === lastName &&
+        member.phoneNumber === phoneNumber
+    )
+
+    // Prefilling the payment tester with the freshly stored member keeps the manual workflow on one mobile screen after member registration succeeds.
+    if (matchingSavedMember) {
+      membershipPaymentForm.memberId = matchingSavedMember.id
+    }
   } catch (error) {
     memberSubmitError.value = toMemberSubmitError(error)
   } finally {
     isSubmittingMember.value = false
   }
 }
+
+async function handleMembershipPaymentSubmit() {
+  membershipPaymentSubmitError.value = ''
+  membershipPaymentSuccessState.value = null
+
+  const memberId = membershipPaymentForm.memberId.trim()
+  const coveredMonth = membershipPaymentForm.coveredMonth
+
+  if (!memberId || !coveredMonth) {
+    membershipPaymentSubmitError.value =
+      'Enter the member id and covered month before saving.'
+    return
+  }
+
+  isSubmittingMembershipPayment.value = true
+
+  try {
+    await registerMembershipPaymentUseCase.handle({
+      memberId,
+      coveredMonth
+    })
+
+    membershipPaymentSuccessState.value = {
+      memberId,
+      memberLabel: selectedMembershipPaymentMember.value
+        ? formatMemberLabel(selectedMembershipPaymentMember.value)
+        : memberId,
+      coveredMonthLabel: formatCoveredMonthLabel(coveredMonth)
+    }
+    // Keeping the last payload visible after success makes duplicate-payment retests possible without retyping on a phone.
+  } catch (error) {
+    membershipPaymentSubmitError.value = toMembershipPaymentSubmitError(error)
+  } finally {
+    isSubmittingMembershipPayment.value = false
+  }
+}
+
+onMounted(() => {
+  void loadSavedMembers()
+})
 </script>
 
 <template>
@@ -298,14 +480,14 @@ async function handleMemberSubmit() {
     <article class="setup-card setup-card--hero">
       <p class="setup-card__eyebrow">First real workflow</p>
       <h2 class="setup-card__title">
-        Register the club, trainer, and first member before the notebook grows
-        around them.
+        Register the club, trainer, first member, and first paid month before
+        the notebook grows around them.
       </h2>
       <p class="setup-card__copy">
         This replaces the starter placeholder with the first domain-backed setup
-        actions in the app: saving club, trainer, and member records with
-        matching domain events in local storage. The shell still handles
-        install, offline state, and updates around them.
+        actions in the app: saving club, trainer, member, and membership payment
+        records with matching domain events in local storage. The shell still
+        handles install, offline state, and updates around them.
       </p>
 
       <div class="setup-card__signals" aria-label="Workflow signals">
@@ -325,9 +507,9 @@ async function handleMemberSubmit() {
         <p class="setup-card__eyebrow">Notebook setup</p>
         <h3 class="setup-card__subtitle">Save the first local records</h3>
         <p class="setup-card__copy setup-card__copy--compact">
-          Both forms use the shared service bag, so the view stays unaware of
-          Dexie adapters while setup still writes real offline data through the
-          same workflow seam the rest of the app will reuse.
+          The setup forms still submit through the shared service bag, while the
+          payment tester also reads saved member ids from local storage so the
+          whole manual workflow stays on one screen.
         </p>
       </div>
 
@@ -616,6 +798,150 @@ async function handleMemberSubmit() {
             </div>
           </form>
         </section>
+
+        <section
+          class="setup-form-panel"
+          aria-labelledby="membership-payment-setup-title"
+        >
+          <div class="setup-form-panel__heading">
+            <h4
+              id="membership-payment-setup-title"
+              class="setup-form-panel__title"
+            >
+              Membership payment setup
+            </h4>
+            <p class="setup-form-panel__copy">
+              Select a saved member or paste a raw member id, then record one
+              covered month through the real membership payment workflow.
+            </p>
+          </div>
+
+          <div
+            v-if="membershipPaymentSuccessState"
+            data-testid="membership-payment-success"
+            class="message-banner message-banner--success"
+            role="status"
+          >
+            <strong
+              >{{ membershipPaymentSuccessState.memberLabel }} marked as
+              paid.</strong
+            >
+            <span>
+              Covered month recorded as
+              {{ membershipPaymentSuccessState.coveredMonthLabel }} for member
+              id {{ membershipPaymentSuccessState.memberId }}.
+            </span>
+          </div>
+
+          <div
+            v-if="membershipPaymentSubmitError"
+            data-testid="membership-payment-error"
+            class="message-banner message-banner--danger"
+            role="alert"
+          >
+            <strong>Save failed.</strong>
+            <span>{{ membershipPaymentSubmitError }}</span>
+          </div>
+
+          <form
+            class="setup-form"
+            data-testid="membership-payment-form"
+            @submit.prevent="handleMembershipPaymentSubmit"
+          >
+            <label class="form-control" for="membershipPaymentMemberSelect">
+              <span class="form-control__label">Saved member</span>
+              <select
+                id="membershipPaymentMemberSelect"
+                class="form-control__input"
+                :value="selectedMembershipPaymentMember?.id ?? ''"
+                :disabled="isLoadingSavedMembers || savedMembers.length === 0"
+                @change="handleMembershipPaymentMemberSelect"
+              >
+                <option value="">
+                  {{
+                    isLoadingSavedMembers
+                      ? 'Loading saved members...'
+                      : 'Select a saved member'
+                  }}
+                </option>
+                <option
+                  v-for="member in savedMembers"
+                  :key="member.id"
+                  :value="member.id"
+                >
+                  {{ formatMemberLabel(member) }} ({{ member.phoneNumber }})
+                </option>
+              </select>
+            </label>
+
+            <p
+              v-if="savedMembersError"
+              class="setup-form__hint setup-form__hint--danger"
+            >
+              {{ savedMembersError }}
+            </p>
+            <p v-else class="setup-form__hint">
+              {{
+                savedMembers.length > 0
+                  ? 'Choosing a saved member copies its id into the raw field below so you can still edit it for negative-path testing.'
+                  : 'Register a member first, or paste a raw id below to exercise the missing-member guard.'
+              }}
+            </p>
+
+            <label class="form-control" for="membershipPaymentMemberId">
+              <span class="form-control__label">Member id</span>
+              <input
+                id="membershipPaymentMemberId"
+                v-model="membershipPaymentForm.memberId"
+                class="form-control__input"
+                name="membershipPaymentMemberId"
+                type="text"
+                placeholder="Paste the saved member id"
+                required
+              />
+            </label>
+
+            <p v-if="selectedMembershipPaymentMember" class="setup-form__meta">
+              <strong>
+                Testing against
+                {{ formatMemberLabel(selectedMembershipPaymentMember) }}
+              </strong>
+              <span>{{ selectedMembershipPaymentMember.phoneNumber }}</span>
+            </p>
+
+            <label class="form-control" for="membershipPaymentCoveredMonth">
+              <span class="form-control__label">Covered month</span>
+              <input
+                id="membershipPaymentCoveredMonth"
+                v-model="membershipPaymentForm.coveredMonth"
+                class="form-control__input"
+                name="membershipPaymentCoveredMonth"
+                type="month"
+                required
+              />
+            </label>
+
+            <div class="setup-form__footer">
+              <p class="setup-form__hint">
+                The workflow allows only one payment per member and covered
+                month, so repeating the same payload is a valid duplicate-guard
+                test.
+              </p>
+              <button
+                data-testid="membership-payment-submit"
+                class="button-brand setup-form__submit"
+                type="submit"
+                :disabled="!canSubmitMembershipPayment"
+              >
+                {{
+                  isSubmittingMembershipPayment
+                    ? 'Saving payment...'
+                    : 'Register membership payment'
+                }}
+              </button>
+            </div>
+          </form>
+        </section>
       </div>
     </article>
 
@@ -852,6 +1178,30 @@ async function handleMemberSubmit() {
   color: var(--ink-soft);
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.setup-form__hint--danger {
+  color: var(--danger);
+}
+
+.setup-form__meta {
+  display: grid;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border-radius: 1rem;
+  background: rgba(16, 59, 55, 0.06);
+  color: var(--accent-strong);
+}
+
+.setup-form__meta strong {
+  font-family: var(--font-display), sans-serif;
+  font-size: 1rem;
+}
+
+.setup-form__meta span {
+  color: var(--ink-soft);
+  line-height: 1.45;
 }
 
 .setup-list {

@@ -31,6 +31,9 @@ describe('uiAppServices', () => {
         registerMember: {
           handle
         },
+        registerMembershipPayment: {
+          handle
+        },
         registerTrainer: {
           handle
         }

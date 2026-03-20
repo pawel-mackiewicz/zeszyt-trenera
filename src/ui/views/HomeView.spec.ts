@@ -13,10 +13,12 @@ import HomeView from '@/ui/views/HomeView.vue'
 const {
   registerClubHandleMock,
   registerMemberHandleMock,
+  registerMembershipPaymentHandleMock,
   registerTrainerHandleMock
 } = vi.hoisted(() => ({
   registerClubHandleMock: vi.fn(),
   registerMemberHandleMock: vi.fn(),
+  registerMembershipPaymentHandleMock: vi.fn(),
   registerTrainerHandleMock: vi.fn()
 }))
 
@@ -29,6 +31,9 @@ function mountHomeView() {
       },
       registerMember: {
         handle: registerMemberHandleMock
+      },
+      registerMembershipPayment: {
+        handle: registerMembershipPaymentHandleMock
       },
       registerTrainer: {
         handle: registerTrainerHandleMock
@@ -47,6 +52,7 @@ describe('HomeView', () => {
   beforeEach(() => {
     registerClubHandleMock.mockReset()
     registerMemberHandleMock.mockReset()
+    registerMembershipPaymentHandleMock.mockReset()
     registerTrainerHandleMock.mockReset()
   })
 

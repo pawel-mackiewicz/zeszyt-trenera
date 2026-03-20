@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
+import { MembershipPayment } from '@/domain/model/MembershipPayment'
 import { Member } from '@/domain/model/member'
 import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/infra/db'
@@ -66,10 +67,13 @@ describe('inspectIndexedDb', () => {
     const membersTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'members'
     )
+    const membershipPaymentsTable = snapshot.tableSnapshots.find(
+      (table) => table.name === 'membershipPayments'
+    )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(6)
-    expect(snapshot.tableSnapshots).toHaveLength(4)
+    expect(snapshot.schemaVersion).toBe(7)
+    expect(snapshot.tableSnapshots).toHaveLength(5)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       // The inspector should reflect that club writes no longer maintain an unused secondary index on local devices.
@@ -114,6 +118,12 @@ describe('inspectIndexedDb', () => {
       rowCount: 0,
       columns: []
     })
+    expect(membershipPaymentsTable).toMatchObject({
+      primaryKey: 'id',
+      indexes: ['[memberId+coveredMonth]'],
+      rowCount: 0,
+      columns: []
+    })
   })
 
   it('clears rows from every store without removing the declared schema', async () => {
@@ -130,6 +140,13 @@ describe('inspectIndexedDb', () => {
         phoneNumber: '+48111222333'
       },
       'member-1'
+    )
+    const membershipPaymentEvent = MembershipPayment.record(
+      {
+        memberId: memberEvent.member.id,
+        coveredMonth: '2026-03'
+      },
+      'payment-1'
     )
 
     await database.open()
@@ -150,6 +167,12 @@ describe('inspectIndexedDb', () => {
       lastName: memberEvent.member.lastName,
       phoneNumber: memberEvent.member.phoneNumber,
       createdAt: memberEvent.member.createdAt
+    })
+    await database.membershipPayments.add({
+      id: membershipPaymentEvent.payment.id,
+      memberId: membershipPaymentEvent.payment.memberId,
+      coveredMonth: membershipPaymentEvent.payment.coveredMonth,
+      createdAt: membershipPaymentEvent.payment.createdAt
     })
     await database.events.add({
       eventId: event.eventId,
@@ -172,13 +195,15 @@ describe('inspectIndexedDb', () => {
       { name: 'clubs', rowCount: 0 },
       { name: 'events', rowCount: 0 },
       { name: 'trainers', rowCount: 0 },
-      { name: 'members', rowCount: 0 }
+      { name: 'members', rowCount: 0 },
+      { name: 'membershipPayments', rowCount: 0 }
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
       'events',
       'trainers',
-      'members'
+      'members',
+      'membershipPayments'
     ])
   })
 })
