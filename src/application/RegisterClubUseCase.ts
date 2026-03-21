@@ -22,12 +22,12 @@ export class RegisterClubUseCase implements UseCase<RegisterClubCommand> {
         throw new ClubAlreadyExistsError()
       }
       // The use case decides when a new club ID is allocated, while the generator stays injected for deterministic tests and infrastructure isolation.
-      const event = Club.register(
+      const [club, event] = Club.register(
         dto.clubName,
         dto.foundingDate,
         this.idGenerator.generate()
       )
-      await this.clubRepo.save(event.club)
+      await this.clubRepo.save(club)
       await this.eventRepo.save(event)
     })
   }

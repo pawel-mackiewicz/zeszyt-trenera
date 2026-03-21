@@ -23,22 +23,22 @@ describe('DexieClubRepo', () => {
   })
 
   it('persists a club into Dexie', async () => {
-    const event = Club.register(
+    const [club] = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
     )
 
-    await repository.save(event.club)
+    await repository.save(club)
 
     const persistedClubs = await database.clubs.toArray()
 
     expect(persistedClubs).toHaveLength(1)
     expect(persistedClubs[0]).toMatchObject({
-      id: event.club.id,
-      name: event.club.name,
-      foundingDate: event.club.foundingDate,
-      createdAt: event.club.createdAt
+      id: club.id,
+      name: club.name,
+      foundingDate: club.foundingDate,
+      createdAt: club.createdAt
     })
   })
 
@@ -47,13 +47,13 @@ describe('DexieClubRepo', () => {
   })
 
   it('reports when a club is already persisted', async () => {
-    const event = Club.register(
+    const [club] = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
     )
 
-    await repository.save(event.club)
+    await repository.save(club)
 
     await expect(repository.exists()).resolves.toBe(true)
   })

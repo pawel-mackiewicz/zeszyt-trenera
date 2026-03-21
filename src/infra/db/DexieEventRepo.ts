@@ -87,7 +87,7 @@ export class DexieEventRepo implements EventRepoPort {
         occurredAt: event.occurredAt,
         payload: {
           // The event log reuses the same club snapshot as the main table so replay data matches persisted state.
-          club: event.club.toSnapshot()
+          club: event.club
         } satisfies PersistedClubCreatedPayload
       } satisfies PersistedClubCreatedEvent
     }
@@ -131,3 +131,4 @@ export class DexieEventRepo implements EventRepoPort {
     throw new Error(`Unsupported domain event: ${event.eventName}`)
   }
 }
+// refactor this to some kind of registry pattern

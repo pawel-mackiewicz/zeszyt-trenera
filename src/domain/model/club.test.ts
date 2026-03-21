@@ -8,27 +8,28 @@ describe('Club Model', () => {
     const foundingDate = new Date('2023-01-01')
     const beforeCreation = new Date()
 
-    // Passing the ID explicitly proves the aggregate no longer reaches for an external ID generator by itself.
-    const event = Club.register(name, foundingDate, id)
+    // The contract now returns both the aggregate and its event so callers can persist local-first state and the replay log from one registration step.
+    const [club, event] = Club.register(name, foundingDate, id)
 
     const afterCreation = new Date()
 
-    expect(event.club.id).toBe(id)
+    expect(club.id).toBe(id)
 
-    expect(event.club.name).toBe(name)
-    expect(event.club.foundingDate).toEqual(foundingDate)
+    expect(club.name).toBe(name)
+    expect(club.foundingDate).toEqual(foundingDate)
 
-    expect(event.club.createdAt).toBeDefined()
-    expect(event.club.createdAt).toBeInstanceOf(Date)
-    expect(event.club.createdAt.getTime()).toBeGreaterThanOrEqual(
+    expect(club.createdAt).toBeDefined()
+    expect(club.createdAt).toBeInstanceOf(Date)
+    expect(club.createdAt.getTime()).toBeGreaterThanOrEqual(
       beforeCreation.getTime()
     )
-    expect(event.club.createdAt.getTime()).toBeLessThanOrEqual(
+    expect(club.createdAt.getTime()).toBeLessThanOrEqual(
       afterCreation.getTime()
     )
 
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
+    expect(event.club).toEqual(club.toSnapshot())
   })
 
   it('restores an existing club from persisted state', () => {

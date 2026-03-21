@@ -27,7 +27,7 @@ describe('inspectIndexedDb', () => {
   })
 
   it('captures schema metadata and rows for every declared Dexie table', async () => {
-    const event = Club.register(
+    const [club, event] = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -35,22 +35,17 @@ describe('inspectIndexedDb', () => {
 
     await database.open()
     await database.clubs.add({
-      id: event.club.id,
-      name: event.club.name,
-      foundingDate: event.club.foundingDate,
-      createdAt: event.club.createdAt
+      id: club.id,
+      name: club.name,
+      foundingDate: club.foundingDate,
+      createdAt: club.createdAt
     })
     await database.events.add({
       eventId: event.eventId,
       eventName: event.eventName,
       occurredAt: event.occurredAt,
       payload: {
-        club: {
-          id: event.club.id,
-          name: event.club.name,
-          foundingDate: event.club.foundingDate,
-          createdAt: event.club.createdAt
-        }
+        club: event.club
       }
     })
 
@@ -82,10 +77,10 @@ describe('inspectIndexedDb', () => {
       columns: ['id', 'name', 'foundingDate', 'createdAt']
     })
     expect(clubsTable?.rows[0]).toMatchObject({
-      id: event.club.id,
-      name: event.club.name,
-      foundingDate: event.club.foundingDate,
-      createdAt: event.club.createdAt
+      id: club.id,
+      name: club.name,
+      foundingDate: club.foundingDate,
+      createdAt: club.createdAt
     })
     expect(eventsTable).toMatchObject({
       primaryKey: 'eventId',
@@ -98,12 +93,7 @@ describe('inspectIndexedDb', () => {
       eventName: 'club.created',
       occurredAt: event.occurredAt,
       payload: {
-        club: {
-          id: event.club.id,
-          name: event.club.name,
-          foundingDate: event.club.foundingDate,
-          createdAt: event.club.createdAt
-        }
+        club: event.club
       }
     })
     expect(trainersTable).toMatchObject({
@@ -127,7 +117,7 @@ describe('inspectIndexedDb', () => {
   })
 
   it('clears rows from every store without removing the declared schema', async () => {
-    const event = Club.register(
+    const [club, event] = Club.register(
       'Skra Częstochowa',
       new Date('1926-01-01T00:00:00Z'),
       'club-2'
@@ -151,10 +141,10 @@ describe('inspectIndexedDb', () => {
 
     await database.open()
     await database.clubs.add({
-      id: event.club.id,
-      name: event.club.name,
-      foundingDate: event.club.foundingDate,
-      createdAt: event.club.createdAt
+      id: club.id,
+      name: club.name,
+      foundingDate: club.foundingDate,
+      createdAt: club.createdAt
     })
     await database.trainers.add({
       id: trainerEvent.trainer.id,
@@ -179,10 +169,8 @@ describe('inspectIndexedDb', () => {
       eventName: event.eventName,
       occurredAt: event.occurredAt,
       payload: {
-        club: {
-          id: event.club.id,
-          name: event.club.name
-        }
+        // The debug inspector should reflect the same snapshot payload shape the app stores for offline event replay.
+        club: event.club
       }
     })
 

@@ -41,7 +41,7 @@ describe('DexieEventRepo', () => {
   })
 
   it('persists a club.created event into the generic event log', async () => {
-    const event = Club.register(
+    const [, event] = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -58,12 +58,7 @@ describe('DexieEventRepo', () => {
       eventName: 'club.created',
       occurredAt: event.occurredAt,
       payload: {
-        club: {
-          id: event.club.id,
-          name: event.club.name,
-          foundingDate: event.club.foundingDate,
-          createdAt: event.club.createdAt
-        }
+        club: event.club
       }
     })
   })

@@ -29,7 +29,7 @@ describe('DexieUnitOfWork', () => {
   })
 
   it('rolls back writes across all tables when the transaction fails', async () => {
-    const event = Club.register(
+    const [club, event] = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -38,22 +38,18 @@ describe('DexieUnitOfWork', () => {
     await expect(
       unitOfWork.execute(async () => {
         await database.clubs.add({
-          id: event.club.id,
-          name: event.club.name,
-          foundingDate: event.club.foundingDate,
-          createdAt: event.club.createdAt
+          id: club.id,
+          name: club.name,
+          foundingDate: club.foundingDate,
+          createdAt: club.createdAt
         } satisfies PersistedClub)
         await database.events.add({
           eventId: event.eventId,
           eventName: event.eventName,
           occurredAt: event.occurredAt,
           payload: {
-            club: {
-              id: event.club.id,
-              name: event.club.name,
-              foundingDate: event.club.foundingDate,
-              createdAt: event.club.createdAt
-            }
+            // The event row should mirror the same snapshot shape the application persists for offline replay.
+            club: event.club
           }
         } satisfies PersistedDomainEvent<PersistedClubCreatedPayload>)
 

@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RegisterClubUseCase } from './RegisterClubUseCase'
 import { type RegisterClubCommand } from './requests/RegisterClubCommand'
-import { Club, ClubAlreadyExistsError } from '@/domain/model/club'
+import {
+  Club,
+  ClubAlreadyExistsError,
+  ClubCreatedDomainEvent
+} from '@/domain/model/club'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
@@ -85,7 +89,11 @@ describe('RegisterClubUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
     expect(savedEvent.eventName).toBe('club.created')
-    expect(savedEvent).toMatchObject({ club: savedClub })
+    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
+    expect(savedEvent).toBeInstanceOf(ClubCreatedDomainEvent)
+    expect((savedEvent as ClubCreatedDomainEvent).club).toEqual(
+      savedClub.toSnapshot()
+    )
   })
 
   it('should throw when trying to register a second club', async () => {

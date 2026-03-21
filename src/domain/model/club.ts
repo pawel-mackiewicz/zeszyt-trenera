@@ -33,10 +33,11 @@ export class Club {
     name: string,
     foundingDate: Date,
     id: string
-  ): ClubCreatedDomainEvent {
+  ): [Club, ClubCreatedDomainEvent] {
     // Registration receives the ID from outside so the aggregate does not depend on external identifier generators.
-    const newClub = new Club(name, foundingDate, id)
-    return new ClubCreatedDomainEvent(newClub)
+    const club = new Club(name, foundingDate, id)
+    const event = new ClubCreatedDomainEvent(club.toSnapshot())
+    return [club, event]
   }
 
   public static restore(snapshot: ClubSnapshot): Club {
@@ -74,7 +75,7 @@ export class Club {
 export class ClubCreatedDomainEvent extends DomainEvent {
   public readonly eventName = 'club.created'
 
-  constructor(public readonly club: Club) {
+  constructor(public readonly club: ClubSnapshot) {
     super()
   }
 }
