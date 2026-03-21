@@ -11,7 +11,8 @@ import type { DomainEvent } from '@/domain/events/DomainEvent'
 import {
   InvalidMemberPhoneNumberError,
   Member,
-  MemberAlreadyExistsError
+  MemberAlreadyExistsError,
+  MemberCreatedDomainEvent
 } from '@/domain/model/member'
 
 class FakeUnitOfWork implements UnitOfWork {
@@ -168,7 +169,11 @@ describe('RegisterMemberUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
     expect(savedEvent.eventName).toBe('member.created')
-    expect(savedEvent).toMatchObject({ member: savedMember })
+    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
+    expect(savedEvent).toBeInstanceOf(MemberCreatedDomainEvent)
+    expect((savedEvent as MemberCreatedDomainEvent).member).toEqual(
+      savedMember.toSnapshot()
+    )
   })
 
   it('throws when the phone number normalizer cannot produce an E.164 value', async () => {

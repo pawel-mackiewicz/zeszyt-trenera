@@ -23,7 +23,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('persists a member into Dexie', async () => {
-    const event = Member.register(
+    const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -34,19 +34,19 @@ describe('DexieMemberRepo', () => {
       'member-1'
     )
 
-    await repository.save(event.member)
+    await repository.save(member)
 
     const persistedMembers = await database.members.toArray()
 
     expect(persistedMembers).toHaveLength(1)
     expect(persistedMembers[0]).toMatchObject({
-      id: event.member.id,
-      firstName: event.member.firstName,
-      lastName: event.member.lastName,
-      phoneNumber: event.member.phoneNumber,
-      dateOfBirth: event.member.dateOfBirth,
-      joinedAt: event.member.joinedAt,
-      createdAt: event.member.createdAt
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      phoneNumber: member.phoneNumber,
+      dateOfBirth: member.dateOfBirth,
+      joinedAt: member.joinedAt,
+      createdAt: member.createdAt
     })
   })
 
@@ -61,7 +61,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('reports when the same name and phone number already exist', async () => {
-    const event = Member.register(
+    const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -70,7 +70,7 @@ describe('DexieMemberRepo', () => {
       'member-1'
     )
 
-    await repository.save(event.member)
+    await repository.save(member)
 
     await expect(
       repository.existsByNameAndPhone('Jane', 'Doe', '+48123456789')
@@ -78,7 +78,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('does not treat a matching phone number with a different name as a duplicate', async () => {
-    const event = Member.register(
+    const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -87,7 +87,7 @@ describe('DexieMemberRepo', () => {
       'member-1'
     )
 
-    await repository.save(event.member)
+    await repository.save(member)
 
     await expect(
       repository.existsByNameAndPhone('John', 'Doe', '+48123456789')
@@ -95,7 +95,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('reports when a member exists for the given id', async () => {
-    const event = Member.register(
+    const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -104,7 +104,7 @@ describe('DexieMemberRepo', () => {
       'member-1'
     )
 
-    await repository.save(event.member)
+    await repository.save(member)
 
     await expect(repository.existsById('member-1')).resolves.toBe(true)
   })

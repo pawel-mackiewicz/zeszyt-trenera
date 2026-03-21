@@ -26,9 +26,9 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
       await this.ensureMemberExists(dto.memberId)
       await this.ensurePaymentDoesNotExist(dto.memberId, dto.coveredMonth)
 
-      const event = this.recordPayment(dto)
+      const [payment, event] = this.recordPayment(dto)
 
-      await this.membershipPaymentRepo.save(event.payment)
+      await this.membershipPaymentRepo.save(payment)
       await this.eventRepo.save(event)
     })
   }
@@ -54,7 +54,7 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
   }
 
   private recordPayment(dto: RegisterMembershipPaymentCommand) {
-    // The workflow owns ID allocation so the aggregate stays deterministic in tests and isolated from infrastructure concerns.
+    // The workflow owns ID allocation so the aggregate stays deterministic in tests and isolated from infrastructure concerns while the event log receives the same immutable snapshot the table persists.
     return MembershipPayment.record(
       {
         memberId: dto.memberId,

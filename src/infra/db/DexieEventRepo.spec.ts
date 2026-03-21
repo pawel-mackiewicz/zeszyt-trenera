@@ -64,7 +64,7 @@ describe('DexieEventRepo', () => {
   })
 
   it('persists a trainer.created event into the generic event log', async () => {
-    const event = Trainer.register('Jane Doe', 'trainer-1')
+    const [, event] = Trainer.register('Jane Doe', 'trainer-1')
 
     await repository.save(event)
 
@@ -77,17 +77,13 @@ describe('DexieEventRepo', () => {
       eventName: 'trainer.created',
       occurredAt: event.occurredAt,
       payload: {
-        trainer: {
-          id: event.trainer.id,
-          name: event.trainer.name,
-          createdAt: event.trainer.createdAt
-        }
+        trainer: event.trainer
       }
     })
   })
 
   it('persists a member.created event into the generic event log', async () => {
-    const event = Member.register(
+    const [, event] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -109,21 +105,13 @@ describe('DexieEventRepo', () => {
       eventName: 'member.created',
       occurredAt: event.occurredAt,
       payload: {
-        member: {
-          id: event.member.id,
-          firstName: event.member.firstName,
-          lastName: event.member.lastName,
-          phoneNumber: event.member.phoneNumber,
-          dateOfBirth: event.member.dateOfBirth,
-          joinedAt: event.member.joinedAt,
-          createdAt: event.member.createdAt
-        }
+        member: event.member
       }
     })
   })
 
   it('persists a membership-payment.recorded event into the generic event log', async () => {
-    const event = MembershipPayment.record(
+    const [, event] = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -143,12 +131,7 @@ describe('DexieEventRepo', () => {
       eventName: 'membership-payment.recorded',
       occurredAt: event.occurredAt,
       payload: {
-        payment: {
-          id: event.payment.id,
-          memberId: event.payment.memberId,
-          coveredMonth: event.payment.coveredMonth,
-          createdAt: event.payment.createdAt
-        }
+        payment: event.payment
       }
     })
   })

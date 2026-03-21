@@ -21,10 +21,15 @@ export class Trainer {
     this._name = name
   }
 
-  public static register(name: string, id: string): TrainerCreatedDomainEvent {
+  public static register(
+    name: string,
+    id: string
+  ): [Trainer, TrainerCreatedDomainEvent] {
     // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
-    const newTrainer = new Trainer(name, id)
-    return new TrainerCreatedDomainEvent(newTrainer)
+    const trainer = new Trainer(name, id)
+    // Event payloads store snapshots so the offline log keeps an immutable copy even if the in-memory aggregate changes later.
+    const event = new TrainerCreatedDomainEvent(trainer.toSnapshot())
+    return [trainer, event]
   }
 
   public static restore(snapshot: TrainerSnapshot): Trainer {
@@ -52,7 +57,7 @@ export class Trainer {
 export class TrainerCreatedDomainEvent extends DomainEvent {
   public readonly eventName = 'trainer.created'
 
-  constructor(public readonly trainer: Trainer) {
+  constructor(public readonly trainer: TrainerSnapshot) {
     super()
   }
 }

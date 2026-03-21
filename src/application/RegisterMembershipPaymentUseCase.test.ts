@@ -10,7 +10,8 @@ import type { RegisterMembershipPaymentCommand } from '@/application/requests/Re
 import type { DomainEvent } from '@/domain/events/DomainEvent'
 import {
   MembershipPayment,
-  MembershipPaymentAlreadyExistsError
+  MembershipPaymentAlreadyExistsError,
+  MembershipPaymentRecordedDomainEvent
 } from '@/domain/model/MembershipPayment'
 import { Member, MemberNotFoundError } from '@/domain/model/member'
 
@@ -163,7 +164,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
     expect(savedEvent.eventName).toBe('membership-payment.recorded')
-    expect(savedEvent).toMatchObject({ payment: savedPayment })
+    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
+    expect(savedEvent).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
+    expect(
+      (savedEvent as MembershipPaymentRecordedDomainEvent).payment
+    ).toEqual(savedPayment.toSnapshot())
   })
 
   it('throws when trying to record a membership payment for an unknown member', async () => {

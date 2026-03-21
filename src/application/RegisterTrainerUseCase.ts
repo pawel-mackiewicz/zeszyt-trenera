@@ -21,11 +21,11 @@ export class RegisterTrainerUseCase implements UseCase<RegisterTrainerCommand> {
       if (await this.trainerRepo.exists()) {
         throw new TrainerAlreadyExistsError()
       }
-      const event = Trainer.register(
+      const [trainer, event] = Trainer.register(
         dto.trainerName,
         this.idGenerator.generate()
       )
-      await this.trainerRepo.save(event.trainer)
+      await this.trainerRepo.save(trainer)
       await this.eventRepo.save(event)
     })
   }

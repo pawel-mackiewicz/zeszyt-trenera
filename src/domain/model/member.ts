@@ -60,10 +60,12 @@ export class Member {
   public static register(
     input: RegisterMemberInput,
     id: string
-  ): MemberCreatedDomainEvent {
+  ): [Member, MemberCreatedDomainEvent] {
     // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
-    const newMember = new Member(input, id)
-    return new MemberCreatedDomainEvent(newMember)
+    const member = new Member(input, id)
+    // Event payloads store snapshots so local-first replay keeps the original canonical phone and dates even if an aggregate instance is later replaced in memory.
+    const event = new MemberCreatedDomainEvent(member.toSnapshot())
+    return [member, event]
   }
 
   public static restore(snapshot: MemberSnapshot): Member {
@@ -123,7 +125,7 @@ export class Member {
 export class MemberCreatedDomainEvent extends DomainEvent {
   public readonly eventName = 'member.created'
 
-  constructor(public readonly member: Member) {
+  constructor(public readonly member: MemberSnapshot) {
     super()
   }
 }

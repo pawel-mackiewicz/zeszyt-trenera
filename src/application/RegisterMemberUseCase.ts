@@ -31,8 +31,8 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
         normalizedPhoneNumber
       )
 
-      const event = this.registerMember(dto, normalizedPhoneNumber)
-      await this.memberRepo.save(event.member)
+      const [member, event] = this.registerMember(dto, normalizedPhoneNumber)
+      await this.memberRepo.save(member)
       await this.eventRepo.save(event)
     })
   }
@@ -70,7 +70,7 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
     dto: RegisterMemberCommand,
     normalizedPhoneNumber: string
   ) {
-    // The use case owns cross-boundary concerns like ID allocation and phone canonicalization so the aggregate stays infrastructure-agnostic.
+    // The use case owns cross-boundary concerns like ID allocation and phone canonicalization so the aggregate stays infrastructure-agnostic while the event log receives the same immutable snapshot that persistence stores.
     return Member.register(
       {
         firstName: dto.firstName,

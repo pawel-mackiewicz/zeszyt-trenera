@@ -7,7 +7,11 @@ import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
-import { Trainer, TrainerAlreadyExistsError } from '@/domain/model/trainer'
+import {
+  Trainer,
+  TrainerAlreadyExistsError,
+  TrainerCreatedDomainEvent
+} from '@/domain/model/trainer'
 
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
@@ -88,7 +92,11 @@ describe('RegisterTrainerUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
     expect(savedEvent.eventName).toBe('trainer.created')
-    expect(savedEvent).toMatchObject({ trainer: savedTrainer })
+    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
+    expect(savedEvent).toBeInstanceOf(TrainerCreatedDomainEvent)
+    expect((savedEvent as TrainerCreatedDomainEvent).trainer).toEqual(
+      savedTrainer.toSnapshot()
+    )
   })
 
   it('should throw when trying to register a second trainer', async () => {

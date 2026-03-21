@@ -98,8 +98,8 @@ export class DexieEventRepo implements EventRepoPort {
         eventName: event.eventName,
         occurredAt: event.occurredAt,
         payload: {
-          // Trainer events reuse the aggregate snapshot so the event log and primary table stay aligned for offline replay and inspection.
-          trainer: event.trainer.toSnapshot()
+          // Trainer events now already carry a snapshot so the event log can persist the exact payload emitted by the domain.
+          trainer: event.trainer
         } satisfies PersistedTrainerCreatedPayload
       } satisfies PersistedTrainerCreatedEvent
     }
@@ -110,8 +110,8 @@ export class DexieEventRepo implements EventRepoPort {
         eventName: event.eventName,
         occurredAt: event.occurredAt,
         payload: {
-          // Member events reuse the same snapshot as the main table so replays and persisted records see the same canonical phone data.
-          member: event.member.toSnapshot()
+          // Member events now already carry the canonical snapshot so replays and persisted records see identical phone and date data.
+          member: event.member
         } satisfies PersistedMemberCreatedPayload
       } satisfies PersistedMemberCreatedEvent
     }
@@ -122,8 +122,8 @@ export class DexieEventRepo implements EventRepoPort {
         eventName: event.eventName,
         occurredAt: event.occurredAt,
         payload: {
-          // Payment events reuse the stored snapshot so the offline event log can replay the same month state that the primary table persists.
-          payment: event.payment.toSnapshot()
+          // Payment events now already carry the stored snapshot so the offline event log can replay the exact recorded month state.
+          payment: event.payment
         } satisfies PersistedMembershipPaymentRecordedPayload
       } satisfies PersistedMembershipPaymentRecordedEvent
     }

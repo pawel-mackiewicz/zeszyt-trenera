@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Trainer } from '@/domain/model/trainer'
+import { Trainer, TrainerCreatedDomainEvent } from '@/domain/model/trainer'
 
 describe('Trainer Model', () => {
   it('should create a trainer with all required properties', () => {
@@ -8,30 +8,32 @@ describe('Trainer Model', () => {
     const beforeCreation = new Date()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as Club and does not generate identifiers on its own.
-    const event = Trainer.register(name, id)
+    const [trainer, event] = Trainer.register(name, id)
 
     const afterCreation = new Date()
 
-    expect(event.trainer.id).toBe(id)
-    expect(event.trainer.name).toBe(name)
+    expect(trainer.id).toBe(id)
+    expect(trainer.name).toBe(name)
 
-    expect(event.trainer.createdAt).toBeDefined()
-    expect(event.trainer.createdAt).toBeInstanceOf(Date)
-    expect(event.trainer.createdAt.getTime()).toBeGreaterThanOrEqual(
+    expect(trainer.createdAt).toBeDefined()
+    expect(trainer.createdAt).toBeInstanceOf(Date)
+    expect(trainer.createdAt.getTime()).toBeGreaterThanOrEqual(
       beforeCreation.getTime()
     )
-    expect(event.trainer.createdAt.getTime()).toBeLessThanOrEqual(
+    expect(trainer.createdAt.getTime()).toBeLessThanOrEqual(
       afterCreation.getTime()
     )
 
-    expect(event.trainer.toSnapshot()).toEqual({
+    expect(trainer.toSnapshot()).toEqual({
       id,
       name,
-      createdAt: event.trainer.createdAt
+      createdAt: trainer.createdAt
     })
 
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
+    expect(event).toBeInstanceOf(TrainerCreatedDomainEvent)
+    expect(event.trainer).toEqual(trainer.toSnapshot())
   })
 
   it('restores an existing trainer from persisted state', () => {

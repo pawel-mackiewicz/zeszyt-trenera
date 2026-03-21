@@ -23,17 +23,17 @@ describe('DexieTrainerRepo', () => {
   })
 
   it('persists a trainer into Dexie', async () => {
-    const event = Trainer.register('Jane Doe', 'trainer-1')
+    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
 
-    await repository.save(event.trainer)
+    await repository.save(trainer)
 
     const persistedTrainers = await database.trainers.toArray()
 
     expect(persistedTrainers).toHaveLength(1)
     expect(persistedTrainers[0]).toMatchObject({
-      id: event.trainer.id,
-      name: event.trainer.name,
-      createdAt: event.trainer.createdAt
+      id: trainer.id,
+      name: trainer.name,
+      createdAt: trainer.createdAt
     })
   })
 
@@ -42,9 +42,9 @@ describe('DexieTrainerRepo', () => {
   })
 
   it('reports when a trainer is already persisted', async () => {
-    const event = Trainer.register('Jane Doe', 'trainer-1')
+    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
 
-    await repository.save(event.trainer)
+    await repository.save(trainer)
 
     await expect(repository.exists()).resolves.toBe(true)
   })

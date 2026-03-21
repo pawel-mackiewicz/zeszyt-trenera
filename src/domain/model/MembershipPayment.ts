@@ -45,10 +45,12 @@ export class MembershipPayment {
   public static record(
     input: RecordMembershipPaymentInput,
     id: string
-  ): MembershipPaymentRecordedDomainEvent {
+  ): [MembershipPayment, MembershipPaymentRecordedDomainEvent] {
     // Recording receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
-    const newPayment = new MembershipPayment(input, id)
-    return new MembershipPaymentRecordedDomainEvent(newPayment)
+    const payment = new MembershipPayment(input, id)
+    // Event payloads store snapshots so the offline ledger replays the exact recorded month without depending on a live aggregate instance.
+    const event = new MembershipPaymentRecordedDomainEvent(payment.toSnapshot())
+    return [payment, event]
   }
 
   public static restore(
@@ -90,7 +92,7 @@ export class MembershipPayment {
 export class MembershipPaymentRecordedDomainEvent extends DomainEvent {
   public readonly eventName = 'membership-payment.recorded'
 
-  constructor(public readonly payment: MembershipPayment) {
+  constructor(public readonly payment: MembershipPaymentSnapshot) {
     super()
   }
 }

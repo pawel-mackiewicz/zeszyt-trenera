@@ -25,7 +25,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('persists a membership payment into Dexie', async () => {
-    const event = MembershipPayment.record(
+    const [payment] = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -33,16 +33,16 @@ describe('DexieMembershipPaymentRepo', () => {
       'payment-1'
     )
 
-    await repository.save(event.payment)
+    await repository.save(payment)
 
     const persistedPayments = await database.membershipPayments.toArray()
 
     expect(persistedPayments).toHaveLength(1)
     expect(persistedPayments[0]).toMatchObject({
-      id: event.payment.id,
-      memberId: event.payment.memberId,
-      coveredMonth: event.payment.coveredMonth,
-      createdAt: event.payment.createdAt
+      id: payment.id,
+      memberId: payment.memberId,
+      coveredMonth: payment.coveredMonth,
+      createdAt: payment.createdAt
     })
   })
 
@@ -53,7 +53,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('reports when the same member and covered month already have a payment', async () => {
-    const event = MembershipPayment.record(
+    const [payment] = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -61,7 +61,7 @@ describe('DexieMembershipPaymentRepo', () => {
       'payment-1'
     )
 
-    await repository.save(event.payment)
+    await repository.save(payment)
 
     await expect(
       repository.existsByMemberIdAndCoveredMonth('member-1', '2026-03')
@@ -69,7 +69,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('does not treat a different covered month as a duplicate', async () => {
-    const event = MembershipPayment.record(
+    const [payment] = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -77,7 +77,7 @@ describe('DexieMembershipPaymentRepo', () => {
       'payment-1'
     )
 
-    await repository.save(event.payment)
+    await repository.save(payment)
 
     await expect(
       repository.existsByMemberIdAndCoveredMonth('member-1', '2026-04')

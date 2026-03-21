@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import {
   InvalidMembershipPaymentCoveredMonthError,
-  MembershipPayment
+  MembershipPayment,
+  MembershipPaymentRecordedDomainEvent
 } from '@/domain/model/MembershipPayment'
 
 describe('MembershipPayment Model', () => {
@@ -11,7 +12,7 @@ describe('MembershipPayment Model', () => {
     const beforeCreation = new Date()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as the other models and does not generate identifiers on its own.
-    const event = MembershipPayment.record(
+    const [payment, event] = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -21,28 +22,30 @@ describe('MembershipPayment Model', () => {
 
     const afterCreation = new Date()
 
-    expect(event.payment.id).toBe(id)
-    expect(event.payment.memberId).toBe('member-1')
-    expect(event.payment.coveredMonth).toBe('2026-03')
+    expect(payment.id).toBe(id)
+    expect(payment.memberId).toBe('member-1')
+    expect(payment.coveredMonth).toBe('2026-03')
 
-    expect(event.payment.createdAt).toBeDefined()
-    expect(event.payment.createdAt).toBeInstanceOf(Date)
-    expect(event.payment.createdAt.getTime()).toBeGreaterThanOrEqual(
+    expect(payment.createdAt).toBeDefined()
+    expect(payment.createdAt).toBeInstanceOf(Date)
+    expect(payment.createdAt.getTime()).toBeGreaterThanOrEqual(
       beforeCreation.getTime()
     )
-    expect(event.payment.createdAt.getTime()).toBeLessThanOrEqual(
+    expect(payment.createdAt.getTime()).toBeLessThanOrEqual(
       afterCreation.getTime()
     )
 
-    expect(event.payment.toSnapshot()).toEqual({
+    expect(payment.toSnapshot()).toEqual({
       id,
       memberId: 'member-1',
       coveredMonth: '2026-03',
-      createdAt: event.payment.createdAt
+      createdAt: payment.createdAt
     })
 
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
+    expect(event).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
+    expect(event.payment).toEqual(payment.toSnapshot())
   })
 
   it('restores an existing membership payment from persisted state', () => {

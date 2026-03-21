@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { InvalidMemberPhoneNumberError, Member } from '@/domain/model/member'
+import {
+  InvalidMemberPhoneNumberError,
+  Member,
+  MemberCreatedDomainEvent
+} from '@/domain/model/member'
 
 describe('Member Model', () => {
   it('should create a member with all required properties', () => {
@@ -8,7 +12,7 @@ describe('Member Model', () => {
     const beforeCreation = new Date()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as the other models and does not generate identifiers on its own.
-    const event = Member.register(
+    const [member, event] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -19,30 +23,32 @@ describe('Member Model', () => {
 
     const afterCreation = new Date()
 
-    expect(event.member.id).toBe(id)
-    expect(event.member.firstName).toBe('Jane')
-    expect(event.member.lastName).toBe('Doe')
-    expect(event.member.phoneNumber).toBe('+48123456789')
+    expect(member.id).toBe(id)
+    expect(member.firstName).toBe('Jane')
+    expect(member.lastName).toBe('Doe')
+    expect(member.phoneNumber).toBe('+48123456789')
 
-    expect(event.member.createdAt).toBeDefined()
-    expect(event.member.createdAt).toBeInstanceOf(Date)
-    expect(event.member.createdAt.getTime()).toBeGreaterThanOrEqual(
+    expect(member.createdAt).toBeDefined()
+    expect(member.createdAt).toBeInstanceOf(Date)
+    expect(member.createdAt.getTime()).toBeGreaterThanOrEqual(
       beforeCreation.getTime()
     )
-    expect(event.member.createdAt.getTime()).toBeLessThanOrEqual(
+    expect(member.createdAt.getTime()).toBeLessThanOrEqual(
       afterCreation.getTime()
     )
 
-    expect(event.member.toSnapshot()).toEqual({
+    expect(member.toSnapshot()).toEqual({
       id,
       firstName: 'Jane',
       lastName: 'Doe',
       phoneNumber: '+48123456789',
-      createdAt: event.member.createdAt
+      createdAt: member.createdAt
     })
 
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
+    expect(event).toBeInstanceOf(MemberCreatedDomainEvent)
+    expect(event.member).toEqual(member.toSnapshot())
   })
 
   it('restores an existing member from persisted state', () => {
@@ -78,14 +84,14 @@ describe('Member Model', () => {
   })
 
   it('toSnapshot omits optional date fields when the member does not have them', () => {
-    const member = Member.register(
+    const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '+48123456789'
       },
       'member-1'
-    ).member
+    )
 
     const snapshot = member.toSnapshot()
 

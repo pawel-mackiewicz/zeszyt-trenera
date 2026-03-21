@@ -122,8 +122,8 @@ describe('inspectIndexedDb', () => {
       new Date('1926-01-01T00:00:00Z'),
       'club-2'
     )
-    const trainerEvent = Trainer.register('Jane Doe', 'trainer-1')
-    const memberEvent = Member.register(
+    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
+    const [member] = Member.register(
       {
         firstName: 'Jan',
         lastName: 'Kowalski',
@@ -131,9 +131,9 @@ describe('inspectIndexedDb', () => {
       },
       'member-1'
     )
-    const membershipPaymentEvent = MembershipPayment.record(
+    const [membershipPayment] = MembershipPayment.record(
       {
-        memberId: memberEvent.member.id,
+        memberId: member.id,
         coveredMonth: '2026-03'
       },
       'payment-1'
@@ -147,22 +147,22 @@ describe('inspectIndexedDb', () => {
       createdAt: club.createdAt
     })
     await database.trainers.add({
-      id: trainerEvent.trainer.id,
-      name: trainerEvent.trainer.name,
-      createdAt: trainerEvent.trainer.createdAt
+      id: trainer.id,
+      name: trainer.name,
+      createdAt: trainer.createdAt
     })
     await database.members.add({
-      id: memberEvent.member.id,
-      firstName: memberEvent.member.firstName,
-      lastName: memberEvent.member.lastName,
-      phoneNumber: memberEvent.member.phoneNumber,
-      createdAt: memberEvent.member.createdAt
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      phoneNumber: member.phoneNumber,
+      createdAt: member.createdAt
     })
     await database.membershipPayments.add({
-      id: membershipPaymentEvent.payment.id,
-      memberId: membershipPaymentEvent.payment.memberId,
-      coveredMonth: membershipPaymentEvent.payment.coveredMonth,
-      createdAt: membershipPaymentEvent.payment.createdAt
+      id: membershipPayment.id,
+      memberId: membershipPayment.memberId,
+      coveredMonth: membershipPayment.coveredMonth,
+      createdAt: membershipPayment.createdAt
     })
     await database.events.add({
       eventId: event.eventId,
