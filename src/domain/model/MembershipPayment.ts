@@ -1,7 +1,5 @@
 import { DomainEvent } from '@/domain/events/DomainEvent'
-
-// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
-const copyDate = (value: Date): Date => new Date(value.getTime())
+import { copyDate } from './DateUtils'
 
 // Offline filters and future Dexie indexes need one timezone-free month key, so the domain only accepts already-canonical YYYY-MM values instead of date-like inputs.
 const assertCoveredMonth = (value: string): string => {

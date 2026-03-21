@@ -1,10 +1,5 @@
 import { DomainEvent } from '@/domain/events/DomainEvent'
-
-// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
-const copyDate = (value: Date): Date => new Date(value.getTime())
-
-const copyOptionalDate = (value?: Date): Date | undefined =>
-  value === undefined ? undefined : copyDate(value)
+import { copyDate, copyOptionalDate } from './DateUtils'
 
 // Local-first records and offline-created events must agree on one persisted phone format, so the domain only accepts already-canonical E.164 values instead of rewriting user input implicitly.
 const assertE164PhoneNumber = (value: string): string => {

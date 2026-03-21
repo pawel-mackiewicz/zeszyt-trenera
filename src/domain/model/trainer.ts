@@ -1,7 +1,5 @@
 import { DomainEvent } from '@/domain/events/DomainEvent'
-
-// Domain dates stay behind defensive copies because Date mutators would otherwise let callers rewrite aggregate history.
-const copyDate = (value: Date): Date => new Date(value.getTime())
+import { copyDate } from './DateUtils'
 
 export type TrainerSnapshot = {
   id: string
