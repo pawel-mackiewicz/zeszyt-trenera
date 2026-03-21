@@ -1,21 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { ClubAlreadyExistsError } from '@/domain/model/club'
-import { MembershipPaymentAlreadyExistsError } from '@/domain/model/MembershipPayment'
+import { ClubAlreadyExistsError, type ClubSnapshot } from '@/domain/model/club'
 import {
+  MembershipPaymentAlreadyExistsError,
+  type MembershipPaymentSnapshot
+} from '@/domain/model/MembershipPayment'
+import {
+  type MemberSnapshot,
   MemberAlreadyExistsError,
   MemberNotFoundError
 } from '@/domain/model/member'
-import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
+import {
+  TrainerAlreadyExistsError,
+  type TrainerSnapshot
+} from '@/domain/model/trainer'
 import { createAppServices } from '@/infra/appServices'
 import type { PersistedDomainEvent } from '@/infra/db'
 import { TrainerNotebookDb } from '@/infra/db'
-import type {
-  PersistedClubCreatedPayload,
-  PersistedMemberCreatedPayload,
-  PersistedMembershipPaymentRecordedPayload,
-  PersistedTrainerCreatedPayload
-} from '@/infra/db/DexieEventRepo'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
@@ -63,19 +64,18 @@ describe('appServices', () => {
     const persistedEvents = await database.events.toArray()
     const persistedClub = persistedClubs[0]
     const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<PersistedClubCreatedPayload>
+      persistedEvents[0] as PersistedDomainEvent<ClubSnapshot>
 
     expect(persistedClubs).toHaveLength(1)
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventName: 'club.created',
+      // Raw snapshot payloads keep the event log aligned with aggregate restore input so replay code does not have to unwrap adapter-specific keys.
       payload: {
-        club: {
-          id: persistedClub.id,
-          name: persistedClub.name,
-          foundingDate: persistedClub.foundingDate,
-          createdAt: persistedClub.createdAt
-        }
+        id: persistedClub.id,
+        name: persistedClub.name,
+        foundingDate: persistedClub.foundingDate,
+        createdAt: persistedClub.createdAt
       }
     })
   })
@@ -112,18 +112,16 @@ describe('appServices', () => {
     const persistedEvents = await database.events.toArray()
     const persistedTrainer = persistedTrainers[0]
     const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<PersistedTrainerCreatedPayload>
+      persistedEvents[0] as PersistedDomainEvent<TrainerSnapshot>
 
     expect(persistedTrainers).toHaveLength(1)
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventName: 'trainer.created',
       payload: {
-        trainer: {
-          id: persistedTrainer.id,
-          name: persistedTrainer.name,
-          createdAt: persistedTrainer.createdAt
-        }
+        id: persistedTrainer.id,
+        name: persistedTrainer.name,
+        createdAt: persistedTrainer.createdAt
       }
     })
   })
@@ -162,22 +160,20 @@ describe('appServices', () => {
     const persistedEvents = await database.events.toArray()
     const persistedMember = persistedMembers[0]
     const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<PersistedMemberCreatedPayload>
+      persistedEvents[0] as PersistedDomainEvent<MemberSnapshot>
 
     expect(persistedMembers).toHaveLength(1)
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventName: 'member.created',
       payload: {
-        member: {
-          id: persistedMember.id,
-          firstName: persistedMember.firstName,
-          lastName: persistedMember.lastName,
-          phoneNumber: '+48123456789',
-          dateOfBirth: persistedMember.dateOfBirth,
-          joinedAt: persistedMember.joinedAt,
-          createdAt: persistedMember.createdAt
-        }
+        id: persistedMember.id,
+        firstName: persistedMember.firstName,
+        lastName: persistedMember.lastName,
+        phoneNumber: '+48123456789',
+        dateOfBirth: persistedMember.dateOfBirth,
+        joinedAt: persistedMember.joinedAt,
+        createdAt: persistedMember.createdAt
       }
     })
   })
@@ -278,20 +274,16 @@ describe('appServices', () => {
     const persistedPayment = persistedPayments[0]
     const persistedEvent = persistedEvents.find(
       (event) => event.eventName === 'membership-payment.recorded'
-    ) as
-      | PersistedDomainEvent<PersistedMembershipPaymentRecordedPayload>
-      | undefined
+    ) as PersistedDomainEvent<MembershipPaymentSnapshot> | undefined
 
     expect(persistedPayments).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventName: 'membership-payment.recorded',
       payload: {
-        payment: {
-          id: persistedPayment.id,
-          memberId: persistedPayment.memberId,
-          coveredMonth: persistedPayment.coveredMonth,
-          createdAt: persistedPayment.createdAt
-        }
+        id: persistedPayment.id,
+        memberId: persistedPayment.memberId,
+        coveredMonth: persistedPayment.coveredMonth,
+        createdAt: persistedPayment.createdAt
       }
     })
   })

@@ -171,7 +171,7 @@ describe('RegisterMemberUseCase', () => {
     expect(savedEvent.eventName).toBe('member.created')
     // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
     expect(savedEvent).toBeInstanceOf(MemberCreatedDomainEvent)
-    expect((savedEvent as MemberCreatedDomainEvent).member).toEqual(
+    expect((savedEvent as MemberCreatedDomainEvent).payload).toEqual(
       savedMember.toSnapshot()
     )
   })

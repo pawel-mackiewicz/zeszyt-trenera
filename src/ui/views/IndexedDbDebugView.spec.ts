@@ -42,7 +42,7 @@ describe('IndexedDbDebugView', () => {
     expect(wrapper.text()).toContain('No records stored in this table yet.')
   })
 
-  it('renders persisted rows and nested payloads', async () => {
+  it('renders persisted rows and raw snapshot payloads', async () => {
     const foundingDate = new Date('1946-01-01T00:00:00.000Z')
     const createdAt = new Date('2025-03-17T14:00:00.000Z')
     const occurredAt = new Date('2025-03-17T14:01:00.000Z')
@@ -59,12 +59,10 @@ describe('IndexedDbDebugView', () => {
       eventName: 'club.created',
       occurredAt,
       payload: {
-        club: {
-          id: 'club-1',
-          name: 'ZKS Włókniarz Częstochowa',
-          foundingDate,
-          createdAt
-        }
+        id: 'club-1',
+        name: 'ZKS Włókniarz Częstochowa',
+        foundingDate,
+        createdAt
       }
     })
 
@@ -82,7 +80,7 @@ describe('IndexedDbDebugView', () => {
     expect(wrapper.text()).toContain('ZKS Włókniarz Częstochowa')
     expect(wrapper.text()).toContain('club.created')
     expect(wrapper.text()).toContain('1946-01-01T00:00:00.000Z')
-    expect(wrapper.text()).toContain('"club"')
+    expect(wrapper.text()).toContain('"foundingDate"')
   })
 
   it('clears persisted rows when the reset action is confirmed', async () => {
@@ -104,10 +102,8 @@ describe('IndexedDbDebugView', () => {
       eventName: 'club.created',
       occurredAt,
       payload: {
-        club: {
-          id: 'club-1',
-          name: 'ZKS Włókniarz Częstochowa'
-        }
+        id: 'club-1',
+        name: 'ZKS Włókniarz Częstochowa'
       }
     })
 

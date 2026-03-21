@@ -1,13 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { Club } from '@/domain/model/club'
+import { Club, type ClubSnapshot } from '@/domain/model/club'
 import type {
   PersistedClub,
   PersistedDomainEvent,
   TrainerNotebookDb
 } from '@/infra/db'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
-import type { PersistedClubCreatedPayload } from '@/infra/db/DexieEventRepo'
 import { TrainerNotebookDb as DexieDatabase } from '@/infra/db'
 
 function createTestDbName(prefix: string) {
@@ -47,11 +46,9 @@ describe('DexieUnitOfWork', () => {
           eventId: event.eventId,
           eventName: event.eventName,
           occurredAt: event.occurredAt,
-          payload: {
-            // The event row should mirror the same snapshot shape the application persists for offline replay.
-            club: event.club
-          }
-        } satisfies PersistedDomainEvent<PersistedClubCreatedPayload>)
+          // The event row should mirror the same raw snapshot contract that replay code restores directly.
+          payload: event.payload
+        } satisfies PersistedDomainEvent<ClubSnapshot>)
 
         throw new Error('rollback')
       })

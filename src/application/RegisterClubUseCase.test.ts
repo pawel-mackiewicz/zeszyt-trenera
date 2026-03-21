@@ -91,7 +91,7 @@ describe('RegisterClubUseCase', () => {
     expect(savedEvent.eventName).toBe('club.created')
     // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
     expect(savedEvent).toBeInstanceOf(ClubCreatedDomainEvent)
-    expect((savedEvent as ClubCreatedDomainEvent).club).toEqual(
+    expect((savedEvent as ClubCreatedDomainEvent).payload).toEqual(
       savedClub.toSnapshot()
     )
   })

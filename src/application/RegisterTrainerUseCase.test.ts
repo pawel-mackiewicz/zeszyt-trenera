@@ -94,7 +94,7 @@ describe('RegisterTrainerUseCase', () => {
     expect(savedEvent.eventName).toBe('trainer.created')
     // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
     expect(savedEvent).toBeInstanceOf(TrainerCreatedDomainEvent)
-    expect((savedEvent as TrainerCreatedDomainEvent).trainer).toEqual(
+    expect((savedEvent as TrainerCreatedDomainEvent).payload).toEqual(
       savedTrainer.toSnapshot()
     )
   })

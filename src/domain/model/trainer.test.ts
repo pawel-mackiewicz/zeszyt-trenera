@@ -33,7 +33,9 @@ describe('Trainer Model', () => {
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
     expect(event).toBeInstanceOf(TrainerCreatedDomainEvent)
-    expect(event.trainer).toEqual(trainer.toSnapshot())
+    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
+    expect(event.payload).toEqual(trainer.toSnapshot())
+    expect(event.payload).toEqual(trainer.toSnapshot())
   })
 
   it('restores an existing trainer from persisted state', () => {

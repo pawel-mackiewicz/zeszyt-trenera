@@ -45,7 +45,8 @@ describe('MembershipPayment Model', () => {
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
     expect(event).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
-    expect(event.payment).toEqual(payment.toSnapshot())
+    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
+    expect(event.payload).toEqual(payment.toSnapshot())
   })
 
   it('restores an existing membership payment from persisted state', () => {

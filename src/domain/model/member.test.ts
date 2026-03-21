@@ -48,7 +48,9 @@ describe('Member Model', () => {
     expect(event).toBeDefined()
     expect(event.eventId).toBeDefined()
     expect(event).toBeInstanceOf(MemberCreatedDomainEvent)
-    expect(event.member).toEqual(member.toSnapshot())
+    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
+    expect(event.payload).toEqual(member.toSnapshot())
+    expect(event.payload).toEqual(member.toSnapshot())
   })
 
   it('restores an existing member from persisted state', () => {

@@ -44,9 +44,7 @@ describe('inspectIndexedDb', () => {
       eventId: event.eventId,
       eventName: event.eventName,
       occurredAt: event.occurredAt,
-      payload: {
-        club: event.club
-      }
+      payload: event.payload
     })
 
     const snapshot = await inspectIndexedDb(database)
@@ -92,9 +90,7 @@ describe('inspectIndexedDb', () => {
       eventId: event.eventId,
       eventName: 'club.created',
       occurredAt: event.occurredAt,
-      payload: {
-        club: event.club
-      }
+      payload: event.payload
     })
     expect(trainersTable).toMatchObject({
       primaryKey: 'id',
@@ -168,10 +164,8 @@ describe('inspectIndexedDb', () => {
       eventId: event.eventId,
       eventName: event.eventName,
       occurredAt: event.occurredAt,
-      payload: {
-        // The debug inspector should reflect the same snapshot payload shape the app stores for offline event replay.
-        club: event.club
-      }
+      // The debug inspector should reflect the same raw snapshot payload shape the app stores for offline event replay.
+      payload: event.payload
     })
 
     await clearIndexedDb(database)

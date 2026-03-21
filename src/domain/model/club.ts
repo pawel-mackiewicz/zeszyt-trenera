@@ -72,11 +72,12 @@ export class Club {
   }
 }
 
-export class ClubCreatedDomainEvent extends DomainEvent {
+export class ClubCreatedDomainEvent extends DomainEvent<ClubSnapshot> {
   public readonly eventName = 'club.created'
 
-  constructor(public readonly club: ClubSnapshot) {
-    super()
+  public constructor(club: ClubSnapshot) {
+    // The payload is the canonical replay contract so persistence adapters can store new event types without per-event translation logic.
+    super(club)
   }
 }
 

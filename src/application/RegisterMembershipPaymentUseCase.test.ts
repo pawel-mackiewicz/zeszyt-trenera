@@ -167,7 +167,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
     // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
     expect(savedEvent).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
     expect(
-      (savedEvent as MembershipPaymentRecordedDomainEvent).payment
+      (savedEvent as MembershipPaymentRecordedDomainEvent).payload
     ).toEqual(savedPayment.toSnapshot())
   })
 

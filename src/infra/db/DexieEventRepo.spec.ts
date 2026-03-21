@@ -1,28 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DomainEvent } from '@/domain/events/DomainEvent'
-import { Club } from '@/domain/model/club'
-import { MembershipPayment } from '@/domain/model/MembershipPayment'
-import { Member } from '@/domain/model/member'
-import { Trainer } from '@/domain/model/trainer'
+import { Club, type ClubSnapshot } from '@/domain/model/club'
 import {
-  DexieEventRepo,
-  type PersistedClubCreatedEvent,
-  type PersistedMemberCreatedEvent,
-  type PersistedMembershipPaymentRecordedEvent,
-  type PersistedTrainerCreatedEvent
-} from '@/infra/db/DexieEventRepo'
-import { TrainerNotebookDb } from '@/infra/db'
+  MembershipPayment,
+  type MembershipPaymentSnapshot
+} from '@/domain/model/MembershipPayment'
+import { Member, type MemberSnapshot } from '@/domain/model/member'
+import { Trainer, type TrainerSnapshot } from '@/domain/model/trainer'
+import { type PersistedDomainEvent, TrainerNotebookDb } from '@/infra/db'
+import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
 }
 
-class UnsupportedDomainEvent extends DomainEvent {
-  public readonly eventName = 'unsupported.event'
+class CustomDomainEvent extends DomainEvent<{ note: string }> {
+  public readonly eventName = 'custom.event'
 
-  public constructor() {
-    super()
+  public constructor(note: string) {
+    super({ note })
   }
 }
 
@@ -50,16 +47,15 @@ describe('DexieEventRepo', () => {
     await repository.save(event)
 
     const persistedEvents = await database.events.toArray()
-    const persistedEvent = persistedEvents[0] as PersistedClubCreatedEvent
+    const persistedEvent =
+      persistedEvents[0] as PersistedDomainEvent<ClubSnapshot>
 
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventId: event.eventId,
       eventName: 'club.created',
       occurredAt: event.occurredAt,
-      payload: {
-        club: event.club
-      }
+      payload: event.payload
     })
   })
 
@@ -69,16 +65,15 @@ describe('DexieEventRepo', () => {
     await repository.save(event)
 
     const persistedEvents = await database.events.toArray()
-    const persistedEvent = persistedEvents[0] as PersistedTrainerCreatedEvent
+    const persistedEvent =
+      persistedEvents[0] as PersistedDomainEvent<TrainerSnapshot>
 
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventId: event.eventId,
       eventName: 'trainer.created',
       occurredAt: event.occurredAt,
-      payload: {
-        trainer: event.trainer
-      }
+      payload: event.payload
     })
   })
 
@@ -97,16 +92,15 @@ describe('DexieEventRepo', () => {
     await repository.save(event)
 
     const persistedEvents = await database.events.toArray()
-    const persistedEvent = persistedEvents[0] as PersistedMemberCreatedEvent
+    const persistedEvent =
+      persistedEvents[0] as PersistedDomainEvent<MemberSnapshot>
 
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventId: event.eventId,
       eventName: 'member.created',
       occurredAt: event.occurredAt,
-      payload: {
-        member: event.member
-      }
+      payload: event.payload
     })
   })
 
@@ -123,25 +117,29 @@ describe('DexieEventRepo', () => {
 
     const persistedEvents = await database.events.toArray()
     const persistedEvent =
-      persistedEvents[0] as PersistedMembershipPaymentRecordedEvent
+      persistedEvents[0] as PersistedDomainEvent<MembershipPaymentSnapshot>
 
     expect(persistedEvents).toHaveLength(1)
     expect(persistedEvent).toMatchObject({
       eventId: event.eventId,
       eventName: 'membership-payment.recorded',
       occurredAt: event.occurredAt,
-      payload: {
-        payment: event.payment
-      }
+      payload: event.payload
     })
   })
 
-  it('throws and does not persist anything for an unsupported event', async () => {
-    const unsupportedEvent = new UnsupportedDomainEvent()
+  it('persists arbitrary payload-bearing events without repo-specific branching', async () => {
+    const customEvent = new CustomDomainEvent('generic persistence works')
 
-    await expect(repository.save(unsupportedEvent)).rejects.toThrow(
-      'Unsupported domain event: unsupported.event'
-    )
-    await expect(database.events.count()).resolves.toBe(0)
+    await repository.save(customEvent)
+
+    await expect(database.events.toArray()).resolves.toMatchObject([
+      {
+        eventId: customEvent.eventId,
+        eventName: 'custom.event',
+        occurredAt: customEvent.occurredAt,
+        payload: customEvent.payload
+      }
+    ])
   })
 })
