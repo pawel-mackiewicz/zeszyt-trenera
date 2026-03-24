@@ -1,9 +1,32 @@
+/* Tailwind now compiles during the build so the shell keeps its utility CSS even when the PWA launches offline. */
+@import 'tailwindcss';
+
+@theme {
+  --color-surface-container-lowest: #ffffff;
+  --color-primary: #ae1417;
+  --color-on-surface: #1a1c1c;
+  --color-on-primary: #ffffff;
+  --color-surface-container: #eeeeee;
+  --color-secondary: #5f5e5e;
+  --color-outline-variant: #e4beba;
+  --color-error: #ba1a1a;
+  --color-surface-tint: #b91d1d;
+  --color-surface-container-low: #f3f3f3;
+  --color-background: #f9f9f9;
+  --color-surface: #f9f9f9;
+  --color-danger: #ba1a1a;
+  --font-headline: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-label: 'Space Grotesk', sans-serif;
+  --font-mono: 'Roboto Mono', monospace;
+}
+
 :root {
   color-scheme: light;
-  font-family: 'Trebuchet MS', 'Gill Sans', 'Segoe UI', sans-serif;
+  font-family: 'Inter', 'Trebuchet MS', 'Gill Sans', 'Segoe UI', sans-serif;
   --font-display:
-    'Avenir Next Condensed', 'Arial Narrow', 'Franklin Gothic Medium',
-    sans-serif;
+    'Space Grotesk', 'Avenir Next Condensed', 'Arial Narrow',
+    'Franklin Gothic Medium', sans-serif;
   --bg-page: #f4eee0;
   --bg-tint: #dce6d7;
   --bg-panel: rgba(255, 251, 243, 0.88);
@@ -114,6 +137,11 @@ a {
 
 #app {
   min-height: 100vh;
+}
+
+/* Safe-area padding keeps the fixed bottom nav reachable in standalone mobile installs. */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .page-enter-active,

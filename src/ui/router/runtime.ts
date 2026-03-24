@@ -4,7 +4,8 @@ export {
   createMemoryHistory,
   createRouter,
   createWebHistory,
-  useRoute
+  useRoute,
+  useRouter
 } from 'vue-router/dist/vue-router.mjs'
 
 export type {

@@ -27,5 +27,12 @@ export default tseslint.config(
       'vue/multi-word-component-names': 'off'
     }
   },
+  {
+    files: ['**/*.{spec,test}.{ts,tsx,js,jsx}'],
+    rules: {
+      // Tests lean on disposable fixtures and mocks, so allowing `any` here keeps that flexibility out of app code.
+      '@typescript-eslint/no-explicit-any': 'off'
+    }
+  },
   prettierConfig
 )

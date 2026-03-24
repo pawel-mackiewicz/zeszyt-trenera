@@ -4,15 +4,15 @@ import type {
 } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
-import HomeView from '@/ui/views/HomeView.vue'
-import SettingsView from '@/ui/views/SettingsView.vue'
-import StatusView from '@/ui/views/StatusView.vue'
+import MembersListView from '@/ui/views/MembersListView.vue'
+import AddMemberView from '@/ui/views/AddMemberView.vue'
 
 type AppRouteMeta = {
   title: string
-  eyebrow: string
-  summary: string
-  navLabel: string
+  showBack?: boolean
+  hideBottomNav?: boolean
+  backTo?: string
+  menuLabel?: string
 }
 
 type AppRoute = RouteRecordRaw & {
@@ -30,38 +30,21 @@ export type NavigationItem = {
 const baseRoutes = [
   {
     path: '/',
-    name: 'home',
-    component: HomeView,
+    name: 'members-list',
+    component: MembersListView,
     meta: {
-      title: 'Notebook Setup',
-      eyebrow: 'First setup',
-      summary:
-        'Create the first local club, trainer, and member records with matching events before the rest of the notebook grows around them.',
-      navLabel: 'Setup'
+      title: 'Członkowie'
     }
   },
   {
-    path: '/status',
-    name: 'status',
-    component: StatusView,
+    path: '/add-member',
+    name: 'add-member',
+    component: AddMemberView,
     meta: {
-      title: 'Runtime Status',
-      eyebrow: 'PWA health',
-      summary:
-        'Inspect install, update, connectivity, and storage wiring from a single screen.',
-      navLabel: 'Status'
-    }
-  },
-  {
-    path: '/settings',
-    name: 'settings',
-    component: SettingsView,
-    meta: {
-      title: 'Boilerplate Decisions',
-      eyebrow: 'System defaults',
-      summary:
-        'See the starter conventions and where the first real features should plug in.',
-      navLabel: 'Settings'
+      title: 'Dodaj Członka',
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/'
     }
   }
 ] satisfies AppRoute[]
@@ -71,10 +54,11 @@ const debugRoute = {
   name: 'debug-indexeddb',
   component: () => import('@/ui/views/IndexedDbDebugView.vue'),
   meta: {
-    title: 'IndexedDB Inspector',
-    eyebrow: 'Developer tools',
-    summary: 'Inspect local Dexie tables and stored rows in this browser.',
-    navLabel: 'Debug'
+    title: 'Inspector',
+    hideBottomNav: true,
+    showBack: true,
+    backTo: '/',
+    menuLabel: 'Debug IndexedDB'
   }
 } satisfies AppRoute
 
@@ -84,27 +68,24 @@ export function createAppRoutes(
   return debugEnabled ? [...baseRoutes, debugRoute] : [...baseRoutes]
 }
 
+// Keeping shell navigation derived from registered routes prevents production builds from linking to dev-only screens.
 export function createNavigationItems(
   debugEnabled = import.meta.env.DEV
 ): NavigationItem[] {
-  const items = baseRoutes.map((route) => ({
-    name: route.name,
-    label: route.meta.navLabel,
-    to: route.path
-  }))
+  return createAppRoutes(debugEnabled).flatMap((route) => {
+    const { menuLabel } = route.meta
 
-  if (debugEnabled) {
-    items.push({
-      name: debugRoute.name,
-      label: debugRoute.meta.navLabel,
-      to: debugRoute.path
-    })
-  }
-
-  return items
+    return menuLabel
+      ? [
+          {
+            name: route.name,
+            label: menuLabel,
+            to: route.path
+          }
+        ]
+      : []
+  })
 }
-
-export const navigationItems = createNavigationItems()
 
 export function createAppRouter(debugEnabled = import.meta.env.DEV) {
   const router = createRouter({

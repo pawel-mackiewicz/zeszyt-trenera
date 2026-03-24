@@ -1,16 +1,22 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
-import BrandMark from '@/ui/components/BrandMark.vue'
+import AppIcon from '@/ui/components/AppIcon.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
-import { navigationItems } from '@/ui/router'
-import { RouterLink, RouterView, useRoute } from '@/ui/router/runtime'
+import { createNavigationItems } from '@/ui/router'
+import {
+  RouterLink,
+  RouterView,
+  useRoute,
+  useRouter
+} from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
 
 const route = useRoute()
+const router = useRouter()
 const appStore = useAppStore()
 
 useNetworkStatus()
@@ -19,442 +25,209 @@ const { refreshApplication } = useAppUpdate()
 
 const {
   canInstall,
-  dbConnected,
   installed,
   installPending,
   isOnline,
   needRefresh,
-  offlineReady,
-  shellTone,
-  swRegistered,
   updatePending
 } = storeToRefs(appStore)
 
-const summary = computed(() => route.meta.summary)
 const title = computed(() => route.meta.title)
-const eyebrow = computed(() => route.meta.eyebrow)
-const dockStyle = computed(() => ({
-  '--shell-dock-columns': String(navigationItems.length)
-}))
+// Keeping menu entries derived from the router avoids shipping dead links in production builds.
+const navigationItems = createNavigationItems()
+const isMenuOpen = ref(false)
 
-const shellStateLabel = computed(() => {
-  if (needRefresh.value) {
-    return 'Update waiting'
-  }
-
-  return isOnline.value ? 'Connected' : 'Offline'
-})
-
-async function installApp() {
-  await promptInstall()
+function toggleMenu() {
+  isMenuOpen.value = !isMenuOpen.value
 }
 
-async function applyUpdate() {
-  await refreshApplication()
+function handleBack() {
+  if (route.meta.backTo) {
+    router.push(route.meta.backTo as string)
+  } else {
+    router.back()
+  }
 }
 </script>
 
 <template>
-  <div class="shell" :data-tone="shellTone">
-    <div class="shell__frame">
-      <header class="shell__masthead">
-        <div class="shell__brand">
-          <BrandMark />
-          <div>
-            <p class="shell__eyebrow">{{ eyebrow }}</p>
-            <h1 class="shell__title">{{ title }}</h1>
-          </div>
+  <div
+    class="min-h-screen bg-surface text-on-surface font-body selection:bg-primary selection:text-white graph-paper pb-24"
+  >
+    <!-- Top Navigation Shell -->
+    <header
+      class="fixed top-0 w-full z-40 flex justify-between items-center px-6 h-16 bg-surface/90 backdrop-blur-md border-b border-on-surface shadow-none transition-colors"
+    >
+      <div class="flex items-center gap-4">
+        <!-- Optional Back Button -->
+        <button
+          v-if="route.meta.showBack"
+          class="active:scale-95 transition-transform duration-75 text-on-surface hover:bg-surface-container-low p-2 rounded-full flex items-center justify-center"
+          @click="handleBack"
+        >
+          <AppIcon name="arrow_back" />
+        </button>
+        <!-- Optional Menu Button -->
+        <button
+          v-else
+          class="active:scale-95 transition-transform duration-75 text-on-surface relative"
+          @click="toggleMenu"
+        >
+          <AppIcon name="menu" />
+        </button>
+        <h1
+          class="font-headline uppercase tracking-tight font-bold text-primary"
+        >
+          {{ title }}
+        </h1>
+      </div>
+      <div class="relative">
+        <span
+          v-if="!isOnline"
+          class="font-mono text-[10px] text-danger font-bold mr-2"
+          >OFFLINE</span
+        >
+      </div>
+    </header>
+
+    <!-- Side Menu Dropdown -->
+    <div v-if="isMenuOpen" class="fixed inset-0 z-50 flex">
+      <div
+        class="absolute inset-0 bg-black/20 backdrop-blur-sm"
+        @click="toggleMenu"
+      ></div>
+      <div
+        class="relative w-64 h-full bg-surface border-r border-on-surface shadow-xl flex flex-col pt-16"
+      >
+        <div class="p-6 border-b border-on-surface bg-surface-container-low">
+          <h2 class="font-headline uppercase font-bold text-lg">
+            Zeszyt Trenera
+          </h2>
+          <p class="font-mono text-xs text-secondary mt-1">v1.0.0</p>
         </div>
-
-        <div class="shell__badges" aria-label="Application status">
-          <span class="shell__chip" :class="`shell__chip--${shellTone}`">{{
-            shellStateLabel
-          }}</span>
-          <span v-if="swRegistered" class="shell__chip shell__chip--neutral"
-            >SW active</span
+        <nav
+          v-if="navigationItems.length > 0"
+          class="flex-1 overflow-y-auto py-4"
+        >
+          <RouterLink
+            v-for="item in navigationItems"
+            :key="item.name"
+            :to="item.to"
+            class="block px-6 py-4 font-mono text-sm uppercase font-bold text-on-surface hover:bg-surface-container-low transition-colors"
+            @click="toggleMenu"
           >
-          <span v-if="dbConnected" class="shell__chip shell__chip--neutral"
-            >Dexie wired</span
-          >
-        </div>
-
-        <p class="shell__summary">
-          {{ summary }}
-        </p>
-
-        <div class="shell__actions">
+            {{ item.label }}
+          </RouterLink>
+        </nav>
+        <div class="p-6 border-t border-on-surface">
           <button
             v-if="canInstall && !installed"
-            class="shell__action shell__action--primary"
+            class="w-full bg-primary text-white px-4 py-2 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95"
             type="button"
             :disabled="installPending"
-            @click="installApp"
+            @click="promptInstall"
           >
-            {{ installPending ? 'Preparing install…' : 'Install app' }}
+            {{ installPending ? 'Instalowanie...' : 'Zainstaluj Aplikację' }}
           </button>
           <button
             v-if="needRefresh"
-            class="shell__action shell__action--secondary"
+            class="w-full mt-2 bg-surface text-on-surface px-4 py-2 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95"
             type="button"
             :disabled="updatePending"
-            @click="applyUpdate"
+            @click="refreshApplication"
           >
-            {{ updatePending ? 'Refreshing…' : 'Update now' }}
+            {{ updatePending ? 'Odświeżanie...' : 'Aktualizuj' }}
           </button>
         </div>
-      </header>
-
-      <div
-        v-if="offlineReady && !needRefresh"
-        class="shell__banner shell__banner--offline"
-      >
-        <p>
-          The shell is cached. After the first load, this app now boots offline.
-        </p>
-        <button
-          type="button"
-          class="shell__banner-action"
-          @click="appStore.dismissOfflineReady()"
-        >
-          Dismiss
-        </button>
       </div>
-
-      <div v-if="!isOnline" class="shell__banner shell__banner--network">
-        <p>
-          You are offline. Local data remains available; remote features can
-          layer in later.
-        </p>
-      </div>
-
-      <main class="shell__content">
-        <RouterView v-slot="{ Component }">
-          <Transition name="page" mode="out-in">
-            <component :is="Component" :key="route.fullPath" />
-          </Transition>
-        </RouterView>
-      </main>
-
-      <nav class="shell__dock" :style="dockStyle" aria-label="Primary">
-        <RouterLink
-          v-for="item in navigationItems"
-          :key="item.name"
-          :to="item.to"
-          class="shell__nav-link"
-          active-class="shell__nav-link--active"
-        >
-          <span>{{ item.label }}</span>
-        </RouterLink>
-      </nav>
     </div>
+
+    <!-- Main Content -->
+    <main class="pt-24 px-6 max-w-5xl mx-auto">
+      <RouterView v-slot="{ Component }">
+        <Transition name="fade" mode="out-in">
+          <component :is="Component" :key="route.fullPath" />
+        </Transition>
+      </RouterView>
+    </main>
+
+    <!-- Bottom Navigation Shell -->
+    <nav
+      v-if="!route.meta.hideBottomNav"
+      class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t-2 border-on-surface shadow-none"
+    >
+      <RouterLink
+        to="/"
+        class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface"
+        :class="[
+          route.path === '/'
+            ? 'bg-primary text-white'
+            : 'text-on-surface hover:bg-surface-container-low'
+        ]"
+      >
+        <AppIcon name="group" />
+        <span
+          class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+          >Członkowie</span
+        >
+      </RouterLink>
+      <div
+        class="flex flex-col items-center justify-center text-secondary px-4 py-1 w-full opacity-50 cursor-not-allowed"
+      >
+        <AppIcon name="payments" />
+        <span
+          class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+          >Płatności</span
+        >
+      </div>
+      <div
+        class="flex flex-col items-center justify-center text-secondary px-4 py-1 w-full opacity-50 cursor-not-allowed"
+      >
+        <AppIcon name="calendar_today" />
+        <span
+          class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+          >Obecność</span
+        >
+      </div>
+    </nav>
   </div>
 </template>
 
-<style scoped>
-.shell {
-  --shell-page-padding: 1.25rem;
-  --shell-dock-height: 4.5rem;
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 1.25rem;
+<style>
+/* Global theme extensions for the design system */
+:root {
+  --primary: #ae1417;
+  --surface: #f9f9f9;
+  --on-surface: #1a1c1c;
+  --secondary: #5f5e5e;
+  --surface-container-low: #f3f3f3;
+  --outline-variant: #e4beba;
+  --danger: #ba1a1a;
 }
-
-.shell__frame {
-  width: min(100%, 72rem);
-  margin: 0 auto;
-  min-height: calc(100vh - 2.5rem);
-  min-height: calc(100dvh - (var(--shell-page-padding) * 2));
-  padding-bottom: calc(
-    var(--shell-dock-height) + var(--shell-page-padding) +
-      env(safe-area-inset-bottom)
+.graph-paper {
+  background-color: var(--surface);
+  background-image: radial-gradient(
+    var(--outline-variant) 1px,
+    transparent 1px
   );
-  display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
-  gap: 1rem;
+  background-size: 20px 20px;
+  background-attachment: fixed;
+}
+.hard-shadow {
+  box-shadow: 2px 2px 0px 0px #1a1c1c;
+}
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
 }
 
-.shell__masthead {
-  position: relative;
-  overflow: hidden;
-  padding: 1.5rem;
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  border-radius: 1.75rem;
-  background:
-    linear-gradient(
-      145deg,
-      rgba(255, 251, 243, 0.92),
-      rgba(220, 230, 215, 0.78)
-    ),
-    linear-gradient(135deg, rgba(16, 59, 55, 0.08), transparent 42%);
-  box-shadow: var(--shadow-strong);
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
-
-.shell__masthead::after {
-  content: '';
-  position: absolute;
-  inset: auto -2rem -2.5rem auto;
-  width: 11rem;
-  height: 11rem;
-  border-radius: 2rem;
-  background: linear-gradient(
-    145deg,
-    rgba(77, 128, 146, 0.14),
-    rgba(199, 106, 43, 0.2)
-  );
-  transform: rotate(16deg);
-}
-
-.shell__brand,
-.shell__badges,
-.shell__summary,
-.shell__actions {
-  position: relative;
-  z-index: 1;
-}
-
-.shell__brand {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.shell__eyebrow {
-  margin: 0 0 0.25rem;
-  color: var(--accent);
-  font: 700 0.8rem/1 var(--font-display);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.shell__title {
-  margin: 0;
-  font: 700 clamp(2rem, 6vw, 3.2rem) / 0.95 var(--font-display);
-  letter-spacing: -0.02em;
-  text-wrap: balance;
-}
-
-.shell__badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-}
-
-.shell__chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 2rem;
-  padding: 0 0.85rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  background: rgba(255, 255, 255, 0.6);
-  color: var(--ink);
-  font-size: 0.86rem;
-  font-weight: 700;
-}
-
-.shell__chip--online {
-  background: rgba(38, 127, 92, 0.12);
-  color: var(--success);
-}
-
-.shell__chip--offline {
-  background: rgba(161, 63, 48, 0.12);
-  color: var(--danger);
-}
-
-.shell__chip--update {
-  background: rgba(199, 106, 43, 0.14);
-  color: var(--accent-hot);
-}
-
-.shell__chip--neutral {
-  background: rgba(16, 59, 55, 0.08);
-}
-
-.shell__summary {
-  max-width: 36rem;
-  margin: 1rem 0 0;
-  color: var(--ink-soft);
-  line-height: 1.5;
-}
-
-.shell__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1.25rem;
-}
-
-.shell__action,
-.shell__banner-action {
-  min-height: 2.9rem;
-  padding: 0 1rem;
-  border-radius: 1rem;
-  font-weight: 700;
-  transition:
-    transform var(--speed-fast) var(--ease-standard),
-    box-shadow var(--speed-fast) var(--ease-standard),
-    background-color var(--speed-fast) var(--ease-standard);
-}
-
-.shell__action:hover,
-.shell__banner-action:hover,
-.shell__action:focus-visible,
-.shell__banner-action:focus-visible {
-  transform: translateY(-1px);
-}
-
-.shell__action:focus-visible,
-.shell__banner-action:focus-visible,
-.shell__nav-link:focus-visible {
-  outline: 2px solid var(--accent-hot);
-  outline-offset: 2px;
-}
-
-.shell__action:disabled {
-  cursor: wait;
-  opacity: 0.72;
-}
-
-.shell__action--primary {
-  background: linear-gradient(135deg, var(--accent-strong), var(--accent));
-  color: #f6f1e5;
-  box-shadow: 0 10px 24px rgba(16, 59, 55, 0.22);
-}
-
-.shell__action--secondary,
-.shell__banner-action {
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--ink);
-  border: 1px solid rgba(16, 59, 55, 0.12);
-}
-
-.shell__banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.95rem 1rem;
-  border-radius: 1.15rem;
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  box-shadow: var(--shadow-soft);
-}
-
-.shell__banner p {
-  margin: 0;
-  line-height: 1.4;
-}
-
-.shell__banner--offline {
-  background: rgba(38, 127, 92, 0.12);
-}
-
-.shell__banner--network {
-  background: rgba(161, 63, 48, 0.11);
-}
-
-.shell__content {
-  min-height: 0;
-}
-
-.shell__dock {
-  position: fixed;
-  left: 50%;
-  bottom: calc(var(--shell-page-padding) + env(safe-area-inset-bottom));
-  transform: translateX(-50%);
-  z-index: 20;
-  width: min(calc(100vw - (var(--shell-page-padding) * 2)), 72rem);
-  display: grid;
-  grid-template-columns: repeat(var(--shell-dock-columns), minmax(0, 1fr));
-  gap: 0.65rem;
-  padding: 0.75rem;
-  border-radius: 1.5rem;
-  background: rgba(16, 59, 55, 0.92);
-  box-shadow: var(--shadow-soft);
-}
-
-.shell__nav-link {
-  display: inline-flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 3rem;
-  padding: 0 0.75rem;
-  border-radius: 1rem;
-  color: rgba(245, 239, 223, 0.72);
-  font: 700 0.95rem/1 var(--font-display);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  transition:
-    background-color var(--speed-fast) var(--ease-standard),
-    color var(--speed-fast) var(--ease-standard),
-    transform var(--speed-fast) var(--ease-standard);
-}
-
-.shell__nav-link:hover,
-.shell__nav-link:focus-visible {
-  color: #f5efdf;
-  transform: translateY(-1px);
-}
-
-.shell__nav-link--active {
-  background: linear-gradient(
-    135deg,
-    rgba(199, 106, 43, 0.92),
-    rgba(15, 107, 87, 0.92)
-  );
-  color: #fff5ea;
-}
-
-@media (min-width: 760px) {
-  .shell {
-    --shell-page-padding: 1.75rem;
-    padding: 1.75rem;
-  }
-
-  .shell__frame {
-    min-height: calc(100vh - 3.5rem);
-    gap: 1.25rem;
-  }
-
-  .shell__masthead {
-    padding: 2rem;
-  }
-
-  .shell__dock {
-    grid-template-columns: repeat(3, max-content);
-    justify-content: center;
-  }
-}
-
-@media (max-width: 540px) {
-  .shell {
-    --shell-page-padding: 0.85rem;
-    padding: 0.85rem;
-  }
-
-  .shell__frame {
-    min-height: calc(100vh - 1.7rem);
-  }
-
-  .shell__masthead {
-    padding: 1.2rem;
-    border-radius: 1.35rem;
-  }
-
-  .shell__banner {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .shell__actions {
-    flex-direction: column;
-  }
-
-  .shell__action,
-  .shell__banner-action {
-    width: 100%;
-  }
+input:focus {
+  outline: none !important;
+  border-bottom: 2px solid var(--primary) !important;
+  box-shadow: none !important;
 }
 </style>

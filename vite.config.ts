@@ -1,11 +1,13 @@
 import { fileURLToPath, URL } from 'node:url'
 
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [
+    tailwindcss(),
     vue(),
     VitePWA({
       registerType: 'prompt',
@@ -36,7 +38,8 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+        // Font fallbacks are part of the self-contained shell, so both woff2 and woff need the offline precache.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
         navigateFallback: 'index.html',
         cleanupOutdatedCaches: true,
         clientsClaim: true

@@ -6,6 +6,8 @@ import { provideAppServices } from '@/ui/appServices'
 import App from './App.vue'
 import router from './router'
 import { useAppStore } from './stores/app'
+// Keeping fonts bundled with the app preserves the installed shell when connectivity is poor or missing.
+import './fonts.css'
 import './style.css'
 
 function bootstrap() {
