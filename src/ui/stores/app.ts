@@ -1,8 +1,36 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+export type AppReadiness = 'checking' | 'ready' | 'blocked'
+export type BlockingIssue = 'database' | 'bootstrap' | null
+export type InstallSurface = 'hidden' | 'native' | 'manual'
+
+const INSTALL_MODAL_SHOWN_STORAGE_KEY =
+  'zeszyt-trenera.install-modal-shown-once'
+
 function isStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches
+}
+
+function readStoredFlag(key: string) {
+  try {
+    return window.localStorage.getItem(key) === '1'
+  } catch {
+    return false
+  }
+}
+
+function writeStoredFlag(key: string, value: boolean) {
+  try {
+    if (value) {
+      window.localStorage.setItem(key, '1')
+      return
+    }
+
+    window.localStorage.removeItem(key)
+  } catch {
+    // The shell should still render when storage is unavailable, even if that means losing one-time prompt memory.
+  }
 }
 
 export const useAppStore = defineStore('app', () => {
@@ -10,27 +38,47 @@ export const useAppStore = defineStore('app', () => {
   const canInstall = ref(false)
   const installPending = ref(false)
   const installed = ref(isStandaloneMode())
+  const installSurface = ref<InstallSurface>('hidden')
+  const installModalVisible = ref(false)
+  const installCoachVisible = ref(false)
+  const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
   const needRefresh = ref(false)
+  const updateModalVisible = ref(false)
   const offlineReady = ref(false)
   const updatePending = ref(false)
   const updateError = ref<string | null>(null)
-  const swRegistered = ref(false)
+  const appReadiness = ref<AppReadiness>('checking')
+  const blockingIssue = ref<BlockingIssue>(null)
+  const blockingMessage = ref<string | null>(null)
   const dbConnected = ref(false)
 
-  const shellTone = computed<'online' | 'offline' | 'update'>(() => {
-    if (needRefresh.value) {
-      return 'update'
-    }
-
-    return isOnline.value ? 'online' : 'offline'
-  })
+  const showInstallEntry = computed(
+    () => !installed.value && installSurface.value !== 'hidden'
+  )
+  const shouldAutoOpenInstallModal = computed(
+    () =>
+      appReadiness.value === 'ready' &&
+      showInstallEntry.value &&
+      !installModalShown.value
+  )
 
   function setOnlineStatus(value: boolean) {
     isOnline.value = value
   }
 
   function setInstallAvailability(value: boolean) {
-    canInstall.value = value
+    setInstallSurface(value ? 'native' : 'hidden')
+  }
+
+  function setInstallSurface(value: InstallSurface) {
+    if (installed.value) {
+      installSurface.value = 'hidden'
+      canInstall.value = false
+      return
+    }
+
+    installSurface.value = value
+    canInstall.value = value === 'native'
   }
 
   function setInstallPending(value: boolean) {
@@ -39,13 +87,76 @@ export const useAppStore = defineStore('app', () => {
 
   function setInstalled(value: boolean) {
     installed.value = value
+
     if (value) {
-      canInstall.value = false
+      setInstallSurface('hidden')
+      installModalVisible.value = false
+      installCoachVisible.value = false
+      return
     }
+
+    canInstall.value = installSurface.value === 'native'
+  }
+
+  function markInstallModalShown() {
+    installModalShown.value = true
+    // Persisting the auto-open state prevents the shell from interrupting every launch on the same device.
+    writeStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY, true)
+  }
+
+  function openInstallModal(source: 'automatic' | 'manual' = 'manual') {
+    if (!showInstallEntry.value) {
+      return
+    }
+
+    if (source === 'automatic') {
+      markInstallModalShown()
+    }
+
+    installCoachVisible.value = false
+    installModalVisible.value = true
+  }
+
+  function dismissInstallModal() {
+    installModalVisible.value = false
+  }
+
+  function showInstallCoach() {
+    if (!showInstallEntry.value) {
+      return
+    }
+
+    installCoachVisible.value = true
+  }
+
+  function hideInstallCoach() {
+    installCoachVisible.value = false
+  }
+
+  function setAppReady() {
+    appReadiness.value = 'ready'
+    blockingIssue.value = null
+    blockingMessage.value = null
+  }
+
+  function blockApplication(
+    issue: Exclude<BlockingIssue, null>,
+    message: string
+  ) {
+    appReadiness.value = 'blocked'
+    blockingIssue.value = issue
+    blockingMessage.value = message
   }
 
   function setNeedRefresh(value: boolean) {
     needRefresh.value = value
+
+    if (value) {
+      updateModalVisible.value = true
+      return
+    }
+
+    updateModalVisible.value = false
   }
 
   function setOfflineReady(value: boolean) {
@@ -60,12 +171,16 @@ export const useAppStore = defineStore('app', () => {
     updatePending.value = value
   }
 
+  function dismissUpdateModal() {
+    updateModalVisible.value = false
+  }
+
   function setUpdateError(value: string | null) {
     updateError.value = value
   }
 
-  function setServiceWorkerRegistered(value: boolean) {
-    swRegistered.value = value
+  function clearUpdateError() {
+    updateError.value = null
   }
 
   function setDbConnected(value: boolean) {
@@ -77,23 +192,40 @@ export const useAppStore = defineStore('app', () => {
     canInstall,
     installPending,
     installed,
+    installSurface,
+    installModalVisible,
+    installCoachVisible,
+    installModalShown,
+    showInstallEntry,
+    shouldAutoOpenInstallModal,
     needRefresh,
+    updateModalVisible,
     offlineReady,
     updatePending,
     updateError,
-    swRegistered,
+    appReadiness,
+    blockingIssue,
+    blockingMessage,
     dbConnected,
-    shellTone,
     setOnlineStatus,
     setInstallAvailability,
+    setInstallSurface,
     setInstallPending,
     setInstalled,
+    markInstallModalShown,
+    openInstallModal,
+    dismissInstallModal,
+    showInstallCoach,
+    hideInstallCoach,
+    setAppReady,
+    blockApplication,
     setNeedRefresh,
     setOfflineReady,
     dismissOfflineReady,
     setUpdatePending,
+    dismissUpdateModal,
     setUpdateError,
-    setServiceWorkerRegistered,
+    clearUpdateError,
     setDbConnected
   }
 })

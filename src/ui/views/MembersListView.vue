@@ -141,7 +141,7 @@ onMounted(() => {
           <div class="relative w-full h-2 flex items-center">
             <input
               v-model="minAgeFilter"
-              class="absolute w-full appearance-none bg-transparent pointer-events-none z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
+              class="members-age-filter__input absolute w-full appearance-none bg-transparent z-20"
               max="80"
               min="5"
               style="height: 0"
@@ -149,7 +149,7 @@ onMounted(() => {
             />
             <input
               v-model="maxAgeFilter"
-              class="absolute w-full appearance-none bg-transparent pointer-events-none z-20 [&::-webkit-slider-thumb]:pointer-events-auto [&::-moz-range-thumb]:pointer-events-auto"
+              class="members-age-filter__input absolute w-full appearance-none bg-transparent z-20"
               max="80"
               min="5"
               style="height: 0"
@@ -241,32 +241,52 @@ input[type='range'] {
   -webkit-appearance: none;
   background: transparent;
 }
+
+/* The age filter uses two overlapping native sliders, so only the thumbs should catch touch input on mobile. */
+.members-age-filter__input {
+  pointer-events: none;
+}
+
+/* Keeping thumb hit-testing in component CSS avoids relying on generated utility selectors for vendor pseudo-elements. */
+.members-age-filter__input::-webkit-slider-thumb {
+  pointer-events: auto;
+}
+
+/* Firefox needs the same explicit thumb hit area or the overlaid range control becomes untouchable. */
+.members-age-filter__input::-moz-range-thumb {
+  pointer-events: auto;
+}
+
 input[type='range']::-webkit-slider-runnable-track {
   width: 100%;
   height: 0px;
   background: transparent;
   border: none;
 }
+
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
   height: 16px;
   width: 16px;
-  background: var(--primary);
-  border: 1px solid var(--on-surface);
+  /* Scoped CSS must use the shared design token names directly because Tailwind utilities no longer expose bare --primary aliases here. */
+  background: var(--color-primary);
+  border: 1px solid var(--color-on-surface);
   margin-top: -8px;
   cursor: pointer;
   border-radius: 0;
 }
+
 input[type='range']::-moz-range-track {
   width: 100%;
   height: 0px;
   background: transparent;
 }
+
 input[type='range']::-moz-range-thumb {
   height: 16px;
   width: 16px;
-  background: var(--primary);
-  border: 1px solid var(--on-surface);
+  background: var(--color-primary);
+  border: 1px solid var(--color-on-surface);
   cursor: pointer;
   border-radius: 0;
 }

@@ -21,8 +21,9 @@ declare module 'virtual:pwa-register/vue' {
 declare module 'vue-router' {
   interface RouteMeta {
     title: string
-    eyebrow: string
-    summary: string
-    navLabel: string
+    showBack?: boolean
+    hideBottomNav?: boolean
+    backTo?: string
+    menuLabel?: string
   }
 }

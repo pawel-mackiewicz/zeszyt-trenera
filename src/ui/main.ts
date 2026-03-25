@@ -29,9 +29,13 @@ function bootstrap() {
     .open()
     .then(() => {
       appStore.setDbConnected(true)
+      appStore.setAppReady()
     })
     .catch((error: unknown) => {
-      appStore.setUpdateError('Failed to open the local database.')
+      appStore.blockApplication(
+        'database',
+        'Nie udało się uruchomić lokalnej bazy danych.'
+      )
       console.error('Failed to open the local database.', error)
     })
 }

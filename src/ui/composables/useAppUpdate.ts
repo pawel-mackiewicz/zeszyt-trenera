@@ -7,10 +7,8 @@ export function useAppUpdate() {
   const appStore = useAppStore()
   const { needRefresh, offlineReady, updateServiceWorker } = registerPwa({
     immediate: true,
-    onRegisteredSW: (_swUrl, registration) => {
-      appStore.setServiceWorkerRegistered(Boolean(registration))
-    },
     onRegisterError: (error) => {
+      // Service-worker registration issues degrade offline behavior, but they should not block the local notebook from opening.
       appStore.setUpdateError(
         error instanceof Error
           ? error.message
