@@ -50,6 +50,25 @@ describe('DexieMemberRepo', () => {
     })
   })
 
+  it('persists name in lower case regardless of input casing', async () => {
+    const [member] = Member.register(
+      {
+        firstName: 'JaNe',
+        lastName: 'dOe',
+        phoneNumber: '+48123456789'
+      },
+      'member-1'
+    )
+
+    await repository.save(member)
+
+    const persistedMembers = await database.members.toArray()
+
+    expect(persistedMembers).toHaveLength(1)
+    expect(persistedMembers[0].firstName).toBe('jane')
+    expect(persistedMembers[0].lastName).toBe('doe')
+  })
+
   it('reports when no matching member exists yet', async () => {
     await expect(
       repository.existsByNameAndPhone('Jane', 'Doe', '+48123456789')
@@ -73,7 +92,7 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('Jane', 'Doe', '+48123456789')
+      repository.existsByNameAndPhone('jane', 'doe', '+48123456789')
     ).resolves.toBe(true)
   })
 
@@ -90,7 +109,7 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('John', 'Doe', '+48123456789')
+      repository.existsByNameAndPhone('john', 'doe', '+48123456789')
     ).resolves.toBe(false)
   })
 

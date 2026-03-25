@@ -8,7 +8,8 @@ import type { RegisterMemberCommand } from '@/application/requests/RegisterMembe
 import {
   InvalidMemberPhoneNumberError,
   Member,
-  MemberAlreadyExistsError
+  MemberAlreadyExistsError,
+  normalizeMemberName
 } from '@/domain/model/member'
 
 export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
@@ -26,8 +27,8 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
     await this.uow.execute(async () => {
       // The duplicate guard must share the same transaction as the write so a mobile double-submit cannot interleave two "member.created" commits offline.
       await this.ensureMemberDoesNotExist(
-        dto.firstName,
-        dto.lastName,
+        normalizeMemberName(dto.firstName),
+        normalizeMemberName(dto.lastName),
         normalizedPhoneNumber
       )
 

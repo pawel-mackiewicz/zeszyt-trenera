@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   InvalidMemberPhoneNumberError,
   Member,
-  MemberCreatedDomainEvent
+  MemberCreatedDomainEvent,
+  InvalidMemberBirthDateError,
+  InvalidMemberJoinDateError,
+  InvalidMemberNameError
 } from '@/domain/model/member'
 
 describe('Member Model', () => {
@@ -24,8 +27,8 @@ describe('Member Model', () => {
     const afterCreation = new Date()
 
     expect(member.id).toBe(id)
-    expect(member.firstName).toBe('Jane')
-    expect(member.lastName).toBe('Doe')
+    expect(member.firstName).toBe('jane')
+    expect(member.lastName).toBe('doe')
     expect(member.phoneNumber).toBe('+48123456789')
 
     expect(member.createdAt).toBeDefined()
@@ -39,8 +42,8 @@ describe('Member Model', () => {
 
     expect(member.toSnapshot()).toEqual({
       id,
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       createdAt: member.createdAt
     })
@@ -56,8 +59,8 @@ describe('Member Model', () => {
   it('restores an existing member from persisted state', () => {
     const member = Member.restore({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
@@ -67,8 +70,8 @@ describe('Member Model', () => {
     expect(member).toBeInstanceOf(Member)
     expect(member).toMatchObject({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
@@ -76,8 +79,8 @@ describe('Member Model', () => {
     })
     expect(member.toSnapshot()).toEqual({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
@@ -100,8 +103,8 @@ describe('Member Model', () => {
     // Persisted snapshots should omit absent optional dates so local records do not accumulate meaningless undefined keys.
     expect(snapshot).toEqual({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       createdAt: member.createdAt
     })
@@ -112,8 +115,8 @@ describe('Member Model', () => {
   it('toSnapshot includes optional date fields when the member has them', () => {
     const member = Member.restore({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
@@ -122,8 +125,8 @@ describe('Member Model', () => {
 
     expect(member.toSnapshot()).toEqual({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
@@ -137,8 +140,8 @@ describe('Member Model', () => {
     const createdAt = new Date('2024-10-01T00:00:00Z')
     const member = Member.restore({
       id: 'member-1',
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth,
       joinedAt,
@@ -195,5 +198,161 @@ describe('Member Model', () => {
         createdAt: new Date('2024-10-01T00:00:00Z')
       })
     ).toThrow(InvalidMemberPhoneNumberError)
+  })
+
+  it('normalizes first and last names to lowercase during registration', () => {
+    const [member] = Member.register(
+      {
+        firstName: 'JaNe  ',
+        lastName: '  dOe',
+        phoneNumber: '+48123456789'
+      },
+      'member-1'
+    )
+
+    expect(member.firstName).toBe('jane')
+    expect(member.lastName).toBe('doe')
+  })
+
+  it('rejects registration if birth date is not in the past', () => {
+    const futureDate = new Date()
+    futureDate.setUTCFullYear(futureDate.getUTCFullYear() + 1)
+
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789',
+          dateOfBirth: futureDate
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberBirthDateError)
+  })
+
+  it('rejects registration if birth date is more than 120 years ago', () => {
+    const tooOldDate = new Date()
+    tooOldDate.setUTCFullYear(tooOldDate.getUTCFullYear() - 121)
+
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789',
+          dateOfBirth: tooOldDate
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberBirthDateError)
+  })
+
+  it('rejects registration if joined_at is in the future', () => {
+    const futureDate = new Date()
+    futureDate.setUTCFullYear(futureDate.getUTCFullYear() + 1)
+
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789',
+          joinedAt: futureDate
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberJoinDateError)
+  })
+
+  it('rejects registration if joined_at is before birth date', () => {
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789',
+          dateOfBirth: new Date('2000-01-01T00:00:00Z'),
+          joinedAt: new Date('1999-01-01T00:00:00Z')
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberJoinDateError)
+  })
+
+  it('rejects registration if first name is empty or contains special characters', () => {
+    // Empty
+    expect(() =>
+      Member.register(
+        {
+          firstName: '',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
+
+    // Whitespace
+    expect(() =>
+      Member.register(
+        {
+          firstName: '   ',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
+
+    // Special characters
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane!@#',
+          lastName: 'Doe',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
+  })
+
+  it('rejects registration if last name is empty or contains special characters', () => {
+    // Empty
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: '',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
+
+    // Whitespace
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: '   ',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
+
+    // Special characters
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe$%',
+          phoneNumber: '+48123456789'
+        },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberNameError)
   })
 })

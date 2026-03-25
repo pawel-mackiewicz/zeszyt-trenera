@@ -146,8 +146,8 @@ describe('RegisterMemberUseCase', () => {
     expect(phoneNumberNormalizer.inputs).toEqual(['+48 123 456 789'])
     expect(memberRepo.existsChecks).toEqual([
       {
-        firstName: 'Jane',
-        lastName: 'Doe',
+        firstName: 'jane',
+        lastName: 'doe',
         phoneNumber: '+48123456789'
       }
     ])
@@ -156,8 +156,8 @@ describe('RegisterMemberUseCase', () => {
     expect(memberRepo.savedMembers).toHaveLength(1)
     const savedMember = memberRepo.savedMembers[0]
     expect(savedMember).toMatchObject({
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z')
@@ -196,8 +196,8 @@ describe('RegisterMemberUseCase', () => {
 
   it('throws when trying to register the same member identity twice', async () => {
     memberRepo.existingIdentity = {
-      firstName: 'Jane',
-      lastName: 'Doe',
+      firstName: 'jane',
+      lastName: 'doe',
       phoneNumber: '+48123456789'
     }
 
@@ -211,8 +211,8 @@ describe('RegisterMemberUseCase', () => {
 
     expect(memberRepo.existsChecks).toEqual([
       {
-        firstName: 'Jane',
-        lastName: 'Doe',
+        firstName: 'jane',
+        lastName: 'doe',
         phoneNumber: '+48123456789'
       }
     ])

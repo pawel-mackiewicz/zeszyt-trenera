@@ -10,6 +10,47 @@ const assertE164PhoneNumber = (value: string): string => {
   return value
 }
 
+const assertValidBirthDate = (
+  dateOfBirth: Date | undefined,
+  now: Date
+): void => {
+  if (!dateOfBirth) return
+
+  if (dateOfBirth >= now) {
+    throw new InvalidMemberBirthDateError()
+  }
+  const tooOld = new Date(now)
+  tooOld.setUTCFullYear(tooOld.getUTCFullYear() - 120)
+  if (dateOfBirth <= tooOld) {
+    throw new InvalidMemberBirthDateError()
+  }
+}
+
+const assertValidJoinDate = (
+  joinedAt: Date | undefined,
+  dateOfBirth: Date | undefined,
+  now: Date
+): void => {
+  if (!joinedAt) return
+
+  if (joinedAt > now) {
+    throw new InvalidMemberJoinDateError()
+  }
+  if (dateOfBirth && dateOfBirth >= joinedAt) {
+    throw new InvalidMemberJoinDateError()
+  }
+}
+
+const assertValidName = (name: string): void => {
+  if (!name || name.trim().length === 0 || !/^[\p{L}\s-]+$/u.test(name)) {
+    throw new InvalidMemberNameError(name)
+  }
+}
+
+export const normalizeMemberName = (name: string): string => {
+  return name.trim().toLowerCase()
+}
+
 export type RegisterMemberInput = {
   firstName: string
   lastName: string
@@ -51,13 +92,21 @@ export class Member {
     this._joinedAt = copyOptionalDate(input.joinedAt)
     this._createdAt = copyDate(createdAt)
   }
-
   public static register(
     input: RegisterMemberInput,
     id: string
   ): [Member, MemberCreatedDomainEvent] {
+    const now = new Date()
+
+    assertValidBirthDate(input.dateOfBirth, now)
+    assertValidJoinDate(input.joinedAt, input.dateOfBirth, now)
+    assertValidName(input.firstName)
+    assertValidName(input.lastName)
+    const firstName = normalizeMemberName(input.firstName)
+    const lastName = normalizeMemberName(input.lastName)
+    //
     // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
-    const member = new Member(input, id)
+    const member = new Member({ ...input, firstName, lastName }, id)
     // Event payloads store snapshots so local-first replay keeps the original canonical phone and dates even if an aggregate instance is later replaced in memory.
     const event = new MemberCreatedDomainEvent(member.toSnapshot())
     return [member, event]
@@ -144,6 +193,27 @@ export class InvalidMemberPhoneNumberError extends Error {
   public constructor(phoneNumber: string) {
     super(`Member phone number must be a valid E.164 number: ${phoneNumber}`)
     this.name = 'InvalidMemberPhoneNumberError'
+  }
+}
+
+export class InvalidMemberBirthDateError extends Error {
+  public constructor() {
+    super('Member birth date must be in the past and not older than 120 years')
+    this.name = 'InvalidMemberBirthDateError'
+  }
+}
+
+export class InvalidMemberJoinDateError extends Error {
+  public constructor() {
+    super('Member joined date must be in the past and after birth date')
+    this.name = 'InvalidMemberJoinDateError'
+  }
+}
+
+export class InvalidMemberNameError extends Error {
+  public constructor(name: string) {
+    super(`Member name is invalid: ${name}`)
+    this.name = 'InvalidMemberNameError'
   }
 }
 
