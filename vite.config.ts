@@ -15,8 +15,8 @@ export default defineConfig({
       includeAssets: ['favicon.svg'],
       manifest: {
         name: 'Zeszyt Trenera',
-        short_name: 'Trenera',
-        description: 'Local-first fieldbook boilerplate for Vue and Dexie.',
+        short_name: 'Zeszyt Trenera',
+        description: 'Aplikacja do zarządzania zawodnikami i treningami.',
         theme_color: '#103b37',
         background_color: '#f4eee0',
         display: 'standalone',
