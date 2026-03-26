@@ -10,6 +10,7 @@ export default defineConfig({
     tailwindcss(),
     vue(),
     VitePWA({
+      // Keeping prompt mode lets the next shell download quietly while the current local-first session stays stable until a full reopen.
       registerType: 'prompt',
       injectRegister: 'auto',
       includeAssets: ['favicon.svg'],

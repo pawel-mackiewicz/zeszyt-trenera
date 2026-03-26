@@ -21,7 +21,8 @@ const appStore = useAppStore()
 
 useNetworkStatus()
 const { promptInstall, installInstructions } = usePwaInstall()
-const { refreshApplication } = useAppUpdate()
+// Registering the worker here keeps background update checks tied to the shell lifecycle while leaving the actual activation behind an explicit menu action.
+const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
 
 const {
   appReadiness,
@@ -32,12 +33,9 @@ const {
   installPending,
   installSurface,
   isOnline,
-  needRefresh,
   showInstallEntry,
   shouldAutoOpenInstallModal,
-  updateError,
-  updateModalVisible,
-  updatePending
+  updateError
 } = storeToRefs(appStore)
 
 const title = computed(() => route.meta.title)
@@ -74,29 +72,14 @@ const installCoachCopy = computed(() =>
     ? 'Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.'
     : 'Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później.'
 )
-const activeModal = computed<'install' | 'update' | null>(() => {
+const isInstallModalActive = computed(() => {
   // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
-  if (!isShellReady.value) {
-    return null
-  }
-
-  if (updateModalVisible.value) {
-    return 'update'
-  }
-
-  if (installModalVisible.value) {
-    return 'install'
-  }
-
-  return null
+  return isShellReady.value && installModalVisible.value
 })
-const canAutoOpenInstallModal = computed(
-  () => shouldAutoOpenInstallModal.value && !updateModalVisible.value
-)
 
 // The auto-open install modal is intentionally one-time so the shell nudges once without becoming repetitive on every launch.
 watch(
-  canAutoOpenInstallModal,
+  shouldAutoOpenInstallModal,
   (value) => {
     if (value) {
       appStore.openInstallModal('automatic')
@@ -162,12 +145,8 @@ function handleInstallLater() {
   appStore.dismissInstallModal()
 }
 
-async function handleUpdatePrimaryAction() {
+async function handleUpdateAction() {
   await refreshApplication()
-}
-
-function handleUpdateLater() {
-  appStore.dismissUpdateModal()
 }
 
 function reloadApplication() {
@@ -227,7 +206,7 @@ function reloadApplication() {
             <h2 class="font-headline uppercase font-bold text-lg">
               Zeszyt Trenera
             </h2>
-            <p class="font-mono text-xs text-secondary mt-1">v0.1.0</p>
+            <p class="font-mono text-xs text-secondary mt-1">v0.1.2</p>
           </div>
           <nav
             v-if="navigationItems.length > 0"
@@ -272,10 +251,10 @@ function reloadApplication() {
             </button>
             <button
               v-if="needRefresh"
-              class="w-full mt-3 bg-surface text-on-surface px-4 py-3 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95"
+              class="w-full mt-3 bg-surface text-on-surface px-4 py-3 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95 disabled:opacity-60 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0_0_var(--color-on-surface)]"
               type="button"
               :disabled="updatePending"
-              @click="handleUpdatePrimaryAction"
+              @click="handleUpdateAction"
             >
               {{ updatePending ? 'Odświeżanie...' : 'Aktualizuj aplikację' }}
             </button>
@@ -383,45 +362,24 @@ function reloadApplication() {
 
     <Transition name="overlay-pop">
       <div
-        v-if="activeModal"
+        v-if="isInstallModalActive"
         class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4"
       >
         <div
           class="absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
-          @click="
-            activeModal === 'update'
-              ? handleUpdateLater()
-              : handleInstallLater()
-          "
+          @click="handleInstallLater()"
         ></div>
         <section class="shell-modal relative w-full max-w-lg">
           <p class="shell-modal__eyebrow">
             {{
-              activeModal === 'update'
-                ? 'Aktualizacja gotowa'
-                : installSurface === 'manual'
-                  ? 'Instalacja ręczna'
-                  : 'Instalacja PWA'
+              installSurface === 'manual'
+                ? 'Instalacja ręczna'
+                : 'Instalacja PWA'
             }}
           </p>
-          <h2 class="shell-modal__title">
-            {{
-              activeModal === 'update'
-                ? 'Nowa wersja Zeszytu Trenera czeka'
-                : installModalTitle
-            }}
-          </h2>
-          <p class="shell-modal__copy">
-            {{
-              activeModal === 'update'
-                ? 'Jest gotowa świeższa wersja aplikacji. Odśwież ją teraz, żeby pracować na aktualnym shellu i cache.'
-                : installModalBody
-            }}
-          </p>
-          <ol
-            v-if="activeModal === 'install' && installInstructions"
-            class="shell-modal__steps"
-          >
+          <h2 class="shell-modal__title">{{ installModalTitle }}</h2>
+          <p class="shell-modal__copy">{{ installModalBody }}</p>
+          <ol v-if="installInstructions" class="shell-modal__steps">
             <li
               v-for="step in installInstructions.steps"
               :key="step"
@@ -432,16 +390,6 @@ function reloadApplication() {
           </ol>
           <div class="shell-modal__actions">
             <button
-              v-if="activeModal === 'update'"
-              class="button-brand"
-              type="button"
-              :disabled="updatePending"
-              @click="handleUpdatePrimaryAction"
-            >
-              {{ updatePending ? 'Odświeżanie...' : 'Zaktualizuj teraz' }}
-            </button>
-            <button
-              v-else
               class="button-brand"
               type="button"
               :disabled="installPending"
@@ -452,11 +400,7 @@ function reloadApplication() {
             <button
               class="button-secondary"
               type="button"
-              @click="
-                activeModal === 'update'
-                  ? handleUpdateLater()
-                  : handleInstallLater()
-              "
+              @click="handleInstallLater()"
             >
               Później
             </button>

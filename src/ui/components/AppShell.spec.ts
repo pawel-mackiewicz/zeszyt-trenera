@@ -1,6 +1,6 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { computed, nextTick } from 'vue'
+import { computed, nextTick, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import AppShell from '@/ui/components/AppShell.vue'
@@ -42,11 +42,17 @@ vi.mock('@/ui/composables/useAppUpdate', () => ({
 describe('AppShell', () => {
   let mockRouterPush: Mock
   let mockRouterBack: Mock
+  let mockNeedRefresh: Ref<boolean>
+  let mockUpdatePending: Ref<boolean>
+  let mockRefreshApplication: Mock
 
   beforeEach(() => {
     window.localStorage.clear()
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
+    mockNeedRefresh = ref(false)
+    mockUpdatePending = ref(false)
+    mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
 
     vi.mocked(useRoute).mockReturnValue({
       meta: {
@@ -71,7 +77,9 @@ describe('AppShell', () => {
       installInstructions: computed(() => null)
     })
     vi.mocked(useAppUpdate).mockReturnValue({
-      refreshApplication: vi.fn()
+      needRefresh: mockNeedRefresh,
+      updatePending: mockUpdatePending,
+      refreshApplication: mockRefreshApplication
     })
     vi.mocked(createNavigationItems).mockReturnValue([])
   })
@@ -117,16 +125,17 @@ describe('AppShell', () => {
     expect(store.installModalShown).toBe(true)
   })
 
-  it('opens the menu coach after the user postpones installation', async () => {
-    const { wrapper } = mountShell((appStore) => {
+  it('dismisses the install modal when the user postpones installation', async () => {
+    const { wrapper, store } = mountShell((appStore) => {
       appStore.setInstallSurface('native')
       appStore.setAppReady()
     })
 
     await findButtonByText(wrapper, 'Później')?.trigger('click')
+    await nextTick()
 
-    expect(wrapper.text()).toContain('Tutaj wrócisz do instalacji')
-    expect(wrapper.text()).toContain('Zainstaluj aplikację')
+    expect(store.installModalVisible).toBe(false)
+    expect(store.showInstallEntry).toBe(true)
   })
 
   it('renders manual install steps when the browser has no native prompt', () => {
@@ -150,19 +159,51 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain('Stuknij przycisk Udostępnij w Safari.')
   })
 
-  it('waits until the shell is ready before showing the update modal', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
-      appStore.setNeedRefresh(true)
+  it('shows the menu update action only when a new shell is ready to activate', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
     })
 
-    expect(wrapper.text()).toContain('Przygotowuję lokalny zeszyt')
-    expect(wrapper.text()).not.toContain('Nowa wersja Zeszytu Trenera czeka')
+    await wrapper.find('header button').trigger('click')
 
-    // Keeping the update prompt behind readiness prevents service-worker state from obscuring bootstrap failures in the local-first shell.
-    store.setAppReady()
+    expect(wrapper.text()).toContain('v0.1.2')
+    expect(wrapper.text()).not.toContain('Aktualizuj aplikację')
+    expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
+
+    mockNeedRefresh.value = true
     await nextTick()
 
-    expect(wrapper.text()).toContain('Nowa wersja Zeszytu Trenera czeka')
-    expect(wrapper.text()).toContain('Zaktualizuj teraz')
+    expect(wrapper.text()).toContain('Aktualizuj aplikację')
+    expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
+  })
+
+  it('disables the menu update action while the new shell is activating', async () => {
+    mockNeedRefresh.value = true
+    mockUpdatePending.value = true
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+
+    const updateButton = findButtonByText(wrapper, 'Odświeżanie...')
+
+    expect(updateButton?.attributes('disabled')).toBeDefined()
+    expect(wrapper.text()).toContain('Odświeżanie...')
+  })
+
+  it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
+    mockNeedRefresh.value = true
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await findButtonByText(wrapper, 'Aktualizuj aplikację')?.trigger('click')
+
+    expect(mockRefreshApplication).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
   })
 })

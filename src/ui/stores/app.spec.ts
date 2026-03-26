@@ -9,19 +9,17 @@ describe('useAppStore', () => {
     setActivePinia(createPinia())
   })
 
-  it('tracks readiness transitions and non-blocking update prompts', () => {
+  it('tracks readiness transitions and connectivity state for the shell', () => {
     const store = useAppStore()
 
-    store.setNeedRefresh(true)
     store.setOnlineStatus(false)
     store.setDbConnected(true)
     store.setAppReady()
 
     expect(store.appReadiness).toBe('ready')
-    expect(store.needRefresh).toBe(true)
-    expect(store.updateModalVisible).toBe(true)
     expect(store.isOnline).toBe(false)
     expect(store.dbConnected).toBe(true)
+    expect(store.updateError).toBeNull()
   })
 
   it('shows the install modal only once per device storage for automatic prompts', () => {
@@ -58,5 +56,17 @@ describe('useAppStore', () => {
     expect(store.showInstallEntry).toBe(false)
     expect(store.installModalVisible).toBe(false)
     expect(store.installCoachVisible).toBe(false)
+  })
+
+  it('stores and clears service-worker registration errors without blocking the shell', () => {
+    const store = useAppStore()
+
+    store.setUpdateError('Service worker registration failed.')
+
+    expect(store.updateError).toBe('Service worker registration failed.')
+
+    store.clearUpdateError()
+
+    expect(store.updateError).toBeNull()
   })
 })

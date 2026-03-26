@@ -27,7 +27,7 @@ Vue 3 boilerplate for a mobile-first, offline-ready PWA. The starter is intentio
 
 - Mobile-first app shell with bottom navigation
 - Custom install button backed by the browser install prompt
-- Service worker update signal and refresh action
+- Service worker update download in the background with activation on the next cold start
 - Online/offline runtime signal
 - Minimal Dexie database bootstrap with schema versioning reserved from day one
 

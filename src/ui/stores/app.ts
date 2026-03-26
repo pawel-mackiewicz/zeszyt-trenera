@@ -42,10 +42,6 @@ export const useAppStore = defineStore('app', () => {
   const installModalVisible = ref(false)
   const installCoachVisible = ref(false)
   const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
-  const needRefresh = ref(false)
-  const updateModalVisible = ref(false)
-  const offlineReady = ref(false)
-  const updatePending = ref(false)
   const updateError = ref<string | null>(null)
   const appReadiness = ref<AppReadiness>('checking')
   const blockingIssue = ref<BlockingIssue>(null)
@@ -148,33 +144,6 @@ export const useAppStore = defineStore('app', () => {
     blockingMessage.value = message
   }
 
-  function setNeedRefresh(value: boolean) {
-    needRefresh.value = value
-
-    if (value) {
-      updateModalVisible.value = true
-      return
-    }
-
-    updateModalVisible.value = false
-  }
-
-  function setOfflineReady(value: boolean) {
-    offlineReady.value = value
-  }
-
-  function dismissOfflineReady() {
-    offlineReady.value = false
-  }
-
-  function setUpdatePending(value: boolean) {
-    updatePending.value = value
-  }
-
-  function dismissUpdateModal() {
-    updateModalVisible.value = false
-  }
-
   function setUpdateError(value: string | null) {
     updateError.value = value
   }
@@ -198,10 +167,6 @@ export const useAppStore = defineStore('app', () => {
     installModalShown,
     showInstallEntry,
     shouldAutoOpenInstallModal,
-    needRefresh,
-    updateModalVisible,
-    offlineReady,
-    updatePending,
     updateError,
     appReadiness,
     blockingIssue,
@@ -219,11 +184,6 @@ export const useAppStore = defineStore('app', () => {
     hideInstallCoach,
     setAppReady,
     blockApplication,
-    setNeedRefresh,
-    setOfflineReady,
-    dismissOfflineReady,
-    setUpdatePending,
-    dismissUpdateModal,
     setUpdateError,
     clearUpdateError,
     setDbConnected
