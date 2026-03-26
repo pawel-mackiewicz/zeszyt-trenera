@@ -1,5 +1,6 @@
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { Member } from '@/domain/model/member'
+import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { PersistedMember, TrainerNotebookDb } from '@/infra/db'
 
 export class DexieMemberRepo implements MemberRepoPort {
@@ -19,12 +20,12 @@ export class DexieMemberRepo implements MemberRepoPort {
   public async existsByNameAndPhone(
     firstName: string,
     lastName: string,
-    phoneNumber: string
+    phoneNumber: PhoneNumber
   ): Promise<boolean> {
     // The local-first duplicate check needs one indexed identity lookup so offline registration stays cheap as the notebook grows.
     const persistedMember = await this.database.members
       .where('[firstName+lastName+phoneNumber]')
-      .equals([firstName, lastName, phoneNumber])
+      .equals([firstName, lastName, phoneNumber.value])
       .first()
 
     return persistedMember != null

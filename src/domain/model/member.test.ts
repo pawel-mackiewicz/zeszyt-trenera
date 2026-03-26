@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import {
-  InvalidMemberPhoneNumberError,
   Member,
   MemberCreatedDomainEvent,
   InvalidMemberBirthDateError,
@@ -9,17 +9,22 @@ import {
   InvalidMemberNameError
 } from '@/domain/model/member'
 
+function createPhoneNumber(rawPhoneNumber = '+48 123 456 789') {
+  return PhoneNumber.create(rawPhoneNumber)
+}
+
 describe('Member Model', () => {
   it('should create a member with all required properties', () => {
     const id = 'member-1'
     const beforeCreation = new Date()
+    const phoneNumber = createPhoneNumber()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as the other models and does not generate identifiers on its own.
     const [member, event] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber
       },
       id
     )
@@ -29,7 +34,8 @@ describe('Member Model', () => {
     expect(member.id).toBe(id)
     expect(member.firstName).toBe('jane')
     expect(member.lastName).toBe('doe')
-    expect(member.phoneNumber).toBe('+48123456789')
+    expect(member.phoneNumber).toBe(phoneNumber)
+    expect(member.phoneNumber.value).toBe('+48123456789')
 
     expect(member.createdAt).toBeDefined()
     expect(member.createdAt).toBeInstanceOf(Date)
@@ -53,39 +59,6 @@ describe('Member Model', () => {
     expect(event).toBeInstanceOf(MemberCreatedDomainEvent)
     // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
     expect(event.payload).toEqual(member.toSnapshot())
-    expect(event.payload).toEqual(member.toSnapshot())
-  })
-
-  it('restores an existing member from persisted state', () => {
-    const member = Member.restore({
-      id: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
-      joinedAt: new Date('2024-09-01T00:00:00Z'),
-      createdAt: new Date('2024-10-01T00:00:00Z')
-    })
-
-    expect(member).toBeInstanceOf(Member)
-    expect(member).toMatchObject({
-      id: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
-      joinedAt: new Date('2024-09-01T00:00:00Z'),
-      createdAt: new Date('2024-10-01T00:00:00Z')
-    })
-    expect(member.toSnapshot()).toEqual({
-      id: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
-      joinedAt: new Date('2024-09-01T00:00:00Z'),
-      createdAt: new Date('2024-10-01T00:00:00Z')
-    })
   })
 
   it('toSnapshot omits optional date fields when the member does not have them', () => {
@@ -93,7 +66,7 @@ describe('Member Model', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )
@@ -113,15 +86,16 @@ describe('Member Model', () => {
   })
 
   it('toSnapshot includes optional date fields when the member has them', () => {
-    const member = Member.restore({
-      id: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
-      joinedAt: new Date('2024-09-01T00:00:00Z'),
-      createdAt: new Date('2024-10-01T00:00:00Z')
-    })
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+        joinedAt: new Date('2024-09-01T00:00:00Z')
+      },
+      'member-1'
+    )
 
     expect(member.toSnapshot()).toEqual({
       id: 'member-1',
@@ -130,32 +104,30 @@ describe('Member Model', () => {
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
-      createdAt: new Date('2024-10-01T00:00:00Z')
+      createdAt: member.createdAt
     })
   })
 
   it('keeps date fields immutable when callers mutate shared references', () => {
     const dateOfBirth = new Date('2010-01-01T00:00:00Z')
     const joinedAt = new Date('2024-09-01T00:00:00Z')
-    const createdAt = new Date('2024-10-01T00:00:00Z')
-    const member = Member.restore({
-      id: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth,
-      joinedAt,
-      createdAt
-    })
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth,
+        joinedAt
+      },
+      'member-1'
+    )
 
-    // Mutating caller-owned dates after restore must not rewrite aggregate state through shared objects.
+    // Mutating caller-owned dates after registration must not rewrite aggregate state through shared objects.
     dateOfBirth.setUTCFullYear(2015)
     joinedAt.setUTCFullYear(2025)
-    createdAt.setUTCFullYear(2026)
 
     expect(member.dateOfBirth).toEqual(new Date('2010-01-01T00:00:00Z'))
     expect(member.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
-    expect(member.createdAt).toEqual(new Date('2024-10-01T00:00:00Z'))
 
     // Getter and snapshot consumers also receive copies so the aggregate keeps exclusive ownership of its timeline.
     const exposedDateOfBirth = member.dateOfBirth
@@ -172,32 +144,6 @@ describe('Member Model', () => {
 
     expect(member.dateOfBirth).toEqual(new Date('2010-01-01T00:00:00Z'))
     expect(member.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
-    expect(member.createdAt).toEqual(new Date('2024-10-01T00:00:00Z'))
-  })
-
-  it('rejects non-E.164 phone numbers during registration', () => {
-    expect(() =>
-      Member.register(
-        {
-          firstName: 'Jane',
-          lastName: 'Doe',
-          phoneNumber: '+48 123 456 789'
-        },
-        'member-1'
-      )
-    ).toThrow(InvalidMemberPhoneNumberError)
-  })
-
-  it('rejects non-E.164 phone numbers during restore', () => {
-    expect(() =>
-      Member.restore({
-        id: 'member-1',
-        firstName: 'Jane',
-        lastName: 'Doe',
-        phoneNumber: '12345',
-        createdAt: new Date('2024-10-01T00:00:00Z')
-      })
-    ).toThrow(InvalidMemberPhoneNumberError)
   })
 
   it('normalizes first and last names to lowercase during registration', () => {
@@ -205,7 +151,7 @@ describe('Member Model', () => {
       {
         firstName: 'JaNe  ',
         lastName: '  dOe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )
@@ -223,7 +169,7 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: 'Doe',
-          phoneNumber: '+48123456789',
+          phoneNumber: createPhoneNumber(),
           dateOfBirth: futureDate
         },
         'member-1'
@@ -240,7 +186,7 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: 'Doe',
-          phoneNumber: '+48123456789',
+          phoneNumber: createPhoneNumber(),
           dateOfBirth: tooOldDate
         },
         'member-1'
@@ -257,7 +203,7 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: 'Doe',
-          phoneNumber: '+48123456789',
+          phoneNumber: createPhoneNumber(),
           joinedAt: futureDate
         },
         'member-1'
@@ -271,7 +217,7 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: 'Doe',
-          phoneNumber: '+48123456789',
+          phoneNumber: createPhoneNumber(),
           dateOfBirth: new Date('2000-01-01T00:00:00Z'),
           joinedAt: new Date('1999-01-01T00:00:00Z')
         },
@@ -281,37 +227,34 @@ describe('Member Model', () => {
   })
 
   it('rejects registration if first name is empty or contains special characters', () => {
-    // Empty
     expect(() =>
       Member.register(
         {
           firstName: '',
           lastName: 'Doe',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )
     ).toThrow(InvalidMemberNameError)
 
-    // Whitespace
     expect(() =>
       Member.register(
         {
           firstName: '   ',
           lastName: 'Doe',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )
     ).toThrow(InvalidMemberNameError)
 
-    // Special characters
     expect(() =>
       Member.register(
         {
           firstName: 'Jane!@#',
           lastName: 'Doe',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )
@@ -319,37 +262,34 @@ describe('Member Model', () => {
   })
 
   it('rejects registration if last name is empty or contains special characters', () => {
-    // Empty
     expect(() =>
       Member.register(
         {
           firstName: 'Jane',
           lastName: '',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )
     ).toThrow(InvalidMemberNameError)
 
-    // Whitespace
     expect(() =>
       Member.register(
         {
           firstName: 'Jane',
           lastName: '   ',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )
     ).toThrow(InvalidMemberNameError)
 
-    // Special characters
     expect(() =>
       Member.register(
         {
           firstName: 'Jane',
           lastName: 'Doe$%',
-          phoneNumber: '+48123456789'
+          phoneNumber: createPhoneNumber()
         },
         'member-1'
       )

@@ -8,6 +8,7 @@ import {
 } from '@/domain/model/MembershipPayment'
 import { Member, type MemberSnapshot } from '@/domain/model/member'
 import { Trainer, type TrainerSnapshot } from '@/domain/model/trainer'
+import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { type PersistedDomainEvent, TrainerNotebookDb } from '@/infra/db'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 
@@ -82,7 +83,7 @@ describe('DexieEventRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789',
+        phoneNumber: PhoneNumber.create('+48123456789'),
         dateOfBirth: new Date('2010-01-01T00:00:00Z'),
         joinedAt: new Date('2024-09-01T00:00:00Z')
       },

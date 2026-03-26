@@ -1,11 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Member } from '@/domain/model/member'
+import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { TrainerNotebookDb } from '@/infra/db'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
+}
+
+function createPhoneNumber(rawPhoneNumber = '+48123456789') {
+  return PhoneNumber.create(rawPhoneNumber)
 }
 
 describe('DexieMemberRepo', () => {
@@ -27,7 +32,7 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789',
+        phoneNumber: createPhoneNumber(),
         dateOfBirth: new Date('2010-01-01T00:00:00Z'),
         joinedAt: new Date('2024-09-01T00:00:00Z')
       },
@@ -43,7 +48,7 @@ describe('DexieMemberRepo', () => {
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,
-      phoneNumber: member.phoneNumber,
+      phoneNumber: member.phoneNumber.value,
       dateOfBirth: member.dateOfBirth,
       joinedAt: member.joinedAt,
       createdAt: member.createdAt
@@ -55,7 +60,7 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'JaNe',
         lastName: 'dOe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )
@@ -71,7 +76,7 @@ describe('DexieMemberRepo', () => {
 
   it('reports when no matching member exists yet', async () => {
     await expect(
-      repository.existsByNameAndPhone('Jane', 'Doe', '+48123456789')
+      repository.existsByNameAndPhone('Jane', 'Doe', createPhoneNumber())
     ).resolves.toBe(false)
   })
 
@@ -84,7 +89,7 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )
@@ -92,7 +97,7 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('jane', 'doe', '+48123456789')
+      repository.existsByNameAndPhone('jane', 'doe', createPhoneNumber())
     ).resolves.toBe(true)
   })
 
@@ -101,7 +106,7 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )
@@ -109,7 +114,7 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('john', 'doe', '+48123456789')
+      repository.existsByNameAndPhone('john', 'doe', createPhoneNumber())
     ).resolves.toBe(false)
   })
 
@@ -118,7 +123,7 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: createPhoneNumber()
       },
       'member-1'
     )

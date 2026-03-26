@@ -4,12 +4,14 @@ import { RegisterMemberUseCase } from './RegisterMemberUseCase'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { IdGeneratorPort } from '@/application/ports/IdGeneratorPort'
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
-import type { PhoneNumberNormalizerPort } from '@/application/ports/PhoneNumberNormalizerPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
 import {
-  InvalidMemberPhoneNumberError,
+  InvalidPhoneNumberError,
+  type PhoneNumber
+} from '@/domain/model/vo/PhoneNumber'
+import {
   Member,
   MemberAlreadyExistsError,
   MemberCreatedDomainEvent
@@ -56,23 +58,23 @@ class FakeMemberRepo implements MemberRepoPort {
   async existsByNameAndPhone(
     firstName: string,
     lastName: string,
-    phoneNumber: string
+    phoneNumber: PhoneNumber
   ): Promise<boolean> {
     this.existsChecks.push({
       firstName,
       lastName,
-      phoneNumber
+      phoneNumber: phoneNumber.value
     })
 
     return (
       (this.existingIdentity?.firstName === firstName &&
         this.existingIdentity?.lastName === lastName &&
-        this.existingIdentity?.phoneNumber === phoneNumber) ||
+        this.existingIdentity?.phoneNumber === phoneNumber.value) ||
       this.savedMembers.some(
         (member) =>
           member.firstName === firstName &&
           member.lastName === lastName &&
-          member.phoneNumber === phoneNumber
+          member.phoneNumber.value === phoneNumber.value
       )
     )
   }
@@ -96,22 +98,11 @@ class FakeIdGenerator implements IdGeneratorPort {
   }
 }
 
-class FakePhoneNumberNormalizer implements PhoneNumberNormalizerPort {
-  public readonly inputs: string[] = []
-  public normalizedPhoneNumber: string | null = '+48123456789'
-
-  normalizeInternational(phoneNumber: string): string | null {
-    this.inputs.push(phoneNumber)
-    return this.normalizedPhoneNumber
-  }
-}
-
 describe('RegisterMemberUseCase', () => {
   let uow: FakeUnitOfWork
   let memberRepo: FakeMemberRepo
   let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
-  let phoneNumberNormalizer: FakePhoneNumberNormalizer
   let useCase: RegisterMemberUseCase
 
   beforeEach(() => {
@@ -119,17 +110,10 @@ describe('RegisterMemberUseCase', () => {
     memberRepo = new FakeMemberRepo()
     eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
-    phoneNumberNormalizer = new FakePhoneNumberNormalizer()
 
     vi.spyOn(uow, 'execute')
 
-    useCase = new RegisterMemberUseCase(
-      uow,
-      memberRepo,
-      eventRepo,
-      idGenerator,
-      phoneNumberNormalizer
-    )
+    useCase = new RegisterMemberUseCase(uow, memberRepo, eventRepo, idGenerator)
   })
 
   it('registers a member via UoW, saving the member and the related domain event', async () => {
@@ -143,7 +127,6 @@ describe('RegisterMemberUseCase', () => {
 
     await useCase.handle(dto)
 
-    expect(phoneNumberNormalizer.inputs).toEqual(['+48 123 456 789'])
     expect(memberRepo.existsChecks).toEqual([
       {
         firstName: 'jane',
@@ -155,13 +138,11 @@ describe('RegisterMemberUseCase', () => {
 
     expect(memberRepo.savedMembers).toHaveLength(1)
     const savedMember = memberRepo.savedMembers[0]
-    expect(savedMember).toMatchObject({
-      firstName: 'jane',
-      lastName: 'doe',
-      phoneNumber: '+48123456789',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
-      joinedAt: new Date('2024-09-01T00:00:00Z')
-    })
+    expect(savedMember.firstName).toBe('jane')
+    expect(savedMember.lastName).toBe('doe')
+    expect(savedMember.phoneNumber.value).toBe('+48123456789')
+    expect(savedMember.dateOfBirth).toEqual(new Date('2010-01-01T00:00:00Z'))
+    expect(savedMember.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
     // The fixed ID proves the workflow consumes the injected generator instead of letting the aggregate allocate infrastructure identifiers.
     expect(savedMember.id).toBe('member-generated-by-test')
     expect(idGenerator.generatedIds).toEqual(['member-generated-by-test'])
@@ -176,16 +157,14 @@ describe('RegisterMemberUseCase', () => {
     )
   })
 
-  it('throws when the phone number normalizer cannot produce an E.164 value', async () => {
-    phoneNumberNormalizer.normalizedPhoneNumber = null
-
+  it('throws when the phone number value object cannot normalize the input', async () => {
     await expect(
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: '123456789'
       })
-    ).rejects.toThrow(InvalidMemberPhoneNumberError)
+    ).rejects.toThrow(InvalidPhoneNumberError)
 
     expect(memberRepo.existsChecks).toHaveLength(0)
     expect(uow.execute).not.toHaveBeenCalled()

@@ -2,7 +2,6 @@ import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
-import type { PhoneNumberNormalizerPort } from '@/application/ports/PhoneNumberNormalizerPort'
 import type { UseCase } from '@/application/UseCase'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
@@ -16,7 +15,6 @@ import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRep
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
-import { LibPhoneNumberNormalizer } from '@/infra/phone/LibPhoneNumberNormalizer'
 
 export type AppUseCases = {
   readonly registerClub: UseCase<RegisterClubCommand>
@@ -50,10 +48,6 @@ export function createAppServices(
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
   const resolveIdGenerator = lazy(() => new IdGenerator())
-  // Phone normalization stays behind a port so the workflow can keep its policy while remaining decoupled from one parsing library.
-  const resolvePhoneNumberNormalizer = lazy<PhoneNumberNormalizerPort>(
-    () => new LibPhoneNumberNormalizer()
-  )
   const resolveRegisterClub = lazy(
     () =>
       new RegisterClubUseCase(
@@ -69,8 +63,7 @@ export function createAppServices(
         resolveUnitOfWork(),
         resolveMemberRepo(),
         resolveEventRepo(),
-        resolveIdGenerator(),
-        resolvePhoneNumberNormalizer()
+        resolveIdGenerator()
       )
   )
   const resolveRegisterMembershipPayment = lazy(

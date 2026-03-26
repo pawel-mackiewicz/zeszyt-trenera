@@ -1,14 +1,6 @@
 import { DomainEvent } from '@/domain/events/DomainEvent'
+import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { copyDate, copyOptionalDate } from './DateUtils'
-
-// Local-first records and offline-created events must agree on one persisted phone format, so the domain only accepts already-canonical E.164 values instead of rewriting user input implicitly.
-const assertE164PhoneNumber = (value: string): string => {
-  if (!/^\+[1-9]\d{1,14}$/.test(value)) {
-    throw new InvalidMemberPhoneNumberError(value)
-  }
-
-  return value
-}
 
 const assertValidBirthDate = (
   dateOfBirth: Date | undefined,
@@ -54,7 +46,7 @@ export const normalizeMemberName = (name: string): string => {
 export type RegisterMemberInput = {
   firstName: string
   lastName: string
-  phoneNumber: string
+  phoneNumber: PhoneNumber
   dateOfBirth?: Date
   joinedAt?: Date
 }
@@ -74,23 +66,19 @@ export class Member {
 
   private _firstName: string
   private _lastName: string
-  private _phoneNumber: string
+  private _phoneNumber: PhoneNumber
   private _dateOfBirth?: Date
   private _joinedAt?: Date
   private _createdAt: Date
 
-  private constructor(
-    input: RegisterMemberInput,
-    id: string,
-    createdAt: Date = new Date()
-  ) {
+  private constructor(input: RegisterMemberInput, id: string) {
     this.id = id
     this._firstName = input.firstName
     this._lastName = input.lastName
-    this._phoneNumber = assertE164PhoneNumber(input.phoneNumber)
+    this._phoneNumber = input.phoneNumber
     this._dateOfBirth = copyOptionalDate(input.dateOfBirth)
     this._joinedAt = copyOptionalDate(input.joinedAt)
-    this._createdAt = copyDate(createdAt)
+    this._createdAt = new Date()
   }
   public static register(
     input: RegisterMemberInput,
@@ -112,27 +100,14 @@ export class Member {
     return [member, event]
   }
 
-  public static restore(snapshot: MemberSnapshot): Member {
-    return new Member(
-      {
-        firstName: snapshot.firstName,
-        lastName: snapshot.lastName,
-        phoneNumber: snapshot.phoneNumber,
-        dateOfBirth: snapshot.dateOfBirth,
-        joinedAt: snapshot.joinedAt
-      },
-      snapshot.id,
-      snapshot.createdAt
-    )
-  }
-
   // Persistence adapters and event serializers share one snapshot so stored member data cannot drift apart.
   public toSnapshot(): MemberSnapshot {
     return {
       id: this.id,
       firstName: this.firstName,
       lastName: this.lastName,
-      phoneNumber: this.phoneNumber,
+      // Snapshots stay string-based so event payloads and persisted rows keep the same contract outside the domain model.
+      phoneNumber: this.phoneNumber.value,
       ...(this.dateOfBirth === undefined
         ? {}
         : { dateOfBirth: this.dateOfBirth }),
@@ -186,13 +161,6 @@ export class MemberNotFoundError extends Error {
   public constructor(memberId: string) {
     super(`Member not found: ${memberId}`)
     this.name = 'MemberNotFoundError'
-  }
-}
-
-export class InvalidMemberPhoneNumberError extends Error {
-  public constructor(phoneNumber: string) {
-    super(`Member phone number must be a valid E.164 number: ${phoneNumber}`)
-    this.name = 'InvalidMemberPhoneNumberError'
   }
 }
 

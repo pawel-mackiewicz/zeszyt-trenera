@@ -1,3 +1,4 @@
+import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { Member } from '@/domain/model/member'
 
 export interface MemberRepoPort {
@@ -6,6 +7,6 @@ export interface MemberRepoPort {
   existsByNameAndPhone(
     firstName: string,
     lastName: string,
-    phoneNumber: string
+    phoneNumber: PhoneNumber
   ): Promise<boolean>
 }
