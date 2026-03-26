@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
-import { Member } from '@/domain/model/member'
 import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/infra/db'
 import {
@@ -119,14 +118,13 @@ describe('inspectIndexedDb', () => {
       'club-2'
     )
     const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
-    const [member] = Member.register(
-      {
-        firstName: 'Jan',
-        lastName: 'Kowalski',
-        phoneNumber: '+48111222333'
-      },
-      'member-1'
-    )
+    const member = {
+      id: 'member-1',
+      firstName: 'jan',
+      lastName: 'kowalski',
+      phoneNumber: '+48111222333',
+      createdAt: new Date('2026-03-01T00:00:00Z')
+    }
     const [membershipPayment] = MembershipPayment.record(
       {
         memberId: member.id,

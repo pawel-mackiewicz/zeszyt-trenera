@@ -12,11 +12,10 @@ export function useAppUpdate() {
     immediate: true,
     onRegisterError: (error) => {
       // Service-worker registration issues degrade offline behavior, but they should not block the local notebook from opening.
-      appStore.setUpdateError(
-        error instanceof Error
-          ? error.message
-          : 'Service worker registration failed.'
-      )
+      appStore.setUpdateError({
+        kind: 'registration',
+        detail: error instanceof Error ? error.message : null
+      })
     }
   })
 
@@ -28,11 +27,10 @@ export function useAppUpdate() {
     try {
       await updateServiceWorker(true)
     } catch (error) {
-      appStore.setUpdateError(
-        error instanceof Error
-          ? error.message
-          : 'Service worker activation failed.'
-      )
+      appStore.setUpdateError({
+        kind: 'activation',
+        detail: error instanceof Error ? error.message : null
+      })
     } finally {
       updatePending.value = false
     }

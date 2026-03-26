@@ -4,6 +4,11 @@ import { defineStore } from 'pinia'
 export type AppReadiness = 'checking' | 'ready' | 'blocked'
 export type BlockingIssue = 'database' | 'bootstrap' | null
 export type InstallSurface = 'hidden' | 'native' | 'manual'
+export type UpdateErrorKind = 'registration' | 'activation'
+export type UpdateErrorState = {
+  kind: UpdateErrorKind
+  detail: string | null
+}
 
 const INSTALL_MODAL_SHOWN_STORAGE_KEY =
   'zeszyt-trenera.install-modal-shown-once'
@@ -42,10 +47,11 @@ export const useAppStore = defineStore('app', () => {
   const installModalVisible = ref(false)
   const installCoachVisible = ref(false)
   const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
-  const updateError = ref<string | null>(null)
+  // The shell translates fallback update failures locally, while still preserving raw error detail when the browser provides it.
+  const updateError = ref<UpdateErrorState | null>(null)
   const appReadiness = ref<AppReadiness>('checking')
+  // Keeping only the issue code here lets the shell translate failure copy locally instead of storing hydrated text in shared state.
   const blockingIssue = ref<BlockingIssue>(null)
-  const blockingMessage = ref<string | null>(null)
   const dbConnected = ref(false)
 
   const showInstallEntry = computed(
@@ -132,19 +138,14 @@ export const useAppStore = defineStore('app', () => {
   function setAppReady() {
     appReadiness.value = 'ready'
     blockingIssue.value = null
-    blockingMessage.value = null
   }
 
-  function blockApplication(
-    issue: Exclude<BlockingIssue, null>,
-    message: string
-  ) {
+  function blockApplication(issue: Exclude<BlockingIssue, null>) {
     appReadiness.value = 'blocked'
     blockingIssue.value = issue
-    blockingMessage.value = message
   }
 
-  function setUpdateError(value: string | null) {
+  function setUpdateError(value: UpdateErrorState | null) {
     updateError.value = value
   }
 
@@ -170,7 +171,6 @@ export const useAppStore = defineStore('app', () => {
     updateError,
     appReadiness,
     blockingIssue,
-    blockingMessage,
     dbConnected,
     setOnlineStatus,
     setInstallAvailability,

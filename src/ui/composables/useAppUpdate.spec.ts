@@ -51,10 +51,16 @@ describe('useAppUpdate', () => {
     const store = useAppStore()
 
     options?.onRegisterError?.(new Error('boom'))
-    expect(store.updateError).toBe('boom')
+    expect(store.updateError).toEqual({
+      kind: 'registration',
+      detail: 'boom'
+    })
 
     options?.onRegisterError?.('unknown')
-    expect(store.updateError).toBe('Service worker registration failed.')
+    expect(store.updateError).toEqual({
+      kind: 'registration',
+      detail: null
+    })
   })
 
   it('activates a waiting shell only after an explicit menu action and resets pending state after success', async () => {
@@ -94,13 +100,19 @@ describe('useAppUpdate', () => {
     })
 
     const store = useAppStore()
-    store.setUpdateError('old error')
+    store.setUpdateError({
+      kind: 'registration',
+      detail: 'old error'
+    })
 
     const result = useAppUpdate()
 
     await result.refreshApplication()
 
-    expect(store.updateError).toBe('activation failed')
+    expect(store.updateError).toEqual({
+      kind: 'activation',
+      detail: 'activation failed'
+    })
     expect(result.updatePending.value).toBe(false)
   })
 })

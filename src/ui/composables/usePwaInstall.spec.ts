@@ -110,9 +110,7 @@ describe('usePwaInstall', () => {
     const { api, store } = mountProbe()
 
     expect(store.installSurface).toBe('manual')
-    expect(api.installInstructions.value?.title).toBe(
-      'Dodaj do ekranu głównego'
-    )
+    expect(api.manualInstallVariant.value).toBe('iosSafari')
   })
 
   it('falls back to manual guidance on iPadOS Safari with a desktop-class user agent', () => {
@@ -133,9 +131,7 @@ describe('usePwaInstall', () => {
     const { api, store } = mountProbe()
 
     expect(store.installSurface).toBe('manual')
-    expect(api.installInstructions.value?.title).toBe(
-      'Dodaj do ekranu głównego'
-    )
+    expect(api.manualInstallVariant.value).toBe('iosSafari')
   })
 
   it('does not show manual install guidance on desktop Safari', () => {
@@ -156,6 +152,6 @@ describe('usePwaInstall', () => {
     const { api, store } = mountProbe()
 
     expect(store.installSurface).toBe('hidden')
-    expect(api.installInstructions.value).toBeNull()
+    expect(api.manualInstallVariant.value).toBeNull()
   })
 })

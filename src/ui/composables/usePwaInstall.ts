@@ -12,10 +12,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<BeforeInstallPromptOutcome>
 }
 
-export type InstallInstructions = {
-  title: string
-  steps: string[]
-}
+export type ManualInstallVariant = 'iosSafari'
 
 function isAppleTouchDevice() {
   const userAgent = window.navigator.userAgent.toLowerCase()
@@ -36,26 +33,6 @@ function isManualInstallBrowser() {
     !userAgent.includes('fxios')
 
   return isAppleTouchDevice() && isSafari
-}
-
-function getManualInstallInstructions(): InstallInstructions {
-  if (isAppleTouchDevice()) {
-    return {
-      title: 'Dodaj do ekranu głównego',
-      steps: [
-        'Stuknij przycisk Udostępnij w Safari.',
-        'Wybierz Do ekranu głównego i potwierdź dodanie aplikacji.'
-      ]
-    }
-  }
-
-  return {
-    title: 'Zainstaluj z menu przeglądarki',
-    steps: [
-      'Otwórz menu przeglądarki.',
-      'Wybierz opcję instalacji aplikacji lub dodania jej do ekranu głównego.'
-    ]
-  }
 }
 
 export function usePwaInstall() {
@@ -126,9 +103,10 @@ export function usePwaInstall() {
     }
   }
 
-  const installInstructions = computed(() =>
-    appStore.installSurface === 'manual' ? getManualInstallInstructions() : null
+  const manualInstallVariant = computed(() =>
+    // What: expose the one manual-install recipe the shell can render today. Why: manual mode is only reachable on iOS Safari, so broader variants would only create dead UI branches.
+    appStore.installSurface === 'manual' ? 'iosSafari' : null
   )
 
-  return { promptInstall, installInstructions }
+  return { promptInstall, manualInstallVariant }
 }

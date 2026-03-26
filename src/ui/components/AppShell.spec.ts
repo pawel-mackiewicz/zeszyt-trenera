@@ -7,6 +7,7 @@ import AppShell from '@/ui/components/AppShell.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
+import { APP_LOCALE_STORAGE_KEY, createAppI18n } from '@/ui/i18n'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
@@ -55,9 +56,8 @@ describe('AppShell', () => {
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
 
     vi.mocked(useRoute).mockReturnValue({
-      meta: {
-        title: 'Członkowie'
-      },
+      meta: {},
+      name: 'members-list',
       path: '/',
       fullPath: '/'
     } as unknown as ReturnType<typeof useRoute>)
@@ -74,7 +74,7 @@ describe('AppShell', () => {
     vi.mocked(useNetworkStatus).mockImplementation(() => undefined)
     vi.mocked(usePwaInstall).mockReturnValue({
       promptInstall: vi.fn().mockResolvedValue(true),
-      installInstructions: computed(() => null)
+      manualInstallVariant: computed(() => null)
     })
     vi.mocked(useAppUpdate).mockReturnValue({
       needRefresh: mockNeedRefresh,
@@ -88,6 +88,7 @@ describe('AppShell', () => {
     configureStore?: (store: ReturnType<typeof useAppStore>) => void
   ) {
     const pinia = createPinia()
+    const i18n = createAppI18n('pl')
     setActivePinia(pinia)
     const store = useAppStore()
 
@@ -95,7 +96,7 @@ describe('AppShell', () => {
 
     const wrapper = mount(AppShell, {
       global: {
-        plugins: [pinia]
+        plugins: [pinia, i18n]
       }
     })
 
@@ -141,13 +142,7 @@ describe('AppShell', () => {
   it('renders manual install steps when the browser has no native prompt', () => {
     vi.mocked(usePwaInstall).mockReturnValue({
       promptInstall: vi.fn().mockResolvedValue(false),
-      installInstructions: computed(() => ({
-        title: 'Dodaj do ekranu głównego',
-        steps: [
-          'Stuknij przycisk Udostępnij w Safari.',
-          'Wybierz Do ekranu głównego.'
-        ]
-      }))
+      manualInstallVariant: computed(() => 'iosSafari')
     })
 
     const { wrapper } = mountShell((appStore) => {
@@ -166,7 +161,8 @@ describe('AppShell', () => {
 
     await wrapper.find('header button').trigger('click')
 
-    expect(wrapper.text()).toContain('v0.1.2')
+    // The shell should show the current build version without forcing this spec to change on every release bump.
+    expect(wrapper.text()).toMatch(/v\d+\.\d+\.\d+/)
     expect(wrapper.text()).not.toContain('Aktualizuj aplikację')
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
 
@@ -205,5 +201,21 @@ describe('AppShell', () => {
 
     expect(mockRefreshApplication).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
+  })
+
+  it('switches locale from the hamburger menu and persists the choice locally', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(document.title).toBe('Członkowie • Zeszyt Trenera')
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="locale-en"]').trigger('click')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Language')
+    expect(document.title).toBe('Members • Coach Notebook')
+    expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('en')
   })
 })

@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { createAppI18n } from '@/ui/i18n'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 import { useRouter } from '@/ui/router/runtime'
 import { useAppServices } from '@/ui/appServices'
@@ -15,15 +16,13 @@ vi.mock('@/ui/appServices', () => ({
 }))
 
 describe('AddMemberView', () => {
-  let mockRouterPush: Mock
   let mockRouterReplace: Mock
   let mockRegisterMemberHandle: Mock
 
   beforeEach(() => {
-    mockRouterPush = vi.fn()
     mockRouterReplace = vi.fn()
     vi.mocked(useRouter).mockReturnValue({
-      push: mockRouterPush,
+      push: vi.fn(),
       replace: mockRouterReplace,
       back: vi.fn(),
       forward: vi.fn(),
@@ -40,8 +39,16 @@ describe('AddMemberView', () => {
     } as unknown as ReturnType<typeof useAppServices>)
   })
 
+  function mountView(locale: 'pl' | 'en' = 'pl') {
+    return mount(AddMemberView, {
+      global: {
+        plugins: [createAppI18n(locale)]
+      }
+    })
+  }
+
   it('submits a new member successfully and navigates back', async () => {
-    const wrapper = mount(AddMemberView)
+    const wrapper = mountView()
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
@@ -65,7 +72,7 @@ describe('AddMemberView', () => {
       new Error('Format numeru jest zly')
     )
 
-    const wrapper = mount(AddMemberView)
+    const wrapper = mountView()
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
@@ -74,5 +81,13 @@ describe('AddMemberView', () => {
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(wrapper.text()).toContain('Format numeru jest zly')
+  })
+
+  it('renders field copy from the local English dictionary', () => {
+    const wrapper = mountView('en')
+
+    expect(wrapper.text()).toContain('First name')
+    expect(wrapper.text()).toContain('Phone number')
+    expect(wrapper.text()).toContain('Save')
   })
 })

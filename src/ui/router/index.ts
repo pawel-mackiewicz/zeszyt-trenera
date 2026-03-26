@@ -1,29 +1,26 @@
-import type {
-  RouteLocationNormalizedLoaded,
-  RouteRecordRaw
-} from '@/ui/router/runtime'
+import type { RouteRecordRaw } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
 import MembersListView from '@/ui/views/MembersListView.vue'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 
 type AppRouteMeta = {
-  title: string
   showBack?: boolean
   hideBottomNav?: boolean
   backTo?: string
-  menuLabel?: string
+  showInMenu?: boolean
 }
 
+export type AppRouteName = 'members-list' | 'add-member' | 'debug-indexeddb'
+
 type AppRoute = RouteRecordRaw & {
-  name: string
+  name: AppRouteName
   path: string
   meta: AppRouteMeta
 }
 
 export type NavigationItem = {
-  name: string
-  label: string
+  name: AppRouteName
   to: string
 }
 
@@ -32,16 +29,13 @@ const baseRoutes = [
     path: '/',
     name: 'members-list',
     component: MembersListView,
-    meta: {
-      title: 'Członkowie'
-    }
+    meta: {}
   },
   {
     path: '/add-member',
     name: 'add-member',
     component: AddMemberView,
     meta: {
-      title: 'Dodaj Członka',
       showBack: true,
       hideBottomNav: true,
       backTo: '/'
@@ -54,11 +48,10 @@ const debugRoute = {
   name: 'debug-indexeddb',
   component: () => import('@/ui/views/IndexedDbDebugView.vue'),
   meta: {
-    title: 'Inspector',
     hideBottomNav: true,
     showBack: true,
     backTo: '/',
-    menuLabel: 'Debug IndexedDB'
+    showInMenu: true
   }
 } satisfies AppRoute
 
@@ -73,13 +66,10 @@ export function createNavigationItems(
   debugEnabled = import.meta.env.DEV
 ): NavigationItem[] {
   return createAppRoutes(debugEnabled).flatMap((route) => {
-    const { menuLabel } = route.meta
-
-    return menuLabel
+    return route.meta.showInMenu
       ? [
           {
             name: route.name,
-            label: menuLabel,
             to: route.path
           }
         ]
@@ -88,18 +78,10 @@ export function createNavigationItems(
 }
 
 export function createAppRouter(debugEnabled = import.meta.env.DEV) {
-  const router = createRouter({
+  return createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: createAppRoutes(debugEnabled)
   })
-
-  router.afterEach((to: RouteLocationNormalizedLoaded) => {
-    const title =
-      typeof to.meta.title === 'string' ? to.meta.title : 'Zeszyt Trenera'
-    document.title = `${title} • Zeszyt Trenera`
-  })
-
-  return router
 }
 
 const router = createAppRouter()

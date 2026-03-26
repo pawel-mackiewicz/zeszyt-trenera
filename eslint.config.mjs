@@ -17,7 +17,8 @@ export default tseslint.config(
       ecmaVersion: 'latest',
       sourceType: 'module',
       globals: {
-        ...globals.browser
+        ...globals.browser,
+        __APP_VERSION__: 'readonly'
       },
       parserOptions: {
         parser: tseslint.parser

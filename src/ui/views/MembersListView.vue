@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
 import { db, type PersistedMember } from '@/infra/db'
 import { useRouter } from '@/ui/router/runtime'
 import AppIcon from '@/ui/components/AppIcon.vue'
 
 const router = useRouter()
+const { t } = useI18n({ useScope: 'local' })
 const savedMembers = ref<PersistedMember[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
@@ -12,6 +15,9 @@ const maxAgeFilter = ref(80)
 const minAgeFilter = ref(5)
 
 const openMemberId = ref<string | null>(null)
+const membersCountLabel = computed(() =>
+  t('summary.memberCount', { count: savedMembers.value.length })
+)
 
 async function loadSavedMembers() {
   isLoading.value = true
@@ -64,7 +70,7 @@ const filteredMembers = computed(() => {
 })
 
 function formatDisplayDate(val: Date | string | undefined): string {
-  if (!val) return 'Brak'
+  if (!val) return t('details.missing')
   const date = val instanceof Date ? val : new Date(val)
   return date.toISOString().split('T')[0]
 }
@@ -89,8 +95,9 @@ onMounted(() => {
       <div
         class="inline-block bg-primary text-white px-4 py-2 border border-on-surface hide-empty hard-shadow"
       >
-        <span class="font-headline text-5xl font-black leading-none uppercase"
-          >{{ savedMembers.length }} CZŁONKÓW</span
+        <span
+          class="font-headline text-5xl font-black leading-none uppercase"
+          >{{ membersCountLabel }}</span
         >
       </div>
     </div>
@@ -102,14 +109,14 @@ onMounted(() => {
       <div class="md:col-span-11 relative">
         <label
           class="font-label text-[0.6875rem] font-bold uppercase tracking-tighter mb-1 block text-secondary"
-          >SZUKAJ W REJESTRZE</label
+          >{{ t('search.label') }}</label
         >
         <div class="flex items-center gap-4">
           <AppIcon class="text-primary" name="search" />
           <input
             v-model="searchQuery"
             class="w-full bg-transparent border-none p-0 focus:ring-0 font-mono text-lg placeholder:text-outline-variant uppercase"
-            placeholder="WPISZ IMIĘ I NAZWISKO"
+            :placeholder="t('search.placeholder')"
             type="text"
           />
         </div>
@@ -130,11 +137,11 @@ onMounted(() => {
         <div class="flex justify-between items-end mb-2">
           <label
             class="font-label text-[0.6875rem] font-bold uppercase tracking-tighter block text-secondary"
-            >FILTRUJ PO WIEKU</label
+            >{{ t('filters.age.label') }}</label
           >
-          <span class="font-mono text-sm font-bold text-primary uppercase"
-            >WIEK: {{ minAgeFilter }} - {{ maxAgeFilter }}</span
-          >
+          <span class="font-mono text-sm font-bold text-primary uppercase">{{
+            t('filters.age.range', { min: minAgeFilter, max: maxAgeFilter })
+          }}</span>
         </div>
         <div class="relative flex items-center gap-4">
           <span class="font-mono text-[10px] text-secondary font-bold">5</span>
@@ -168,13 +175,13 @@ onMounted(() => {
         v-if="isLoading"
         class="p-8 text-center font-mono text-secondary uppercase animate-pulse"
       >
-        Ładowanie członków...
+        {{ t('states.loading') }}
       </div>
       <div
         v-if="!isLoading && filteredMembers.length === 0"
         class="p-8 text-center font-mono text-secondary uppercase"
       >
-        Brak zapisanych członków.
+        {{ t('states.empty') }}
       </div>
 
       <details
@@ -206,7 +213,7 @@ onMounted(() => {
           <div class="flex flex-col">
             <span
               class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >Telefon</span
+              >{{ t('details.phoneNumber') }}</span
             >
             <span class="font-mono text-sm font-medium">{{
               member.phoneNumber
@@ -215,7 +222,7 @@ onMounted(() => {
           <div class="flex flex-col">
             <span
               class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >Data ur.</span
+              >{{ t('details.dateOfBirth') }}</span
             >
             <span class="font-mono text-sm">{{
               formatDisplayDate(member.dateOfBirth)
@@ -224,7 +231,7 @@ onMounted(() => {
           <div class="flex flex-col">
             <span
               class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >Dołączył</span
+              >{{ t('details.joinedAt') }}</span
             >
             <span class="font-mono text-sm">{{
               formatDisplayDate(member.joinedAt)
@@ -291,3 +298,58 @@ input[type='range']::-moz-range-thumb {
   border-radius: 0;
 }
 </style>
+
+<i18n lang="json">
+{
+  "pl": {
+    "summary": {
+      "memberCount": "{count} członków"
+    },
+    "search": {
+      "label": "Szukaj w rejestrze",
+      "placeholder": "Wpisz imię i nazwisko"
+    },
+    "filters": {
+      "age": {
+        "label": "Filtruj po wieku",
+        "range": "Wiek: {min} - {max}"
+      }
+    },
+    "states": {
+      "loading": "Ładowanie członków...",
+      "empty": "Brak zapisanych członków."
+    },
+    "details": {
+      "phoneNumber": "Telefon",
+      "dateOfBirth": "Data ur.",
+      "joinedAt": "Dołączył",
+      "missing": "Brak"
+    }
+  },
+  "en": {
+    "summary": {
+      "memberCount": "{count} members"
+    },
+    "search": {
+      "label": "Search the register",
+      "placeholder": "Enter first and last name"
+    },
+    "filters": {
+      "age": {
+        "label": "Filter by age",
+        "range": "Age: {min} - {max}"
+      }
+    },
+    "states": {
+      "loading": "Loading members...",
+      "empty": "No members have been saved yet."
+    },
+    "details": {
+      "phoneNumber": "Phone",
+      "dateOfBirth": "Birth date",
+      "joinedAt": "Joined",
+      "missing": "Missing"
+    }
+  }
+}
+</i18n>

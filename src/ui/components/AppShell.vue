@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import AppIcon from '@/ui/components/AppIcon.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
-import { createNavigationItems } from '@/ui/router'
+import { persistLocale, type AppLocale } from '@/ui/i18n'
+import {
+  createNavigationItems,
+  type AppRouteName,
+  type NavigationItem
+} from '@/ui/router'
 import {
   RouterLink,
   RouterView,
@@ -18,15 +24,17 @@ import { useAppStore } from '@/ui/stores/app'
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const { t, tm } = useI18n({ useScope: 'local' })
+const { locale } = useI18n({ useScope: 'global' })
 
 useNetworkStatus()
-const { promptInstall, installInstructions } = usePwaInstall()
+const { promptInstall, manualInstallVariant } = usePwaInstall()
 // Registering the worker here keeps background update checks tied to the shell lifecycle while leaving the actual activation behind an explicit menu action.
 const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
 
 const {
   appReadiness,
-  blockingMessage,
+  blockingIssue,
   installCoachVisible,
   installed,
   installModalVisible,
@@ -38,40 +46,105 @@ const {
   updateError
 } = storeToRefs(appStore)
 
-const title = computed(() => route.meta.title)
+const appVersion = __APP_VERSION__
+const localeOptions = [
+  { value: 'pl', label: 'PL' },
+  { value: 'en', label: 'EN' }
+] as const satisfies ReadonlyArray<{ value: AppLocale; label: string }>
+// The shell owns route chrome labels so document titles can react to locale changes without leaking translated strings into router metadata.
+const routeTitleKeys = {
+  'members-list': 'routes.membersList',
+  'add-member': 'routes.addMember',
+  'debug-indexeddb': 'routes.debugIndexedDb'
+} as const satisfies Record<AppRouteName, string>
+const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
+  'debug-indexeddb': 'menu.debugIndexedDb'
+}
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
 
+const appName = computed(() => t('app.name'))
+const currentRouteName = computed(() => {
+  return typeof route.name === 'string' ? (route.name as AppRouteName) : null
+})
+const title = computed(() => {
+  const routeName = currentRouteName.value
+
+  return routeName ? t(routeTitleKeys[routeName]) : appName.value
+})
 const isShellReady = computed(() => appReadiness.value === 'ready')
 const isBlockingApplication = computed(() => appReadiness.value === 'blocked')
+const manualInstallTranslationKey = 'install.manual.iosSafari' as const
+const installModalEyebrow = computed(() =>
+  installSurface.value === 'manual'
+    ? t('install.manual.eyebrow')
+    : t('install.native.eyebrow')
+)
 const installModalTitle = computed(() =>
   installSurface.value === 'manual'
-    ? (installInstructions.value?.title ?? 'Jak zainstalować aplikację')
-    : 'Zainstaluj Zeszyt Trenera'
+    ? t(`${manualInstallTranslationKey}.title`)
+    : t('install.native.title')
 )
 const installModalBody = computed(() =>
   installSurface.value === 'manual'
-    ? 'Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Na tej przeglądarce zrobisz to ręcznie, a poniżej masz krótkie kroki.'
-    : 'Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Dzięki temu otworzysz go jak lokalną aplikację i wygodniej wrócisz do niego offline.'
+    ? t(`${manualInstallTranslationKey}.body`)
+    : t('install.native.body')
 )
 const installEntryLabel = computed(() =>
   installSurface.value === 'manual'
-    ? 'Jak zainstalować'
-    : 'Zainstaluj aplikację'
+    ? t('install.entry.manual')
+    : t('install.entry.native')
 )
 const installPrimaryLabel = computed(() =>
   installSurface.value === 'manual'
-    ? 'Rozumiem'
+    ? t('common.understand')
     : installPending.value
-      ? 'Instalowanie...'
-      : 'Zainstaluj Zeszyt Trenera'
+      ? t('install.native.pending')
+      : t('install.native.primary')
 )
 const installCoachCopy = computed(() =>
   installSurface.value === 'manual'
-    ? 'Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.'
-    : 'Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później.'
+    ? t('install.coach.manual')
+    : t('install.coach.native')
 )
+const manualInstallSteps = computed(() => {
+  if (manualInstallVariant.value === null) {
+    return [] as string[]
+  }
+
+  // What: the shell renders the Safari-specific fallback instructions here. Why: iOS Safari is the only browser family that reaches the manual-install path in the current flow.
+  return tm(`${manualInstallTranslationKey}.steps`) as string[]
+})
+const updateActionLabel = computed(() =>
+  updatePending.value ? t('update.action.pending') : t('update.action.ready')
+)
+const updateErrorMessage = computed(() => {
+  if (!updateError.value) {
+    return null
+  }
+
+  return updateError.value.detail ?? t(`update.error.${updateError.value.kind}`)
+})
+const shellStateEyebrow = computed(() =>
+  isBlockingApplication.value
+    ? t('shellState.blocked.eyebrow')
+    : t('shellState.checking.eyebrow')
+)
+const shellStateTitle = computed(() =>
+  isBlockingApplication.value
+    ? t('shellState.blocked.title')
+    : t('shellState.checking.title')
+)
+const shellStateCopy = computed(() => {
+  if (!isBlockingApplication.value) {
+    return t('shellState.checking.body')
+  }
+
+  return blockingIssue.value === 'database'
+    ? t('shellState.blocked.database')
+    : t('shellState.blocked.unknown')
+})
 const isInstallModalActive = computed(() => {
   // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
   return isShellReady.value && installModalVisible.value
@@ -100,6 +173,16 @@ watch(showInstallEntry, (value) => {
     appStore.hideInstallCoach()
   }
 })
+
+watch(
+  [title, appName],
+  ([nextTitle, nextAppName]) => {
+    // Keeping title updates in the shell lets the visible route labels and browser title share the same local dictionary.
+    document.title =
+      nextTitle === nextAppName ? nextAppName : `${nextTitle} • ${nextAppName}`
+  },
+  { immediate: true }
+)
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
@@ -152,6 +235,22 @@ async function handleUpdateAction() {
 function reloadApplication() {
   window.location.reload()
 }
+
+function changeLocale(nextLocale: AppLocale) {
+  if (locale.value === nextLocale) {
+    return
+  }
+
+  locale.value = nextLocale
+  persistLocale(nextLocale)
+}
+
+function navigationLabel(item: NavigationItem) {
+  const translationKey =
+    navigationLabelKeys[item.name] ?? routeTitleKeys[item.name]
+
+  return t(translationKey)
+}
 </script>
 
 <template>
@@ -187,7 +286,7 @@ function reloadApplication() {
           <span
             v-if="!isOnline"
             class="inline-flex items-center rounded-full border border-danger/25 bg-danger/10 px-2.5 py-1 font-mono text-[10px] text-danger font-bold uppercase"
-            >Offline</span
+            >{{ t('network.offline') }}</span
           >
         </div>
       </header>
@@ -204,9 +303,11 @@ function reloadApplication() {
             class="p-6 border-b border-on-surface/10 bg-surface-container-low"
           >
             <h2 class="font-headline uppercase font-bold text-lg">
-              Zeszyt Trenera
+              {{ appName }}
             </h2>
-            <p class="font-mono text-xs text-secondary mt-1">v0.1.2</p>
+            <p class="font-mono text-xs text-secondary mt-1">
+              v{{ appVersion }}
+            </p>
           </div>
           <nav
             v-if="navigationItems.length > 0"
@@ -219,16 +320,41 @@ function reloadApplication() {
               class="block px-6 py-4 font-mono text-sm uppercase font-bold text-on-surface hover:bg-surface-container-low transition-colors"
               @click="closeMenu"
             >
-              {{ item.label }}
+              {{ navigationLabel(item) }}
             </RouterLink>
           </nav>
           <div class="p-6 border-t border-on-surface/10 bg-surface">
+            <div class="mb-4">
+              <p
+                class="mb-2 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-secondary"
+              >
+                {{ t('menu.languageLabel') }}
+              </p>
+              <div class="locale-switcher">
+                <button
+                  v-for="option in localeOptions"
+                  :key="option.value"
+                  class="locale-switcher__button"
+                  :class="{
+                    'locale-switcher__button--active': locale === option.value
+                  }"
+                  :aria-pressed="locale === option.value"
+                  :data-testid="`locale-${option.value}`"
+                  type="button"
+                  @click="changeLocale(option.value)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
             <Transition name="overlay-pop">
               <div
                 v-if="installCoachVisible && showInstallEntry"
                 class="install-coach-card mb-4"
               >
-                <p class="install-coach-card__eyebrow">Na później</p>
+                <p class="install-coach-card__eyebrow">
+                  {{ t('install.coach.eyebrow') }}
+                </p>
                 <p class="install-coach-card__copy">
                   {{ installCoachCopy }}
                 </p>
@@ -237,7 +363,7 @@ function reloadApplication() {
                   type="button"
                   @click="appStore.hideInstallCoach()"
                 >
-                  Rozumiem
+                  {{ t('common.understand') }}
                 </button>
               </div>
             </Transition>
@@ -256,23 +382,23 @@ function reloadApplication() {
               :disabled="updatePending"
               @click="handleUpdateAction"
             >
-              {{ updatePending ? 'Odświeżanie...' : 'Aktualizuj aplikację' }}
+              {{ updateActionLabel }}
             </button>
           </div>
         </div>
       </div>
 
       <main class="pt-24 px-6 max-w-5xl mx-auto pb-32">
-        <div v-if="updateError" class="mb-6 grid gap-3">
+        <div v-if="updateErrorMessage" class="mb-6 grid gap-3">
           <div class="message-banner message-banner--danger">
-            <strong>Tryb offline wymaga uwagi</strong>
-            <span>{{ updateError }}</span>
+            <strong>{{ t('update.bannerTitle') }}</strong>
+            <span>{{ updateErrorMessage }}</span>
             <button
               class="message-banner__action"
               type="button"
               @click="appStore.clearUpdateError()"
             >
-              Ukryj
+              {{ t('common.hide') }}
             </button>
           </div>
         </div>
@@ -300,7 +426,7 @@ function reloadApplication() {
           <AppIcon name="group" />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            >Członkowie</span
+            >{{ t('bottomNav.members') }}</span
           >
         </RouterLink>
         <div
@@ -309,7 +435,7 @@ function reloadApplication() {
           <AppIcon name="payments" />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            >Płatności</span
+            >{{ t('bottomNav.payments') }}</span
           >
         </div>
         <div
@@ -318,7 +444,7 @@ function reloadApplication() {
           <AppIcon name="calendar_today" />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            >Obecność</span
+            >{{ t('bottomNav.attendance') }}</span
           >
         </div>
       </nav>
@@ -329,29 +455,15 @@ function reloadApplication() {
       class="min-h-screen px-6 py-12 flex items-center justify-center"
     >
       <div class="shell-state-card">
-        <p class="shell-state-card__eyebrow">
-          {{ isBlockingApplication ? 'Stan aplikacji' : 'Uruchamianie' }}
-        </p>
-        <h1 class="shell-state-card__title">
-          {{
-            isBlockingApplication
-              ? 'Nie udało się uruchomić Zeszytu Trenera'
-              : 'Przygotowuję lokalny zeszyt'
-          }}
-        </h1>
-        <p class="shell-state-card__copy">
-          {{
-            isBlockingApplication
-              ? blockingMessage
-              : 'Sprawdzam lokalną bazę danych, żeby nie dopuścić do startu z niedziałającym local-first storage.'
-          }}
-        </p>
+        <p class="shell-state-card__eyebrow">{{ shellStateEyebrow }}</p>
+        <h1 class="shell-state-card__title">{{ shellStateTitle }}</h1>
+        <p class="shell-state-card__copy">{{ shellStateCopy }}</p>
         <div
           v-if="isBlockingApplication"
           class="flex flex-col sm:flex-row gap-3"
         >
           <button class="button-brand" type="button" @click="reloadApplication">
-            Spróbuj ponownie
+            {{ t('shellState.retry') }}
           </button>
         </div>
         <div v-else class="shell-state-card__loading" aria-hidden="true">
@@ -370,18 +482,12 @@ function reloadApplication() {
           @click="handleInstallLater()"
         ></div>
         <section class="shell-modal relative w-full max-w-lg">
-          <p class="shell-modal__eyebrow">
-            {{
-              installSurface === 'manual'
-                ? 'Instalacja ręczna'
-                : 'Instalacja PWA'
-            }}
-          </p>
+          <p class="shell-modal__eyebrow">{{ installModalEyebrow }}</p>
           <h2 class="shell-modal__title">{{ installModalTitle }}</h2>
           <p class="shell-modal__copy">{{ installModalBody }}</p>
-          <ol v-if="installInstructions" class="shell-modal__steps">
+          <ol v-if="manualInstallSteps.length > 0" class="shell-modal__steps">
             <li
-              v-for="step in installInstructions.steps"
+              v-for="step in manualInstallSteps"
               :key="step"
               class="shell-modal__step"
             >
@@ -402,7 +508,7 @@ function reloadApplication() {
               type="button"
               @click="handleInstallLater()"
             >
-              Później
+              {{ t('common.later') }}
             </button>
           </div>
         </section>
@@ -424,6 +530,34 @@ function reloadApplication() {
   background: rgba(255, 255, 255, 0.74);
   color: var(--ink);
   font-weight: 700;
+}
+
+.locale-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.locale-switcher__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 59, 55, 0.12);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--ink-soft);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.locale-switcher__button--active {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+  color: white;
 }
 
 .shell-state-card {
@@ -624,3 +758,170 @@ function reloadApplication() {
   }
 }
 </style>
+
+<i18n lang="json">
+{
+  "pl": {
+    "app": {
+      "name": "Zeszyt Trenera"
+    },
+    "common": {
+      "hide": "Ukryj",
+      "later": "Później",
+      "understand": "Rozumiem"
+    },
+    "network": {
+      "offline": "Offline"
+    },
+    "menu": {
+      "debugIndexedDb": "Debug IndexedDB",
+      "languageLabel": "Język"
+    },
+    "routes": {
+      "membersList": "Członkowie",
+      "addMember": "Dodaj członka",
+      "debugIndexedDb": "Podgląd IndexedDB"
+    },
+    "bottomNav": {
+      "members": "Członkowie",
+      "payments": "Płatności",
+      "attendance": "Obecność"
+    },
+    "install": {
+      "entry": {
+        "manual": "Jak zainstalować",
+        "native": "Zainstaluj aplikację"
+      },
+      "coach": {
+        "eyebrow": "Na później",
+        "manual": "Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.",
+        "native": "Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później."
+      },
+      "manual": {
+        "eyebrow": "Instalacja ręczna",
+        "iosSafari": {
+          "title": "Dodaj do ekranu głównego",
+          "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Na tej przeglądarce zrobisz to ręcznie, a poniżej masz krótkie kroki.",
+          "steps": [
+            "Stuknij przycisk Udostępnij w Safari.",
+            "Wybierz Do ekranu głównego i potwierdź dodanie aplikacji."
+          ]
+        }
+      },
+      "native": {
+        "eyebrow": "Instalacja PWA",
+        "title": "Zainstaluj Zeszyt Trenera",
+        "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Dzięki temu otworzysz go jak lokalną aplikację i wygodniej wrócisz do niego offline.",
+        "primary": "Zainstaluj Zeszyt Trenera",
+        "pending": "Instalowanie..."
+      }
+    },
+    "update": {
+      "action": {
+        "ready": "Aktualizuj aplikację",
+        "pending": "Odświeżanie..."
+      },
+      "bannerTitle": "Tryb offline wymaga uwagi",
+      "error": {
+        "registration": "Nie udało się zarejestrować service workera.",
+        "activation": "Nie udało się aktywować nowej wersji aplikacji."
+      }
+    },
+    "shellState": {
+      "retry": "Spróbuj ponownie",
+      "checking": {
+        "eyebrow": "Uruchamianie",
+        "title": "Przygotowuję lokalny zeszyt",
+        "body": "Sprawdzam lokalną bazę danych, żeby nie dopuścić do startu z niedziałającym local-first storage."
+      },
+      "blocked": {
+        "eyebrow": "Stan aplikacji",
+        "title": "Nie udało się uruchomić Zeszytu Trenera",
+        "database": "Nie udało się uruchomić lokalnej bazy danych.",
+        "unknown": "Aplikacja napotkała błąd podczas uruchamiania lokalnego środowiska."
+      }
+    }
+  },
+  "en": {
+    "app": {
+      "name": "Coach Notebook"
+    },
+    "common": {
+      "hide": "Hide",
+      "later": "Later",
+      "understand": "Understood"
+    },
+    "network": {
+      "offline": "Offline"
+    },
+    "menu": {
+      "debugIndexedDb": "Debug IndexedDB",
+      "languageLabel": "Language"
+    },
+    "routes": {
+      "membersList": "Members",
+      "addMember": "Add member",
+      "debugIndexedDb": "IndexedDB Inspector"
+    },
+    "bottomNav": {
+      "members": "Members",
+      "payments": "Payments",
+      "attendance": "Attendance"
+    },
+    "install": {
+      "entry": {
+        "manual": "How to install",
+        "native": "Install app"
+      },
+      "coach": {
+        "eyebrow": "Later",
+        "manual": "Return here when you need the short guide for adding the app to the home screen.",
+        "native": "Return here when you want to install the app later."
+      },
+      "manual": {
+        "eyebrow": "Manual install",
+        "iosSafari": {
+          "title": "Add to Home Screen",
+          "body": "Install Coach Notebook for the best experience. This browser needs the manual flow, and the short steps are below.",
+          "steps": [
+            "Tap the Share button in Safari.",
+            "Choose Add to Home Screen and confirm the app."
+          ]
+        }
+      },
+      "native": {
+        "eyebrow": "PWA install",
+        "title": "Install Coach Notebook",
+        "body": "Install Coach Notebook for the best experience. It will open like a local app and will be easier to return to offline.",
+        "primary": "Install Coach Notebook",
+        "pending": "Installing..."
+      }
+    },
+    "update": {
+      "action": {
+        "ready": "Update app",
+        "pending": "Refreshing..."
+      },
+      "bannerTitle": "Offline mode needs attention",
+      "error": {
+        "registration": "The service worker could not be registered.",
+        "activation": "The new app version could not be activated."
+      }
+    },
+    "shellState": {
+      "retry": "Try again",
+      "checking": {
+        "eyebrow": "Starting",
+        "title": "Preparing the local notebook",
+        "body": "Checking the local database so the app never starts with broken local-first storage."
+      },
+      "blocked": {
+        "eyebrow": "App state",
+        "title": "Coach Notebook could not start",
+        "database": "The local database could not be started.",
+        "unknown": "The app hit an error while booting the local environment."
+      }
+    }
+  }
+}
+</i18n>

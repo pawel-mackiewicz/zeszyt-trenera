@@ -61,9 +61,15 @@ describe('useAppStore', () => {
   it('stores and clears service-worker registration errors without blocking the shell', () => {
     const store = useAppStore()
 
-    store.setUpdateError('Service worker registration failed.')
+    store.setUpdateError({
+      kind: 'registration',
+      detail: null
+    })
 
-    expect(store.updateError).toBe('Service worker registration failed.')
+    expect(store.updateError).toEqual({
+      kind: 'registration',
+      detail: null
+    })
 
     store.clearUpdateError()
 

@@ -1,14 +1,28 @@
+import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 
+import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
+const packageJson = JSON.parse(
+  readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
+) as {
+  version: string
+}
+
 export default defineConfig({
+  define: {
+    // Surfacing the package version at build time keeps the installed shell badge aligned with package.json without an extra runtime fetch.
+    __APP_VERSION__: JSON.stringify(packageJson.version)
+  },
   plugins: [
     tailwindcss(),
     vue(),
+    // The custom-block plugin is what turns component-local <i18n> dictionaries into bundled offline resources.
+    VueI18nPlugin({}),
     VitePWA({
       // Keeping prompt mode lets the next shell download quietly while the current local-first session stays stable until a full reopen.
       registerType: 'prompt',

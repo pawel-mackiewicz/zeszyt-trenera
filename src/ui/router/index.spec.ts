@@ -15,10 +15,10 @@ describe('router', () => {
     expect(debugRoute).toMatchObject({
       path: '/debug/indexeddb',
       meta: {
-        title: 'Inspector',
         hideBottomNav: true,
         showBack: true,
-        backTo: '/'
+        backTo: '/',
+        showInMenu: true
       }
     })
   })
@@ -30,7 +30,6 @@ describe('router', () => {
   it('adds the IndexedDB debug navigation item in development mode', () => {
     expect(createNavigationItems(true)).toContainEqual({
       name: 'debug-indexeddb',
-      label: 'Debug IndexedDB',
       to: '/debug/indexeddb'
     })
   })

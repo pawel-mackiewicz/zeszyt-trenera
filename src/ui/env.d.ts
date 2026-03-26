@@ -20,10 +20,11 @@ declare module 'virtual:pwa-register/vue' {
 
 declare module 'vue-router' {
   interface RouteMeta {
-    title: string
     showBack?: boolean
     hideBottomNav?: boolean
     backTo?: string
-    menuLabel?: string
+    showInMenu?: boolean
   }
 }
+
+declare const __APP_VERSION__: string
