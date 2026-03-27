@@ -2,6 +2,7 @@
 type IconName =
   | 'add'
   | 'arrow_back'
+  | 'check_circle'
   | 'calendar_today'
   | 'expand_more'
   | 'group'
@@ -42,6 +43,10 @@ defineProps<{
     <template v-else-if="name === 'add'">
       <path d="M12 5v14" />
       <path d="M5 12h14" />
+    </template>
+    <template v-else-if="name === 'check_circle'">
+      <circle cx="12" cy="12" r="8" />
+      <path d="m8.5 12.25 2.25 2.25 4.75-4.75" />
     </template>
     <template v-else-if="name === 'expand_more'">
       <path d="m6 9 6 6 6-6" />

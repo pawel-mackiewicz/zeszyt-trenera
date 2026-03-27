@@ -96,10 +96,13 @@ describe('inspectIndexedDb', () => {
     const membershipPaymentsTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'membershipPayments'
     )
+    const attendanceListsTable = snapshot.tableSnapshots.find(
+      (table) => table.name === 'attendanceLists'
+    )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(7)
-    expect(snapshot.tableSnapshots).toHaveLength(5)
+    expect(snapshot.schemaVersion).toBe(8)
+    expect(snapshot.tableSnapshots).toHaveLength(6)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       // The inspector should reflect that club writes no longer maintain an unused secondary index on local devices.
@@ -140,6 +143,13 @@ describe('inspectIndexedDb', () => {
     expect(membershipPaymentsTable).toMatchObject({
       primaryKey: 'id',
       indexes: ['[memberId+coveredMonth]'],
+      rowCount: 0,
+      columns: []
+    })
+    expect(attendanceListsTable).toMatchObject({
+      primaryKey: 'id',
+      // The debug snapshot must include the attendance store so resets stay trustworthy after the latest offline schema expansion.
+      indexes: ['start'],
       rowCount: 0,
       columns: []
     })
@@ -210,14 +220,17 @@ describe('inspectIndexedDb', () => {
       { name: 'events', rowCount: 0 },
       { name: 'trainers', rowCount: 0 },
       { name: 'members', rowCount: 0 },
-      { name: 'membershipPayments', rowCount: 0 }
+      { name: 'membershipPayments', rowCount: 0 },
+      // What: assert the newest store survives a clear. Why: the debug view depends on complete schema visibility right after local resets.
+      { name: 'attendanceLists', rowCount: 0 }
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
       'events',
       'trainers',
       'members',
-      'membershipPayments'
+      'membershipPayments',
+      'attendanceLists'
     ])
   })
 

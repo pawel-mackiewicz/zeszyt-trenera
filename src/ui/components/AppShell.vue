@@ -55,6 +55,7 @@ const localeOptions = [
 const routeTitleKeys = {
   'members-list': 'routes.membersList',
   'add-member': 'routes.addMember',
+  'attendance-list': 'routes.attendanceList',
   'debug-indexeddb': 'routes.debugIndexedDb'
 } as const satisfies Record<AppRouteName, string>
 const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
@@ -439,15 +440,21 @@ function navigationLabel(item: NavigationItem) {
             >{{ t('bottomNav.payments') }}</span
           >
         </div>
-        <div
-          class="flex flex-col items-center justify-center text-secondary px-4 py-1 w-full opacity-50 cursor-not-allowed"
+        <RouterLink
+          to="/attendance"
+          class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
+          :class="[
+            route.path === '/attendance'
+              ? 'bg-primary text-white'
+              : 'text-on-surface hover:bg-surface-container-low'
+          ]"
         >
           <AppIcon name="calendar_today" />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
             >{{ t('bottomNav.attendance') }}</span
           >
-        </div>
+        </RouterLink>
       </nav>
     </template>
 
@@ -781,6 +788,7 @@ function navigationLabel(item: NavigationItem) {
     "routes": {
       "membersList": "Członkowie",
       "addMember": "Dodaj członka",
+      "attendanceList": "Obecność",
       "debugIndexedDb": "Podgląd IndexedDB"
     },
     "bottomNav": {
@@ -862,6 +870,7 @@ function navigationLabel(item: NavigationItem) {
     "routes": {
       "membersList": "Members",
       "addMember": "Add member",
+      "attendanceList": "Attendance",
       "debugIndexedDb": "IndexedDB Inspector"
     },
     "bottomNav": {

@@ -249,4 +249,22 @@ describe('AppShell', () => {
     expect(document.title).toBe('Members • Coach Notebook')
     expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('en')
   })
+
+  it('activates the attendance tab and route title on the attendance screen', () => {
+    vi.mocked(useRoute).mockReturnValue({
+      meta: {},
+      name: 'attendance-list',
+      path: '/attendance',
+      fullPath: '/attendance'
+    } as unknown as ReturnType<typeof useRoute>)
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(document.title).toBe('Obecność • Zeszyt Trenera')
+    expect(wrapper.find('a[href="/attendance"]').classes()).toContain(
+      'bg-primary'
+    )
+  })
 })

@@ -23,6 +23,18 @@ describe('router', () => {
     })
   })
 
+  it('registers the attendance route in the normal application flow', () => {
+    const routes = createAppRoutes(false)
+    const attendanceRoute = routes.find(
+      (route) => route.name === 'attendance-list'
+    )
+
+    expect(attendanceRoute).toMatchObject({
+      path: '/attendance',
+      meta: {}
+    })
+  })
+
   it('omits the IndexedDB debug navigation item outside development mode', () => {
     expect(createNavigationItems(false)).toEqual([])
   })
