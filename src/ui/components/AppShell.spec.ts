@@ -189,6 +189,37 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain('Odświeżanie...')
   })
 
+  it('renders the localized update error banner from the shell dictionary', async () => {
+    const { wrapper, store } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setUpdateError({
+        kind: 'activation'
+      })
+    })
+
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Tryb offline wymaga uwagi')
+    expect(wrapper.text()).toContain(
+      'Nie udało się włączyć najnowszej wersji aplikacji. Zamknij ją i otwórz ponownie.'
+    )
+    expect(store.updateError).toEqual({
+      kind: 'activation'
+    })
+  })
+
+  it('renders the blocking startup copy from the shell dictionary', () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.blockApplication('database')
+    })
+
+    expect(wrapper.text()).toContain('Stan aplikacji')
+    expect(wrapper.text()).toContain('Nie udało się uruchomić Zeszytu Trenera')
+    expect(wrapper.text()).toContain(
+      'Nie udało się otworzyć zeszytu na tym urządzeniu.'
+    )
+  })
+
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
     mockNeedRefresh.value = true
 

@@ -62,13 +62,11 @@ describe('useAppStore', () => {
     const store = useAppStore()
 
     store.setUpdateError({
-      kind: 'registration',
-      detail: null
+      kind: 'registration'
     })
 
     expect(store.updateError).toEqual({
-      kind: 'registration',
-      detail: null
+      kind: 'registration'
     })
 
     store.clearUpdateError()

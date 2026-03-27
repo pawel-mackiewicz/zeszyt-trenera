@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
@@ -6,11 +8,42 @@ import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/infra/db'
 import {
   clearIndexedDb,
-  inspectIndexedDb
+  inspectIndexedDb,
+  useIndexedDbInspector
 } from '@/ui/composables/useIndexedDbInspector'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
+}
+
+const InspectorProbe = defineComponent({
+  props: {
+    database: {
+      type: Object,
+      required: true
+    }
+  },
+  setup(props, { expose }) {
+    const inspector = useIndexedDbInspector(props.database as TrainerNotebookDb)
+    expose(inspector)
+    return () => null
+  }
+})
+
+function readErrorKind(wrapper: ReturnType<typeof mount>) {
+  return (
+    (
+      wrapper.vm as unknown as {
+        $: {
+          exposed: {
+            errorKind: {
+              value: string | null
+            }
+          }
+        }
+      }
+    ).$?.exposed.errorKind.value ?? null
+  )
 }
 
 describe('inspectIndexedDb', () => {
@@ -21,6 +54,7 @@ describe('inspectIndexedDb', () => {
   })
 
   afterEach(async () => {
+    vi.restoreAllMocks()
     database.close()
     await database.delete()
   })
@@ -185,5 +219,26 @@ describe('inspectIndexedDb', () => {
       'members',
       'membershipPayments'
     ])
+  })
+
+  it('reports an inspect error kind without leaking final copy', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+
+    vi.spyOn(database, 'open').mockRejectedValue(new Error('boom'))
+
+    const wrapper = mount(InspectorProbe, {
+      props: {
+        database
+      }
+    })
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(readErrorKind(wrapper)).toBe('inspect')
+    })
+
+    expect(consoleError).toHaveBeenCalled()
   })
 })

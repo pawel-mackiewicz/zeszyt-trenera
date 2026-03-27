@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { db, type TrainerNotebookDb } from '@/infra/db'
 import { useIndexedDbInspector } from '@/ui/composables/useIndexedDbInspector'
@@ -7,6 +8,7 @@ import { useIndexedDbInspector } from '@/ui/composables/useIndexedDbInspector'
 const props = defineProps<{
   database?: TrainerNotebookDb
 }>()
+const { t } = useI18n({ useScope: 'local' })
 
 const {
   databaseName,
@@ -14,7 +16,7 @@ const {
   tableSnapshots,
   loading,
   clearing,
-  error,
+  errorKind,
   reload,
   clearDatabase
 } = useIndexedDbInspector(props.database ?? db)
@@ -24,6 +26,12 @@ const totalRows = computed(() =>
   tableSnapshots.value.reduce((sum, table) => sum + table.rowCount, 0)
 )
 const busy = computed(() => loading.value || clearing.value)
+// What: keep debug failure copy inside this screen. Why: the inspector is the only place that can explain these local recovery steps to the user.
+const errorEyebrow = computed(() => t('errors.eyebrow'))
+const errorTitle = computed(() => t('errors.title'))
+const errorMessage = computed(() =>
+  errorKind.value === null ? '' : t(`errors.${errorKind.value}`)
+)
 
 function isComplexValue(value: unknown) {
   return value !== null && typeof value === 'object' && !(value instanceof Date)
@@ -116,12 +124,12 @@ function handleClearDatabase() {
       </div>
     </article>
 
-    <article v-if="error" class="debug-card debug-card--error" role="alert">
-      <p class="debug-card__eyebrow">Inspection failed</p>
+    <article v-if="errorKind" class="debug-card debug-card--error" role="alert">
+      <p class="debug-card__eyebrow">{{ errorEyebrow }}</p>
       <h2 class="debug-card__title debug-card__title--small">
-        IndexedDB could not be read.
+        {{ errorTitle }}
       </h2>
-      <p class="debug-card__copy">{{ error }}</p>
+      <p class="debug-card__copy">{{ errorMessage }}</p>
     </article>
 
     <article
@@ -558,3 +566,24 @@ function handleClearDatabase() {
   }
 }
 </style>
+
+<i18n lang="json">
+{
+  "pl": {
+    "errors": {
+      "eyebrow": "Błąd podglądu",
+      "title": "Nie udało się odczytać IndexedDB.",
+      "inspect": "Nie udało się odczytać tabel IndexedDB.",
+      "clear": "Nie udało się wyczyścić tabel IndexedDB."
+    }
+  },
+  "en": {
+    "errors": {
+      "eyebrow": "Inspection failed",
+      "title": "IndexedDB could not be read.",
+      "inspect": "Failed to inspect IndexedDB tables.",
+      "clear": "Failed to clear IndexedDB tables."
+    }
+  }
+}
+</i18n>

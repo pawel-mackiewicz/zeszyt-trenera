@@ -18,6 +18,8 @@ export type IndexedDbSnapshot = {
   tableSnapshots: IndexedDbTableSnapshot[]
 }
 
+export type IndexedDbInspectorErrorKind = 'inspect' | 'clear'
+
 function normalizeRow(row: unknown): Record<string, unknown> {
   if (typeof row === 'object' && row !== null && !Array.isArray(row)) {
     return row as Record<string, unknown>
@@ -89,11 +91,12 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
   const tableSnapshots = ref<Array<IndexedDbTableSnapshot>>([])
   const loading = ref(false)
   const clearing = ref(false)
-  const error = ref<string | null>(null)
+  // What: expose a stable error kind instead of final copy. Why: the debug screen should own the wording for failures that only it renders.
+  const errorKind = ref<IndexedDbInspectorErrorKind | null>(null)
 
   async function reload() {
     loading.value = true
-    error.value = null
+    errorKind.value = null
 
     try {
       const snapshot = await inspectIndexedDb(database)
@@ -101,7 +104,7 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
       schemaVersion.value = snapshot.schemaVersion
       tableSnapshots.value = snapshot.tableSnapshots
     } catch (reason: unknown) {
-      error.value = 'Failed to inspect IndexedDB tables.'
+      errorKind.value = 'inspect'
       console.error('Failed to inspect IndexedDB tables.', reason)
     } finally {
       loading.value = false
@@ -110,13 +113,13 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
 
   async function clearDatabase() {
     clearing.value = true
-    error.value = null
+    errorKind.value = null
 
     try {
       await clearIndexedDb(database)
       await reload()
     } catch (reason: unknown) {
-      error.value = 'Failed to clear IndexedDB tables.'
+      errorKind.value = 'clear'
       console.error('Failed to clear IndexedDB tables.', reason)
     } finally {
       clearing.value = false
@@ -133,7 +136,7 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
     tableSnapshots,
     loading,
     clearing,
-    error,
+    errorKind,
     reload,
     clearDatabase
   }

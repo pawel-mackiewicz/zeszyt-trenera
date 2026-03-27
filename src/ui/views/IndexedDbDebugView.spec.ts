@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TrainerNotebookDb } from '@/infra/db'
+import { createAppI18n } from '@/ui/i18n'
 import IndexedDbDebugView from '@/ui/views/IndexedDbDebugView.vue'
 
 function createTestDbName(prefix: string) {
@@ -22,12 +23,19 @@ describe('IndexedDbDebugView', () => {
     await database.delete()
   })
 
-  it('shows an empty state for tables without records', async () => {
-    const wrapper = mount(IndexedDbDebugView, {
+  function mountView(locale: 'pl' | 'en' = 'en') {
+    return mount(IndexedDbDebugView, {
       props: {
         database
+      },
+      global: {
+        plugins: [createAppI18n(locale)]
       }
     })
+  }
+
+  it('shows an empty state for tables without records', async () => {
+    const wrapper = mountView()
 
     await flushPromises()
     await vi.waitFor(() => {
@@ -66,11 +74,7 @@ describe('IndexedDbDebugView', () => {
       }
     })
 
-    const wrapper = mount(IndexedDbDebugView, {
-      props: {
-        database
-      }
-    })
+    const wrapper = mountView()
 
     await flushPromises()
     await vi.waitFor(() => {
@@ -107,11 +111,7 @@ describe('IndexedDbDebugView', () => {
       }
     })
 
-    const wrapper = mount(IndexedDbDebugView, {
-      props: {
-        database
-      }
-    })
+    const wrapper = mountView()
 
     await flushPromises()
     await vi.waitFor(() => {
@@ -139,11 +139,7 @@ describe('IndexedDbDebugView', () => {
 
     vi.spyOn(database, 'open').mockRejectedValue(new Error('boom'))
 
-    const wrapper = mount(IndexedDbDebugView, {
-      props: {
-        database
-      }
-    })
+    const wrapper = mountView()
 
     await flushPromises()
     await vi.waitFor(() => {
@@ -152,6 +148,25 @@ describe('IndexedDbDebugView', () => {
 
     expect(wrapper.text()).toContain('IndexedDB could not be read.')
     expect(wrapper.text()).toContain('Failed to inspect IndexedDB tables.')
+    expect(consoleError).toHaveBeenCalled()
+  })
+
+  it('renders debug error copy from the local Polish dictionary', async () => {
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+
+    vi.spyOn(database, 'open').mockRejectedValue(new Error('boom'))
+
+    const wrapper = mountView('pl')
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('Nie udało się odczytać IndexedDB.')
+    })
+
+    expect(wrapper.text()).toContain('Błąd podglądu')
+    expect(wrapper.text()).toContain('Nie udało się odczytać tabel IndexedDB.')
     expect(consoleError).toHaveBeenCalled()
   })
 })

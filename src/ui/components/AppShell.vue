@@ -124,7 +124,8 @@ const updateErrorMessage = computed(() => {
     return null
   }
 
-  return updateError.value.detail ?? t(`update.error.${updateError.value.kind}`)
+  // What: derive the banner copy from the safe error kind only. Why: browser update errors should never be echoed back into the production UI.
+  return t(`update.error.${updateError.value.kind}`)
 })
 const shellStateEyebrow = computed(() =>
   isBlockingApplication.value
@@ -823,8 +824,8 @@ function navigationLabel(item: NavigationItem) {
       },
       "bannerTitle": "Tryb offline wymaga uwagi",
       "error": {
-        "registration": "Nie udało się zarejestrować service workera.",
-        "activation": "Nie udało się aktywować nowej wersji aplikacji."
+        "registration": "Nie udało się przygotować trybu offline.",
+        "activation": "Nie udało się włączyć najnowszej wersji aplikacji. Zamknij ją i otwórz ponownie."
       }
     },
     "shellState": {
@@ -832,13 +833,13 @@ function navigationLabel(item: NavigationItem) {
       "checking": {
         "eyebrow": "Uruchamianie",
         "title": "Przygotowuję lokalny zeszyt",
-        "body": "Sprawdzam lokalną bazę danych, żeby nie dopuścić do startu z niedziałającym local-first storage."
+        "body": "Przygotowuję Twoje dane, żeby zeszyt mógł otworzyć się bezpiecznie i działać offline."
       },
       "blocked": {
         "eyebrow": "Stan aplikacji",
         "title": "Nie udało się uruchomić Zeszytu Trenera",
-        "database": "Nie udało się uruchomić lokalnej bazy danych.",
-        "unknown": "Aplikacja napotkała błąd podczas uruchamiania lokalnego środowiska."
+        "database": "Nie udało się otworzyć zeszytu na tym urządzeniu.",
+        "unknown": "Aplikacja nie może się teraz uruchomić. Spróbuj ponownie."
       }
     }
   },
@@ -904,8 +905,8 @@ function navigationLabel(item: NavigationItem) {
       },
       "bannerTitle": "Offline mode needs attention",
       "error": {
-        "registration": "The service worker could not be registered.",
-        "activation": "The new app version could not be activated."
+        "registration": "Offline mode could not be prepared.",
+        "activation": "The latest app version could not be applied. Close and reopen the app."
       }
     },
     "shellState": {
@@ -913,13 +914,13 @@ function navigationLabel(item: NavigationItem) {
       "checking": {
         "eyebrow": "Starting",
         "title": "Preparing the local notebook",
-        "body": "Checking the local database so the app never starts with broken local-first storage."
+        "body": "Preparing your data so the notebook can open safely and stay available offline."
       },
       "blocked": {
         "eyebrow": "App state",
         "title": "Coach Notebook could not start",
-        "database": "The local database could not be started.",
-        "unknown": "The app hit an error while booting the local environment."
+        "database": "The notebook could not be opened on this device.",
+        "unknown": "The app cannot start right now. Try again."
       }
     }
   }

@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import {
+  InvalidMemberBirthDateError,
+  InvalidMemberJoinDateError,
+  InvalidMemberNameError,
+  MemberAlreadyExistsError
+} from '@/domain/model/member'
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { useRouter } from '@/ui/router/runtime'
 import { useAppServices } from '@/ui/appServices'
 
@@ -16,23 +23,60 @@ const dateOfBirth = ref('')
 const joinedAt = ref('')
 
 const isSubmitting = ref(false)
-const submitError = ref('')
+type SubmitErrorKey =
+  | 'required'
+  | 'submit'
+  | 'invalidPhoneNumber'
+  | 'alreadyExists'
+  | 'invalidBirthDate'
+  | 'invalidJoinDate'
+  | 'invalidName'
+
+const submitErrorKey = ref<SubmitErrorKey | null>(null)
+const submitError = computed(() =>
+  submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
+)
 
 function toUtcDate(value: string) {
   if (!value) return undefined
   return new Date(`${value}T00:00:00Z`)
 }
 
+function resolveSubmitErrorKey(error: unknown): SubmitErrorKey {
+  // What: map member-registration failures to the form's own recovery copy. Why: this screen should own the wording for errors that only it can render and help the user fix.
+  if (error instanceof InvalidPhoneNumberError) {
+    return 'invalidPhoneNumber'
+  }
+
+  if (error instanceof MemberAlreadyExistsError) {
+    return 'alreadyExists'
+  }
+
+  if (error instanceof InvalidMemberBirthDateError) {
+    return 'invalidBirthDate'
+  }
+
+  if (error instanceof InvalidMemberJoinDateError) {
+    return 'invalidJoinDate'
+  }
+
+  if (error instanceof InvalidMemberNameError) {
+    return 'invalidName'
+  }
+
+  return 'submit'
+}
+
 async function handleSubmit() {
-  submitError.value = ''
+  submitErrorKey.value = null
 
   const fName = firstName.value.trim()
   const lName = lastName.value.trim()
   const phone = phoneNumber.value.trim()
 
   if (!fName || !lName || !phone) {
-    // Keeping validation copy in the form component lets this screen own its local dictionary instead of pushing UI text into shared services.
-    submitError.value = t('errors.required')
+    // What: keep the form state as a local error key. Why: required-field guidance is specific to this form and belongs next to its field copy.
+    submitErrorKey.value = 'required'
     return
   }
 
@@ -52,8 +96,7 @@ async function handleSubmit() {
     // On success, go back to list
     router.replace('/')
   } catch (error: unknown) {
-    submitError.value =
-      error instanceof Error ? error.message : t('errors.submit')
+    submitErrorKey.value = resolveSubmitErrorKey(error)
   } finally {
     isSubmitting.value = false
   }
@@ -175,7 +218,12 @@ async function handleSubmit() {
     },
     "errors": {
       "required": "Podaj imię, nazwisko i numer telefonu.",
-      "submit": "Nie udało się zapisać członka. Sprawdź poprawność danych, na przykład numer telefonu powinien zaczynać się od +48."
+      "submit": "Nie udało się zapisać członka. Sprawdź dane i spróbuj ponownie.",
+      "invalidPhoneNumber": "Sprawdź numer telefonu. Użyj numeru z kierunkowym kraju, na przykład +48 000 000 000.",
+      "alreadyExists": "Członek z takim imieniem, nazwiskiem i numerem telefonu jest już zapisany.",
+      "invalidBirthDate": "Data urodzenia musi być w przeszłości.",
+      "invalidJoinDate": "Data dołączenia musi być późniejsza niż data urodzenia i nie może być z przyszłości.",
+      "invalidName": "W polach imię i nazwisko użyj tylko liter, spacji lub łączników."
     },
     "fields": {
       "firstName": {
@@ -205,7 +253,12 @@ async function handleSubmit() {
     },
     "errors": {
       "required": "Enter the first name, last name, and phone number.",
-      "submit": "The member could not be saved. Check the data, for example the phone number should start with +48."
+      "submit": "The member could not be saved. Check the details and try again.",
+      "invalidPhoneNumber": "Check the phone number. Use a number with the country code, for example +48 000 000 000.",
+      "alreadyExists": "A member with this name and phone number is already saved.",
+      "invalidBirthDate": "The date of birth must be in the past.",
+      "invalidJoinDate": "The join date must be after the date of birth and cannot be in the future.",
+      "invalidName": "Use only letters, spaces, or hyphens in the name fields."
     },
     "fields": {
       "firstName": {

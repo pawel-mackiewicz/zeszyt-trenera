@@ -14,6 +14,7 @@ describe('useAppUpdate', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.mocked(registerPwa).mockReset()
+    vi.spyOn(console, 'error').mockImplementation(() => undefined)
   })
 
   it('registers the service worker immediately without forcing an in-session activation', () => {
@@ -52,14 +53,12 @@ describe('useAppUpdate', () => {
 
     options?.onRegisterError?.(new Error('boom'))
     expect(store.updateError).toEqual({
-      kind: 'registration',
-      detail: 'boom'
+      kind: 'registration'
     })
 
     options?.onRegisterError?.('unknown')
     expect(store.updateError).toEqual({
-      kind: 'registration',
-      detail: null
+      kind: 'registration'
     })
   })
 
@@ -101,8 +100,7 @@ describe('useAppUpdate', () => {
 
     const store = useAppStore()
     store.setUpdateError({
-      kind: 'registration',
-      detail: 'old error'
+      kind: 'registration'
     })
 
     const result = useAppUpdate()
@@ -110,8 +108,7 @@ describe('useAppUpdate', () => {
     await result.refreshApplication()
 
     expect(store.updateError).toEqual({
-      kind: 'activation',
-      detail: 'activation failed'
+      kind: 'activation'
     })
     expect(result.updatePending.value).toBe(false)
   })

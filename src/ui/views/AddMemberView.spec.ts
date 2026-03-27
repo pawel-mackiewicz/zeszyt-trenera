@@ -1,6 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { createAppI18n } from '@/ui/i18n'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 import { useRouter } from '@/ui/router/runtime'
@@ -67,9 +68,9 @@ describe('AddMemberView', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/')
   })
 
-  it('displays an error if submission fails', async () => {
+  it('shows a friendly validation message when the phone number is invalid', async () => {
     mockRegisterMemberHandle.mockRejectedValue(
-      new Error('Format numeru jest zly')
+      new InvalidPhoneNumberError('bad-number')
     )
 
     const wrapper = mountView()
@@ -80,7 +81,36 @@ describe('AddMemberView', () => {
 
     await wrapper.find('form').trigger('submit.prevent')
 
-    expect(wrapper.text()).toContain('Format numeru jest zly')
+    expect(wrapper.text()).toContain(
+      'Sprawdź numer telefonu. Użyj numeru z kierunkowym kraju, na przykład +48 000 000 000.'
+    )
+    expect(wrapper.text()).not.toContain('bad-number')
+  })
+
+  it('keeps the required-field error copy inside the form dictionary', async () => {
+    const wrapper = mountView()
+
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.text()).toContain('Podaj imię, nazwisko i numer telefonu.')
+    expect(mockRegisterMemberHandle).not.toHaveBeenCalled()
+  })
+
+  it('falls back to generic copy for unexpected failures', async () => {
+    mockRegisterMemberHandle.mockRejectedValue(new Error('low-level failure'))
+
+    const wrapper = mountView()
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.text()).toContain(
+      'Nie udało się zapisać członka. Sprawdź dane i spróbuj ponownie.'
+    )
+    expect(wrapper.text()).not.toContain('low-level failure')
   })
 
   it('renders field copy from the local English dictionary', () => {

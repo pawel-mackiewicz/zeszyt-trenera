@@ -7,7 +7,6 @@ export type InstallSurface = 'hidden' | 'native' | 'manual'
 export type UpdateErrorKind = 'registration' | 'activation'
 export type UpdateErrorState = {
   kind: UpdateErrorKind
-  detail: string | null
 }
 
 const INSTALL_MODAL_SHOWN_STORAGE_KEY =
@@ -47,7 +46,7 @@ export const useAppStore = defineStore('app', () => {
   const installModalVisible = ref(false)
   const installCoachVisible = ref(false)
   const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
-  // The shell translates fallback update failures locally, while still preserving raw error detail when the browser provides it.
+  // What: store only the update failure kind for the shell. Why: user-facing banners must stay localized and safe even when browser errors are highly technical.
   const updateError = ref<UpdateErrorState | null>(null)
   const appReadiness = ref<AppReadiness>('checking')
   // Keeping only the issue code here lets the shell translate failure copy locally instead of storing hydrated text in shared state.
