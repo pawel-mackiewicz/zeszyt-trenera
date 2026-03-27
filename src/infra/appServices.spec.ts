@@ -1,5 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import {
+  AttendanceListAlreadyExistsError,
+  type AttendanceListSnapshot
+} from '@/domain/model/AttendanceList'
 import { ClubAlreadyExistsError, type ClubSnapshot } from '@/domain/model/club'
 import {
   MembershipPaymentAlreadyExistsError,
@@ -39,6 +43,9 @@ describe('appServices', () => {
 
     // Reusing one workflow instance keeps writes deterministic while the app resolves the same workflow from different UI entry points.
     expect(services.database).toBe(database)
+    expect(services.useCases.registerAttendanceList).toBe(
+      services.useCases.registerAttendanceList
+    )
     expect(services.useCases.registerClub).toBe(services.useCases.registerClub)
     expect(services.useCases.registerMember).toBe(
       services.useCases.registerMember
@@ -76,6 +83,48 @@ describe('appServices', () => {
         name: persistedClub.name,
         foundingDate: persistedClub.foundingDate,
         createdAt: persistedClub.createdAt
+      }
+    })
+  })
+
+  it('assembles Dexie adapters that persist an attendance list and matching event row', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'John',
+      lastName: 'Smith',
+      phoneNumber: '+48 987 654 321'
+    })
+
+    const persistedMembers = await database.members.toArray()
+    const start = new Date('2026-03-27T18:00:00Z')
+
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: persistedMembers.map((member) => member.id),
+      start
+    })
+
+    const persistedAttendanceLists = await database.attendanceLists.toArray()
+    const persistedEvents = await database.events.toArray()
+    const persistedAttendanceList = persistedAttendanceLists[0]
+    const persistedEvent = persistedEvents.find(
+      (event) => event.eventName === 'attendance-list.recorded'
+    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
+
+    expect(persistedAttendanceLists).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventName: 'attendance-list.recorded',
+      // The event payload mirrors the stored snapshot so offline replay can rebuild attendance sessions without adapter-specific mapping.
+      payload: {
+        id: persistedAttendanceList.id,
+        memberIds: persistedAttendanceList.memberIds,
+        start: persistedAttendanceList.start,
+        createdAt: persistedAttendanceList.createdAt
       }
     })
   })
@@ -330,6 +379,52 @@ describe('appServices', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     await expect(database.membershipPayments.toArray()).resolves.toHaveLength(0)
+    await expect(database.events.toArray()).resolves.toHaveLength(0)
+  })
+
+  it('throws a domain error when trying to register the same attendance start twice', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+
+    const persistedMember = (await database.members.toArray())[0]
+    const start = new Date('2026-03-27T18:00:00Z')
+
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMember.id],
+      start
+    })
+
+    await expect(
+      services.useCases.registerAttendanceList.handle({
+        memberIds: [persistedMember.id],
+        start
+      })
+    ).rejects.toThrow(AttendanceListAlreadyExistsError)
+
+    const attendanceEvents = (await database.events.toArray()).filter(
+      (event) => event.eventName === 'attendance-list.recorded'
+    )
+
+    await expect(database.attendanceLists.toArray()).resolves.toHaveLength(1)
+    expect(attendanceEvents).toHaveLength(1)
+  })
+
+  it('throws a domain error when trying to register an attendance list for an unknown member', async () => {
+    const services = createAppServices(database)
+
+    await expect(
+      services.useCases.registerAttendanceList.handle({
+        memberIds: ['missing-member'],
+        start: new Date('2026-03-27T18:00:00Z')
+      })
+    ).rejects.toThrow(MemberNotFoundError)
+
+    await expect(database.attendanceLists.toArray()).resolves.toHaveLength(0)
     await expect(database.events.toArray()).resolves.toHaveLength(0)
   })
 })

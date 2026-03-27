@@ -30,6 +30,13 @@ export type PersistedMembershipPayment = {
   createdAt: Date
 }
 
+export type PersistedAttendanceList = {
+  id: string
+  memberIds: string[]
+  start: Date
+  createdAt: Date
+}
+
 export type PersistedDomainEvent<TPayload> = {
   eventId: string
   eventName: string
@@ -42,6 +49,7 @@ export class TrainerNotebookDb extends Dexie {
   public trainers!: EntityTable<PersistedTrainer, 'id'>
   public members!: EntityTable<PersistedMember, 'id'>
   public membershipPayments!: EntityTable<PersistedMembershipPayment, 'id'>
+  public attendanceLists!: EntityTable<PersistedAttendanceList, 'id'>
   public events!: EntityTable<PersistedDomainEvent<unknown>, 'eventId'>
 
   public constructor(databaseName = 'trainer-notebook') {
@@ -96,6 +104,18 @@ export class TrainerNotebookDb extends Dexie {
       members: 'id, [firstName+lastName+phoneNumber]',
       // Membership payment registration only needs one month-level uniqueness index
       membershipPayments: 'id, [memberId+coveredMonth]'
+    })
+
+    this.version(8).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // The compound identity index lets offline duplicate checks stay deterministic
+      members: 'id, [firstName+lastName+phoneNumber]',
+      // Membership payment registration only needs one month-level uniqueness index
+      membershipPayments: 'id, [memberId+coveredMonth]',
+      // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
+      attendanceLists: 'id, &start'
     })
   }
 }

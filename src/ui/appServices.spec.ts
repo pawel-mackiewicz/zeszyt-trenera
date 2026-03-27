@@ -25,6 +25,9 @@ describe('uiAppServices', () => {
     const handle = vi.fn()
     const appServices: UiAppServices = {
       useCases: {
+        registerAttendanceList: {
+          handle
+        },
         registerClub: {
           handle
         },

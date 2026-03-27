@@ -3,32 +3,42 @@ import { describe, expect, it } from 'vitest'
 import { db } from '@/infra/db'
 
 describe('db', () => {
-  it('exposes a named Dexie instance with club, trainer, member, membership payment, and event table schemas', () => {
+  it('exposes a named Dexie instance with club, trainer, member, membership payment, attendance list, and event table schemas', () => {
+    const clubsTable = db.tables.find((table) => table.name === 'clubs')
+    const attendanceListsTable = db.tables.find(
+      (table) => table.name === 'attendanceLists'
+    )
+    const eventsTable = db.tables.find((table) => table.name === 'events')
+    const trainersTable = db.tables.find((table) => table.name === 'trainers')
+    const membersTable = db.tables.find((table) => table.name === 'members')
+    const membershipPaymentsTable = db.tables.find(
+      (table) => table.name === 'membershipPayments'
+    )
+
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(7)
-    expect(db.tables).toHaveLength(5)
-    expect(db.tables[0]?.name).toBe('clubs')
-    expect(db.tables[0]?.schema.primKey.name).toBe('id')
+    expect(db.verno).toBe(8)
+    expect(db.tables).toHaveLength(6)
+    expect(clubsTable?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
-    expect(db.tables[0]?.schema.indexes.map((index) => index.name)).toEqual([])
-    expect(db.tables[1]?.name).toBe('events')
-    expect(db.tables[1]?.schema.primKey.name).toBe('eventId')
-    expect(db.tables[1]?.schema.indexes.map((index) => index.name)).toEqual([
+    expect(clubsTable?.schema.indexes.map((index) => index.name)).toEqual([])
+    expect(attendanceListsTable?.schema.primKey.name).toBe('id')
+    expect(
+      attendanceListsTable?.schema.indexes.map((index) => index.name)
+    ).toEqual(['start'])
+    expect(eventsTable?.schema.primKey.name).toBe('eventId')
+    expect(eventsTable?.schema.indexes.map((index) => index.name)).toEqual([
       'eventName',
       'occurredAt'
     ])
-    expect(db.tables[2]?.name).toBe('trainers')
-    expect(db.tables[2]?.schema.primKey.name).toBe('id')
-    expect(db.tables[2]?.schema.indexes.map((index) => index.name)).toEqual([])
-    expect(db.tables[3]?.name).toBe('members')
-    expect(db.tables[3]?.schema.primKey.name).toBe('id')
-    expect(db.tables[3]?.schema.indexes.map((index) => index.name)).toEqual([
+    expect(trainersTable?.schema.primKey.name).toBe('id')
+    expect(trainersTable?.schema.indexes.map((index) => index.name)).toEqual([])
+    expect(membersTable?.schema.primKey.name).toBe('id')
+    expect(membersTable?.schema.indexes.map((index) => index.name)).toEqual([
       '[firstName+lastName+phoneNumber]'
     ])
-    expect(db.tables[4]?.name).toBe('membershipPayments')
-    expect(db.tables[4]?.schema.primKey.name).toBe('id')
-    expect(db.tables[4]?.schema.indexes.map((index) => index.name)).toEqual([
-      '[memberId+coveredMonth]'
-    ])
+    expect(membershipPaymentsTable?.schema.primKey.name).toBe('id')
+    expect(
+      membershipPaymentsTable?.schema.indexes.map((index) => index.name)
+    ).toEqual(['[memberId+coveredMonth]'])
   })
 })
