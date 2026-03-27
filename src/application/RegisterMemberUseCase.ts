@@ -5,11 +5,7 @@ import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-import {
-  Member,
-  MemberAlreadyExistsError,
-  normalizeMemberName
-} from '@/domain/model/member'
+import { Member, MemberAlreadyExistsError } from '@/domain/model/member'
 
 export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
   constructor(
@@ -24,14 +20,14 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
     const phoneNumber = PhoneNumber.create(dto.phoneNumber)
 
     await this.uow.execute(async () => {
+      const [member, event] = this.registerMember(dto, phoneNumber)
       // The duplicate guard must share the same transaction as the write so a mobile double-submit cannot interleave two "member.created" commits offline.
       await this.ensureMemberDoesNotExist(
-        normalizeMemberName(dto.firstName),
-        normalizeMemberName(dto.lastName),
-        phoneNumber
+        member.firstName,
+        member.lastName,
+        member.phoneNumber
       )
 
-      const [member, event] = this.registerMember(dto, phoneNumber)
       await this.memberRepo.save(member)
       await this.eventRepo.save(event)
     })

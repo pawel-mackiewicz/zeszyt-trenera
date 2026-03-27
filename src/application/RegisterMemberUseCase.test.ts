@@ -196,7 +196,7 @@ describe('RegisterMemberUseCase', () => {
       }
     ])
     expect(uow.execute).toHaveBeenCalledTimes(1)
-    expect(idGenerator.generatedIds).toHaveLength(0)
+    expect(idGenerator.generatedIds).toHaveLength(1)
     expect(memberRepo.savedMembers).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
   })
