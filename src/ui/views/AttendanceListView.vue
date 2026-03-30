@@ -672,7 +672,6 @@ onMounted(() => {
           <span class="font-mono text-[10px] font-bold text-secondary">80</span>
         </div>
         <div class="mt-6">
-          <!-- What: keep the attendance search compact and icon-led. Why: the surrounding screen already provides the field context, so the extra label only added noise on mobile. -->
           <div class="flex items-center gap-4 border-b border-on-surface pb-2">
             <AppIcon class="text-primary" name="search" />
             <input
