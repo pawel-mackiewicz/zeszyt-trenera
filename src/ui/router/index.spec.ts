@@ -25,13 +25,24 @@ describe('router', () => {
 
   it('registers the attendance route in the normal application flow', () => {
     const routes = createAppRoutes(false)
-    const attendanceRoute = routes.find(
-      (route) => route.name === 'attendance-list'
+    const attendanceHistoryRoute = routes.find(
+      (route) => route.name === 'attendance-history'
+    )
+    const attendanceRecordRoute = routes.find(
+      (route) => route.name === 'attendance-record'
     )
 
-    expect(attendanceRoute).toMatchObject({
+    expect(attendanceHistoryRoute).toMatchObject({
       path: '/attendance',
       meta: {}
+    })
+    expect(attendanceRecordRoute).toMatchObject({
+      path: '/attendance/new',
+      meta: {
+        showBack: true,
+        hideBottomNav: true,
+        backTo: '/attendance'
+      }
     })
   })
 

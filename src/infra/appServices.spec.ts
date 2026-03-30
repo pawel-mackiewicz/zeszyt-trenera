@@ -43,6 +43,9 @@ describe('appServices', () => {
 
     // Reusing one workflow instance keeps writes deterministic while the app resolves the same workflow from different UI entry points.
     expect(services.database).toBe(database)
+    expect(services.queries.listAttendanceSessionsByMonth).toBe(
+      services.queries.listAttendanceSessionsByMonth
+    )
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
     )
@@ -127,6 +130,54 @@ describe('appServices', () => {
         createdAt: persistedAttendanceList.createdAt
       }
     })
+  })
+
+  it('assembles the month attendance query on top of the Dexie repo adapters', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'John',
+      lastName: 'Smith',
+      phoneNumber: '+48 987 654 321'
+    })
+
+    const persistedMembers = await database.members.toArray()
+
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMembers[0].id],
+      start: new Date('2026-03-05T08:00:00Z')
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: persistedMembers.map((member) => member.id),
+      start: new Date('2026-03-27T18:00:00Z')
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMembers[0].id],
+      start: new Date('2026-02-02T18:00:00Z')
+    })
+
+    await expect(
+      services.queries.listAttendanceSessionsByMonth.handle({
+        monthStart: new Date('2026-03-01T00:00:00Z'),
+        nextMonthStart: new Date('2026-04-01T00:00:00Z')
+      })
+    ).resolves.toEqual([
+      {
+        id: expect.any(String),
+        start: new Date('2026-03-27T18:00:00Z'),
+        attendanceCount: 2
+      },
+      {
+        id: expect.any(String),
+        start: new Date('2026-03-05T08:00:00Z'),
+        attendanceCount: 1
+      }
+    ])
   })
 
   it('throws a domain error when trying to register a second club', async () => {

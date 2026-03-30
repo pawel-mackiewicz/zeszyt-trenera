@@ -75,6 +75,10 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
       )
     )
   }
+
+  async listByStartRange(): Promise<[]> {
+    return []
+  }
 }
 
 class FakeEventRepo implements EventRepoPort {

@@ -55,7 +55,8 @@ const localeOptions = [
 const routeTitleKeys = {
   'members-list': 'routes.membersList',
   'add-member': 'routes.addMember',
-  'attendance-list': 'routes.attendanceList',
+  'attendance-history': 'routes.attendanceHistory',
+  'attendance-record': 'routes.attendanceRecord',
   'debug-indexeddb': 'routes.debugIndexedDb'
 } as const satisfies Record<AppRouteName, string>
 const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
@@ -64,11 +65,21 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
+const isAttendanceMenuOpen = ref(false)
 
 const appName = computed(() => t('app.name'))
 const currentRouteName = computed(() => {
   return typeof route.name === 'string' ? (route.name as AppRouteName) : null
 })
+const isAttendanceHistoryRoute = computed(
+  () => currentRouteName.value === 'attendance-history'
+)
+const isAttendanceRecordRoute = computed(
+  () => currentRouteName.value === 'attendance-record'
+)
+const isAttendanceSectionActive = computed(
+  () => isAttendanceHistoryRoute.value || isAttendanceRecordRoute.value
+)
 const title = computed(() => {
   const routeName = currentRouteName.value
 
@@ -166,6 +177,7 @@ watch(
 watch(installed, (value) => {
   if (value) {
     isMenuOpen.value = false
+    isAttendanceMenuOpen.value = false
     appStore.hideInstallCoach()
   }
 })
@@ -175,6 +187,16 @@ watch(showInstallEntry, (value) => {
     appStore.hideInstallCoach()
   }
 })
+
+watch(
+  () => route.fullPath,
+  () => {
+    // What: collapse transient navigation overlays after every route change. Why: the attendance switcher and hamburger menu should never linger over the next screen after navigation completes.
+    isMenuOpen.value = false
+    isAttendanceMenuOpen.value = false
+    appStore.hideInstallCoach()
+  }
+)
 
 watch(
   [title, appName],
@@ -187,6 +209,7 @@ watch(
 )
 
 function toggleMenu() {
+  isAttendanceMenuOpen.value = false
   isMenuOpen.value = !isMenuOpen.value
 
   if (!isMenuOpen.value) {
@@ -197,6 +220,15 @@ function toggleMenu() {
 function closeMenu() {
   isMenuOpen.value = false
   appStore.hideInstallCoach()
+}
+
+function toggleAttendanceMenu() {
+  isMenuOpen.value = false
+  isAttendanceMenuOpen.value = !isAttendanceMenuOpen.value
+}
+
+function closeAttendanceMenu() {
+  isAttendanceMenuOpen.value = false
 }
 
 function handleBack() {
@@ -412,9 +444,17 @@ function navigationLabel(item: NavigationItem) {
         </RouterView>
       </main>
 
+      <button
+        v-if="!route.meta.hideBottomNav && isAttendanceMenuOpen"
+        class="fixed inset-0 z-30 bg-transparent md:hidden"
+        type="button"
+        :aria-label="t('bottomNav.closeMenu')"
+        @click="closeAttendanceMenu"
+      ></button>
+
       <nav
         v-if="!route.meta.hideBottomNav"
-        class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10"
+        class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10 md:hidden"
       >
         <RouterLink
           to="/"
@@ -440,21 +480,59 @@ function navigationLabel(item: NavigationItem) {
             >{{ t('bottomNav.payments') }}</span
           >
         </div>
-        <RouterLink
-          to="/attendance"
-          class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
+        <div
+          class="relative w-full border-x border-on-surface/10"
           :class="[
-            route.path === '/attendance'
+            isAttendanceSectionActive
               ? 'bg-primary text-white'
               : 'text-on-surface hover:bg-surface-container-low'
           ]"
         >
-          <AppIcon name="calendar_today" />
-          <span
-            class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            >{{ t('bottomNav.attendance') }}</span
+          <div
+            v-if="isAttendanceMenuOpen"
+            class="absolute inset-x-3 bottom-[calc(100%+0.75rem)] border border-on-surface bg-white text-on-surface hard-shadow"
           >
-        </RouterLink>
+            <!-- What: split attendance into “Historia” and “Nowy trening” right above the active bottom-tab affordance. Why: the V2 IA makes attendance a small local switcher instead of forcing coaches through one route that tries to do both jobs. -->
+            <RouterLink
+              class="block px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.18em] transition-colors"
+              :class="[
+                isAttendanceRecordRoute
+                  ? 'bg-surface-container-low text-primary'
+                  : 'hover:bg-surface-container-low'
+              ]"
+              to="/attendance/new"
+              @click="closeAttendanceMenu"
+            >
+              {{ t('bottomNav.newTraining') }}
+            </RouterLink>
+            <RouterLink
+              class="block border-t border-on-surface/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.18em] transition-colors"
+              :class="[
+                isAttendanceHistoryRoute
+                  ? 'bg-surface-container-low text-primary'
+                  : 'hover:bg-surface-container-low'
+              ]"
+              to="/attendance"
+              @click="closeAttendanceMenu"
+            >
+              {{ t('bottomNav.history') }}
+            </RouterLink>
+          </div>
+
+          <button
+            class="flex h-full w-full flex-col items-center justify-center px-4 py-1 transition-all"
+            type="button"
+            :aria-expanded="isAttendanceMenuOpen"
+            :aria-label="t('bottomNav.attendanceMenu')"
+            @click="toggleAttendanceMenu"
+          >
+            <AppIcon name="calendar_today" />
+            <span
+              class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+              >{{ t('bottomNav.attendance') }}</span
+            >
+          </button>
+        </div>
       </nav>
     </template>
 
@@ -788,13 +866,18 @@ function navigationLabel(item: NavigationItem) {
     "routes": {
       "membersList": "Członkowie",
       "addMember": "Dodaj członka",
-      "attendanceList": "Obecność",
+      "attendanceHistory": "Historia treningów",
+      "attendanceRecord": "Nowy trening",
       "debugIndexedDb": "Podgląd IndexedDB"
     },
     "bottomNav": {
       "members": "Członkowie",
       "payments": "Płatności",
-      "attendance": "Obecność"
+      "attendance": "Obecność",
+      "attendanceMenu": "Przełącz widok obecności",
+      "closeMenu": "Zamknij menu obecności",
+      "history": "Historia",
+      "newTraining": "Nowy trening"
     },
     "install": {
       "entry": {
@@ -870,13 +953,18 @@ function navigationLabel(item: NavigationItem) {
     "routes": {
       "membersList": "Members",
       "addMember": "Add member",
-      "attendanceList": "Attendance",
+      "attendanceHistory": "Training history",
+      "attendanceRecord": "New training",
       "debugIndexedDb": "IndexedDB Inspector"
     },
     "bottomNav": {
       "members": "Members",
       "payments": "Payments",
-      "attendance": "Attendance"
+      "attendance": "Attendance",
+      "attendanceMenu": "Toggle attendance views",
+      "closeMenu": "Close attendance menu",
+      "history": "History",
+      "newTraining": "New training"
     },
     "install": {
       "entry": {

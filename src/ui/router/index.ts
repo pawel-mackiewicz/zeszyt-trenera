@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from '@/ui/router/runtime'
 import MembersListView from '@/ui/views/MembersListView.vue'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
+import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
 
 type AppRouteMeta = {
   showBack?: boolean
@@ -15,7 +16,8 @@ type AppRouteMeta = {
 export type AppRouteName =
   | 'members-list'
   | 'add-member'
-  | 'attendance-list'
+  | 'attendance-history'
+  | 'attendance-record'
   | 'debug-indexeddb'
 
 type AppRoute = RouteRecordRaw & {
@@ -48,9 +50,19 @@ const baseRoutes = [
   },
   {
     path: '/attendance',
-    name: 'attendance-list',
-    component: AttendanceListView,
+    name: 'attendance-history',
+    component: AttendanceHistoryView,
     meta: {}
+  },
+  {
+    path: '/attendance/new',
+    name: 'attendance-record',
+    component: AttendanceListView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/attendance'
+    }
   }
 ] satisfies AppRoute[]
 

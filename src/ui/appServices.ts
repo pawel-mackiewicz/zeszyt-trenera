@@ -1,7 +1,7 @@
 import type { AppServices } from '@/infra/appServices'
 import { inject, type App, type InjectionKey } from 'vue'
 
-export type UiAppServices = Pick<AppServices, 'useCases'>
+export type UiAppServices = Pick<AppServices, 'queries' | 'useCases'>
 
 // One app-level provider keeps bootstrap and tests stable as the number of workflows grows.
 export const appServicesKey: InjectionKey<UiAppServices> = Symbol('appServices')

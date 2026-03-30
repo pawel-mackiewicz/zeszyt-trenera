@@ -1,6 +1,6 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
-import { computed, nextTick, ref, type Ref } from 'vue'
+import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import AppShell from '@/ui/components/AppShell.vue'
@@ -11,6 +11,13 @@ import { APP_LOCALE_STORAGE_KEY, createAppI18n } from '@/ui/i18n'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
+
+type MockRoute = {
+  meta: Record<string, unknown>
+  name: string
+  path: string
+  fullPath: string
+}
 
 vi.mock('@/ui/router', () => ({
   createNavigationItems: vi.fn()
@@ -46,6 +53,7 @@ describe('AppShell', () => {
   let mockNeedRefresh: Ref<boolean>
   let mockUpdatePending: Ref<boolean>
   let mockRefreshApplication: Mock
+  let mockRoute: MockRoute
 
   beforeEach(() => {
     window.localStorage.clear()
@@ -55,12 +63,16 @@ describe('AppShell', () => {
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
 
-    vi.mocked(useRoute).mockReturnValue({
+    mockRoute = reactive({
       meta: {},
       name: 'members-list',
       path: '/',
       fullPath: '/'
-    } as unknown as ReturnType<typeof useRoute>)
+    }) as MockRoute
+
+    vi.mocked(useRoute).mockReturnValue(
+      mockRoute as unknown as ReturnType<typeof useRoute>
+    )
 
     vi.mocked(useRouter).mockReturnValue({
       push: mockRouterPush,
@@ -250,21 +262,86 @@ describe('AppShell', () => {
     expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('en')
   })
 
-  it('activates the attendance tab and route title on the attendance screen', () => {
-    vi.mocked(useRoute).mockReturnValue({
-      meta: {},
-      name: 'attendance-list',
-      path: '/attendance',
-      fullPath: '/attendance'
-    } as unknown as ReturnType<typeof useRoute>)
+  it('activates the attendance route title on the history screen', () => {
+    mockRoute.name = 'attendance-history'
+    mockRoute.path = '/attendance'
+    mockRoute.fullPath = '/attendance'
 
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    expect(document.title).toBe('Obecność • Zeszyt Trenera')
-    expect(wrapper.find('a[href="/attendance"]').classes()).toContain(
-      'bg-primary'
+    expect(document.title).toBe('Historia treningów • Zeszyt Trenera')
+    expect(
+      wrapper.get('button[aria-label="Przełącz widok obecności"]').element
+        .parentElement?.className
+    ).toContain('bg-primary')
+  })
+
+  it('opens the attendance switcher and highlights the history action on the history route', async () => {
+    mockRoute.name = 'attendance-history'
+    mockRoute.path = '/attendance'
+    mockRoute.fullPath = '/attendance'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper
+      .get('button[aria-label="Przełącz widok obecności"]')
+      .trigger('click')
+
+    const historyLink = wrapper.get('a[href="/attendance"]')
+    const recordLink = wrapper.get('a[href="/attendance/new"]')
+
+    expect(historyLink.classes()).toContain('bg-surface-container-low')
+    expect(recordLink.classes()).not.toContain('bg-surface-container-low')
+  })
+
+  it('highlights the new-training action on the recorder route', async () => {
+    mockRoute.name = 'attendance-record'
+    mockRoute.path = '/attendance/new'
+    mockRoute.fullPath = '/attendance/new'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper
+      .get('button[aria-label="Przełącz widok obecności"]')
+      .trigger('click')
+
+    expect(wrapper.get('a[href="/attendance/new"]').classes()).toContain(
+      'bg-surface-container-low'
     )
+  })
+
+  it('closes the attendance switcher when tapping outside or after route navigation', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper
+      .get('button[aria-label="Przełącz widok obecności"]')
+      .trigger('click')
+
+    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(true)
+
+    await wrapper
+      .get('button[aria-label="Zamknij menu obecności"]')
+      .trigger('click')
+
+    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
+
+    await wrapper
+      .get('button[aria-label="Przełącz widok obecności"]')
+      .trigger('click')
+
+    mockRoute.name = 'attendance-record'
+    mockRoute.path = '/attendance/new'
+    mockRoute.fullPath = '/attendance/new'
+    await nextTick()
+
+    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
   })
 })

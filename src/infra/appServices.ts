@@ -1,9 +1,12 @@
+import { ListAttendanceSessionsByMonthQuery } from '@/application/queries/ListAttendanceSessionsByMonthQuery'
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
 import type { UseCase } from '@/application/UseCase'
+import type { AttendanceSessionListItem } from '@/application/ports/AttendanceListRepoPort'
+import type { ListAttendanceSessionsByMonthQueryInput } from '@/application/queries/ListAttendanceSessionsByMonthQuery'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
@@ -27,8 +30,17 @@ export type AppUseCases = {
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
 }
 
+export type AppQueries = {
+  readonly listAttendanceSessionsByMonth: {
+    handle(
+      input: ListAttendanceSessionsByMonthQueryInput
+    ): Promise<AttendanceSessionListItem[]>
+  }
+}
+
 export type AppServices = {
   readonly database: TrainerNotebookDb
+  readonly queries: AppQueries
   readonly useCases: AppUseCases
 }
 
@@ -64,6 +76,9 @@ export function createAppServices(
         resolveEventRepo(),
         resolveIdGenerator()
       )
+  )
+  const resolveListAttendanceSessionsByMonth = lazy(
+    () => new ListAttendanceSessionsByMonthQuery(resolveAttendanceListRepo())
   )
   const resolveRegisterClub = lazy(
     () =>
@@ -122,8 +137,16 @@ export function createAppServices(
     }
   }
 
+  const queries: AppQueries = {
+    // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
+    get listAttendanceSessionsByMonth() {
+      return resolveListAttendanceSessionsByMonth()
+    }
+  }
+
   return {
     database,
+    queries,
     useCases
   }
 }
