@@ -108,11 +108,11 @@ describe('AttendanceHistoryView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Brak treningów w tym miesiącu')
-    expect(wrapper.get('.attendance-history__action-row a').text()).toBe(
+    expect(wrapper.get('.attendance-history__action-fab a').text()).toBe(
       '+ DODAJ'
     )
     expect(
-      wrapper.get('.attendance-history__action-row a').attributes('to')
+      wrapper.get('.attendance-history__action-fab a').attributes('to')
     ).toBe('/attendance/new')
   })
 
@@ -120,7 +120,7 @@ describe('AttendanceHistoryView', () => {
     const wrapper = mountView('en')
     await flushPromises()
 
-    expect(wrapper.get('.attendance-history__action-row a').text()).toBe(
+    expect(wrapper.get('.attendance-history__action-fab a').text()).toBe(
       '+ ADD'
     )
   })

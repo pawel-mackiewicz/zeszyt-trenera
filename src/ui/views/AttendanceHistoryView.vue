@@ -91,7 +91,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="attendance-history mx-auto max-w-5xl pb-8">
+  <div class="attendance-history mx-auto max-w-5xl">
     <section
       class="attendance-history__hero mb-8 flex flex-col gap-6 md:mb-12 md:flex-row md:items-end md:justify-between"
     >
@@ -196,8 +196,8 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- What: keep the new-attendance entry in the normal page flow below the ledger. Why: a fixed button can jump under the shell chrome during first paint, so the archive action should stay anchored to the content instead. -->
-    <div class="attendance-history__action-row mt-6 flex justify-end">
+    <!-- What: keep the add action floating above the shell navigation on every scroll position. Why: the attendance recorder needs to stay reachable from the archive view without forcing coaches to return to the bottom of a long monthly list. -->
+    <div class="attendance-history__action-fab">
       <RouterLink class="attendance-history__cta" to="/attendance/new">
         {{ t('actions.newTraining') }}
       </RouterLink>
@@ -208,38 +208,16 @@ onMounted(() => {
 <style scoped>
 .attendance-history {
   --history-panel-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
+  /* What: keep the floating add action from covering the last ledger rows. Why: the bottom navigation and safe-area inset take permanent space in the PWA shell, so the history content needs matching clearance. */
+  padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
 }
 
-.attendance-history__cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.375rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-on-surface);
-  background: var(--color-primary);
-  color: var(--color-white);
-  box-shadow: var(--history-panel-shadow);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  line-height: 1;
-  text-transform: uppercase;
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease;
-}
-
-.attendance-history__cta:hover {
-  background: var(--color-surface-tint);
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.attendance-history__cta:active {
-  transform: scale(0.95);
+.attendance-history__action-fab {
+  /* What: anchor the add action above the fixed shell navigation. Why: this screen needs one always-visible entry into the live attendance flow without changing the button’s original shape. */
+  position: fixed;
+  right: max(1rem, calc((100vw - 64rem) / 2 + 1.5rem));
+  bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
+  z-index: 45;
 }
 
 .attendance-history__hero {
@@ -472,6 +450,7 @@ onMounted(() => {
   line-height: 1.6;
 }
 
+/* What: keep the history CTA and inline retry action on one shared button recipe. Why: the previous split rules made the floating add button depend on override order and left stale color tokens behind. */
 .attendance-history__cta,
 .attendance-history__inline-button {
   display: inline-flex;
@@ -480,18 +459,25 @@ onMounted(() => {
   min-height: 3rem;
   padding: 0 1.15rem;
   border: 1px solid var(--color-on-surface);
-  background: var(--color-primary);
-  color: white;
+  box-shadow: var(--history-panel-shadow);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.2em;
+  line-height: 1;
   text-transform: uppercase;
-  box-shadow: var(--history-panel-shadow);
   transition:
     transform 75ms ease,
     box-shadow 75ms ease,
+    background-color 75ms ease,
     opacity 75ms ease;
+}
+
+.attendance-history__cta {
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
 }
 
 .attendance-history__inline-button {
@@ -499,17 +485,33 @@ onMounted(() => {
   color: var(--color-on-surface);
 }
 
+/* What: keep pointer feedback tactile without moving the keyboard focus target. Why: focus needs a stable, high-contrast indicator in the mobile PWA shell, while hover can still use the existing hard-shadow press effect. */
 .attendance-history__cta:hover,
-.attendance-history__cta:focus-visible,
-.attendance-history__inline-button:hover,
-.attendance-history__inline-button:focus-visible {
+.attendance-history__inline-button:hover {
   transform: translate(2px, 2px);
   box-shadow: none;
 }
 
 .attendance-history__cta:focus-visible,
 .attendance-history__inline-button:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 3px;
+}
+
+.attendance-history__cta:hover,
+.attendance-history__cta:focus-visible {
+  background: var(--color-surface-tint);
+}
+
+.attendance-history__inline-button:hover,
+.attendance-history__inline-button:focus-visible {
+  background: var(--color-surface-container-low);
+}
+
+.attendance-history__cta:active,
+.attendance-history__inline-button:active {
+  transform: scale(0.95);
+  box-shadow: none;
 }
 
 @keyframes attendance-history-pulse {
