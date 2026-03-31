@@ -278,6 +278,23 @@ describe('AppShell', () => {
     ).toContain('bg-primary')
   })
 
+  it('keeps the bottom attendance navigation available on desktop layouts', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    // The shell nav is the only route switcher for attendance on desktop after the IA split, so responsive classes must not hide it above `md`.
+    expect(wrapper.get('nav').classes()).not.toContain('md:hidden')
+
+    await wrapper
+      .get('button[aria-label="Przełącz widok obecności"]')
+      .trigger('click')
+
+    expect(
+      wrapper.get('button[aria-label="Zamknij menu obecności"]').classes()
+    ).not.toContain('md:hidden')
+  })
+
   it('opens the attendance switcher and highlights the history action on the history route', async () => {
     mockRoute.name = 'attendance-history'
     mockRoute.path = '/attendance'

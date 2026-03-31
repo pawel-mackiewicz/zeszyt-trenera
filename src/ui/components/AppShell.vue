@@ -444,17 +444,19 @@ function navigationLabel(item: NavigationItem) {
         </RouterView>
       </main>
 
+      <!-- What: keep the attendance menu dismiss layer available on every viewport. Why: the attendance switcher is now part of the primary shell nav, so desktop users need the same outside-click escape hatch as mobile users. -->
       <button
         v-if="!route.meta.hideBottomNav && isAttendanceMenuOpen"
-        class="fixed inset-0 z-30 bg-transparent md:hidden"
+        class="fixed inset-0 z-30 bg-transparent"
         type="button"
         :aria-label="t('bottomNav.closeMenu')"
         @click="closeAttendanceMenu"
       ></button>
 
+      <!-- What: render the bottom navigation on desktop and mobile. Why: after the attendance IA split, hiding this bar above `md` removed the only direct way to switch attendance screens in browser-sized layouts. -->
       <nav
         v-if="!route.meta.hideBottomNav"
-        class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10 md:hidden"
+        class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10"
       >
         <RouterLink
           to="/"
