@@ -3,7 +3,7 @@ import type {
   AttendanceSessionListItem
 } from '@/application/ports/AttendanceListRepoPort'
 import type { AttendanceList } from '@/domain/model/AttendanceList'
-import type { PersistedAttendanceList, TrainerNotebookDb } from '@/infra/db'
+import type { PersistedAttendanceList, TrainerNotebookDb } from '@/db'
 
 export class DexieAttendanceListRepo implements AttendanceListRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}

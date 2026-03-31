@@ -1,7 +1,7 @@
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { Member } from '@/domain/model/member'
 import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-import type { PersistedMember, TrainerNotebookDb } from '@/infra/db'
+import type { PersistedMember, TrainerNotebookDb } from '@/db'
 
 export class DexieMemberRepo implements MemberRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}

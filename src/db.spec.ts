@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { db } from '@/infra/db'
+import { db } from '@/db'
 
 describe('db', () => {
   it('exposes a named Dexie instance with club, trainer, member, membership payment, attendance list, and event table schemas', () => {

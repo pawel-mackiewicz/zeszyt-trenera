@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { AttendanceListAlreadyExistsError } from '@/domain/model/AttendanceList'
-import { db } from '@/infra/db'
+import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'

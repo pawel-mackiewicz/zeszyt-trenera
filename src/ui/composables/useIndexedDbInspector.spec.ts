@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
 import { Trainer } from '@/domain/model/trainer'
-import { TrainerNotebookDb } from '@/infra/db'
+import { TrainerNotebookDb } from '@/db'
 import {
   clearIndexedDb,
   inspectIndexedDb,

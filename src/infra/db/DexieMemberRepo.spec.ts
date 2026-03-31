@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Member } from '@/domain/model/member'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-import { TrainerNotebookDb } from '@/infra/db'
+import { TrainerNotebookDb } from '@/db'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
 
 function createTestDbName(prefix: string) {

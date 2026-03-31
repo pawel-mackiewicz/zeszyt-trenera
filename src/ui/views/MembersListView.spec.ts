@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { db } from '@/infra/db'
+import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { useRouter } from '@/ui/router/runtime'
 import MembersListView from '@/ui/views/MembersListView.vue'

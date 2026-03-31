@@ -1,7 +1,7 @@
 import type { Table } from 'dexie'
 import { onMounted, ref } from 'vue'
 
-import { db, type TrainerNotebookDb } from '@/infra/db'
+import { db, type TrainerNotebookDb } from '@/db'
 
 export type IndexedDbTableSnapshot = {
   name: string

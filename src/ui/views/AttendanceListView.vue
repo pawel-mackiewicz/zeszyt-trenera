@@ -7,7 +7,7 @@ import {
   InvalidAttendanceListStartError
 } from '@/domain/model/AttendanceList'
 import { MemberNotFoundError } from '@/domain/model/member'
-import { db, type PersistedMember } from '@/infra/db'
+import { db, type PersistedMember } from '@/db'
 import { useAppServices } from '@/ui/appServices'
 import AppIcon from '@/ui/components/AppIcon.vue'
 

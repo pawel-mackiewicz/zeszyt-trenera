@@ -19,8 +19,8 @@ import {
   type TrainerSnapshot
 } from '@/domain/model/trainer'
 import { createAppServices } from '@/infra/appServices'
-import type { PersistedDomainEvent } from '@/infra/db'
-import { TrainerNotebookDb } from '@/infra/db'
+import type { PersistedDomainEvent } from '@/db'
+import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`

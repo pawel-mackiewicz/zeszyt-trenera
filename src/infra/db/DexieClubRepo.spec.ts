@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club } from '@/domain/model/club'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
-import { TrainerNotebookDb } from '@/infra/db'
+import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`

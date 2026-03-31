@@ -1,5 +1,5 @@
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
-import type { TrainerNotebookDb } from '@/infra/db'
+import type { TrainerNotebookDb } from '@/db'
 
 export class DexieUnitOfWork implements UnitOfWork {
   public constructor(private readonly database: TrainerNotebookDb) {}

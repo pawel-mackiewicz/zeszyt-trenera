@@ -1,6 +1,6 @@
 import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
 import type { Trainer } from '@/domain/model/trainer'
-import type { PersistedTrainer, TrainerNotebookDb } from '@/infra/db'
+import type { PersistedTrainer, TrainerNotebookDb } from '@/db'
 
 export class DexieTrainerRepo implements TrainerRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}

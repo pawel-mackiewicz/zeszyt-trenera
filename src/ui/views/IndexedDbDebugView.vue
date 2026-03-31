@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { db, type TrainerNotebookDb } from '@/infra/db'
+import { db, type TrainerNotebookDb } from '@/db'
 import { useIndexedDbInspector } from '@/ui/composables/useIndexedDbInspector'
 
 const props = defineProps<{

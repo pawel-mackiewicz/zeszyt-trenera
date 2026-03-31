@@ -5,9 +5,9 @@ import type {
   PersistedClub,
   PersistedDomainEvent,
   TrainerNotebookDb
-} from '@/infra/db'
+} from '@/db'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
-import { TrainerNotebookDb as DexieDatabase } from '@/infra/db'
+import { TrainerNotebookDb as DexieDatabase } from '@/db'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`

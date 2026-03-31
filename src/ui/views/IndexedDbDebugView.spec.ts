@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { TrainerNotebookDb } from '@/infra/db'
+import { TrainerNotebookDb } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import IndexedDbDebugView from '@/ui/views/IndexedDbDebugView.vue'
 

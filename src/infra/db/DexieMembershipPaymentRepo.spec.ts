@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
-import { TrainerNotebookDb } from '@/infra/db'
+import { TrainerNotebookDb } from '@/db'
 import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRepo'
 
 function createTestDbName(prefix: string) {

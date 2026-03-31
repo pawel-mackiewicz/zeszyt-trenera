@@ -12,7 +12,7 @@ import type { RegisterClubCommand } from '@/application/requests/RegisterClubCom
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
-import { db, type TrainerNotebookDb } from '@/infra/db'
+import { db, type TrainerNotebookDb } from '@/db'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'

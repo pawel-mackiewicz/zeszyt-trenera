@@ -1,6 +1,6 @@
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
-import type { PersistedDomainEvent, TrainerNotebookDb } from '@/infra/db'
+import type { PersistedDomainEvent, TrainerNotebookDb } from '@/db'
 
 export class DexieEventRepo implements EventRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}

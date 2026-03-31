@@ -1,6 +1,6 @@
 import type { MembershipPaymentRepoPort } from '@/application/ports/MembershipPaymentRepoPort'
 import type { MembershipPayment } from '@/domain/model/MembershipPayment'
-import type { PersistedMembershipPayment, TrainerNotebookDb } from '@/infra/db'
+import type { PersistedMembershipPayment, TrainerNotebookDb } from '@/db'
 
 export class DexieMembershipPaymentRepo implements MembershipPaymentRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}
