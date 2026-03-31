@@ -1,49 +1,15 @@
 import Dexie, { type EntityTable } from 'dexie'
 
-export type PersistedClub = {
-  id: string
-  name: string
-  foundingDate: Date
-  createdAt: Date
-}
+import type {
+  PersistedAttendanceList,
+  PersistedClub,
+  PersistedDomainEvent,
+  PersistedMember,
+  PersistedMembershipPayment,
+  PersistedTrainer
+} from '@/infra'
 
-export type PersistedTrainer = {
-  id: string
-  name: string
-  createdAt: Date
-}
-
-export type PersistedMember = {
-  id: string
-  firstName: string
-  lastName: string
-  phoneNumber: string
-  dateOfBirth?: Date
-  joinedAt?: Date
-  createdAt: Date
-}
-
-export type PersistedMembershipPayment = {
-  id: string
-  memberId: string
-  coveredMonth: string
-  createdAt: Date
-}
-
-export type PersistedAttendanceList = {
-  id: string
-  memberIds: string[]
-  start: Date
-  createdAt: Date
-}
-
-export type PersistedDomainEvent<TPayload> = {
-  eventId: string
-  eventName: string
-  occurredAt: Date
-  payload: TPayload
-}
-
+// The root module keeps the Dexie table wiring in one place so the app gets one concrete database instance while the row contracts stay under infra.
 export class TrainerNotebookDb extends Dexie {
   public clubs!: EntityTable<PersistedClub, 'id'>
   public trainers!: EntityTable<PersistedTrainer, 'id'>

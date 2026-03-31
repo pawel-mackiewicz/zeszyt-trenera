@@ -1,11 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { Club, type ClubSnapshot } from '@/domain/model/club'
-import type {
-  PersistedClub,
-  PersistedDomainEvent,
-  TrainerNotebookDb
-} from '@/db'
+import type { PersistedClub, PersistedDomainEvent } from '@/infra'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { TrainerNotebookDb as DexieDatabase } from '@/db'
 
@@ -14,7 +10,7 @@ function createTestDbName(prefix: string) {
 }
 
 describe('DexieUnitOfWork', () => {
-  let database: TrainerNotebookDb
+  let database: DexieDatabase
   let unitOfWork: DexieUnitOfWork
 
   beforeEach(() => {

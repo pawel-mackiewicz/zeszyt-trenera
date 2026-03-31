@@ -2,7 +2,8 @@
 import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { db, type PersistedMember } from '@/db'
+import { db } from '@/db'
+import type { PersistedMember } from '@/infra'
 import { useRouter } from '@/ui/router/runtime'
 import AppIcon from '@/ui/components/AppIcon.vue'
 

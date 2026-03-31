@@ -6,7 +6,7 @@ import { createAppI18n } from '@/ui/i18n'
 import { useRouter } from '@/ui/router/runtime'
 import MembersListView from '@/ui/views/MembersListView.vue'
 
-vi.mock('@/infra/db', () => ({
+vi.mock('@/db', () => ({
   db: {
     open: vi.fn(),
     members: {

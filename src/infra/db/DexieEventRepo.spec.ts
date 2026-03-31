@@ -9,7 +9,8 @@ import {
 import { Member, type MemberSnapshot } from '@/domain/model/member'
 import { Trainer, type TrainerSnapshot } from '@/domain/model/trainer'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-import { type PersistedDomainEvent, TrainerNotebookDb } from '@/db'
+import { TrainerNotebookDb } from '@/db'
+import type { PersistedDomainEvent } from '@/infra'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 
 function createTestDbName(prefix: string) {

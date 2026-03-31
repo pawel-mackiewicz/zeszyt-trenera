@@ -7,7 +7,7 @@ import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 
-vi.mock('@/infra/db', () => ({
+vi.mock('@/db', () => ({
   db: {
     open: vi.fn(),
     members: {

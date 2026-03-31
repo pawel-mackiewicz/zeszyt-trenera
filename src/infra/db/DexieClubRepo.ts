@@ -1,6 +1,7 @@
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { Club } from '@/domain/model/club'
-import type { PersistedClub, TrainerNotebookDb } from '@/db'
+import type { TrainerNotebookDb } from '@/db'
+import type { PersistedClub } from '@/infra'
 
 export class DexieClubRepo implements ClubRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}

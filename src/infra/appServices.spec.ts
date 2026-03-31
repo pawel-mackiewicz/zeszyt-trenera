@@ -19,7 +19,7 @@ import {
   type TrainerSnapshot
 } from '@/domain/model/trainer'
 import { createAppServices } from '@/infra/appServices'
-import type { PersistedDomainEvent } from '@/db'
+import type { PersistedDomainEvent } from '@/infra'
 import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {
