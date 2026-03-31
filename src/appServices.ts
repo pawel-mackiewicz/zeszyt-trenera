@@ -1,12 +1,9 @@
-import { ListAttendanceSessionsByMonthQuery } from '@/application/queries/ListAttendanceSessionsByMonthQuery'
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
 import type { UseCase } from '@/application/UseCase'
-import type { AttendanceSessionListItem } from '@/application/ports/AttendanceListRepoPort'
-import type { ListAttendanceSessionsByMonthQueryInput } from '@/application/queries/ListAttendanceSessionsByMonthQuery'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
@@ -21,6 +18,11 @@ import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRep
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
+import {
+  ListAttendanceSessionsByMonthQuery,
+  type AttendanceSessionListItem,
+  type ListAttendanceSessionsByMonthQueryInput
+} from '@/read/ListAttendanceSessionsByMonthQuery'
 
 export type AppUseCases = {
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
@@ -76,7 +78,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       )
   )
   const resolveListAttendanceSessionsByMonth = lazy(
-    () => new ListAttendanceSessionsByMonthQuery(resolveAttendanceListRepo())
+    () => new ListAttendanceSessionsByMonthQuery(database)
   )
   const resolveRegisterClub = lazy(
     () =>
