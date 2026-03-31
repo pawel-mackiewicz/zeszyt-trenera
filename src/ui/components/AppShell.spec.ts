@@ -272,93 +272,26 @@ describe('AppShell', () => {
     })
 
     expect(document.title).toBe('Historia treningów • Zeszyt Trenera')
-    expect(
-      wrapper.get('button[aria-label="Przełącz widok obecności"]').element
-        .parentElement?.className
-    ).toContain('bg-primary')
-  })
-
-  it('keeps the bottom attendance navigation available on desktop layouts', async () => {
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    // The shell nav is the only route switcher for attendance on desktop after the IA split, so responsive classes must not hide it above `md`.
-    expect(wrapper.get('nav').classes()).not.toContain('md:hidden')
-
-    await wrapper
-      .get('button[aria-label="Przełącz widok obecności"]')
-      .trigger('click')
-
-    expect(
-      wrapper.get('button[aria-label="Zamknij menu obecności"]').classes()
-    ).not.toContain('md:hidden')
-  })
-
-  it('opens the attendance switcher and highlights the history action on the history route', async () => {
-    mockRoute.name = 'attendance-history'
-    mockRoute.path = '/attendance'
-    mockRoute.fullPath = '/attendance'
-
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await wrapper
-      .get('button[aria-label="Przełącz widok obecności"]')
-      .trigger('click')
-
-    const historyLink = wrapper.get('a[href="/attendance"]')
-    const recordLink = wrapper.get('a[href="/attendance/new"]')
-
-    expect(historyLink.classes()).toContain('bg-surface-container-low')
-    expect(recordLink.classes()).not.toContain('bg-surface-container-low')
-  })
-
-  it('highlights the new-training action on the recorder route', async () => {
-    mockRoute.name = 'attendance-record'
-    mockRoute.path = '/attendance/new'
-    mockRoute.fullPath = '/attendance/new'
-
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await wrapper
-      .get('button[aria-label="Przełącz widok obecności"]')
-      .trigger('click')
-
-    expect(wrapper.get('a[href="/attendance/new"]').classes()).toContain(
-      'bg-surface-container-low'
+    expect(wrapper.get('a[href="/attendance"]').classes()).toContain(
+      'bg-primary'
     )
   })
 
-  it('closes the attendance switcher when tapping outside or after route navigation', async () => {
+  it('routes the bottom attendance tab straight to training history', () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    await wrapper
-      .get('button[aria-label="Przełącz widok obecności"]')
-      .trigger('click')
-
-    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(true)
-
-    await wrapper
-      .get('button[aria-label="Zamknij menu obecności"]')
-      .trigger('click')
-
+    expect(wrapper.get('nav').classes()).not.toContain('md:hidden')
+    expect(
+      wrapper.find('button[aria-label="Przełącz widok obecności"]').exists()
+    ).toBe(false)
+    expect(
+      wrapper.find('button[aria-label="Zamknij menu obecności"]').exists()
+    ).toBe(false)
     expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
-
-    await wrapper
-      .get('button[aria-label="Przełącz widok obecności"]')
-      .trigger('click')
-
-    mockRoute.name = 'attendance-record'
-    mockRoute.path = '/attendance/new'
-    mockRoute.fullPath = '/attendance/new'
-    await nextTick()
-
-    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
+    expect(wrapper.get('a[href="/attendance"]').text().toUpperCase()).toContain(
+      'OBECNOŚCI'
+    )
   })
 })

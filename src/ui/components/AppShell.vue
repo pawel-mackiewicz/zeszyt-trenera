@@ -65,7 +65,6 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
-const isAttendanceMenuOpen = ref(false)
 
 const appName = computed(() => t('app.name'))
 const currentRouteName = computed(() => {
@@ -77,6 +76,7 @@ const isAttendanceHistoryRoute = computed(
 const isAttendanceRecordRoute = computed(
   () => currentRouteName.value === 'attendance-record'
 )
+// What: keep the history tab active for both attendance routes. Why: the shell should read the entire attendance area as one destination even though the recorder is now a separate screen behind the history hub.
 const isAttendanceSectionActive = computed(
   () => isAttendanceHistoryRoute.value || isAttendanceRecordRoute.value
 )
@@ -177,7 +177,6 @@ watch(
 watch(installed, (value) => {
   if (value) {
     isMenuOpen.value = false
-    isAttendanceMenuOpen.value = false
     appStore.hideInstallCoach()
   }
 })
@@ -191,9 +190,8 @@ watch(showInstallEntry, (value) => {
 watch(
   () => route.fullPath,
   () => {
-    // What: collapse transient navigation overlays after every route change. Why: the attendance switcher and hamburger menu should never linger over the next screen after navigation completes.
+    // What: collapse transient navigation overlays after every route change. Why: the hamburger menu and install coach should never linger over the next screen after navigation completes.
     isMenuOpen.value = false
-    isAttendanceMenuOpen.value = false
     appStore.hideInstallCoach()
   }
 )
@@ -209,7 +207,6 @@ watch(
 )
 
 function toggleMenu() {
-  isAttendanceMenuOpen.value = false
   isMenuOpen.value = !isMenuOpen.value
 
   if (!isMenuOpen.value) {
@@ -220,15 +217,6 @@ function toggleMenu() {
 function closeMenu() {
   isMenuOpen.value = false
   appStore.hideInstallCoach()
-}
-
-function toggleAttendanceMenu() {
-  isMenuOpen.value = false
-  isAttendanceMenuOpen.value = !isAttendanceMenuOpen.value
-}
-
-function closeAttendanceMenu() {
-  isAttendanceMenuOpen.value = false
 }
 
 function handleBack() {
@@ -444,16 +432,7 @@ function navigationLabel(item: NavigationItem) {
         </RouterView>
       </main>
 
-      <!-- What: keep the attendance menu dismiss layer available on every viewport. Why: the attendance switcher is now part of the primary shell nav, so desktop users need the same outside-click escape hatch as mobile users. -->
-      <button
-        v-if="!route.meta.hideBottomNav && isAttendanceMenuOpen"
-        class="fixed inset-0 z-30 bg-transparent"
-        type="button"
-        :aria-label="t('bottomNav.closeMenu')"
-        @click="closeAttendanceMenu"
-      ></button>
-
-      <!-- What: render the bottom navigation on desktop and mobile. Why: after the attendance IA split, hiding this bar above `md` removed the only direct way to switch attendance screens in browser-sized layouts. -->
+      <!-- What: render the bottom navigation on desktop and mobile. Why: the history tab has to stay pinned in the shell on every viewport so coaches can reach saved attendance without digging into menus. -->
       <nav
         v-if="!route.meta.hideBottomNav"
         class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10"
@@ -482,59 +461,23 @@ function navigationLabel(item: NavigationItem) {
             >{{ t('bottomNav.payments') }}</span
           >
         </div>
-        <div
-          class="relative w-full border-x border-on-surface/10"
+        <!-- What: send the attendance tab straight to the history route. Why: coaches should reach saved sessions in one tap on mobile, while the live recording flow stays anchored inside the history screen instead of a popover. -->
+        <RouterLink
+          to="/attendance"
+          class="relative w-full border-x border-on-surface/10 flex flex-col items-center justify-center text-on-surface px-4 py-1 transition-all"
           :class="[
             isAttendanceSectionActive
               ? 'bg-primary text-white'
               : 'text-on-surface hover:bg-surface-container-low'
           ]"
         >
-          <div
-            v-if="isAttendanceMenuOpen"
-            class="absolute inset-x-3 bottom-[calc(100%+0.75rem)] border border-on-surface bg-white text-on-surface hard-shadow"
+          <AppIcon name="calendar_today" />
+          <span
+            class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
           >
-            <!-- What: split attendance into “Historia” and “Nowy trening” right above the active bottom-tab affordance. Why: the V2 IA makes attendance a small local switcher instead of forcing coaches through one route that tries to do both jobs. -->
-            <RouterLink
-              class="block px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.18em] transition-colors"
-              :class="[
-                isAttendanceRecordRoute
-                  ? 'bg-surface-container-low text-primary'
-                  : 'hover:bg-surface-container-low'
-              ]"
-              to="/attendance/new"
-              @click="closeAttendanceMenu"
-            >
-              {{ t('bottomNav.newTraining') }}
-            </RouterLink>
-            <RouterLink
-              class="block border-t border-on-surface/10 px-4 py-3 font-mono text-xs font-bold uppercase tracking-[0.18em] transition-colors"
-              :class="[
-                isAttendanceHistoryRoute
-                  ? 'bg-surface-container-low text-primary'
-                  : 'hover:bg-surface-container-low'
-              ]"
-              to="/attendance"
-              @click="closeAttendanceMenu"
-            >
-              {{ t('bottomNav.history') }}
-            </RouterLink>
-          </div>
-
-          <button
-            class="flex h-full w-full flex-col items-center justify-center px-4 py-1 transition-all"
-            type="button"
-            :aria-expanded="isAttendanceMenuOpen"
-            :aria-label="t('bottomNav.attendanceMenu')"
-            @click="toggleAttendanceMenu"
-          >
-            <AppIcon name="calendar_today" />
-            <span
-              class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-              >{{ t('bottomNav.attendance') }}</span
-            >
-          </button>
-        </div>
+            {{ t('bottomNav.attendance') }}
+          </span>
+        </RouterLink>
       </nav>
     </template>
 
@@ -875,11 +818,7 @@ function navigationLabel(item: NavigationItem) {
     "bottomNav": {
       "members": "Członkowie",
       "payments": "Płatności",
-      "attendance": "Obecność",
-      "attendanceMenu": "Przełącz widok obecności",
-      "closeMenu": "Zamknij menu obecności",
-      "history": "Historia",
-      "newTraining": "Nowy trening"
+      "attendance": "Obecności"
     },
     "install": {
       "entry": {
@@ -962,11 +901,7 @@ function navigationLabel(item: NavigationItem) {
     "bottomNav": {
       "members": "Members",
       "payments": "Payments",
-      "attendance": "Attendance",
-      "attendanceMenu": "Toggle attendance views",
-      "closeMenu": "Close attendance menu",
-      "history": "History",
-      "newTraining": "New training"
+      "attendance": "Attendance"
     },
     "install": {
       "entry": {
