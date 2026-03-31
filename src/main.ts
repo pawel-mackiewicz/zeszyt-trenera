@@ -1,15 +1,15 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
-import { appServices } from '@/infra/appServices'
-import { i18n } from '@/ui/i18n'
-import { provideAppServices } from '@/ui/appServices'
-import App from './App.vue'
-import router from './router'
-import { useAppStore } from './stores/app'
-// Keeping fonts bundled with the app preserves the installed shell when connectivity is poor or missing.
-import './fonts.css'
-import './style.css'
+import { appServices } from './infra/appServices'
+import { i18n } from './ui/i18n'
+import { provideAppServices } from './ui/appServices'
+import App from './ui/App.vue'
+import router from './ui/router'
+import { useAppStore } from './ui/stores/app'
+// This root entrypoint keeps the PWA bootstrap easy to find while Vite serves the shell from /src/main.ts.
+import './ui/fonts.css'
+import './ui/style.css'
 
 function bootstrap() {
   const pinia = createPinia()
