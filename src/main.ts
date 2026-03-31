@@ -1,7 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
-import { appServices } from './infra/appServices'
+import { appServices } from './appServices'
 import { i18n } from './ui/i18n'
 import { provideAppServices } from './ui/appServices'
 import App from './ui/App.vue'

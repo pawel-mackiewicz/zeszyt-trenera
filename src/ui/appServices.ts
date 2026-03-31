@@ -1,4 +1,4 @@
-import type { AppServices } from '@/infra/appServices'
+import type { AppServices } from '@/appServices'
 import { inject, type App, type InjectionKey } from 'vue'
 
 export type UiAppServices = Pick<AppServices, 'queries' | 'useCases'>

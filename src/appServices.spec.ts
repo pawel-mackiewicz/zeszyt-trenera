@@ -18,7 +18,7 @@ import {
   TrainerAlreadyExistsError,
   type TrainerSnapshot
 } from '@/domain/model/trainer'
-import { createAppServices } from '@/infra/appServices'
+import { createAppServices } from '@/appServices'
 import type { PersistedDomainEvent } from '@/infra'
 import { TrainerNotebookDb } from '@/db'
 
