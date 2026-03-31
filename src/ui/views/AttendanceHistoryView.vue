@@ -65,12 +65,9 @@ async function loadSessionsForMonth(monthStart: Date) {
   loadFailed.value = false
 
   try {
-    const nextMonthStart = addMonths(monthStart, 1)
-
-    // What: keep the view month-scoped without reading Dexie directly. Why: the history screen should stay on application queries so local-first storage details remain behind one boundary.
+    // What: send the selected month as the full query input. Why: the view should ask the application layer for one calendar month without rebuilding storage range semantics on the UI side.
     sessions.value = await queries.listAttendanceSessionsByMonth.handle({
-      monthStart,
-      nextMonthStart
+      month: monthStart
     })
   } catch (error) {
     loadFailed.value = true

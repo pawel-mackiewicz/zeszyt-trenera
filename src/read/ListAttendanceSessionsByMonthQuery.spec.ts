@@ -56,8 +56,7 @@ describe('ListAttendanceSessionsByMonthQuery', () => {
 
     await expect(
       query.handle({
-        monthStart: new Date('2026-03-01T00:00:00Z'),
-        nextMonthStart: new Date('2026-04-01T00:00:00Z')
+        month: new Date('2026-03-16T12:00:00Z')
       })
     ).resolves.toEqual([
       {

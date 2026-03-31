@@ -46,8 +46,7 @@ describe('AttendanceHistoryView', () => {
     await flushPromises()
 
     expect(mockListAttendanceSessionsByMonthHandle).toHaveBeenCalledWith({
-      monthStart: new Date(2026, 9, 1),
-      nextMonthStart: new Date(2026, 10, 1)
+      month: new Date(2026, 9, 1)
     })
   })
 
@@ -61,12 +60,10 @@ describe('AttendanceHistoryView', () => {
     await flushPromises()
 
     expect(mockListAttendanceSessionsByMonthHandle).toHaveBeenNthCalledWith(2, {
-      monthStart: new Date(2026, 8, 1),
-      nextMonthStart: new Date(2026, 9, 1)
+      month: new Date(2026, 8, 1)
     })
     expect(mockListAttendanceSessionsByMonthHandle).toHaveBeenNthCalledWith(3, {
-      monthStart: new Date(2026, 9, 1),
-      nextMonthStart: new Date(2026, 10, 1)
+      month: new Date(2026, 9, 1)
     })
   })
 

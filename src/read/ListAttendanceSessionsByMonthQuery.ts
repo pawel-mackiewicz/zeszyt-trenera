@@ -7,20 +7,20 @@ export type AttendanceSessionListItem = {
 }
 
 export type ListAttendanceSessionsByMonthQueryInput = {
-  monthStart: Date
-  nextMonthStart: Date
+  month: Date
 }
 
 export class ListAttendanceSessionsByMonthQuery {
   public constructor(private readonly database: TrainerNotebookDb) {}
 
   public async handle({
-    monthStart,
-    nextMonthStart
+    month
   }: ListAttendanceSessionsByMonthQueryInput): Promise<
     AttendanceSessionListItem[]
   > {
-    // The query keeps month boundaries in the application layer so UI screens can ask for one calendar period without learning persistence-specific range semantics.
+    const monthStart = startOfMonth(month)
+    const nextMonthStart = addMonths(monthStart, 1)
+
     return this.listByStartRange(monthStart, nextMonthStart)
   }
 
@@ -42,4 +42,12 @@ export class ListAttendanceSessionsByMonthQuery {
         attendanceCount: attendanceList.memberIds.length
       }))
   }
+}
+
+function startOfMonth(value: Date): Date {
+  return new Date(value.getFullYear(), value.getMonth(), 1)
+}
+
+function addMonths(value: Date, offset: number): Date {
+  return new Date(value.getFullYear(), value.getMonth() + offset, 1)
 }
