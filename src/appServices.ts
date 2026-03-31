@@ -12,7 +12,7 @@ import type { RegisterClubCommand } from '@/application/requests/RegisterClubCom
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
-import { db, type TrainerNotebookDb } from '@/db'
+import type { TrainerNotebookDb } from '@/db'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
@@ -51,9 +51,7 @@ function lazy<T>(factory: () => T): () => T {
   return () => (value ??= factory())
 }
 
-export function createAppServices(
-  database: TrainerNotebookDb = db
-): AppServices {
+export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveUnitOfWork = lazy(() => new DexieUnitOfWork(database))
   const resolveClubRepo = lazy(() => new DexieClubRepo(database))
   const resolveMemberRepo = lazy(() => new DexieMemberRepo(database))
@@ -150,5 +148,3 @@ export function createAppServices(
     useCases
   }
 }
-
-export const appServices = createAppServices()

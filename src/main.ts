@@ -1,7 +1,7 @@
 import { createPinia } from 'pinia'
 import { createApp } from 'vue'
 
-import { appServices } from './appServices'
+import { createAppServices } from './appServices'
 import { i18n } from './ui/i18n'
 import { provideAppServices } from './ui/appServices'
 import App from './ui/App.vue'
@@ -10,11 +10,12 @@ import { useAppStore } from './ui/stores/app'
 // This root entrypoint keeps the PWA bootstrap easy to find while Vite serves the shell from /src/main.ts.
 import './ui/fonts.css'
 import './ui/style.css'
+import { TrainerNotebookDb } from './db'
 
 function bootstrap() {
   const pinia = createPinia()
   const app = createApp(App)
-  const services = appServices
+  const services = createAppServices(new TrainerNotebookDb())
   const database = services.database
 
   // Providing one shared service bag keeps bootstrap stable while the number of app workflows grows.

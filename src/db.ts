@@ -86,4 +86,5 @@ export class TrainerNotebookDb extends Dexie {
   }
 }
 
+//todo remove this. db should be created only in main.ts
 export const db = new TrainerNotebookDb()
