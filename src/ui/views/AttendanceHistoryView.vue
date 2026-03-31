@@ -99,22 +99,13 @@ onMounted(() => {
       class="attendance-history__hero mb-8 flex flex-col gap-6 md:mb-12 md:flex-row md:items-end md:justify-between"
     >
       <div class="max-w-2xl">
-        <p class="attendance-history__eyebrow">
-          {{ t('hero.eyebrow') }}
-        </p>
         <h2 class="attendance-history__title">
           {{ t('hero.title') }}
         </h2>
-        <p class="attendance-history__body">
-          {{ t('hero.body') }}
-        </p>
       </div>
 
       <section class="attendance-history__period-card" aria-live="polite">
-        <p class="attendance-history__period-eyebrow">
-          {{ t('period.eyebrow') }}
-        </p>
-        <div class="flex items-center gap-3">
+        <div class="attendance-history__period-controls">
           <button
             id="attendance-history-prev-month"
             class="attendance-history__period-button"
@@ -171,6 +162,7 @@ onMounted(() => {
         </button>
       </div>
 
+      <!-- What: keep the empty state focused on archive status only. Why: the new attendance entry point belongs in the live recorder flow, so the history screen should not offer a second place to start it. -->
       <div v-else-if="!hasSessions" class="attendance-history__empty">
         <div class="attendance-history__empty-icon">
           <AppIcon name="calendar_today" />
@@ -183,9 +175,6 @@ onMounted(() => {
             {{ t('states.emptyBody') }}
           </p>
         </div>
-        <RouterLink class="attendance-history__cta" to="/attendance/new">
-          {{ t('actions.newTraining') }}
-        </RouterLink>
       </div>
 
       <div v-else class="attendance-history__rows">
@@ -210,7 +199,8 @@ onMounted(() => {
       </div>
     </section>
 
-    <div v-if="hasSessions && !loadFailed" class="mt-6 flex justify-start">
+    <!-- What: keep the new-attendance entry in the normal page flow below the ledger. Why: a fixed button can jump under the shell chrome during first paint, so the archive action should stay anchored to the content instead. -->
+    <div class="attendance-history__action-row mt-6 flex justify-end">
       <RouterLink class="attendance-history__cta" to="/attendance/new">
         {{ t('actions.newTraining') }}
       </RouterLink>
@@ -223,20 +213,43 @@ onMounted(() => {
   --history-panel-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
 }
 
+.attendance-history__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-primary);
+  color: var(--color-white);
+  box-shadow: var(--history-panel-shadow);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition:
+    transform 75ms ease,
+    box-shadow 75ms ease,
+    background-color 75ms ease;
+}
+
+.attendance-history__cta:hover {
+  background: var(--color-surface-tint);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.attendance-history__cta:active {
+  transform: scale(0.95);
+}
+
 .attendance-history__hero {
   position: relative;
 }
 
 /* What: give the history screen a distinct route-level identity separate from the live recorder. Why: the new attendance hub needs to read as an archive surface at a glance, especially when coaches switch between “Historia” and “Nowy trening”. */
-.attendance-history__eyebrow {
-  margin: 0 0 0.5rem;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
-}
 
 .attendance-history__title {
   margin: 0;
@@ -249,22 +262,24 @@ onMounted(() => {
   color: var(--color-on-surface);
 }
 
-.attendance-history__body {
-  margin: 1rem 0 0;
-  max-width: 36rem;
-  color: var(--color-secondary);
-  line-height: 1.6;
-}
-
 .attendance-history__period-card {
   display: grid;
   gap: 0.9rem;
-  min-width: min(100%, 18rem);
+  width: min(100%, 22rem);
+  min-width: 0;
   padding: 1rem 1.1rem;
-  border-left: 2px solid var(--color-on-surface);
+  border: 1px solid rgba(16, 59, 55, 0.2);
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   box-shadow: var(--history-panel-shadow);
+}
+
+.attendance-history__period-controls {
+  /* What: lock the month switcher into explicit arrow / label / arrow columns. Why: the desktop card was relying on content-sized flex spacing, which let the buttons drift toward the card edges and made the selector look broken on wider screens. */
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .attendance-history__period-eyebrow {
@@ -279,7 +294,8 @@ onMounted(() => {
 
 .attendance-history__period-label {
   margin: 0;
-  min-width: 11rem;
+  min-width: 0;
+  padding-inline: 0.25rem;
   text-align: center;
   font-family: var(--font-mono);
   font-size: 1rem;
@@ -536,9 +552,12 @@ onMounted(() => {
     min-width: 0;
   }
 
+  /* What: preserve a comfortable label width without forcing overflow on compact screens. Why: the month name needs to stay readable on phones after the desktop grid fix tightens the card geometry. */
+  .attendance-history__period-controls {
+    gap: 0.55rem;
+  }
+
   .attendance-history__period-label {
-    min-width: 0;
-    flex: 1;
     font-size: 0.875rem;
   }
 }
@@ -550,7 +569,7 @@ onMounted(() => {
     "hero": {
       "eyebrow": "Lokalna historia",
       "title": "Historia treningów",
-      "body": "Przeglądaj zapisane treningi miesiąc po miesiącu i szybko wracaj do nowej listy obecności bez mieszania trybu archiwum z żywym zapisem."
+      "body": "Przeglądaj zapisane treningi miesiąc po miesiącu bez mieszania trybu archiwum z żywym zapisem."
     },
     "period": {
       "eyebrow": "Aktywny okres",
@@ -565,7 +584,7 @@ onMounted(() => {
       "attendancePlural": "{count} osób"
     },
     "actions": {
-      "newTraining": "Nowy trening"
+      "newTraining": "+ DODAJ"
     },
     "states": {
       "loading": "Ładowanie historii...",
@@ -579,7 +598,7 @@ onMounted(() => {
     "hero": {
       "eyebrow": "Local history",
       "title": "Training history",
-      "body": "Browse saved sessions month by month and jump back into a new attendance list without mixing archive browsing with live recording."
+      "body": "Browse saved sessions month by month without mixing archive browsing with live recording."
     },
     "period": {
       "eyebrow": "Active period",
@@ -594,7 +613,7 @@ onMounted(() => {
       "attendancePlural": "{count} people"
     },
     "actions": {
-      "newTraining": "New training"
+      "newTraining": "+ ADD"
     },
     "states": {
       "loading": "Loading history...",

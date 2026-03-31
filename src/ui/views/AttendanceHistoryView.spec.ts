@@ -70,6 +70,18 @@ describe('AttendanceHistoryView', () => {
     })
   })
 
+  it('renders the month switcher inside a dedicated control row', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const controls = wrapper.get('.attendance-history__period-controls')
+
+    expect(controls.findAll('button')).toHaveLength(2)
+    expect(controls.get('#attendance-history-month-label').text()).toBe(
+      'październik 2026'
+    )
+  })
+
   it('renders the monthly ledger rows without the analytics section', async () => {
     mockListAttendanceSessionsByMonthHandle.mockResolvedValue([
       {
@@ -94,12 +106,25 @@ describe('AttendanceHistoryView', () => {
     expect(wrapper.text()).not.toContain('Analiza miesięczna')
   })
 
-  it('shows the empty month state with a direct link to start a new training', async () => {
+  it('shows the new training link in Polish', async () => {
     const wrapper = mountView()
     await flushPromises()
 
     expect(wrapper.text()).toContain('Brak treningów w tym miesiącu')
-    expect(wrapper.text()).toContain('Nowy trening')
-    expect(wrapper.html()).toContain('/attendance/new')
+    expect(wrapper.get('.attendance-history__action-row a').text()).toBe(
+      '+ DODAJ'
+    )
+    expect(
+      wrapper.get('.attendance-history__action-row a').attributes('to')
+    ).toBe('/attendance/new')
+  })
+
+  it('shows the new training link in English', async () => {
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    expect(wrapper.get('.attendance-history__action-row a').text()).toBe(
+      '+ ADD'
+    )
   })
 })
