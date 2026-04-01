@@ -169,7 +169,9 @@ describe('AttendanceListView', () => {
     consoleErrorSpy.mockRestore()
   })
 
-  it('filters members by search query and age range', async () => {
+  it('filters members by search query and shared age range rules', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
     vi.mocked(db.members.toArray).mockResolvedValue([
       {
         id: 'member-1',
@@ -186,11 +188,21 @@ describe('AttendanceListView', () => {
         phoneNumber: '+48 222 222 222',
         dateOfBirth: new Date('1970-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-21T10:00:00Z')
+      },
+      {
+        id: 'member-3',
+        firstName: 'Mystery',
+        lastName: 'Member',
+        phoneNumber: '+48 333 333 333',
+        createdAt: new Date('2026-03-22T10:00:00Z')
       }
     ])
 
     const wrapper = mountView()
     await flushPromises()
+
+    expect(wrapper.text()).toContain('Mystery Member')
+    expect(wrapper.text()).toContain('Wiek nieznany')
 
     await wrapper.find('#attendance-search').setValue('Anderson')
 
@@ -198,10 +210,16 @@ describe('AttendanceListView', () => {
     expect(wrapper.text()).not.toContain('Royce Gracie')
 
     await wrapper.find('#attendance-search').setValue('')
-    await wrapper.findAll('input[type="range"]')[0].setValue('40')
+    const sliders = wrapper.findAll('input[type="range"]')
+    await sliders[0].setValue('60')
+    await sliders[1].setValue('30')
+    await flushPromises()
 
-    expect(wrapper.text()).not.toContain('Anderson Silva')
+    expect(wrapper.text()).toContain('Anderson Silva')
     expect(wrapper.text()).toContain('Royce Gracie')
+    expect(wrapper.text()).not.toContain('Mystery Member')
+
+    vi.useRealTimers()
   })
 
   it('edits the training date and time from the session header', async () => {

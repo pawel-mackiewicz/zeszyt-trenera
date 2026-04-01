@@ -4,16 +4,22 @@ import { useI18n } from 'vue-i18n'
 
 import { db } from '@/db'
 import type { PersistedMember } from '@/infra'
-import { useRouter } from '@/ui/router/runtime'
+import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import { useRouter } from '@/ui/router/runtime'
+import {
+  AGE_FILTER_MAX,
+  AGE_FILTER_MIN,
+  matchesAgeRange
+} from '@/ui/utils/ageRange'
 
 const router = useRouter()
 const { t } = useI18n({ useScope: 'local' })
 const savedMembers = ref<PersistedMember[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
-const maxAgeFilter = ref(80)
-const minAgeFilter = ref(5)
+const maxAgeFilter = ref(AGE_FILTER_MAX)
+const minAgeFilter = ref(AGE_FILTER_MIN)
 
 const openMemberId = ref<string | null>(null)
 const membersCountLabel = computed(() =>
@@ -36,35 +42,15 @@ async function loadSavedMembers() {
   }
 }
 
-function calculateAge(dateString: string | undefined): number {
-  if (!dateString) return 999
-  const birthDate = new Date(dateString)
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const m = today.getMonth() - birthDate.getMonth()
-  if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
-    age--
-  }
-  return age
-}
-
 const filteredMembers = computed(() => {
   return savedMembers.value.filter((m) => {
     const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
     const matchesSearch = fullName.includes(searchQuery.value.toLowerCase())
-
-    // Simplistic age filter implementation, using optional dateOfBirth
-    // Assuming dateOfBirth in PersistedMember is stored correctly (string or date)
-    let age = 30 // fallback if no dob
-    if (m.dateOfBirth) {
-      // Persisted dateOfBirth might be a string depending on serialization or a Date object
-      age = calculateAge(
-        m.dateOfBirth instanceof Date
-          ? m.dateOfBirth.toISOString()
-          : (m.dateOfBirth as string)
-      )
-    }
-    const matchesAge = age >= minAgeFilter.value && age <= maxAgeFilter.value
+    const matchesAge = matchesAgeRange(
+      m.dateOfBirth,
+      minAgeFilter.value,
+      maxAgeFilter.value
+    )
 
     return matchesSearch && matchesAge
   })
@@ -134,40 +120,12 @@ onMounted(() => {
 
     <!-- Additional filters -->
     <section class="mb-8 border-b-2 border-on-surface pb-6">
-      <div class="flex flex-col gap-2">
-        <div class="flex justify-between items-end mb-2">
-          <label
-            class="font-label text-[0.6875rem] font-bold uppercase tracking-tighter block text-secondary"
-            >{{ t('filters.age.label') }}</label
-          >
-          <span class="font-mono text-sm font-bold text-primary uppercase">{{
-            t('filters.age.range', { min: minAgeFilter, max: maxAgeFilter })
-          }}</span>
-        </div>
-        <div class="relative flex items-center gap-4">
-          <span class="font-mono text-[10px] text-secondary font-bold">5</span>
-          <div class="relative w-full h-2 flex items-center">
-            <input
-              v-model="minAgeFilter"
-              class="members-age-filter__input absolute w-full appearance-none bg-transparent z-20"
-              max="80"
-              min="5"
-              style="height: 0"
-              type="range"
-            />
-            <input
-              v-model="maxAgeFilter"
-              class="members-age-filter__input absolute w-full appearance-none bg-transparent z-20"
-              max="80"
-              min="5"
-              style="height: 0"
-              type="range"
-            />
-            <div class="absolute left-0 right-0 h-[2px] bg-primary"></div>
-          </div>
-          <span class="font-mono text-[10px] text-secondary font-bold">80</span>
-        </div>
-      </div>
+      <AgeRangeFilter
+        v-model:min-value="minAgeFilter"
+        v-model:max-value="maxAgeFilter"
+        :max-bound="AGE_FILTER_MAX"
+        :min-bound="AGE_FILTER_MIN"
+      />
     </section>
 
     <!-- Member Ledger List -->
@@ -244,62 +202,6 @@ onMounted(() => {
   </div>
 </template>
 
-<style scoped>
-input[type='range'] {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-/* The age filter uses two overlapping native sliders, so only the thumbs should catch touch input on mobile. */
-.members-age-filter__input {
-  pointer-events: none;
-}
-
-/* Keeping thumb hit-testing in component CSS avoids relying on generated utility selectors for vendor pseudo-elements. */
-.members-age-filter__input::-webkit-slider-thumb {
-  pointer-events: auto;
-}
-
-/* Firefox needs the same explicit thumb hit area or the overlaid range control becomes untouchable. */
-.members-age-filter__input::-moz-range-thumb {
-  pointer-events: auto;
-}
-
-input[type='range']::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 0px;
-  background: transparent;
-  border: none;
-}
-
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
-  /* Scoped CSS must use the shared design token names directly because Tailwind utilities no longer expose bare --primary aliases here. */
-  background: var(--color-primary);
-  border: 1px solid var(--color-on-surface);
-  margin-top: -8px;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-input[type='range']::-moz-range-track {
-  width: 100%;
-  height: 0px;
-  background: transparent;
-}
-
-input[type='range']::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-on-surface);
-  cursor: pointer;
-  border-radius: 0;
-}
-</style>
-
 <i18n lang="json">
 {
   "pl": {
@@ -309,12 +211,6 @@ input[type='range']::-moz-range-thumb {
     "search": {
       "label": "Szukaj w rejestrze",
       "placeholder": "Wpisz imię i nazwisko"
-    },
-    "filters": {
-      "age": {
-        "label": "Filtruj po wieku",
-        "range": "Wiek: {min} - {max}"
-      }
     },
     "states": {
       "loading": "Ładowanie członków...",
@@ -334,12 +230,6 @@ input[type='range']::-moz-range-thumb {
     "search": {
       "label": "Search the register",
       "placeholder": "Enter first and last name"
-    },
-    "filters": {
-      "age": {
-        "label": "Filter by age",
-        "range": "Age: {min} - {max}"
-      }
     },
     "states": {
       "loading": "Loading members...",

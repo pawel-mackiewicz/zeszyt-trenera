@@ -10,7 +10,14 @@ import { MemberNotFoundError } from '@/domain/model/member'
 import { db } from '@/db'
 import type { PersistedMember } from '@/infra'
 import { useAppServices } from '@/ui/appServices'
+import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import {
+  AGE_FILTER_MAX,
+  AGE_FILTER_MIN,
+  calculateAge,
+  matchesAgeRange
+} from '@/ui/utils/ageRange'
 
 type SubmitErrorKey =
   | 'missingStart'
@@ -32,8 +39,8 @@ const isLoading = ref(true)
 const loadFailed = ref(false)
 const isSubmitting = ref(false)
 const searchQuery = ref('')
-const maxAgeFilter = ref(80)
-const minAgeFilter = ref(5)
+const maxAgeFilter = ref(AGE_FILTER_MAX)
+const minAgeFilter = ref(AGE_FILTER_MIN)
 const selectedMemberIds = ref<string[]>([])
 const sessionDate = ref('')
 const sessionTime = ref('')
@@ -80,8 +87,11 @@ const filteredMembers = computed(() => {
     .filter((member) => {
       const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
       const matchesSearch = fullName.includes(searchQuery.value.toLowerCase())
-      const age = calculateAge(member.dateOfBirth)
-      const matchesAge = age >= minAgeFilter.value && age <= maxAgeFilter.value
+      const matchesAge = matchesAgeRange(
+        member.dateOfBirth,
+        minAgeFilter.value,
+        maxAgeFilter.value
+      )
 
       return matchesSearch && matchesAge
     })
@@ -249,31 +259,6 @@ async function loadSavedMembers() {
   }
 }
 
-function calculateAge(value: Date | string | undefined): number {
-  if (!value) {
-    return 999
-  }
-
-  const birthDate = value instanceof Date ? value : new Date(value)
-
-  if (Number.isNaN(birthDate.getTime())) {
-    return 999
-  }
-
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const monthDelta = today.getMonth() - birthDate.getMonth()
-
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && today.getDate() < birthDate.getDate())
-  ) {
-    age--
-  }
-
-  return age
-}
-
 function toDateInputValue(value: Date): string {
   const year = value.getFullYear()
   const month = String(value.getMonth() + 1).padStart(2, '0')
@@ -382,6 +367,12 @@ function commitSessionField() {
 
 function isSelected(memberId: string) {
   return selectedMemberIds.value.includes(memberId)
+}
+
+function formatMemberAge(member: PersistedMember) {
+  const age = calculateAge(member.dateOfBirth)
+
+  return age === null ? t('table.ageUnknown') : t('table.age', { age })
 }
 
 function toggleMember(memberId: string) {
@@ -640,38 +631,12 @@ onMounted(() => {
     <!-- What: keep filters and the roster in one continuous surface with a tighter handoff. Why: once the separator lines were removed, the old bottom spacing left an unnecessary visual hole before the member list on mobile. -->
     <section class="mb-4 pb-2">
       <div class="flex flex-col gap-2">
-        <div class="mb-2 flex items-end justify-between gap-4">
-          <label
-            class="block font-label text-[0.6875rem] font-bold uppercase tracking-tighter text-secondary"
-            >{{ t('filters.age.label') }}</label
-          >
-          <span class="font-mono text-sm font-bold uppercase text-primary">{{
-            t('filters.age.range', { min: minAgeFilter, max: maxAgeFilter })
-          }}</span>
-        </div>
-        <div class="relative flex items-center gap-4">
-          <span class="font-mono text-[10px] font-bold text-secondary">5</span>
-          <div class="relative flex h-2 w-full items-center">
-            <input
-              v-model.number="minAgeFilter"
-              class="attendance-age-filter__input absolute z-20 w-full appearance-none bg-transparent"
-              max="80"
-              min="5"
-              style="height: 0"
-              type="range"
-            />
-            <input
-              v-model.number="maxAgeFilter"
-              class="attendance-age-filter__input absolute z-20 w-full appearance-none bg-transparent"
-              max="80"
-              min="5"
-              style="height: 0"
-              type="range"
-            />
-            <div class="absolute inset-x-0 h-[2px] bg-primary"></div>
-          </div>
-          <span class="font-mono text-[10px] font-bold text-secondary">80</span>
-        </div>
+        <AgeRangeFilter
+          v-model:min-value="minAgeFilter"
+          v-model:max-value="maxAgeFilter"
+          :max-bound="AGE_FILTER_MAX"
+          :min-bound="AGE_FILTER_MIN"
+        />
         <div class="mt-6">
           <div class="flex items-center gap-4 border-b border-on-surface pb-2">
             <AppIcon class="text-primary" name="search" />
@@ -731,7 +696,7 @@ onMounted(() => {
           <p
             class="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.16em]"
           >
-            {{ t('table.age', { age: calculateAge(member.dateOfBirth) }) }}
+            {{ formatMemberAge(member) }}
           </p>
         </div>
 
@@ -790,58 +755,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-input[type='range'] {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-/* What: keep the slider interaction identical to the existing members screen. Why: mobile range thumbs must stay easy to grab without introducing a second control pattern for the same filter. */
-.attendance-age-filter__input {
-  pointer-events: none;
-}
-
-/* What: keep Firefox thumb dragging consistent with the members roster slider. Why: the attendance filter uses the same overlapping range pattern, so both browsers need the same direct thumb hit area. */
-.attendance-age-filter__input::-moz-range-thumb {
-  pointer-events: auto;
-}
-
-/* What: collapse the native track visuals. Why: the slider should rely on the shared custom rail already rendered in the template, matching the members list filter. */
-input[type='range']::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 0px;
-  background: transparent;
-  border: none;
-}
-
-/* What: reuse the square primary thumb from the members filter. Why: attendance and members expose the same age-range interaction and should read as one consistent control across the app. */
-input[type='range']::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-on-surface);
-  margin-top: -8px;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-/* What: neutralize Firefox track chrome the same way as WebKit. Why: without it, attendance would still render a browser-default rail that does not match the members screen. */
-input[type='range']::-moz-range-track {
-  width: 100%;
-  height: 0px;
-  background: transparent;
-}
-
-/* What: mirror the members thumb shape in Firefox. Why: the age slider needs identical affordance regardless of browser on the coach's device. */
-input[type='range']::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-on-surface);
-  cursor: pointer;
-  border-radius: 0;
-}
-
 /* What: present draft recovery as a centered blocking dialog. Why: when a coach returns to attendance, they must explicitly decide whether to continue or replace the saved list before touching the live roster again. */
 .attendance-recovery-dialog-backdrop {
   position: fixed;
@@ -1054,15 +967,10 @@ input[type='range']::-moz-range-thumb {
       "date": "Data treningu",
       "time": "Godzina treningu"
     },
-    "filters": {
-      "age": {
-        "label": "Zakres wieku",
-        "range": "{min} - {max} lat"
-      }
-    },
     "table": {
       "members": "Lista uczestników",
-      "age": "Wiek {age}"
+      "age": "Wiek {age}",
+      "ageUnknown": "Wiek nieznany"
     },
     "summary": {
       "eyebrow": "Suma obecnych",
@@ -1113,15 +1021,10 @@ input[type='range']::-moz-range-thumb {
       "date": "Training date",
       "time": "Training time"
     },
-    "filters": {
-      "age": {
-        "label": "Age range",
-        "range": "{min} - {max} years"
-      }
-    },
     "table": {
       "members": "Participants",
-      "age": "Age {age}"
+      "age": "Age {age}",
+      "ageUnknown": "Age unknown"
     },
     "summary": {
       "eyebrow": "Present total",

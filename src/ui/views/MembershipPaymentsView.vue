@@ -12,7 +12,14 @@ import type {
   UnpaidAttendedMembershipPaymentStatusMemberListItem
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
+import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import {
+  AGE_FILTER_MAX,
+  AGE_FILTER_MIN,
+  calculateAge,
+  matchesAgeRange
+} from '@/ui/utils/ageRange'
 
 type ObservableSubscription = {
   unsubscribe(): void
@@ -32,16 +39,13 @@ type ConfirmPaymentTarget = MembershipPaymentStatusMemberListItem & {
   coveredMonthLabel: string
 }
 
-const MIN_AGE = 5
-const MAX_AGE = 80
-
 const { queries, useCases } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
 
 const activeMonth = ref(startOfMonth(new Date()))
 const searchQuery = ref('')
-const minAgeFilter = ref(MIN_AGE)
-const maxAgeFilter = ref(MAX_AGE)
+const minAgeFilter = ref(AGE_FILTER_MIN)
+const maxAgeFilter = ref(AGE_FILTER_MAX)
 const isLoading = ref(true)
 const loadFailed = ref(false)
 const result = ref<MembershipPaymentStatusByMonthResult>({
@@ -57,15 +61,6 @@ const isConfirmingPayment = ref(false)
 let paymentsSubscription: ObservableSubscription | null = null
 
 const searchValue = computed(() => searchQuery.value.trim().toLowerCase())
-const ageFilterMin = computed(() =>
-  Math.min(minAgeFilter.value, maxAgeFilter.value)
-)
-const ageFilterMax = computed(() =>
-  Math.max(minAgeFilter.value, maxAgeFilter.value)
-)
-const hasDefaultAgeRange = computed(
-  () => ageFilterMin.value === MIN_AGE && ageFilterMax.value === MAX_AGE
-)
 const monthLabel = computed(() => formatMonth(activeMonth.value))
 const sourceMemberCount = computed(
   () =>
@@ -119,31 +114,6 @@ function formatMonth(value: Date): string {
   }).format(value)
 }
 
-function calculateAge(value: Date | undefined): number | null {
-  if (!value) {
-    return null
-  }
-
-  const birthDate = value instanceof Date ? value : new Date(value)
-
-  if (Number.isNaN(birthDate.getTime())) {
-    return null
-  }
-
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const monthDelta = today.getMonth() - birthDate.getMonth()
-
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && today.getDate() < birthDate.getDate())
-  ) {
-    age -= 1
-  }
-
-  return age
-}
-
 function formatMemberName(
   member: MembershipPaymentStatusMemberListItem
 ): string {
@@ -167,14 +137,11 @@ function matchesMemberFilters(
     return false
   }
 
-  const age = calculateAge(member.dateOfBirth)
-
-  if (age === null) {
-    // What: keep members without birth dates visible only when the age filter is untouched. Why: the UI cannot place unknown ages inside a narrowed range honestly, but hiding them by default would make the monthly ledger look incomplete.
-    return hasDefaultAgeRange.value
-  }
-
-  return age >= ageFilterMin.value && age <= ageFilterMax.value
+  return matchesAgeRange(
+    member.dateOfBirth,
+    minAgeFilter.value,
+    maxAgeFilter.value
+  )
 }
 
 function sortMembers<T extends MembershipPaymentStatusMemberListItem>(
@@ -378,42 +345,12 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <div class="payments-view__age-filter">
-        <div class="payments-view__age-header">
-          <label class="payments-view__filter-label">
-            {{ t('filters.age.label') }}
-          </label>
-          <span class="payments-view__age-value">{{
-            t('filters.age.range', {
-              min: ageFilterMin,
-              max: ageFilterMax
-            })
-          }}</span>
-        </div>
-        <div class="payments-view__age-track">
-          <span class="payments-view__age-bound">{{ MIN_AGE }}</span>
-          <div class="payments-view__age-slider">
-            <input
-              v-model.number="minAgeFilter"
-              class="payments-view__age-input"
-              :max="MAX_AGE"
-              :min="MIN_AGE"
-              style="height: 0"
-              type="range"
-            />
-            <input
-              v-model.number="maxAgeFilter"
-              class="payments-view__age-input"
-              :max="MAX_AGE"
-              :min="MIN_AGE"
-              style="height: 0"
-              type="range"
-            />
-            <div class="payments-view__age-rail"></div>
-          </div>
-          <span class="payments-view__age-bound">{{ MAX_AGE }}</span>
-        </div>
-      </div>
+      <AgeRangeFilter
+        v-model:min-value="minAgeFilter"
+        v-model:max-value="maxAgeFilter"
+        :max-bound="AGE_FILTER_MAX"
+        :min-bound="AGE_FILTER_MIN"
+      />
     </section>
 
     <div v-if="feedbackMessage" class="mb-6">
@@ -804,8 +741,7 @@ input[type='range'] {
   padding: 1.1rem 1.1rem 1.25rem;
 }
 
-.payments-view__search,
-.payments-view__age-filter {
+.payments-view__search {
   display: grid;
   gap: 0.8rem;
 }
@@ -849,86 +785,6 @@ input[type='range'] {
 
 .payments-view__search-input:focus {
   outline: none;
-}
-
-.payments-view__age-header {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.payments-view__age-value {
-  font-family: var(--font-mono);
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-hot);
-}
-
-.payments-view__age-track {
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.payments-view__age-bound {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--ink-soft);
-}
-
-.payments-view__age-slider {
-  position: relative;
-  display: flex;
-  align-items: center;
-  flex: 1;
-  height: 0.75rem;
-}
-
-/* What: keep the dual range slider touch-friendly on mobile. Why: only the thumbs should intercept touch input when two native inputs overlap on one rail. */
-.payments-view__age-input {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  width: 100%;
-  pointer-events: none;
-}
-
-.payments-view__age-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 16px;
-  width: 16px;
-  border: 1px solid var(--ink);
-  background: var(--accent-hot);
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.payments-view__age-input::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  border: 1px solid var(--ink);
-  background: var(--accent-hot);
-  pointer-events: auto;
-  cursor: pointer;
-  border-radius: 0;
-}
-
-input[type='range']::-webkit-slider-runnable-track,
-input[type='range']::-moz-range-track {
-  height: 0;
-  background: transparent;
-  border: 0;
-}
-
-.payments-view__age-rail {
-  position: absolute;
-  inset-inline: 0;
-  height: 2px;
-  background: var(--accent-hot);
 }
 
 .payments-view__sections {
@@ -1299,12 +1155,6 @@ input[type='range']::-moz-range-track {
       "label": "Szukaj członka",
       "placeholder": "Wpisz imię i nazwisko"
     },
-    "filters": {
-      "age": {
-        "label": "Filtruj po wieku",
-        "range": "Wiek: {min} - {max}"
-      }
-    },
     "actions": {
       "markAsPaid": "Oznacz jako opłacone",
       "confirmPayment": "Potwierdź płatność",
@@ -1371,12 +1221,6 @@ input[type='range']::-moz-range-track {
     "search": {
       "label": "Search member",
       "placeholder": "Type first and last name"
-    },
-    "filters": {
-      "age": {
-        "label": "Filter by age",
-        "range": "Age: {min} - {max}"
-      }
     },
     "actions": {
       "markAsPaid": "Mark as paid",

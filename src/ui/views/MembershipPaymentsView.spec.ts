@@ -186,6 +186,23 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Brak wyników dla tego filtra')
   })
 
+  it('keeps unknown ages at the default range and normalizes crossed handles', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Mystery Member')
+
+    const sliders = wrapper.findAll('input[type="range"]')
+    await sliders[0].setValue('60')
+    await sliders[1].setValue('30')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).toContain('Georges St-Pierre')
+    expect(wrapper.text()).toContain('Royce Gracie')
+    expect(wrapper.text()).not.toContain('Mystery Member')
+  })
+
   it('opens a confirmation dialog with the selected member and covered month', async () => {
     const wrapper = mountView()
     await flushPromises()
