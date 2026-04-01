@@ -12,6 +12,7 @@ import type { PersistedMember } from '@/infra'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
@@ -638,16 +639,13 @@ onMounted(() => {
           :min-bound="AGE_FILTER_MIN"
         />
         <div class="mt-6">
-          <div class="flex items-center gap-4 border-b border-on-surface pb-2">
-            <AppIcon class="text-primary" name="search" />
-            <input
-              id="attendance-search"
-              v-model="searchQuery"
-              class="w-full border-none bg-transparent p-0 font-mono text-lg uppercase placeholder:text-outline-variant focus:ring-0"
-              :placeholder="t('search.placeholder')"
-              type="text"
-            />
-          </div>
+          <!-- What: render the shared compact roster search directly under the filters. Why: attendance sets the mobile-first search pattern that the other list screens now reuse verbatim. -->
+          <SearchBar
+            v-model="searchQuery"
+            input-id="attendance-search"
+            :input-label="t('search.label')"
+            :placeholder="t('search.placeholder')"
+          />
         </div>
       </div>
     </section>

@@ -14,6 +14,7 @@ import type {
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
@@ -329,21 +330,13 @@ onBeforeUnmount(() => {
     </section>
 
     <section class="payments-view__filters">
-      <div class="payments-view__search">
-        <label class="payments-view__filter-label" for="payments-search">
-          {{ t('search.label') }}
-        </label>
-        <div class="payments-view__search-field">
-          <AppIcon class="payments-view__search-icon" name="search" />
-          <input
-            id="payments-search"
-            v-model="searchQuery"
-            class="payments-view__search-input"
-            :placeholder="t('search.placeholder')"
-            type="text"
-          />
-        </div>
-      </div>
+      <!-- What: reuse the shared compact roster search inside the payments filters. Why: the monthly ledger should feel like the same mobile-first member search flow as attendance and members. -->
+      <SearchBar
+        v-model="searchQuery"
+        input-id="payments-search"
+        :input-label="t('search.label')"
+        :placeholder="t('search.placeholder')"
+      />
 
       <AgeRangeFilter
         v-model:min-value="minAgeFilter"
@@ -739,52 +732,6 @@ input[type='range'] {
   gap: 1.5rem;
   margin-bottom: 1.5rem;
   padding: 1.1rem 1.1rem 1.25rem;
-}
-
-.payments-view__search {
-  display: grid;
-  gap: 0.8rem;
-}
-
-.payments-view__filter-label {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.payments-view__search-field {
-  display: flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid rgba(16, 59, 55, 0.18);
-}
-
-.payments-view__search-icon {
-  color: var(--accent-hot);
-}
-
-.payments-view__search-input {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  color: var(--ink);
-  font-family: var(--font-mono);
-  font-size: 0.98rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.payments-view__search-input::placeholder {
-  color: var(--outline);
-}
-
-.payments-view__search-input:focus {
-  outline: none;
 }
 
 .payments-view__sections {

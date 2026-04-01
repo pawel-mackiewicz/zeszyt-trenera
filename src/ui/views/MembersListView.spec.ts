@@ -55,7 +55,7 @@ describe('MembersListView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Loading members...')
-    expect(wrapper.find('input').attributes('placeholder')).toBe(
+    expect(wrapper.find('#members-search').attributes('placeholder')).toBe(
       'Enter first and last name'
     )
   })

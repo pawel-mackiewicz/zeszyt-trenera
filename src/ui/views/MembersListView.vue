@@ -6,6 +6,7 @@ import { db } from '@/db'
 import type { PersistedMember } from '@/infra'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import SearchBar from '@/ui/components/SearchBar.vue'
 import { useRouter } from '@/ui/router/runtime'
 import {
   AGE_FILTER_MAX,
@@ -93,20 +94,14 @@ onMounted(() => {
     <section
       class="mb-12 grid grid-cols-1 md:grid-cols-12 gap-0 border-b-2 border-on-surface pb-4 items-end"
     >
-      <div class="md:col-span-11 relative">
-        <label
-          class="font-label text-[0.6875rem] font-bold uppercase tracking-tighter mb-1 block text-secondary"
-          >{{ t('search.label') }}</label
-        >
-        <div class="flex items-center gap-4">
-          <AppIcon class="text-primary" name="search" />
-          <input
-            v-model="searchQuery"
-            class="w-full bg-transparent border-none p-0 focus:ring-0 font-mono text-lg placeholder:text-outline-variant uppercase"
-            :placeholder="t('search.placeholder')"
-            type="text"
-          />
-        </div>
+      <div class="md:col-span-11">
+        <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
+        <SearchBar
+          v-model="searchQuery"
+          input-id="members-search"
+          :input-label="t('search.label')"
+          :placeholder="t('search.placeholder')"
+        />
       </div>
       <div class="md:col-span-1 flex justify-end mt-4 md:mt-0">
         <button
