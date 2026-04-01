@@ -45,8 +45,7 @@ export type AppQueries = {
       input: ListAttendanceSessionsByMonthQueryInput
     ): Promise<AttendanceSessionListItem[]>
   }
-  // What: keep the new reactive payments read optional on the shared type for now. Why: this backend task should expose the query without forcing unrelated UI-only test doubles to mock a screen that does not exist yet.
-  readonly observeMembershipPaymentStatusByMonth?: {
+  readonly observeMembershipPaymentStatusByMonth: {
     handle(
       input: ObserveMembershipPaymentStatusByMonthQueryInput
     ): Observable<MembershipPaymentStatusByMonthResult>

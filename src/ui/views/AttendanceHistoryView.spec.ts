@@ -17,10 +17,14 @@ describe('AttendanceHistoryView', () => {
     vi.setSystemTime(new Date(2026, 9, 24, 18, 0, 0))
 
     mockListAttendanceSessionsByMonthHandle = vi.fn().mockResolvedValue([])
+    const mockObserveMembershipPaymentStatusByMonthHandle = vi.fn()
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
         listAttendanceSessionsByMonth: {
           handle: mockListAttendanceSessionsByMonthHandle
+        },
+        observeMembershipPaymentStatusByMonth: {
+          handle: mockObserveMembershipPaymentStatusByMonthHandle
         }
       },
       useCases: {} as never

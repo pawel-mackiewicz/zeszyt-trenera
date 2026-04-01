@@ -32,11 +32,16 @@ describe('AddMemberView', () => {
     } as unknown as ReturnType<typeof useRouter>)
 
     mockRegisterMemberHandle = vi.fn().mockResolvedValue(undefined)
+    const mockObserveMembershipPaymentStatusByMonthHandle = vi.fn()
     vi.mocked(useAppServices).mockReturnValue({
       useCases: {
         registerMember: { handle: mockRegisterMemberHandle } as unknown
       } as unknown,
-      queries: {} as unknown
+      queries: {
+        observeMembershipPaymentStatusByMonth: {
+          handle: mockObserveMembershipPaymentStatusByMonthHandle
+        }
+      } as unknown
     } as unknown as ReturnType<typeof useAppServices>)
   })
 

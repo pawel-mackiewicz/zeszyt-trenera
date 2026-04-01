@@ -5,6 +5,7 @@ import MembersListView from '@/ui/views/MembersListView.vue'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
+import MembershipPaymentsView from '@/ui/views/MembershipPaymentsView.vue'
 
 type AppRouteMeta = {
   showBack?: boolean
@@ -15,6 +16,7 @@ type AppRouteMeta = {
 
 export type AppRouteName =
   | 'members-list'
+  | 'membership-payments'
   | 'add-member'
   | 'attendance-history'
   | 'attendance-record'
@@ -36,6 +38,12 @@ const baseRoutes = [
     path: '/',
     name: 'members-list',
     component: MembersListView,
+    meta: {}
+  },
+  {
+    path: '/payments',
+    name: 'membership-payments',
+    component: MembershipPaymentsView,
     meta: {}
   },
   {

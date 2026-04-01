@@ -23,10 +23,14 @@ describe('uiAppServices', () => {
 
   it('returns the provided service bag', () => {
     const handle = vi.fn()
+    const observeHandle = vi.fn()
     const appServices: UiAppServices = {
       queries: {
         listAttendanceSessionsByMonth: {
           handle
+        },
+        observeMembershipPaymentStatusByMonth: {
+          handle: observeHandle
         }
       },
       useCases: {

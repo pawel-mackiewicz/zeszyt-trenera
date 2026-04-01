@@ -25,6 +25,9 @@ describe('router', () => {
 
   it('registers the attendance route in the normal application flow', () => {
     const routes = createAppRoutes(false)
+    const membershipPaymentsRoute = routes.find(
+      (route) => route.name === 'membership-payments'
+    )
     const attendanceHistoryRoute = routes.find(
       (route) => route.name === 'attendance-history'
     )
@@ -32,6 +35,10 @@ describe('router', () => {
       (route) => route.name === 'attendance-record'
     )
 
+    expect(membershipPaymentsRoute).toMatchObject({
+      path: '/payments',
+      meta: {}
+    })
     expect(attendanceHistoryRoute).toMatchObject({
       path: '/attendance',
       meta: {}

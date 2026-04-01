@@ -189,17 +189,20 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Amanda',
       lastName: 'Nunes',
-      phoneNumber: '+48 111 111 111'
+      phoneNumber: '+48 111 111 111',
+      dateOfBirth: new Date('1990-05-30T00:00:00Z')
     })
     await services.useCases.registerMember.handle({
       firstName: 'Georges',
       lastName: 'St-Pierre',
-      phoneNumber: '+48 222 222 222'
+      phoneNumber: '+48 222 222 222',
+      dateOfBirth: new Date('1981-05-19T00:00:00Z')
     })
     await services.useCases.registerMember.handle({
       firstName: 'Royce',
       lastName: 'Gracie',
-      phoneNumber: '+48 333 333 333'
+      phoneNumber: '+48 333 333 333',
+      dateOfBirth: new Date('1966-12-12T00:00:00Z')
     })
 
     const [amanda, georges, royce] = await database.members.toArray()
@@ -219,10 +222,9 @@ describe('appServices', () => {
 
     const query = services.queries.observeMembershipPaymentStatusByMonth
 
-    expect(query).toBeDefined()
     await expect(
       waitForFirstEmission(
-        query!.handle({
+        query.handle({
           month: new Date('2026-03-16T12:00:00Z')
         })
       )
@@ -231,14 +233,16 @@ describe('appServices', () => {
         {
           id: amanda.id,
           firstName: 'amanda',
-          lastName: 'nunes'
+          lastName: 'nunes',
+          dateOfBirth: new Date('1990-05-30T00:00:00Z')
         }
       ],
       unpaidAbsentMembers: [
         {
           id: georges.id,
           firstName: 'georges',
-          lastName: 'st-pierre'
+          lastName: 'st-pierre',
+          dateOfBirth: new Date('1981-05-19T00:00:00Z')
         }
       ],
       unpaidAttendedMembers: [
@@ -246,6 +250,7 @@ describe('appServices', () => {
           id: royce.id,
           firstName: 'royce',
           lastName: 'gracie',
+          dateOfBirth: new Date('1966-12-12T00:00:00Z'),
           attendanceSessionIds: expect.arrayContaining([expect.any(String)])
         }
       ]
@@ -264,7 +269,7 @@ describe('appServices', () => {
     expect(
       (
         await waitForFirstEmission(
-          query!.handle({
+          query.handle({
             month: new Date('2026-03-16T12:00:00Z')
           })
         )

@@ -54,6 +54,7 @@ const localeOptions = [
 // The shell owns route chrome labels so document titles can react to locale changes without leaking translated strings into router metadata.
 const routeTitleKeys = {
   'members-list': 'routes.membersList',
+  'membership-payments': 'routes.membershipPayments',
   'add-member': 'routes.addMember',
   'attendance-history': 'routes.attendanceHistory',
   'attendance-record': 'routes.attendanceRecord',
@@ -70,6 +71,9 @@ const appName = computed(() => t('app.name'))
 const currentRouteName = computed(() => {
   return typeof route.name === 'string' ? (route.name as AppRouteName) : null
 })
+const isMembershipPaymentsRoute = computed(
+  () => currentRouteName.value === 'membership-payments'
+)
 const isAttendanceHistoryRoute = computed(
   () => currentRouteName.value === 'attendance-history'
 )
@@ -452,15 +456,22 @@ function navigationLabel(item: NavigationItem) {
             >{{ t('bottomNav.members') }}</span
           >
         </RouterLink>
-        <div
-          class="flex flex-col items-center justify-center text-secondary px-4 py-1 w-full opacity-50 cursor-not-allowed"
+        <!-- What: make the payments area a first-class shell destination. Why: once the monthly ledger exists, coaches should reach it from the persistent PWA navigation instead of a dead tab. -->
+        <RouterLink
+          to="/payments"
+          class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
+          :class="[
+            isMembershipPaymentsRoute
+              ? 'bg-primary text-white'
+              : 'text-on-surface hover:bg-surface-container-low'
+          ]"
         >
           <AppIcon name="payments" />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
             >{{ t('bottomNav.payments') }}</span
           >
-        </div>
+        </RouterLink>
         <!-- What: send the attendance tab straight to the history route. Why: coaches should reach saved sessions in one tap on mobile, while the live recording flow stays anchored inside the history screen instead of a popover. -->
         <RouterLink
           to="/attendance"
@@ -810,6 +821,7 @@ function navigationLabel(item: NavigationItem) {
     },
     "routes": {
       "membersList": "Członkowie",
+      "membershipPayments": "Płatności",
       "addMember": "Dodaj członka",
       "attendanceHistory": "Historia treningów",
       "attendanceRecord": "Nowy trening",
@@ -893,6 +905,7 @@ function navigationLabel(item: NavigationItem) {
     },
     "routes": {
       "membersList": "Members",
+      "membershipPayments": "Payments",
       "addMember": "Add member",
       "attendanceHistory": "Training history",
       "attendanceRecord": "New training",

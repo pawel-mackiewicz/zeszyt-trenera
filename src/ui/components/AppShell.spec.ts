@@ -277,6 +277,19 @@ describe('AppShell', () => {
     )
   })
 
+  it('activates the payments route title on the monthly ledger screen', () => {
+    mockRoute.name = 'membership-payments'
+    mockRoute.path = '/payments'
+    mockRoute.fullPath = '/payments'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(document.title).toBe('Płatności • Zeszyt Trenera')
+    expect(wrapper.get('a[href="/payments"]').classes()).toContain('bg-primary')
+  })
+
   it('routes the bottom attendance tab straight to training history', () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
@@ -290,6 +303,9 @@ describe('AppShell', () => {
       wrapper.find('button[aria-label="Zamknij menu obecności"]').exists()
     ).toBe(false)
     expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
+    expect(wrapper.get('a[href="/payments"]').text().toUpperCase()).toContain(
+      'PŁATNOŚCI'
+    )
     expect(wrapper.get('a[href="/attendance"]').text().toUpperCase()).toContain(
       'OBECNOŚCI'
     )
