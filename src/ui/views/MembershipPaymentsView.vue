@@ -14,6 +14,7 @@ import type {
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
@@ -62,7 +63,6 @@ const isConfirmingPayment = ref(false)
 let paymentsSubscription: ObservableSubscription | null = null
 
 const searchValue = computed(() => searchQuery.value.trim().toLowerCase())
-const monthLabel = computed(() => formatMonth(activeMonth.value))
 const sourceMemberCount = computed(
   () =>
     result.value.paidMembers.length +
@@ -102,10 +102,6 @@ const feedbackMessage = computed(() => {
 
 function startOfMonth(value: Date): Date {
   return new Date(value.getFullYear(), value.getMonth(), 1)
-}
-
-function addMonths(value: Date, offset: number): Date {
-  return new Date(value.getFullYear(), value.getMonth() + offset, 1)
 }
 
 function formatMonth(value: Date): string {
@@ -207,10 +203,11 @@ function subscribeToPaymentsLedger(monthStart: Date) {
     })
 }
 
-function changeMonth(offset: number) {
+function handleMonthChange(month: Date) {
+  // What: reset month-specific UI state before swapping the shared selector value. Why: payment feedback and confirmation copy belong to one covered month and must not leak into the next ledger.
   paymentFeedback.value = null
   closeConfirmationDialog()
-  activeMonth.value = addMonths(activeMonth.value, offset)
+  activeMonth.value = month
 }
 
 function retryLoading() {
@@ -302,31 +299,11 @@ onBeforeUnmount(() => {
         <h2 class="payments-view__title">{{ t('hero.title') }}</h2>
       </div>
 
-      <section class="payments-view__month-card" aria-live="polite">
-        <div class="payments-view__month-controls">
-          <button
-            id="payments-prev-month"
-            class="payments-view__month-button"
-            :aria-label="t('period.previous')"
-            type="button"
-            @click="changeMonth(-1)"
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          <p id="payments-month-label" class="payments-view__month-label">
-            {{ monthLabel }}
-          </p>
-          <button
-            id="payments-next-month"
-            class="payments-view__month-button"
-            :aria-label="t('period.next')"
-            type="button"
-            @click="changeMonth(1)"
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
-      </section>
+      <!-- What: reuse the shared month navigator from attendance history. Why: both monthly ledgers should move through time with one consistent mobile-first control and one accessibility contract. -->
+      <MonthSelector
+        :model-value="activeMonth"
+        @update:model-value="handleMonthChange"
+      />
     </section>
 
     <section class="payments-view__filters">
@@ -665,7 +642,6 @@ input[type='range'] {
   color: var(--ink);
 }
 
-.payments-view__month-card,
 .payments-view__filters,
 .payments-section,
 .payments-view__empty-card,
@@ -675,56 +651,6 @@ input[type='range'] {
   background: var(--payments-surface);
   box-shadow: var(--payments-shadow);
   backdrop-filter: blur(10px);
-}
-
-.payments-view__month-card {
-  width: min(100%, 22rem);
-  padding: 1rem 1.1rem;
-}
-
-.payments-view__month-controls {
-  /* What: keep month navigation locked into clear edge actions around one centered label. Why: coaches switch months with their thumb and need the target month to stay visually stable while browsing. */
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.payments-view__month-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.8rem;
-  height: 2.8rem;
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--accent-strong);
-  font-family: var(--font-mono);
-  font-size: 1.35rem;
-  font-weight: 700;
-  transition:
-    transform 100ms ease,
-    background-color 100ms ease,
-    color 100ms ease;
-}
-
-.payments-view__month-button:hover,
-.payments-view__month-button:focus-visible {
-  transform: translate(2px, 2px);
-  background: var(--accent-strong);
-  color: white;
-}
-
-.payments-view__month-label {
-  margin: 0;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 0.96rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink);
 }
 
 .payments-view__filters {
@@ -1094,10 +1020,6 @@ input[type='range'] {
       "eyebrow": "Miesięczny status składek",
       "title": "Płatności"
     },
-    "period": {
-      "previous": "Pokaż poprzedni miesiąc",
-      "next": "Pokaż następny miesiąc"
-    },
     "search": {
       "label": "Szukaj członka",
       "placeholder": "Wpisz imię i nazwisko"
@@ -1160,10 +1082,6 @@ input[type='range'] {
     "hero": {
       "eyebrow": "Monthly membership ledger",
       "title": "Payments"
-    },
-    "period": {
-      "previous": "Show previous month",
-      "next": "Show next month"
     },
     "search": {
       "label": "Search member",

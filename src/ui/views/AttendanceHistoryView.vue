@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { RouterLink } from '@/ui/router/runtime'
 
 type AttendanceHistoryRow = {
@@ -20,20 +21,10 @@ const sessions = ref<AttendanceHistoryRow[]>([])
 const isLoading = ref(true)
 const loadFailed = ref(false)
 
-const monthLabel = computed(() =>
-  new Intl.DateTimeFormat(locale.value, {
-    month: 'long',
-    year: 'numeric'
-  }).format(activeMonth.value)
-)
 const hasSessions = computed(() => sessions.value.length > 0)
 
 function startOfMonth(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), 1)
-}
-
-function addMonths(value: Date, offset: number) {
-  return new Date(value.getFullYear(), value.getMonth() + offset, 1)
 }
 
 function formatSessionDate(value: Date) {
@@ -77,10 +68,6 @@ async function loadSessionsForMonth(monthStart: Date) {
   }
 }
 
-function changeMonth(offset: number) {
-  activeMonth.value = addMonths(activeMonth.value, offset)
-}
-
 watch(activeMonth, (monthStart) => {
   void loadSessionsForMonth(monthStart)
 })
@@ -101,34 +88,8 @@ onMounted(() => {
         </h2>
       </div>
 
-      <section class="attendance-history__period-card" aria-live="polite">
-        <div class="attendance-history__period-controls">
-          <button
-            id="attendance-history-prev-month"
-            class="attendance-history__period-button"
-            :aria-label="t('period.previous')"
-            type="button"
-            @click="changeMonth(-1)"
-          >
-            <span aria-hidden="true">‹</span>
-          </button>
-          <p
-            id="attendance-history-month-label"
-            class="attendance-history__period-label"
-          >
-            {{ monthLabel }}
-          </p>
-          <button
-            id="attendance-history-next-month"
-            class="attendance-history__period-button"
-            :aria-label="t('period.next')"
-            type="button"
-            @click="changeMonth(1)"
-          >
-            <span aria-hidden="true">›</span>
-          </button>
-        </div>
-      </section>
+      <!-- What: reuse one shared month navigator across monthly archive screens. Why: the training history and payments ledgers should not drift through separate copies of the same mobile-first control. -->
+      <MonthSelector v-model="activeMonth" />
     </section>
 
     <section class="attendance-history__panel">
@@ -235,81 +196,6 @@ onMounted(() => {
   letter-spacing: -0.06em;
   text-transform: uppercase;
   color: var(--color-on-surface);
-}
-
-.attendance-history__period-card {
-  display: grid;
-  gap: 0.9rem;
-  width: min(100%, 22rem);
-  min-width: 0;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(16, 59, 55, 0.2);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--history-panel-shadow);
-}
-
-.attendance-history__period-controls {
-  /* What: lock the month switcher into explicit arrow / label / arrow columns. Why: the desktop card was relying on content-sized flex spacing, which let the buttons drift toward the card edges and made the selector look broken on wider screens. */
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.attendance-history__period-eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
-}
-
-.attendance-history__period-label {
-  margin: 0;
-  min-width: 0;
-  padding-inline: 0.25rem;
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: 1rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.attendance-history__period-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid rgba(16, 59, 55, 0.15);
-  background: var(--color-surface);
-  color: var(--color-primary);
-  box-shadow: var(--history-panel-shadow);
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 160ms ease;
-}
-
-.attendance-history__period-button:hover,
-.attendance-history__period-button:focus-visible {
-  background: var(--color-surface-container-low);
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.attendance-history__period-button:focus-visible {
-  outline: none;
-}
-
-.attendance-history__period-button span {
-  font-family: var(--font-headline);
-  font-size: 1.8rem;
-  line-height: 1;
 }
 
 .attendance-history__panel {
@@ -545,20 +431,6 @@ onMounted(() => {
   .attendance-history__row-count {
     font-size: 0.875rem;
   }
-
-  .attendance-history__period-card {
-    width: 100%;
-    min-width: 0;
-  }
-
-  /* What: preserve a comfortable label width without forcing overflow on compact screens. Why: the month name needs to stay readable on phones after the desktop grid fix tightens the card geometry. */
-  .attendance-history__period-controls {
-    gap: 0.55rem;
-  }
-
-  .attendance-history__period-label {
-    font-size: 0.875rem;
-  }
 }
 </style>
 
@@ -569,11 +441,6 @@ onMounted(() => {
       "eyebrow": "Lokalna historia",
       "title": "Historia treningów",
       "body": "Przeglądaj zapisane treningi miesiąc po miesiącu bez mieszania trybu archiwum z żywym zapisem."
-    },
-    "period": {
-      "eyebrow": "Aktywny okres",
-      "previous": "Poprzedni miesiąc",
-      "next": "Następny miesiąc"
     },
     "ledger": {
       "date": "Data treningu",
@@ -598,11 +465,6 @@ onMounted(() => {
       "eyebrow": "Local history",
       "title": "Training history",
       "body": "Browse saved sessions month by month without mixing archive browsing with live recording."
-    },
-    "period": {
-      "eyebrow": "Active period",
-      "previous": "Previous month",
-      "next": "Next month"
     },
     "ledger": {
       "date": "Training date",

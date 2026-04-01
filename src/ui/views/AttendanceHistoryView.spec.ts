@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
@@ -54,13 +55,17 @@ describe('AttendanceHistoryView', () => {
     })
   })
 
-  it('changes the selected month when the period arrows are used', async () => {
+  it('reloads history when the shared month selector emits a different month', async () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('#attendance-history-prev-month').trigger('click')
+    wrapper
+      .getComponent(MonthSelector)
+      .vm.$emit('update:modelValue', new Date(2026, 8, 1))
     await flushPromises()
-    await wrapper.get('#attendance-history-next-month').trigger('click')
+    wrapper
+      .getComponent(MonthSelector)
+      .vm.$emit('update:modelValue', new Date(2026, 9, 1))
     await flushPromises()
 
     expect(mockListAttendanceSessionsByMonthHandle).toHaveBeenNthCalledWith(2, {
@@ -71,16 +76,13 @@ describe('AttendanceHistoryView', () => {
     })
   })
 
-  it('renders the month switcher inside a dedicated control row', async () => {
+  it('renders the shared month selector with the current month label', async () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const controls = wrapper.get('.attendance-history__period-controls')
+    const selector = wrapper.getComponent(MonthSelector)
 
-    expect(controls.findAll('button')).toHaveLength(2)
-    expect(controls.get('#attendance-history-month-label').text()).toBe(
-      'październik 2026'
-    )
+    expect(selector.text()).toContain('październik 2026')
   })
 
   it('renders the monthly ledger rows without the analytics section', async () => {

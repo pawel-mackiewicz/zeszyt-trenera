@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { MembershipPaymentAlreadyExistsError } from '@/domain/model/MembershipPayment'
+import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import MembershipPaymentsView from '@/ui/views/MembershipPaymentsView.vue'
@@ -134,13 +135,17 @@ describe('MembershipPaymentsView', () => {
     })
   })
 
-  it('changes the selected month when the period arrows are used', async () => {
+  it('resubscribes when the shared month selector emits a different month', async () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('#payments-prev-month').trigger('click')
+    wrapper
+      .getComponent(MonthSelector)
+      .vm.$emit('update:modelValue', new Date(2026, 8, 1))
     await flushPromises()
-    await wrapper.get('#payments-next-month').trigger('click')
+    wrapper
+      .getComponent(MonthSelector)
+      .vm.$emit('update:modelValue', new Date(2026, 9, 1))
     await flushPromises()
 
     expect(
