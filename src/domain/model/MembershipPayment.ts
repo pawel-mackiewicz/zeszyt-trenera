@@ -22,6 +22,17 @@ export type MembershipPaymentSnapshot = {
   createdAt: Date
 }
 
+/**
+ * Serializes a calendar month into the canonical membership-payment key.
+ *
+ * Why: the read query and the UI confirmation flow both need the exact same month identity that the write side validates and persists.
+ */
+export function toMembershipPaymentCoveredMonth(value: Date): string {
+  const month = String(value.getMonth() + 1).padStart(2, '0')
+
+  return `${value.getFullYear()}-${month}`
+}
+
 export class MembershipPayment {
   public readonly id: string
 

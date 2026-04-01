@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Observable } from 'dexie'
 
 import {
   AttendanceListAlreadyExistsError,
@@ -45,6 +46,9 @@ describe('appServices', () => {
     expect(services.database).toBe(database)
     expect(services.queries.listAttendanceSessionsByMonth).toBe(
       services.queries.listAttendanceSessionsByMonth
+    )
+    expect(services.queries.observeMembershipPaymentStatusByMonth).toBe(
+      services.queries.observeMembershipPaymentStatusByMonth
     )
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
@@ -177,6 +181,95 @@ describe('appServices', () => {
         attendanceCount: 1
       }
     ])
+  })
+
+  it('assembles the reactive monthly membership payment status query on top of the Dexie adapters', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Amanda',
+      lastName: 'Nunes',
+      phoneNumber: '+48 111 111 111'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'Georges',
+      lastName: 'St-Pierre',
+      phoneNumber: '+48 222 222 222'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'Royce',
+      lastName: 'Gracie',
+      phoneNumber: '+48 333 333 333'
+    })
+
+    const [amanda, georges, royce] = await database.members.toArray()
+
+    await services.useCases.registerMembershipPayment.handle({
+      memberId: amanda.id,
+      coveredMonth: '2026-03'
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [royce.id],
+      start: new Date('2026-03-05T18:00:00Z')
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [royce.id, amanda.id],
+      start: new Date('2026-03-12T18:00:00Z')
+    })
+
+    const query = services.queries.observeMembershipPaymentStatusByMonth
+
+    expect(query).toBeDefined()
+    await expect(
+      waitForFirstEmission(
+        query!.handle({
+          month: new Date('2026-03-16T12:00:00Z')
+        })
+      )
+    ).resolves.toEqual({
+      paidMembers: [
+        {
+          id: amanda.id,
+          firstName: 'amanda',
+          lastName: 'nunes'
+        }
+      ],
+      unpaidAbsentMembers: [
+        {
+          id: georges.id,
+          firstName: 'georges',
+          lastName: 'st-pierre'
+        }
+      ],
+      unpaidAttendedMembers: [
+        {
+          id: royce.id,
+          firstName: 'royce',
+          lastName: 'gracie',
+          attendanceSessionIds: expect.arrayContaining([expect.any(String)])
+        }
+      ]
+    })
+
+    const attendanceLists = await database.attendanceLists
+      .where('start')
+      .between(
+        new Date('2026-03-01T00:00:00Z'),
+        new Date('2026-04-01T00:00:00Z'),
+        true,
+        false
+      )
+      .toArray()
+
+    expect(
+      (
+        await waitForFirstEmission(
+          query!.handle({
+            month: new Date('2026-03-16T12:00:00Z')
+          })
+        )
+      ).unpaidAttendedMembers[0].attendanceSessionIds
+    ).toEqual(attendanceLists.map((attendanceList) => attendanceList.id))
   })
 
   it('throws a domain error when trying to register a second club', async () => {
@@ -478,3 +571,18 @@ describe('appServices', () => {
     await expect(database.events.toArray()).resolves.toHaveLength(0)
   })
 })
+
+function waitForFirstEmission<T>(observable: Observable<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const subscription = observable.subscribe({
+      next(value) {
+        resolve(value)
+        queueMicrotask(() => subscription.unsubscribe())
+      },
+      error(error) {
+        reject(error)
+        queueMicrotask(() => subscription.unsubscribe())
+      }
+    })
+  })
+}

@@ -101,7 +101,8 @@ describe('inspectIndexedDb', () => {
     )
 
     expect(snapshot.databaseName).toBe(database.name)
-    expect(snapshot.schemaVersion).toBe(8)
+    // What: pin the inspector to the current Dexie schema version. Why: the debug view should surface the exact schema revision the app is shipping.
+    expect(snapshot.schemaVersion).toBe(9)
     expect(snapshot.tableSnapshots).toHaveLength(6)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
@@ -142,7 +143,7 @@ describe('inspectIndexedDb', () => {
     })
     expect(membershipPaymentsTable).toMatchObject({
       primaryKey: 'id',
-      indexes: ['[memberId+coveredMonth]'],
+      indexes: ['[memberId+coveredMonth]', 'coveredMonth'],
       rowCount: 0,
       columns: []
     })

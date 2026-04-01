@@ -83,6 +83,18 @@ export class TrainerNotebookDb extends Dexie {
       // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
       attendanceLists: 'id, &start'
     })
+
+    this.version(9).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // The compound identity index lets offline duplicate checks stay deterministic
+      members: 'id, [firstName+lastName+phoneNumber]',
+      // What: add a month-only payment index. Why: the reactive payments ledger groups by covered month first, so mobile re-reads should not scan the full payment table after every local write.
+      membershipPayments: 'id, [memberId+coveredMonth], coveredMonth',
+      // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
+      attendanceLists: 'id, &start'
+    })
   }
 }
 

@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest'
 import {
   InvalidMembershipPaymentCoveredMonthError,
   MembershipPayment,
-  MembershipPaymentRecordedDomainEvent
+  MembershipPaymentRecordedDomainEvent,
+  toMembershipPaymentCoveredMonth
 } from '@/domain/model/MembershipPayment'
 
 describe('MembershipPayment Model', () => {
@@ -138,5 +139,12 @@ describe('MembershipPayment Model', () => {
         createdAt: new Date('2026-03-20T00:00:00Z')
       })
     ).toThrow(InvalidMembershipPaymentCoveredMonthError)
+  })
+
+  it('formats a calendar month into the canonical covered-month key', () => {
+    // The formatter lives with the domain contract so every caller derives the same persistence key before touching the write model.
+    expect(
+      toMembershipPaymentCoveredMonth(new Date('2026-03-20T15:30:00Z'))
+    ).toBe('2026-03')
   })
 })

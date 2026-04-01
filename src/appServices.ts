@@ -1,3 +1,5 @@
+import type { Observable } from 'dexie'
+
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
@@ -23,6 +25,11 @@ import {
   type AttendanceSessionListItem,
   type ListAttendanceSessionsByMonthQueryInput
 } from '@/read/ListAttendanceSessionsByMonthQuery'
+import {
+  ObserveMembershipPaymentStatusByMonthQuery,
+  type MembershipPaymentStatusByMonthResult,
+  type ObserveMembershipPaymentStatusByMonthQueryInput
+} from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 
 export type AppUseCases = {
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
@@ -37,6 +44,12 @@ export type AppQueries = {
     handle(
       input: ListAttendanceSessionsByMonthQueryInput
     ): Promise<AttendanceSessionListItem[]>
+  }
+  // What: keep the new reactive payments read optional on the shared type for now. Why: this backend task should expose the query without forcing unrelated UI-only test doubles to mock a screen that does not exist yet.
+  readonly observeMembershipPaymentStatusByMonth?: {
+    handle(
+      input: ObserveMembershipPaymentStatusByMonthQueryInput
+    ): Observable<MembershipPaymentStatusByMonthResult>
   }
 }
 
@@ -79,6 +92,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   )
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
+  )
+  const resolveObserveMembershipPaymentStatusByMonth = lazy(
+    () => new ObserveMembershipPaymentStatusByMonthQuery(database)
   )
   const resolveRegisterClub = lazy(
     () =>
@@ -141,6 +157,10 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()
+    },
+    // Keeping the reactive payments read on the shared service bag prepares the upcoming screen to subscribe through the application boundary instead of opening its own Dexie watcher.
+    get observeMembershipPaymentStatusByMonth() {
+      return resolveObserveMembershipPaymentStatusByMonth()
     }
   }
 
