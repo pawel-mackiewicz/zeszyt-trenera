@@ -2,6 +2,8 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { useRouter } from '@/ui/router/runtime'
+
 import {
   AttendanceListAlreadyExistsError,
   InvalidAttendanceListStartError
@@ -33,6 +35,7 @@ type AttendanceDraft = {
 }
 
 const { useCases } = useAppServices()
+const router = useRouter()
 const { t, locale } = useI18n({ useScope: 'local' })
 
 const savedMembers = ref<PersistedMember[]>([])
@@ -471,6 +474,8 @@ async function handleSubmit() {
     successVisible.value = true
     // What: seed the next draft on the same quarter-hour cadence as the picker. Why: after a successful save, the coach should land on a fresh session time the UI can represent and persist consistently.
     resetDraft(snapDateToSessionTimeGrid(new Date()))
+    // What: return to the attendance archive right after persisting a session. Why: once the save succeeds, coaches should immediately see the recorded history state instead of staying in the live-entry form.
+    await router.push('/attendance')
   } catch (error) {
     submitErrorKey.value = resolveSubmitErrorKey(error)
   } finally {
