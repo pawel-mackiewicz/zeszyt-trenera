@@ -9,8 +9,9 @@ import {
   MemberAlreadyExistsError
 } from '@/domain/model/member'
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
-import { useRouter } from '@/ui/router/runtime'
 import { useAppServices } from '@/ui/appServices'
+import AppButton from '@/ui/components/AppButton.vue'
+import { useRouter } from '@/ui/router/runtime'
 
 const router = useRouter()
 const { useCases } = useAppServices()
@@ -197,13 +198,10 @@ async function handleSubmit() {
 
       <!-- Submit Action -->
       <div class="pt-8 flex justify-end">
-        <button
-          type="submit"
-          :disabled="isSubmitting"
-          class="bg-primary hover:bg-surface-tint text-white px-12 py-4 font-mono font-bold tracking-[0.2em] border border-on-surface hard-shadow transition-all hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95 duration-75 uppercase disabled:opacity-50"
-        >
+        <!-- What: keep the member form submit CTA on the shared primitive. Why: this screen should reuse the same button contract as setup and history while still owning its own form layout. -->
+        <AppButton type="submit" :disabled="isSubmitting">
           {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </div>

@@ -169,51 +169,7 @@ a {
   color: var(--danger);
 }
 
-.button-brand {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 3rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid var(--color-on-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  line-height: 1;
-  text-transform: uppercase;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease,
-    opacity 75ms ease;
-}
-
-.button-brand:hover:not(:disabled) {
-  background: var(--color-surface-tint);
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.button-brand:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.button-brand:focus-visible {
-  outline: 2px solid var(--color-on-surface);
-  outline-offset: 3px;
-  background: var(--color-surface-tint);
-}
-
-.button-brand:disabled {
-  opacity: 0.55;
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-/* Keeping this utility global avoids hidden dependencies on AppShell styles from unrelated views. */
+/* The shared CTA recipe now lives in AppButton, so global CSS only keeps low-level utilities that unrelated views can still reuse safely. */
 .hard-shadow {
   box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
 }

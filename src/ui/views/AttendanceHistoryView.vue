@@ -3,9 +3,9 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
+import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
-import { RouterLink } from '@/ui/router/runtime'
 
 type AttendanceHistoryRow = {
   id: string
@@ -111,13 +111,14 @@ onMounted(() => {
         class="attendance-history__state attendance-history__state--error"
       >
         <p>{{ t('states.error') }}</p>
-        <button
-          class="attendance-history__inline-button"
+        <!-- What: reuse the shared secondary CTA for recovery on the history screen. Why: retry and floating add actions should stay visually aligned even though this view still owns their placement. -->
+        <AppButton
           type="button"
+          variant="secondary"
           @click="loadSessionsForMonth(activeMonth)"
         >
           {{ t('states.retry') }}
-        </button>
+        </AppButton>
       </div>
 
       <!-- What: keep the empty state focused on archive status only. Why: the new attendance entry point belongs in the live recorder flow, so the history screen should not offer a second place to start it. -->
@@ -159,9 +160,9 @@ onMounted(() => {
 
     <!-- What: keep the add action floating above the shell navigation on every scroll position. Why: the attendance recorder needs to stay reachable from the archive view without forcing coaches to return to the bottom of a long monthly list. -->
     <div class="attendance-history__action-fab">
-      <RouterLink class="attendance-history__cta" to="/attendance/new">
+      <AppButton as="router-link" to="/attendance/new">
         {{ t('actions.newTraining') }}
-      </RouterLink>
+      </AppButton>
     </div>
   </div>
 </template>
@@ -334,70 +335,6 @@ onMounted(() => {
   max-width: 30rem;
   color: var(--color-secondary);
   line-height: 1.6;
-}
-
-/* What: keep the history CTA and inline retry action on one shared button recipe. Why: the previous split rules made the floating add button depend on override order and left stale color tokens behind. */
-.attendance-history__cta,
-.attendance-history__inline-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 3rem;
-  padding: 0 1.15rem;
-  border: 1px solid var(--color-on-surface);
-  box-shadow: var(--history-panel-shadow);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  line-height: 1;
-  text-transform: uppercase;
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease,
-    opacity 75ms ease;
-}
-
-.attendance-history__cta {
-  gap: 0.375rem;
-  padding: 0.75rem 1rem;
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-.attendance-history__inline-button {
-  background: var(--color-surface);
-  color: var(--color-on-surface);
-}
-
-/* What: keep pointer feedback tactile without moving the keyboard focus target. Why: focus needs a stable, high-contrast indicator in the mobile PWA shell, while hover can still use the existing hard-shadow press effect. */
-.attendance-history__cta:hover,
-.attendance-history__inline-button:hover {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.attendance-history__cta:focus-visible,
-.attendance-history__inline-button:focus-visible {
-  outline: 2px solid var(--color-on-surface);
-  outline-offset: 3px;
-}
-
-.attendance-history__cta:hover,
-.attendance-history__cta:focus-visible {
-  background: var(--color-surface-tint);
-}
-
-.attendance-history__inline-button:hover,
-.attendance-history__inline-button:focus-visible {
-  background: var(--color-surface-container-low);
-}
-
-.attendance-history__cta:active,
-.attendance-history__inline-button:active {
-  transform: scale(0.95);
-  box-shadow: none;
 }
 
 @keyframes attendance-history-pulse {

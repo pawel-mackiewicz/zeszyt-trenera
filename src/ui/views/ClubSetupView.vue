@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import { ClubAlreadyExistsError } from '@/domain/model/club'
 import { useAppServices } from '@/ui/appServices'
+import AppButton from '@/ui/components/AppButton.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
 
 type SubmitErrorKey = 'required' | 'invalidDate' | 'alreadyExists' | 'submit'
@@ -110,9 +111,10 @@ async function handleSubmit() {
       </div>
 
       <div class="flex justify-end pt-4">
-        <button class="button-brand" :disabled="isSubmitting" type="submit">
+        <!-- What: keep onboarding submit actions on the shared CTA primitive. Why: setup screens should inherit the same tactile button states as the shell without owning another copy of the visual recipe. -->
+        <AppButton :disabled="isSubmitting" type="submit">
           {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </SetupStageLayout>

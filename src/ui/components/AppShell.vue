@@ -4,6 +4,7 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
+import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
@@ -501,23 +502,25 @@ function navigationLabel(item: NavigationItem) {
                 </button>
               </div>
             </Transition>
-            <button
+            <!-- What: keep menu-level install and update actions on the shared button primitive. Why: the shell should preserve its own stacking and width rules while inheriting the same CTA states as the rest of the app. -->
+            <AppButton
               v-if="showInstallEntry"
-              class="w-full bg-primary text-white px-4 py-3 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95"
+              class="w-full"
               type="button"
               @click="openInstallEntry"
             >
               {{ installEntryLabel }}
-            </button>
-            <button
+            </AppButton>
+            <AppButton
               v-if="needRefresh"
-              class="w-full mt-3 bg-surface text-on-surface px-4 py-3 font-mono font-bold uppercase text-xs border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95 disabled:opacity-60 disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[6px_6px_0_0_var(--color-on-surface)]"
+              class="mt-3 w-full"
               type="button"
+              variant="secondary"
               :disabled="updatePending"
               @click="handleUpdateAction"
             >
               {{ updateActionLabel }}
-            </button>
+            </AppButton>
           </div>
         </div>
       </div>
@@ -626,9 +629,10 @@ function navigationLabel(item: NavigationItem) {
           v-if="isBlockingApplication"
           class="flex flex-col sm:flex-row gap-3"
         >
-          <button class="button-brand" type="button" @click="reloadApplication">
+          <!-- What: route shell recovery and modal actions through the shared button primitive. Why: these shell-only flows still need the same tactile CTA feedback as the main views without keeping a second copy of the recipe here. -->
+          <AppButton type="button" @click="reloadApplication">
             {{ t('shellState.retry') }}
-          </button>
+          </AppButton>
         </div>
         <div v-else class="shell-state-card__loading" aria-hidden="true">
           <span class="shell-state-card__loading-line"></span>
@@ -659,21 +663,20 @@ function navigationLabel(item: NavigationItem) {
             </li>
           </ol>
           <div class="shell-modal__actions">
-            <button
-              class="button-brand"
+            <AppButton
               type="button"
               :disabled="installPending"
               @click="handleInstallPrimaryAction"
             >
               {{ installPrimaryLabel }}
-            </button>
-            <button
-              class="button-secondary"
+            </AppButton>
+            <AppButton
+              variant="secondary"
               type="button"
               @click="handleInstallLater()"
             >
               {{ t('common.later') }}
-            </button>
+            </AppButton>
           </div>
         </section>
       </div>
@@ -682,46 +685,6 @@ function navigationLabel(item: NavigationItem) {
 </template>
 
 <style scoped>
-/* Keeping shell-only styles scoped stops AppShell from becoming a second global source of truth. */
-.button-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 3rem;
-  padding: 0 1.15rem;
-  border: 1px solid var(--color-on-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  line-height: 1;
-  text-transform: uppercase;
-  background: var(--color-surface);
-  color: var(--color-on-surface);
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease,
-    opacity 75ms ease;
-}
-
-.button-secondary:hover:not(:disabled) {
-  background: var(--color-surface-container-low);
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.button-secondary:active:not(:disabled) {
-  transform: scale(0.95);
-}
-
-.button-secondary:focus-visible {
-  outline: 2px solid var(--color-on-surface);
-  outline-offset: 3px;
-  background: var(--color-surface-container-low);
-}
-
 .locale-switcher {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

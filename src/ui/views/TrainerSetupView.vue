@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
+import AppButton from '@/ui/components/AppButton.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
 
 type SubmitErrorKey = 'required' | 'alreadyExists' | 'submit'
@@ -82,9 +83,10 @@ async function handleSubmit() {
       </div>
 
       <div class="flex justify-end pt-4">
-        <button class="button-brand" :disabled="isSubmitting" type="submit">
+        <!-- What: keep onboarding submit actions on the shared CTA primitive. Why: the final setup step should stay visually consistent with the rest of the app without shipping its own button recipe. -->
+        <AppButton :disabled="isSubmitting" type="submit">
           {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
-        </button>
+        </AppButton>
       </div>
     </form>
   </SetupStageLayout>
