@@ -8,6 +8,7 @@ import { Trainer } from '@/domain/model/trainer'
 import { TrainerNotebookDb } from '@/db'
 import {
   clearIndexedDb,
+  clearIndexedDbTable,
   inspectIndexedDb,
   useIndexedDbInspector
 } from '@/ui/composables/useIndexedDbInspector'
@@ -233,6 +234,28 @@ describe('inspectIndexedDb', () => {
       'membershipPayments',
       'attendanceLists'
     ])
+  })
+
+  it('clears rows only from the selected store', async () => {
+    await database.open()
+    await database.clubs.add({
+      id: 'club-1',
+      name: 'Skra Częstochowa',
+      foundingDate: new Date('1926-01-01T00:00:00.000Z'),
+      createdAt: new Date('2026-03-01T00:00:00.000Z')
+    })
+    await database.events.add({
+      eventId: 'event-1',
+      eventName: 'club.created',
+      occurredAt: new Date('2026-03-01T00:00:00.000Z'),
+      payload: { id: 'club-1' }
+    })
+
+    // What: guarantee table-level reset is surgical. Why: mobile offline debugging should not destroy unrelated data while investigating one flow.
+    await clearIndexedDbTable(database, 'clubs')
+
+    expect(await database.clubs.count()).toBe(0)
+    expect(await database.events.count()).toBe(1)
   })
 
   it('reports an inspect error kind without leaking final copy', async () => {

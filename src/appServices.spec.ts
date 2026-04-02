@@ -50,6 +50,9 @@ describe('appServices', () => {
     expect(services.queries.observeMembershipPaymentStatusByMonth).toBe(
       services.queries.observeMembershipPaymentStatusByMonth
     )
+    expect(services.queries.observeSetupStatus).toBe(
+      services.queries.observeSetupStatus
+    )
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
     )
@@ -276,6 +279,31 @@ describe('appServices', () => {
         )
       ).unpaidAttendedMembers[0].attendanceSessionIds
     ).toEqual(attendanceLists.map((attendanceList) => attendanceList.id))
+  })
+
+  it('assembles the reactive setup-status query on top of the Dexie adapters', async () => {
+    const services = createAppServices(database)
+
+    await expect(
+      waitForFirstEmission(services.queries.observeSetupStatus.handle())
+    ).resolves.toBe('requires-club')
+
+    await services.useCases.registerClub.handle({
+      clubName: 'ZKS Włókniarz Częstochowa',
+      foundingDate: new Date('1946-01-01T00:00:00Z')
+    })
+
+    await expect(
+      waitForFirstEmission(services.queries.observeSetupStatus.handle())
+    ).resolves.toBe('requires-trainer')
+
+    await services.useCases.registerTrainer.handle({
+      trainerName: 'Jan Kowalski'
+    })
+
+    await expect(
+      waitForFirstEmission(services.queries.observeSetupStatus.handle())
+    ).resolves.toBe('ready')
   })
 
   it('throws a domain error when trying to register a second club', async () => {

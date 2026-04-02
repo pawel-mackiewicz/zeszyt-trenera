@@ -25,6 +25,10 @@ describe('router', () => {
 
   it('registers the attendance route in the normal application flow', () => {
     const routes = createAppRoutes(false)
+    const clubSetupRoute = routes.find((route) => route.name === 'setup-club')
+    const trainerSetupRoute = routes.find(
+      (route) => route.name === 'setup-trainer'
+    )
     const membershipPaymentsRoute = routes.find(
       (route) => route.name === 'membership-payments'
     )
@@ -35,6 +39,18 @@ describe('router', () => {
       (route) => route.name === 'attendance-record'
     )
 
+    expect(clubSetupRoute).toMatchObject({
+      path: '/setup/club',
+      meta: {
+        hideBottomNav: true
+      }
+    })
+    expect(trainerSetupRoute).toMatchObject({
+      path: '/setup/trainer',
+      meta: {
+        hideBottomNav: true
+      }
+    })
     expect(membershipPaymentsRoute).toMatchObject({
       path: '/payments',
       meta: {}

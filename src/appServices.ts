@@ -32,6 +32,10 @@ import {
   type MembershipPaymentStatusByMonthResult,
   type ObserveMembershipPaymentStatusByMonthQueryInput
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
+import {
+  ObserveSetupStatusQuery,
+  type SetupStatus
+} from '@/read/ObserveSetupStatusQuery'
 
 export type AppUseCases = {
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
@@ -52,6 +56,9 @@ export type AppQueries = {
     handle(
       input: ObserveMembershipPaymentStatusByMonthQueryInput
     ): Observable<MembershipPaymentStatusByMonthResult>
+  }
+  readonly observeSetupStatus: {
+    handle(): Observable<SetupStatus>
   }
 }
 
@@ -97,6 +104,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   )
   const resolveObserveMembershipPaymentStatusByMonth = lazy(
     () => new ObserveMembershipPaymentStatusByMonthQuery(database)
+  )
+  const resolveObserveSetupStatus = lazy(
+    () => new ObserveSetupStatusQuery(database)
   )
   const resolveRegisterClub = lazy(
     () =>
@@ -174,6 +184,10 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping the reactive payments read on the shared service bag prepares the upcoming screen to subscribe through the application boundary instead of opening its own Dexie watcher.
     get observeMembershipPaymentStatusByMonth() {
       return resolveObserveMembershipPaymentStatusByMonth()
+    },
+    // Keeping startup setup state in the shared query bag lets the shell react to local club/trainer writes without reading Dexie directly.
+    get observeSetupStatus() {
+      return resolveObserveSetupStatus()
     }
   }
 

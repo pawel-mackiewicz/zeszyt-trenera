@@ -16,9 +16,11 @@ const {
   tableSnapshots,
   loading,
   clearing,
+  clearingTableName,
   errorKind,
   reload,
-  clearDatabase
+  clearDatabase,
+  clearTable
 } = useIndexedDbInspector(props.database ?? db)
 
 const tableCount = computed(() => tableSnapshots.value.length)
@@ -64,6 +66,19 @@ function handleClearDatabase() {
   }
 
   void clearDatabase()
+}
+
+function handleClearTable(tableName: string) {
+  // What: require explicit confirmation before single-store wipes. Why: this debug screen can run on real local data, so destructive actions should always be deliberate.
+  if (
+    !window.confirm(
+      `Clear only "${tableName}" rows in this browser? This cannot be undone.`
+    )
+  ) {
+    return
+  }
+
+  void clearTable(tableName)
 }
 </script>
 
@@ -150,6 +165,18 @@ function handleClearDatabase() {
           <span class="debug-badge debug-badge--soft">
             PK: {{ table.primaryKey }}
           </span>
+          <button
+            class="debug-card__action debug-card__action--danger debug-card__action--inline"
+            type="button"
+            :disabled="busy || clearingTableName === table.name"
+            @click="handleClearTable(table.name)"
+          >
+            {{
+              clearingTableName === table.name
+                ? 'Clearing table…'
+                : 'Clear this table'
+            }}
+          </button>
         </div>
       </div>
 
@@ -357,6 +384,11 @@ function handleClearDatabase() {
     transform var(--speed-fast) var(--ease-standard),
     box-shadow var(--speed-fast) var(--ease-standard),
     opacity var(--speed-fast) var(--ease-standard);
+}
+
+.debug-card__action--inline {
+  min-width: auto;
+  margin-left: auto;
 }
 
 .debug-card__actions {

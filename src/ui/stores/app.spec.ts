@@ -15,10 +15,12 @@ describe('useAppStore', () => {
     store.setOnlineStatus(false)
     store.setDbConnected(true)
     store.setAppReady()
+    store.setSetupStatus('requires-club')
 
     expect(store.appReadiness).toBe('ready')
     expect(store.isOnline).toBe(false)
     expect(store.dbConnected).toBe(true)
+    expect(store.setupStatus).toBe('requires-club')
     expect(store.updateError).toBeNull()
   })
 
