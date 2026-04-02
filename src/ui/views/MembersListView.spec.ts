@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { createAppServicesProvides } from '@/ui/appServices'
-import { useRouter } from '@/ui/router/runtime'
 import MembersListView from '@/ui/views/MembersListView.vue'
 
 vi.mock('@/db', () => ({
@@ -16,24 +15,12 @@ vi.mock('@/db', () => ({
   }
 }))
 
-vi.mock('@/ui/router/runtime', () => ({
-  useRouter: vi.fn()
-}))
-
 describe('MembersListView', () => {
   const mockUpdateMemberHandle = vi.fn()
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
-    vi.mocked(useRouter).mockReturnValue({
-      push: vi.fn(),
-      replace: vi.fn(),
-      back: vi.fn(),
-      forward: vi.fn(),
-      go: vi.fn(),
-      currentRoute: { value: {} } as unknown
-    } as unknown as ReturnType<typeof useRouter>)
     vi.mocked(db.open).mockResolvedValue({} as never)
     mockUpdateMemberHandle.mockReset()
   })
@@ -46,6 +33,12 @@ describe('MembersListView', () => {
     return mount(MembersListView, {
       global: {
         plugins: [createAppI18n(locale)],
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="to" :to="to" v-bind="$attrs"><slot /></a>'
+          }
+        },
         provide: createAppServicesProvides({
           queries: {} as never,
           useCases: {
@@ -78,6 +71,17 @@ describe('MembersListView', () => {
 
     expect(wrapper.text()).toContain('Brak zapisanych członków.')
     expect(wrapper.text()).toContain('0 członków')
+  })
+
+  it('renders the add-member action as the shared route link', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([])
+
+    const wrapper = mountView('pl')
+    await flushPromises()
+
+    expect(wrapper.get('a[to="/member/new"]').attributes('to')).toBe(
+      '/member/new'
+    )
   })
 
   it('keeps unknown ages at the default range and normalizes crossed handles', async () => {

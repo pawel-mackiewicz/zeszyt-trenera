@@ -94,8 +94,8 @@ async function handleSubmit() {
       ...(joinedAt.value ? { joinedAt: toUtcDate(joinedAt.value) } : {})
     })
 
-    // On success, go back to list
-    router.replace('/')
+    // What: return successful member creation to the canonical roster URL. Why: `/member` is now the stable home for the roster flow, so setup redirects and form completion should land in the same place.
+    router.replace('/member')
   } catch (error: unknown) {
     submitErrorKey.value = resolveSubmitErrorKey(error)
   } finally {

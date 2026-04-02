@@ -17,14 +17,12 @@ import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
-import { useRouter } from '@/ui/router/runtime'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 
-const router = useRouter()
 const { useCases } = useAppServices()
 const { t } = useI18n({ useScope: 'local' })
 const savedMembers = ref<PersistedMember[]>([])
@@ -169,10 +167,6 @@ async function saveMemberEdit(memberId: string) {
   }
 }
 
-function goToAddMember() {
-  router.push('/add-member')
-}
-
 onMounted(() => {
   void loadSavedMembers()
 })
@@ -206,13 +200,13 @@ onMounted(() => {
         />
       </div>
       <div class="md:col-span-1 flex justify-end mt-4 md:mt-0">
-        <!-- What: route the icon-only add action through the shared CTA primitive. Why: the roster keeps its compact square trigger, but its states should now move in lockstep with every other primary action. -->
+        <!-- What: express the add-member trigger as the canonical `/member/new` route link. Why: the roster and creation screens now belong to one route family, so moving between them should follow the same nested path structure everywhere in the app. -->
         <AppButton
+          as="router-link"
+          to="/member/new"
           :aria-label="t('actions.addMember')"
           :title="t('actions.addMember')"
           icon-only
-          type="button"
-          @click="goToAddMember"
         >
           <AppIcon name="add" />
         </AppButton>

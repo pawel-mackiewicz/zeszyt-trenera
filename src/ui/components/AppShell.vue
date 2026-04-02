@@ -92,6 +92,8 @@ const isSetupRoute = computed(
 const isMembershipPaymentsRoute = computed(
   () => currentRouteName.value === 'membership-payments'
 )
+// What: keep the members tab active for the canonical members screen and its legacy alias. Why: older installed launches can still resolve through `/`, but the shell should treat both URLs as the same destination while the route family settles on `/member`.
+const isMembersRoute = computed(() => currentRouteName.value === 'members-list')
 const isAttendanceHistoryRoute = computed(
   () => currentRouteName.value === 'attendance-history'
 )
@@ -290,7 +292,7 @@ watch(
     }
 
     if (nextSetupStatus === 'ready' && isSetupRoute.value) {
-      router.replace('/')
+      router.replace('/member')
     }
   },
   { immediate: true, flush: 'sync' }
@@ -553,10 +555,10 @@ function navigationLabel(item: NavigationItem) {
         class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10"
       >
         <RouterLink
-          to="/"
+          to="/member"
           class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
           :class="[
-            route.path === '/'
+            isMembersRoute
               ? 'bg-primary text-white'
               : 'text-on-surface hover:bg-surface-container-low'
           ]"

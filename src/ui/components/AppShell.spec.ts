@@ -83,8 +83,8 @@ describe('AppShell', () => {
     mockRoute = reactive({
       meta: {},
       name: 'members-list',
-      path: '/',
-      fullPath: '/'
+      path: '/member',
+      fullPath: '/member'
     }) as MockRoute
 
     vi.mocked(useRoute).mockReturnValue(
@@ -312,7 +312,7 @@ describe('AppShell', () => {
 
     await emitSetupStatus('ready')
 
-    expect(mockRouterReplace).toHaveBeenCalledWith('/')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/member')
   })
 
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
