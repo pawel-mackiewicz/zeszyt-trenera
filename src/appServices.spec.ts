@@ -63,6 +63,7 @@ describe('appServices', () => {
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
     )
+    expect(services.useCases.updateMember).toBe(services.useCases.updateMember)
   })
 
   it('assembles Dexie adapters that persist a club and matching event row', async () => {

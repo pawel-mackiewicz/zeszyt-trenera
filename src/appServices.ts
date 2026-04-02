@@ -5,12 +5,14 @@ import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
+import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
+import type { UpdateMemberCommand } from '@/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
@@ -37,6 +39,7 @@ export type AppUseCases = {
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
+  readonly updateMember: UseCase<UpdateMemberCommand>
 }
 
 export type AppQueries = {
@@ -132,6 +135,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveIdGenerator()
       )
   )
+  const resolveUpdateMember = lazy(
+    () =>
+      new UpdateMemberUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveEventRepo()
+      )
+  )
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
@@ -149,6 +160,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get registerTrainer() {
       return resolveRegisterTrainer()
+    },
+    get updateMember() {
+      return resolveUpdateMember()
     }
   }
 

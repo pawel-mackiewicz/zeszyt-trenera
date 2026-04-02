@@ -1,5 +1,5 @@
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
-import type { Member } from '@/domain/model/member'
+import { Member, type MemberSnapshot } from '@/domain/model/member'
 import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedMember } from '@/infra'
@@ -9,6 +9,17 @@ export class DexieMemberRepo implements MemberRepoPort {
 
   public async save(member: Member): Promise<void> {
     await this.database.members.add(this.toPersistedMember(member))
+  }
+
+  public async update(member: Member): Promise<void> {
+    await this.database.members.put(this.toPersistedMember(member))
+  }
+
+  public async findById(memberId: string): Promise<Member | null> {
+    const persistedMember = await this.database.members.get(memberId)
+    if (!persistedMember) return null
+
+    return Member.rehydrate(this.toMemberSnapshot(persistedMember))
   }
 
   public async existsById(memberId: string): Promise<boolean> {
@@ -34,5 +45,19 @@ export class DexieMemberRepo implements MemberRepoPort {
 
   private toPersistedMember(member: Member): PersistedMember {
     return member.toSnapshot()
+  }
+
+  private toMemberSnapshot(member: PersistedMember): MemberSnapshot {
+    return {
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      phoneNumber: member.phoneNumber,
+      ...(member.dateOfBirth === undefined
+        ? {}
+        : { dateOfBirth: member.dateOfBirth }),
+      ...(member.joinedAt === undefined ? {} : { joinedAt: member.joinedAt }),
+      createdAt: member.createdAt
+    }
   }
 }

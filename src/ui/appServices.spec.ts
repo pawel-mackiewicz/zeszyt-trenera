@@ -48,6 +48,9 @@ describe('uiAppServices', () => {
         },
         registerTrainer: {
           handle
+        },
+        updateMember: {
+          handle
         }
       }
     }
