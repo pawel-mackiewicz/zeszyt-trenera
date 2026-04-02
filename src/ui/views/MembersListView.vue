@@ -300,14 +300,15 @@ onMounted(() => {
           <div
             class="col-span-2 md:col-span-4 flex justify-end border-t border-outline-variant pt-3"
           >
-            <button
+            <!-- What: inline member actions now reuse the shared AppButton primitive. Why: edit flows should inherit the same tap targets and state styling as the rest of this mobile-first PWA instead of shipping view-specific button markup. -->
+            <AppButton
               v-if="editingMemberId !== member.id"
+              variant="secondary"
               type="button"
-              class="bg-surface-container-low text-on-surface px-4 py-2 border border-on-surface hard-shadow text-xs font-mono uppercase"
               @click="startEditing(member)"
             >
               {{ t('edit.actions.open') }}
-            </button>
+            </AppButton>
           </div>
           <form
             v-if="editingMemberId === member.id"
@@ -316,9 +317,10 @@ onMounted(() => {
           >
             <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
             <div class="flex flex-col">
-              <label class="font-label text-[0.6rem] text-secondary uppercase font-bold">{{
-                t('edit.fields.firstName')
-              }}</label>
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.firstName') }}</label
+              >
               <input
                 v-model="editFirstName"
                 type="text"
@@ -327,9 +329,10 @@ onMounted(() => {
               />
             </div>
             <div class="flex flex-col">
-              <label class="font-label text-[0.6rem] text-secondary uppercase font-bold">{{
-                t('edit.fields.lastName')
-              }}</label>
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.lastName') }}</label
+              >
               <input
                 v-model="editLastName"
                 type="text"
@@ -338,9 +341,10 @@ onMounted(() => {
               />
             </div>
             <div class="flex flex-col">
-              <label class="font-label text-[0.6rem] text-secondary uppercase font-bold">{{
-                t('edit.fields.phoneNumber')
-              }}</label>
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.phoneNumber') }}</label
+              >
               <input
                 v-model="editPhoneNumber"
                 type="tel"
@@ -349,9 +353,10 @@ onMounted(() => {
               />
             </div>
             <div class="flex flex-col">
-              <label class="font-label text-[0.6rem] text-secondary uppercase font-bold">{{
-                t('edit.fields.dateOfBirth')
-              }}</label>
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.dateOfBirth') }}</label
+              >
               <input
                 v-model="editDateOfBirth"
                 type="date"
@@ -359,9 +364,10 @@ onMounted(() => {
               />
             </div>
             <div class="flex flex-col">
-              <label class="font-label text-[0.6rem] text-secondary uppercase font-bold">{{
-                t('edit.fields.joinedAt')
-              }}</label>
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.joinedAt') }}</label
+              >
               <input
                 v-model="editJoinedAt"
                 type="date"
@@ -375,24 +381,20 @@ onMounted(() => {
               {{ editError }}
             </p>
             <div class="md:col-span-2 flex justify-end gap-2">
-              <button
+              <AppButton
+                variant="secondary"
                 type="button"
-                class="px-4 py-2 border border-on-surface font-mono text-xs uppercase"
                 @click="cancelEditing"
               >
                 {{ t('edit.actions.cancel') }}
-              </button>
-              <button
-                type="submit"
-                class="px-4 py-2 border border-on-surface font-mono text-xs uppercase bg-primary text-white disabled:opacity-50"
-                :disabled="isSavingEdit"
-              >
+              </AppButton>
+              <AppButton type="submit" :disabled="isSavingEdit">
                 {{
                   isSavingEdit
                     ? t('edit.actions.saving')
                     : t('edit.actions.save')
                 }}
-              </button>
+              </AppButton>
             </div>
           </form>
         </div>
