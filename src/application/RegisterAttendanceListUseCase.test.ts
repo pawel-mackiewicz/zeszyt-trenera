@@ -15,6 +15,7 @@ import {
 } from '@/domain/model/AttendanceList'
 import { MemberNotFoundError } from '@/domain/model/member'
 import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
+import type { Member } from '@/domain/model/member'
 
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()
@@ -35,8 +36,22 @@ class FakeMemberRepo implements MemberRepoPort {
   public readonly existsByIdChecks: string[] = []
   public existingMemberIds = new Set<string>()
 
-  async save(): Promise<void> {
+  async save(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance tests only rely on existsById.
+    _member: Member
+  ): Promise<void> {
     throw new Error('Not implemented in this fake')
+  }
+
+  async update(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance tests only rely on existsById.
+    _member: Member
+  ): Promise<void> {
+    throw new Error('Not implemented in this fake')
+  }
+
+  async findById(): Promise<Member | null> {
+    return null
   }
 
   async existsById(memberId: string): Promise<boolean> {

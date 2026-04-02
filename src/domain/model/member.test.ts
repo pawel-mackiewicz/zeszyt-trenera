@@ -6,7 +6,8 @@ import {
   MemberCreatedDomainEvent,
   InvalidMemberBirthDateError,
   InvalidMemberJoinDateError,
-  InvalidMemberNameError
+  InvalidMemberNameError,
+  MemberIdMismatchError
 } from '@/domain/model/member'
 
 function createPhoneNumber(rawPhoneNumber = '+48 123 456 789') {
@@ -158,6 +159,26 @@ describe('Member Model', () => {
 
     expect(member.firstName).toBe('jane')
     expect(member.lastName).toBe('doe')
+  })
+
+  it('throws when update input memberId does not match the loaded aggregate id', () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      },
+      'member-1'
+    )
+
+    expect(() =>
+      Member.update(member, {
+        memberId: 'member-2',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      })
+    ).toThrow(MemberIdMismatchError)
   })
 
   it('rejects registration if birth date is not in the past', () => {

@@ -37,6 +37,10 @@ export type NavigationItem = {
   to: string
 }
 
+// What: keep the roster under `/member` while preserving the old root entry point only. Why: installed PWAs may still resume on `/`, but the add-member flow should now have exactly one canonical URL at `/member/new`.
+const MEMBERS_ROUTE_PATH = '/member'
+const NEW_MEMBER_ROUTE_PATH = '/member/new'
+
 const baseRoutes = [
   {
     path: '/setup/club',
@@ -55,7 +59,8 @@ const baseRoutes = [
     }
   },
   {
-    path: '/',
+    path: MEMBERS_ROUTE_PATH,
+    alias: '/',
     name: 'members-list',
     component: MembersListView,
     meta: {}
@@ -67,13 +72,13 @@ const baseRoutes = [
     meta: {}
   },
   {
-    path: '/add-member',
+    path: NEW_MEMBER_ROUTE_PATH,
     name: 'add-member',
     component: AddMemberView,
     meta: {
       showBack: true,
       hideBottomNav: true,
-      backTo: '/'
+      backTo: MEMBERS_ROUTE_PATH
     }
   },
   {
@@ -101,7 +106,7 @@ const debugRoute = {
   meta: {
     hideBottomNav: true,
     showBack: true,
-    backTo: '/',
+    backTo: MEMBERS_ROUTE_PATH,
     showInMenu: true
   }
 } satisfies AppRoute

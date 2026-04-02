@@ -132,4 +132,68 @@ describe('DexieMemberRepo', () => {
 
     await expect(repository.existsById('member-1')).resolves.toBe(true)
   })
+
+  it('updates an existing member while preserving createdAt', async () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      },
+      'member-1'
+    )
+    await repository.save(member)
+
+    const [updatedMember] = Member.update(member, {
+      memberId: member.id,
+      firstName: 'Janet',
+      lastName: 'Doe',
+      phoneNumber: PhoneNumber.create('+48111222333')
+    })
+
+    await repository.update(updatedMember)
+
+    const persisted = await database.members.get(member.id)
+    expect(persisted).toMatchObject({
+      id: member.id,
+      firstName: 'janet',
+      lastName: 'doe',
+      phoneNumber: '+48111222333',
+      createdAt: member.createdAt
+    })
+  })
+
+  it('rehydrates a member aggregate by id', async () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      },
+      'member-1'
+    )
+    await repository.save(member)
+
+    const loaded = await repository.findById('member-1')
+
+    expect(loaded).not.toBeNull()
+    expect(loaded?.id).toBe('member-1')
+    expect(loaded?.phoneNumber.value).toBe('+48123456789')
+  })
+
+  it('checks duplicate identity lookup by name and phone', async () => {
+    const [memberOne] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      },
+      'member-1'
+    )
+    await repository.save(memberOne)
+
+    await expect(
+      repository.existsByNameAndPhone('jane', 'doe', createPhoneNumber())
+    ).resolves.toBe(true)
+  })
 })
