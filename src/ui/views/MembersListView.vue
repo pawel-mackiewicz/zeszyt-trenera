@@ -249,10 +249,11 @@ onMounted(() => {
         :key="member.id"
         class="group"
         :open="openMemberId === member.id"
-        @click.prevent="toggleDetails(member.id)"
       >
+        <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
         <summary
           class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
+          @click.prevent="toggleDetails(member.id)"
         >
           <div class="flex flex-col">
             <span
