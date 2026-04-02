@@ -14,6 +14,7 @@ import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import type { PersistedMember } from '@/infra'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
+import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import { useRouter } from '@/ui/router/runtime'
@@ -205,12 +206,16 @@ onMounted(() => {
         />
       </div>
       <div class="md:col-span-1 flex justify-end mt-4 md:mt-0">
-        <button
-          class="bg-primary hover:bg-surface-tint text-white w-12 h-12 flex items-center justify-center border border-on-surface hard-shadow transition-all duration-75 hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-none active:scale-95"
+        <!-- What: route the icon-only add action through the shared CTA primitive. Why: the roster keeps its compact square trigger, but its states should now move in lockstep with every other primary action. -->
+        <AppButton
+          :aria-label="t('actions.addMember')"
+          :title="t('actions.addMember')"
+          icon-only
+          type="button"
           @click="goToAddMember"
         >
           <AppIcon name="add" />
-        </button>
+        </AppButton>
       </div>
     </section>
 
@@ -399,6 +404,9 @@ onMounted(() => {
 <i18n lang="json">
 {
   "pl": {
+    "actions": {
+      "addMember": "Dodaj członka"
+    },
     "summary": {
       "memberCount": "{count} członków"
     },
@@ -442,6 +450,9 @@ onMounted(() => {
     }
   },
   "en": {
+    "actions": {
+      "addMember": "Add member"
+    },
     "summary": {
       "memberCount": "{count} members"
     },
