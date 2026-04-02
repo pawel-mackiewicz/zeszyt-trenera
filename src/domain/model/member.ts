@@ -39,7 +39,7 @@ const assertValidName = (name: string): void => {
   }
 }
 
-export const normalizeMemberName = (name: string): string => {
+const normalizeMemberName = (name: string): string => {
   return name.trim().toLowerCase()
 }
 
