@@ -1,6 +1,8 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
+
 export type AppReadiness = 'checking' | 'ready' | 'blocked'
 export type BlockingIssue = 'database' | 'bootstrap' | null
 export type InstallSurface = 'hidden' | 'native' | 'manual'
@@ -52,6 +54,8 @@ export const useAppStore = defineStore('app', () => {
   // Keeping only the issue code here lets the shell translate failure copy locally instead of storing hydrated text in shared state.
   const blockingIssue = ref<BlockingIssue>(null)
   const dbConnected = ref(false)
+  // What: keep setup completeness separate from database readiness. Why: the shell must distinguish between "cannot boot" and "booted, but still missing required local identity data".
+  const setupStatus = ref<SetupStatus>('checking')
 
   const showInstallEntry = computed(
     () => !installed.value && installSurface.value !== 'hidden'
@@ -156,6 +160,10 @@ export const useAppStore = defineStore('app', () => {
     dbConnected.value = value
   }
 
+  function setSetupStatus(value: SetupStatus) {
+    setupStatus.value = value
+  }
+
   return {
     isOnline,
     canInstall,
@@ -171,6 +179,7 @@ export const useAppStore = defineStore('app', () => {
     appReadiness,
     blockingIssue,
     dbConnected,
+    setupStatus,
     setOnlineStatus,
     setInstallAvailability,
     setInstallSurface,
@@ -185,6 +194,7 @@ export const useAppStore = defineStore('app', () => {
     blockApplication,
     setUpdateError,
     clearUpdateError,
-    setDbConnected
+    setDbConnected,
+    setSetupStatus
   }
 })

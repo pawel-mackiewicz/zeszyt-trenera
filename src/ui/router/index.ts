@@ -5,7 +5,9 @@ import MembersListView from '@/ui/views/MembersListView.vue'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
+import ClubSetupView from '@/ui/views/ClubSetupView.vue'
 import MembershipPaymentsView from '@/ui/views/MembershipPaymentsView.vue'
+import TrainerSetupView from '@/ui/views/TrainerSetupView.vue'
 
 type AppRouteMeta = {
   showBack?: boolean
@@ -20,6 +22,8 @@ export type AppRouteName =
   | 'add-member'
   | 'attendance-history'
   | 'attendance-record'
+  | 'setup-club'
+  | 'setup-trainer'
   | 'debug-indexeddb'
 
 type AppRoute = RouteRecordRaw & {
@@ -34,6 +38,22 @@ export type NavigationItem = {
 }
 
 const baseRoutes = [
+  {
+    path: '/setup/club',
+    name: 'setup-club',
+    component: ClubSetupView,
+    meta: {
+      hideBottomNav: true
+    }
+  },
+  {
+    path: '/setup/trainer',
+    name: 'setup-trainer',
+    component: TrainerSetupView,
+    meta: {
+      hideBottomNav: true
+    }
+  },
   {
     path: '/',
     name: 'members-list',

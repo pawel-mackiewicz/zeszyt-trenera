@@ -3,6 +3,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
+import { useAppServices } from '@/ui/appServices'
 import AppShell from '@/ui/components/AppShell.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
@@ -11,6 +13,11 @@ import { APP_LOCALE_STORAGE_KEY, createAppI18n } from '@/ui/i18n'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
+
+type SetupStatusObserver = {
+  next(value: SetupStatus): void
+  error?(error: unknown): void
+}
 
 type MockRoute = {
   meta: Record<string, unknown>
@@ -47,21 +54,31 @@ vi.mock('@/ui/composables/useAppUpdate', () => ({
   useAppUpdate: vi.fn()
 }))
 
+vi.mock('@/ui/appServices', () => ({
+  useAppServices: vi.fn()
+}))
+
 describe('AppShell', () => {
   let mockRouterPush: Mock
   let mockRouterBack: Mock
+  let mockRouterReplace: Mock
   let mockNeedRefresh: Ref<boolean>
   let mockUpdatePending: Ref<boolean>
   let mockRefreshApplication: Mock
   let mockRoute: MockRoute
+  let mockSetupStatusObservers: SetupStatusObserver[]
+  let mockSetupStatus: SetupStatus
 
   beforeEach(() => {
     window.localStorage.clear()
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
+    mockRouterReplace = vi.fn()
     mockNeedRefresh = ref(false)
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
+    mockSetupStatusObservers = []
+    mockSetupStatus = 'ready'
 
     mockRoute = reactive({
       meta: {},
@@ -77,7 +94,7 @@ describe('AppShell', () => {
     vi.mocked(useRouter).mockReturnValue({
       push: mockRouterPush,
       back: mockRouterBack,
-      replace: vi.fn(),
+      replace: mockRouterReplace,
       forward: vi.fn(),
       go: vi.fn(),
       currentRoute: { value: {} } as unknown
@@ -93,6 +110,27 @@ describe('AppShell', () => {
       updatePending: mockUpdatePending,
       refreshApplication: mockRefreshApplication
     })
+    vi.mocked(useAppServices).mockReturnValue({
+      queries: {
+        observeSetupStatus: {
+          handle: vi.fn(() => ({
+            subscribe(observer: SetupStatusObserver) {
+              mockSetupStatusObservers.push(observer)
+              observer.next(mockSetupStatus)
+
+              return {
+                unsubscribe() {
+                  mockSetupStatusObservers = mockSetupStatusObservers.filter(
+                    (entry) => entry !== observer
+                  )
+                }
+              }
+            }
+          }))
+        }
+      } as unknown,
+      useCases: {} as unknown
+    } as unknown as ReturnType<typeof useAppServices>)
     vi.mocked(createNavigationItems).mockReturnValue([])
   })
 
@@ -119,6 +157,12 @@ describe('AppShell', () => {
     return wrapper
       .findAll('button')
       .find((buttonWrapper) => buttonWrapper.text().includes(text))
+  }
+
+  async function emitSetupStatus(value: SetupStatus) {
+    mockSetupStatus = value
+    mockSetupStatusObservers.forEach((observer) => observer.next(value))
+    await nextTick()
   }
 
   it('shows the startup gate until the app becomes ready', () => {
@@ -230,6 +274,45 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Nie udało się otworzyć zeszytu na tym urządzeniu.'
     )
+  })
+
+  it('replaces the current route with the club setup screen when setup data is missing', () => {
+    mockSetupStatus = 'requires-club'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/setup/club')
+    expect(wrapper.find('header').exists()).toBe(false)
+    expect(wrapper.find('.router-view-stub').exists()).toBe(true)
+  })
+
+  it('moves the setup flow from club to trainer after the club record appears', async () => {
+    mockSetupStatus = 'requires-club'
+
+    mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await emitSetupStatus('requires-trainer')
+
+    expect(mockRouterReplace).toHaveBeenLastCalledWith('/setup/trainer')
+  })
+
+  it('returns to the members route once setup becomes complete', async () => {
+    mockSetupStatus = 'requires-trainer'
+    mockRoute.name = 'setup-trainer'
+    mockRoute.path = '/setup/trainer'
+    mockRoute.fullPath = '/setup/trainer'
+
+    mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await emitSetupStatus('ready')
+
+    expect(mockRouterReplace).toHaveBeenCalledWith('/')
   })
 
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {

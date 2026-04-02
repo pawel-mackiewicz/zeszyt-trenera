@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { useAppServices } from '@/ui/appServices'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
@@ -21,9 +22,14 @@ import {
 } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
 
+type ObservableSubscription = {
+  unsubscribe(): void
+}
+
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const { queries } = useAppServices()
 const { t, tm } = useI18n({ useScope: 'local' })
 const { locale } = useI18n({ useScope: 'global' })
 
@@ -41,6 +47,7 @@ const {
   installPending,
   installSurface,
   isOnline,
+  setupStatus,
   showInstallEntry,
   shouldAutoOpenInstallModal,
   updateError
@@ -58,6 +65,8 @@ const routeTitleKeys = {
   'add-member': 'routes.addMember',
   'attendance-history': 'routes.attendanceHistory',
   'attendance-record': 'routes.attendanceRecord',
+  'setup-club': 'routes.setupClub',
+  'setup-trainer': 'routes.setupTrainer',
   'debug-indexeddb': 'routes.debugIndexedDb'
 } as const satisfies Record<AppRouteName, string>
 const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
@@ -66,11 +75,19 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
+let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
 const currentRouteName = computed(() => {
   return typeof route.name === 'string' ? (route.name as AppRouteName) : null
 })
+const isSetupClubRoute = computed(() => currentRouteName.value === 'setup-club')
+const isSetupTrainerRoute = computed(
+  () => currentRouteName.value === 'setup-trainer'
+)
+const isSetupRoute = computed(
+  () => isSetupClubRoute.value || isSetupTrainerRoute.value
+)
 const isMembershipPaymentsRoute = computed(
   () => currentRouteName.value === 'membership-payments'
 )
@@ -89,7 +106,18 @@ const title = computed(() => {
 
   return routeName ? t(routeTitleKeys[routeName]) : appName.value
 })
-const isShellReady = computed(() => appReadiness.value === 'ready')
+const isSetupChecking = computed(
+  () => appReadiness.value === 'ready' && setupStatus.value === 'checking'
+)
+const isSetupGateActive = computed(
+  () =>
+    appReadiness.value === 'ready' &&
+    (setupStatus.value === 'requires-club' ||
+      setupStatus.value === 'requires-trainer')
+)
+const isShellReady = computed(
+  () => appReadiness.value === 'ready' && setupStatus.value === 'ready'
+)
 const isBlockingApplication = computed(() => appReadiness.value === 'blocked')
 const manualInstallTranslationKey = 'install.manual.iosSafari' as const
 const installModalEyebrow = computed(() =>
@@ -146,14 +174,22 @@ const updateErrorMessage = computed(() => {
 const shellStateEyebrow = computed(() =>
   isBlockingApplication.value
     ? t('shellState.blocked.eyebrow')
-    : t('shellState.checking.eyebrow')
+    : isSetupChecking.value
+      ? t('shellState.setupChecking.eyebrow')
+      : t('shellState.checking.eyebrow')
 )
 const shellStateTitle = computed(() =>
   isBlockingApplication.value
     ? t('shellState.blocked.title')
-    : t('shellState.checking.title')
+    : isSetupChecking.value
+      ? t('shellState.setupChecking.title')
+      : t('shellState.checking.title')
 )
 const shellStateCopy = computed(() => {
+  if (isSetupChecking.value) {
+    return t('shellState.setupChecking.body')
+  }
+
   if (!isBlockingApplication.value) {
     return t('shellState.checking.body')
   }
@@ -167,11 +203,37 @@ const isInstallModalActive = computed(() => {
   return isShellReady.value && installModalVisible.value
 })
 
+function unsubscribeSetupStatus() {
+  setupStatusSubscription?.unsubscribe()
+  setupStatusSubscription = null
+}
+
+function subscribeToSetupStatus() {
+  if (setupStatusSubscription) {
+    return
+  }
+
+  // What: observe setup completion from one app-level read model. Why: the shell should unlock and reroute from club to trainer automatically after local writes, without setup views owning shell state.
+  setupStatusSubscription = queries.observeSetupStatus.handle().subscribe({
+    next(nextStatus) {
+      appStore.setSetupStatus(nextStatus)
+
+      if (nextStatus === 'ready' && shouldAutoOpenInstallModal.value) {
+        appStore.openInstallModal('automatic')
+      }
+    },
+    error(error) {
+      appStore.blockApplication('bootstrap')
+      console.error('Failed to observe application setup status.', error)
+    }
+  })
+}
+
 // The auto-open install modal is intentionally one-time so the shell nudges once without becoming repetitive on every launch.
 watch(
-  shouldAutoOpenInstallModal,
-  (value) => {
-    if (value) {
+  [shouldAutoOpenInstallModal, isShellReady],
+  ([value, shellReady]) => {
+    if (value && shellReady) {
       appStore.openInstallModal('automatic')
     }
   },
@@ -192,6 +254,48 @@ watch(showInstallEntry, (value) => {
 })
 
 watch(
+  appReadiness,
+  (value) => {
+    if (value === 'ready') {
+      // What: reset the setup gate before subscribing. Why: after the database opens, the shell needs a neutral loading state while the first onboarding status arrives.
+      appStore.setSetupStatus('checking')
+      subscribeToSetupStatus()
+      return
+    }
+
+    unsubscribeSetupStatus()
+  },
+  { immediate: true }
+)
+
+watch(
+  [appReadiness, setupStatus, currentRouteName],
+  ([readiness, nextSetupStatus, routeName]) => {
+    if (readiness !== 'ready') {
+      return
+    }
+
+    if (nextSetupStatus === 'requires-club' && routeName !== 'setup-club') {
+      router.replace('/setup/club')
+      return
+    }
+
+    if (
+      nextSetupStatus === 'requires-trainer' &&
+      routeName !== 'setup-trainer'
+    ) {
+      router.replace('/setup/trainer')
+      return
+    }
+
+    if (nextSetupStatus === 'ready' && isSetupRoute.value) {
+      router.replace('/')
+    }
+  },
+  { immediate: true, flush: 'sync' }
+)
+
+watch(
   () => route.fullPath,
   () => {
     // What: collapse transient navigation overlays after every route change. Why: the hamburger menu and install coach should never linger over the next screen after navigation completes.
@@ -209,6 +313,10 @@ watch(
   },
   { immediate: true }
 )
+
+onBeforeUnmount(() => {
+  unsubscribeSetupStatus()
+})
 
 function toggleMenu() {
   isMenuOpen.value = !isMenuOpen.value
@@ -493,6 +601,20 @@ function navigationLabel(item: NavigationItem) {
     </template>
 
     <section
+      v-else-if="isSetupGateActive"
+      class="min-h-screen px-6 py-10 sm:py-12 flex items-center justify-center"
+    >
+      <!-- What: keep first-run setup outside the normal shell chrome. Why: required club and trainer assignment should stay focused and unskippable until the local notebook is complete. -->
+      <div class="w-full flex justify-center">
+        <RouterView v-slot="{ Component }">
+          <Transition name="fade" mode="out-in">
+            <component :is="Component" :key="route.fullPath" />
+          </Transition>
+        </RouterView>
+      </div>
+    </section>
+
+    <section
       v-else
       class="min-h-screen px-6 py-12 flex items-center justify-center"
     >
@@ -565,13 +687,39 @@ function navigationLabel(item: NavigationItem) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 3.25rem;
-  padding: 0 1.2rem;
-  border-radius: 999px;
-  border: 1px solid rgba(16, 59, 55, 0.14);
-  background: rgba(255, 255, 255, 0.74);
-  color: var(--ink);
+  min-height: 3rem;
+  padding: 0 1.15rem;
+  border: 1px solid var(--color-on-surface);
+  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
   font-weight: 700;
+  letter-spacing: 0.2em;
+  line-height: 1;
+  text-transform: uppercase;
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  transition:
+    transform 75ms ease,
+    box-shadow 75ms ease,
+    background-color 75ms ease,
+    opacity 75ms ease;
+}
+
+.button-secondary:hover:not(:disabled) {
+  background: var(--color-surface-container-low);
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.button-secondary:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.button-secondary:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 3px;
+  background: var(--color-surface-container-low);
 }
 
 .locale-switcher {
@@ -658,11 +806,10 @@ function navigationLabel(item: NavigationItem) {
 .shell-modal {
   display: grid;
   gap: 1rem;
-  padding: clamp(1.35rem, 4vw, 2rem);
-  border-radius: 1.6rem;
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  background: rgba(249, 249, 249, 0.97);
-  box-shadow: var(--shadow-strong);
+  padding: clamp(1.25rem, 4vw, 1.75rem);
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-surface);
+  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
 }
 
 .shell-modal__eyebrow {
@@ -672,22 +819,22 @@ function navigationLabel(item: NavigationItem) {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--accent-hot);
+  color: var(--color-secondary);
 }
 
 .shell-modal__title {
   margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.7rem, 6vw, 2.6rem);
-  line-height: 1;
+  font-family: var(--font-headline);
+  font-size: clamp(1.6rem, 6vw, 2.3rem);
+  line-height: 0.96;
   text-transform: uppercase;
-  color: var(--accent-strong);
+  color: var(--color-primary);
 }
 
 .shell-modal__copy {
   margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.6;
+  color: var(--color-on-surface);
+  line-height: 1.5;
 }
 
 .shell-modal__steps {
@@ -716,9 +863,9 @@ function navigationLabel(item: NavigationItem) {
   width: 1.65rem;
   height: 1.65rem;
   flex: 0 0 1.65rem;
-  border-radius: 999px;
-  background: rgba(15, 107, 87, 0.12);
-  color: var(--accent-strong);
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
@@ -825,6 +972,8 @@ function navigationLabel(item: NavigationItem) {
       "addMember": "Dodaj członka",
       "attendanceHistory": "Historia treningów",
       "attendanceRecord": "Nowy trening",
+      "setupClub": "Konfiguracja klubu",
+      "setupTrainer": "Konfiguracja trenera",
       "debugIndexedDb": "Podgląd IndexedDB"
     },
     "bottomNav": {
@@ -879,6 +1028,11 @@ function navigationLabel(item: NavigationItem) {
         "title": "Przygotowuję lokalny zeszyt",
         "body": "Przygotowuję Twoje dane, żeby zeszyt mógł otworzyć się bezpiecznie i działać offline."
       },
+      "setupChecking": {
+        "eyebrow": "Konfiguracja startowa",
+        "title": "Sprawdzam dane startowe",
+        "body": "Sprawdzam, czy ten zeszyt ma już przypisany klub i trenera."
+      },
       "blocked": {
         "eyebrow": "Stan aplikacji",
         "title": "Nie udało się uruchomić Zeszytu Trenera",
@@ -909,6 +1063,8 @@ function navigationLabel(item: NavigationItem) {
       "addMember": "Add member",
       "attendanceHistory": "Training history",
       "attendanceRecord": "New training",
+      "setupClub": "Club setup",
+      "setupTrainer": "Trainer setup",
       "debugIndexedDb": "IndexedDB Inspector"
     },
     "bottomNav": {
@@ -962,6 +1118,11 @@ function navigationLabel(item: NavigationItem) {
         "eyebrow": "Starting",
         "title": "Preparing the local notebook",
         "body": "Preparing your data so the notebook can open safely and stay available offline."
+      },
+      "setupChecking": {
+        "eyebrow": "Startup setup",
+        "title": "Checking required setup data",
+        "body": "Checking whether this notebook already has a club and trainer assigned."
       },
       "blocked": {
         "eyebrow": "App state",
