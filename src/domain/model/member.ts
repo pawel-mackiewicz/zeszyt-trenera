@@ -43,14 +43,14 @@ export const normalizeMemberName = (name: string): string => {
   return name.trim().toLowerCase()
 }
 
-export type ValidateMemberProfileInput = {
+type ValidateMemberProfileInput = {
   firstName: string
   lastName: string
   dateOfBirth?: Date
   joinedAt?: Date
 }
 
-export function validateMemberProfile(
+function validateMemberProfile(
   input: ValidateMemberProfileInput,
   now = new Date()
 ): void {
@@ -171,21 +171,20 @@ export class Member {
       existingMember.createdAt
     )
 
-    return [
-      updatedMember,
-      new MemberUpdatedDomainEvent({
-        memberId: updatedMember.id,
-        firstName: updatedMember.firstName,
-        lastName: updatedMember.lastName,
-        phoneNumber: updatedMember.phoneNumber.value,
-        ...(updatedMember.dateOfBirth === undefined
-          ? {}
-          : { dateOfBirth: updatedMember.dateOfBirth }),
-        ...(updatedMember.joinedAt === undefined
-          ? {}
-          : { joinedAt: updatedMember.joinedAt })
-      })
-    ]
+    const updateEvent = new MemberUpdatedDomainEvent({
+      memberId: updatedMember.id,
+      firstName: updatedMember.firstName,
+      lastName: updatedMember.lastName,
+      phoneNumber: updatedMember.phoneNumber.value,
+      ...(updatedMember.dateOfBirth === undefined
+        ? {}
+        : { dateOfBirth: updatedMember.dateOfBirth }),
+      ...(updatedMember.joinedAt === undefined
+        ? {}
+        : { joinedAt: updatedMember.joinedAt })
+    })
+
+    return [updatedMember, updateEvent]
   }
 
   // Persistence adapters and event serializers share one snapshot so stored member data cannot drift apart.
