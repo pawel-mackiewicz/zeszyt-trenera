@@ -85,12 +85,33 @@ export async function clearIndexedDb(
   }
 }
 
+export async function clearIndexedDbTable(
+  database: TrainerNotebookDb,
+  tableName: string
+): Promise<void> {
+  if (!database.isOpen()) {
+    await database.open()
+  }
+
+  const table = database.tables.find(
+    (candidate) => candidate.name === tableName
+  )
+
+  if (!table) {
+    throw new Error(`IndexedDB table "${tableName}" was not found.`)
+  }
+
+  // What: clear only one selected object store. Why: the debug workflow often needs a focused local reset while preserving the rest of offline data.
+  await table.clear()
+}
+
 export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
   const databaseName = ref(database.name)
   const schemaVersion = ref(database.verno)
   const tableSnapshots = ref<Array<IndexedDbTableSnapshot>>([])
   const loading = ref(false)
   const clearing = ref(false)
+  const clearingTableName = ref<string | null>(null)
   // What: expose a stable error kind instead of final copy. Why: the debug screen should own the wording for failures that only it renders.
   const errorKind = ref<IndexedDbInspectorErrorKind | null>(null)
 
@@ -126,6 +147,21 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
     }
   }
 
+  async function clearTable(tableName: string) {
+    clearingTableName.value = tableName
+    errorKind.value = null
+
+    try {
+      await clearIndexedDbTable(database, tableName)
+      await reload()
+    } catch (reason: unknown) {
+      errorKind.value = 'clear'
+      console.error(`Failed to clear IndexedDB table "${tableName}".`, reason)
+    } finally {
+      clearingTableName.value = null
+    }
+  }
+
   onMounted(() => {
     void reload()
   })
@@ -136,8 +172,10 @@ export function useIndexedDbInspector(database: TrainerNotebookDb = db) {
     tableSnapshots,
     loading,
     clearing,
+    clearingTableName,
     errorKind,
     reload,
-    clearDatabase
+    clearDatabase,
+    clearTable
   }
 }

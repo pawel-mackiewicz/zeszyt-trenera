@@ -151,6 +151,55 @@ describe('IndexedDbDebugView', () => {
     expect(consoleError).toHaveBeenCalled()
   })
 
+  it('clears only one table when the per-table action is confirmed', async () => {
+    const confirmSpy = vi.fn((message: string) =>
+      message.includes('Clear only "clubs"')
+    )
+    vi.stubGlobal('confirm', confirmSpy)
+
+    await database.open()
+    await database.clubs.add({
+      id: 'club-1',
+      name: 'ZKS Włókniarz Częstochowa',
+      foundingDate: new Date('1946-01-01T00:00:00.000Z'),
+      createdAt: new Date('2025-03-17T14:00:00.000Z')
+    })
+    await database.events.add({
+      eventId: 'event-1',
+      eventName: 'club.created',
+      occurredAt: new Date('2025-03-17T14:01:00.000Z'),
+      payload: {
+        id: 'club-1',
+        name: 'ZKS Włókniarz Częstochowa'
+      }
+    })
+
+    const wrapper = mountView()
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('ZKS Włókniarz Częstochowa')
+    })
+
+    // Keeping a table-scoped clear action in each card speeds up targeted local-first debugging without a full browser reset.
+    const clubsCard = wrapper
+      .findAll('.debug-card--table')
+      .find((card) => card.text().includes('clubs'))
+    expect(clubsCard).toBeDefined()
+    await clubsCard!.get('.debug-card__action--inline').trigger('click')
+
+    await flushPromises()
+    await vi.waitFor(() => {
+      expect(wrapper.text()).toContain('No records stored in this table yet.')
+    })
+
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Clear only "clubs" rows in this browser? This cannot be undone.'
+    )
+    expect(await database.clubs.count()).toBe(0)
+    expect(await database.events.count()).toBe(1)
+  })
+
   it('renders debug error copy from the local Polish dictionary', async () => {
     const consoleError = vi
       .spyOn(console, 'error')
