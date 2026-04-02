@@ -5,6 +5,7 @@ import { AttendanceListAlreadyExistsError } from '@/domain/model/AttendanceList'
 import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
+import { useRouter } from '@/ui/router/runtime'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 
 vi.mock('@/db', () => ({
@@ -16,6 +17,10 @@ vi.mock('@/db', () => ({
   }
 }))
 
+vi.mock('@/ui/router/runtime', () => ({
+  useRouter: vi.fn()
+}))
+
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()
 }))
@@ -24,11 +29,21 @@ const ATTENDANCE_DRAFT_STORAGE_KEY = 'zeszyt-trenera.attendance-draft'
 
 describe('AttendanceListView', () => {
   let mockRegisterAttendanceListHandle: Mock
+  let mockRouterPush: Mock
 
   beforeEach(() => {
     vi.useRealTimers()
     window.localStorage.clear()
     vi.mocked(db.open).mockResolvedValue({} as never)
+    mockRouterPush = vi.fn().mockResolvedValue(undefined)
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockRouterPush,
+      replace: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      go: vi.fn(),
+      currentRoute: { value: {} } as unknown
+    } as unknown as ReturnType<typeof useRouter>)
     mockRegisterAttendanceListHandle = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useAppServices).mockReturnValue({
       useCases: {
@@ -558,6 +573,7 @@ describe('AttendanceListView', () => {
     await saveButton(wrapper).trigger('click')
     await flushPromises()
 
+    expect(mockRouterPush).toHaveBeenCalledWith('/attendance')
     expect(wrapper.text()).toContain('Zapisano obecność dla 1 osób.')
     expect(wrapper.find('.attendance-member-row--selected').exists()).toBe(
       false
