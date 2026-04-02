@@ -66,6 +66,7 @@ const routeTitleKeys = {
   'add-member': 'routes.addMember',
   'attendance-history': 'routes.attendanceHistory',
   'attendance-record': 'routes.attendanceRecord',
+  'attendance-edit': 'routes.attendanceEdit',
   'setup-club': 'routes.setupClub',
   'setup-trainer': 'routes.setupTrainer',
   'debug-indexeddb': 'routes.debugIndexedDb'
@@ -100,9 +101,15 @@ const isAttendanceHistoryRoute = computed(
 const isAttendanceRecordRoute = computed(
   () => currentRouteName.value === 'attendance-record'
 )
-// What: keep the history tab active for both attendance routes. Why: the shell should read the entire attendance area as one destination even though the recorder is now a separate screen behind the history hub.
+const isAttendanceEditRoute = computed(
+  () => currentRouteName.value === 'attendance-edit'
+)
+// What: keep the history tab active for every attendance route. Why: the shell should read the archive, new-session flow, and edit flow as one destination instead of fragmenting the same mobile workflow across tabs.
 const isAttendanceSectionActive = computed(
-  () => isAttendanceHistoryRoute.value || isAttendanceRecordRoute.value
+  () =>
+    isAttendanceHistoryRoute.value ||
+    isAttendanceRecordRoute.value ||
+    isAttendanceEditRoute.value
 )
 const title = computed(() => {
   const routeName = currentRouteName.value
@@ -937,6 +944,7 @@ function navigationLabel(item: NavigationItem) {
       "addMember": "Dodaj członka",
       "attendanceHistory": "Historia treningów",
       "attendanceRecord": "Nowy trening",
+      "attendanceEdit": "Edycja treningu",
       "setupClub": "Konfiguracja klubu",
       "setupTrainer": "Konfiguracja trenera",
       "debugIndexedDb": "Podgląd IndexedDB"
@@ -1028,6 +1036,7 @@ function navigationLabel(item: NavigationItem) {
       "addMember": "Add member",
       "attendanceHistory": "Training history",
       "attendanceRecord": "New training",
+      "attendanceEdit": "Edit training",
       "setupClub": "Club setup",
       "setupTrainer": "Trainer setup",
       "debugIndexedDb": "IndexedDB Inspector"

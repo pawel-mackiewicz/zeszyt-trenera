@@ -44,6 +44,60 @@ describe('DexieAttendanceListRepo', () => {
     })
   })
 
+  it('loads one attendance list back as a rehydrated aggregate', async () => {
+    const [attendanceList] = AttendanceList.record(
+      {
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T18:00:00Z')
+      },
+      'attendance-list-1'
+    )
+
+    await repository.save(attendanceList)
+
+    await expect(repository.findById('attendance-list-1')).resolves.toEqual(
+      expect.objectContaining({
+        id: 'attendance-list-1',
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T18:00:00Z'),
+        createdAt: attendanceList.createdAt
+      })
+    )
+  })
+
+  it('updates an existing attendance list in Dexie', async () => {
+    const existingAttendanceList = AttendanceList.rehydrate({
+      id: 'attendance-list-1',
+      memberIds: ['member-1'],
+      start: new Date('2026-03-27T18:00:00Z'),
+      createdAt: new Date('2026-03-01T10:00:00Z')
+    })
+
+    await repository.save(existingAttendanceList)
+
+    const [updatedAttendanceList] = AttendanceList.update(
+      existingAttendanceList,
+      {
+        attendanceListId: 'attendance-list-1',
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T19:00:00Z')
+      }
+    )
+
+    await repository.update(updatedAttendanceList)
+
+    const persistedAttendanceLists = await database.attendanceLists.toArray()
+
+    expect(persistedAttendanceLists).toEqual([
+      {
+        id: 'attendance-list-1',
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T19:00:00Z'),
+        createdAt: new Date('2026-03-01T10:00:00Z')
+      }
+    ])
+  })
+
   it('reports when no attendance list exists for a training start yet', async () => {
     await expect(
       repository.existsByStart(new Date('2026-03-27T18:00:00Z'))

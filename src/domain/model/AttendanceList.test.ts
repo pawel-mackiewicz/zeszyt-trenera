@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest'
 
 import {
   AttendanceList,
+  AttendanceListIdMismatchError,
   AttendanceListRecordedDomainEvent,
+  AttendanceListUpdatedDomainEvent,
   DuplicateAttendanceListMemberError,
   InvalidAttendanceListMemberIdError,
   InvalidAttendanceListStartError
@@ -101,6 +103,51 @@ describe('AttendanceList Model', () => {
     expect(attendanceList.memberIds).toEqual([])
   })
 
+  it('rehydrates and updates an attendance list while preserving id and createdAt', () => {
+    const createdAt = new Date('2026-03-01T10:00:00Z')
+    const existingAttendanceList = AttendanceList.rehydrate({
+      id: 'attendance-list-1',
+      memberIds: ['member-1'],
+      start: new Date('2026-03-27T17:00:00Z'),
+      createdAt
+    })
+
+    const [updatedAttendanceList, event] = AttendanceList.update(
+      existingAttendanceList,
+      {
+        attendanceListId: 'attendance-list-1',
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T18:00:00Z')
+      }
+    )
+
+    expect(updatedAttendanceList.toSnapshot()).toEqual({
+      id: 'attendance-list-1',
+      memberIds: ['member-1', 'member-2'],
+      start: new Date('2026-03-27T18:00:00Z'),
+      createdAt
+    })
+    expect(event).toBeInstanceOf(AttendanceListUpdatedDomainEvent)
+    expect(event.payload).toEqual(updatedAttendanceList.toSnapshot())
+  })
+
+  it('rejects attendance updates when the provided id does not match the loaded aggregate', () => {
+    const existingAttendanceList = AttendanceList.rehydrate({
+      id: 'attendance-list-1',
+      memberIds: ['member-1'],
+      start: new Date('2026-03-27T17:00:00Z'),
+      createdAt: new Date('2026-03-01T10:00:00Z')
+    })
+
+    expect(() =>
+      AttendanceList.update(existingAttendanceList, {
+        attendanceListId: 'attendance-list-2',
+        memberIds: ['member-1'],
+        start: new Date('2026-03-27T17:00:00Z')
+      })
+    ).toThrow(AttendanceListIdMismatchError)
+  })
+
   it('rejects duplicate member ids', () => {
     expect(() =>
       AttendanceList.record(
@@ -134,6 +181,31 @@ describe('AttendanceList Model', () => {
         },
         'attendance-list-1'
       )
+    ).toThrow(InvalidAttendanceListStartError)
+  })
+
+  it('applies the same member and start validation rules during updates', () => {
+    const existingAttendanceList = AttendanceList.rehydrate({
+      id: 'attendance-list-1',
+      memberIds: ['member-1'],
+      start: new Date('2026-03-27T17:00:00Z'),
+      createdAt: new Date('2026-03-01T10:00:00Z')
+    })
+
+    expect(() =>
+      AttendanceList.update(existingAttendanceList, {
+        attendanceListId: 'attendance-list-1',
+        memberIds: ['member-1', 'member-1'],
+        start: new Date('2026-03-27T17:00:00Z')
+      })
+    ).toThrow(DuplicateAttendanceListMemberError)
+
+    expect(() =>
+      AttendanceList.update(existingAttendanceList, {
+        attendanceListId: 'attendance-list-1',
+        memberIds: ['member-1'],
+        start: new Date(Date.now() + 24 * 60 * 60 * 1000 + 60_000)
+      })
     ).toThrow(InvalidAttendanceListStartError)
   })
 })

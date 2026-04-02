@@ -10,6 +10,7 @@ import {
 
 describe('uiAppServices', () => {
   it('fails fast when app services were not provided', () => {
+    // eslint-disable-next-line vue/one-component-per-file -- What: keep this spec-local probe beside the assertion it drives. Why: colocated harnesses make provider wiring failures easier to read and change without promoting throwaway test components into shared UI code.
     const Probe = defineComponent({
       setup() {
         useAppServices()
@@ -26,6 +27,9 @@ describe('uiAppServices', () => {
     const observeHandle = vi.fn()
     const appServices: UiAppServices = {
       queries: {
+        getAttendanceSessionById: {
+          handle
+        },
         listAttendanceSessionsByMonth: {
           handle
         },
@@ -52,12 +56,16 @@ describe('uiAppServices', () => {
         registerTrainer: {
           handle
         },
+        updateAttendanceList: {
+          handle
+        },
         updateMember: {
           handle
         }
       }
     }
 
+    // eslint-disable-next-line vue/one-component-per-file -- What: keep this second probe inline with the happy-path service-bag assertion. Why: these tiny one-off test harnesses document intent better than extracting artificial shared components for a spec-only scenario.
     const Probe = defineComponent({
       setup() {
         expect(useAppServices()).toBe(appServices)

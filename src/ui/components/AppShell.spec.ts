@@ -360,6 +360,21 @@ describe('AppShell', () => {
     )
   })
 
+  it('keeps the attendance tab active on the attendance edit screen', () => {
+    mockRoute.name = 'attendance-edit'
+    mockRoute.path = '/attendance/attendance-list-1/edit'
+    mockRoute.fullPath = '/attendance/attendance-list-1/edit'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(document.title).toBe('Edycja treningu • Zeszyt Trenera')
+    expect(wrapper.get('a[href="/attendance"]').classes()).toContain(
+      'bg-primary'
+    )
+  })
+
   it('activates the payments route title on the monthly ledger screen', () => {
     mockRoute.name = 'membership-payments'
     mockRoute.path = '/payments'

@@ -1,13 +1,37 @@
 import type { AttendanceListRepoPort } from '@/application/ports/AttendanceListRepoPort'
-import type { AttendanceList } from '@/domain/model/AttendanceList'
+import {
+  AttendanceList,
+  type AttendanceListSnapshot
+} from '@/domain/model/AttendanceList'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedAttendanceList } from '@/infra'
 
 export class DexieAttendanceListRepo implements AttendanceListRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}
 
+  public async findById(
+    attendanceListId: string
+  ): Promise<AttendanceList | null> {
+    const persistedAttendanceList =
+      await this.database.attendanceLists.get(attendanceListId)
+
+    if (!persistedAttendanceList) {
+      return null
+    }
+
+    return AttendanceList.rehydrate(
+      this.toAttendanceListSnapshot(persistedAttendanceList)
+    )
+  }
+
   public async save(attendanceList: AttendanceList): Promise<void> {
     await this.database.attendanceLists.add(
+      this.toPersistedAttendanceList(attendanceList)
+    )
+  }
+
+  public async update(attendanceList: AttendanceList): Promise<void> {
+    await this.database.attendanceLists.put(
       this.toPersistedAttendanceList(attendanceList)
     )
   }
@@ -26,5 +50,16 @@ export class DexieAttendanceListRepo implements AttendanceListRepoPort {
     attendanceList: AttendanceList
   ): PersistedAttendanceList {
     return attendanceList.toSnapshot()
+  }
+
+  private toAttendanceListSnapshot(
+    attendanceList: PersistedAttendanceList
+  ): AttendanceListSnapshot {
+    return {
+      id: attendanceList.id,
+      memberIds: [...attendanceList.memberIds],
+      start: new Date(attendanceList.start.getTime()),
+      createdAt: new Date(attendanceList.createdAt.getTime())
+    }
   }
 }

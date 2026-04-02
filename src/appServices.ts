@@ -5,6 +5,7 @@ import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
+import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListUseCase'
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
@@ -12,6 +13,7 @@ import type { RegisterClubCommand } from '@/application/requests/RegisterClubCom
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
+import type { UpdateAttendanceListCommand } from '@/application/requests/UpdateAttendanceListCommand'
 import type { UpdateMemberCommand } from '@/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
@@ -22,6 +24,11 @@ import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRep
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
+import {
+  GetAttendanceSessionByIdQuery,
+  type AttendanceSessionDetails,
+  type GetAttendanceSessionByIdQueryInput
+} from '@/read/GetAttendanceSessionByIdQuery'
 import {
   ListAttendanceSessionsByMonthQuery,
   type AttendanceSessionListItem,
@@ -43,10 +50,16 @@ export type AppUseCases = {
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
+  readonly updateAttendanceList: UseCase<UpdateAttendanceListCommand>
   readonly updateMember: UseCase<UpdateMemberCommand>
 }
 
 export type AppQueries = {
+  readonly getAttendanceSessionById: {
+    handle(
+      input: GetAttendanceSessionByIdQueryInput
+    ): Promise<AttendanceSessionDetails | null>
+  }
   readonly listAttendanceSessionsByMonth: {
     handle(
       input: ListAttendanceSessionsByMonthQueryInput
@@ -98,6 +111,18 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveEventRepo(),
         resolveIdGenerator()
       )
+  )
+  const resolveUpdateAttendanceList = lazy(
+    () =>
+      new UpdateAttendanceListUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveAttendanceListRepo(),
+        resolveEventRepo()
+      )
+  )
+  const resolveGetAttendanceSessionById = lazy(
+    () => new GetAttendanceSessionByIdQuery(database)
   )
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
@@ -171,12 +196,19 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get registerTrainer() {
       return resolveRegisterTrainer()
     },
+    get updateAttendanceList() {
+      return resolveUpdateAttendanceList()
+    },
     get updateMember() {
       return resolveUpdateMember()
     }
   }
 
   const queries: AppQueries = {
+    // Keeping session hydration behind the shared query bag lets attendance edit stay off raw Dexie APIs while still reading one persisted session through the application boundary.
+    get getAttendanceSessionById() {
+      return resolveGetAttendanceSessionById()
+    },
     // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()

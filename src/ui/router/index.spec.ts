@@ -42,6 +42,9 @@ describe('router', () => {
     const attendanceRecordRoute = routes.find(
       (route) => route.name === 'attendance-record'
     )
+    const attendanceEditRoute = routes.find(
+      (route) => route.name === 'attendance-edit'
+    )
 
     expect(clubSetupRoute).toMatchObject({
       path: '/setup/club',
@@ -78,6 +81,14 @@ describe('router', () => {
     })
     expect(attendanceRecordRoute).toMatchObject({
       path: '/attendance/new',
+      meta: {
+        showBack: true,
+        hideBottomNav: true,
+        backTo: '/attendance'
+      }
+    })
+    expect(attendanceEditRoute).toMatchObject({
+      path: '/attendance/:attendanceListId/edit',
       meta: {
         showBack: true,
         hideBottomNav: true,

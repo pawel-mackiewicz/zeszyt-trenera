@@ -39,7 +39,7 @@ describe('AttendanceHistoryView', () => {
         stubs: {
           RouterLink: {
             props: ['to'],
-            template: '<a :href="to"><slot /></a>'
+            template: '<a :href="to" :to="to"><slot /></a>'
           }
         }
       }
@@ -107,6 +107,23 @@ describe('AttendanceHistoryView', () => {
     expect(wrapper.text()).toContain('12 osób')
     expect(wrapper.text()).toContain('18 osób')
     expect(wrapper.text()).not.toContain('Analiza miesięczna')
+  })
+
+  it('routes each saved session row to the attendance edit screen', async () => {
+    mockListAttendanceSessionsByMonthHandle.mockResolvedValue([
+      {
+        id: 'attendance-list-2',
+        start: new Date(2026, 9, 24, 18, 0, 0),
+        attendanceCount: 12
+      }
+    ])
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(
+      wrapper.get('a[to="/attendance/attendance-list-2/edit"]').attributes('to')
+    ).toBe('/attendance/attendance-list-2/edit')
   })
 
   it('shows the new training link in Polish', async () => {

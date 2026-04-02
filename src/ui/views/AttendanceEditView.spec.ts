@@ -1,0 +1,221 @@
+import { flushPromises, mount } from '@vue/test-utils'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock
+} from 'vitest'
+
+import { db } from '@/db'
+import { createAppI18n } from '@/ui/i18n'
+import { useAppServices } from '@/ui/appServices'
+import { useRoute, useRouter } from '@/ui/router/runtime'
+import AttendanceEditView from '@/ui/views/AttendanceEditView.vue'
+
+vi.mock('@/db', () => ({
+  db: {
+    open: vi.fn(),
+    members: {
+      toArray: vi.fn()
+    }
+  }
+}))
+
+vi.mock('@/ui/appServices', () => ({
+  useAppServices: vi.fn()
+}))
+
+vi.mock('@/ui/router/runtime', async () => {
+  const actual = await vi.importActual('@/ui/router/runtime')
+
+  return {
+    ...actual,
+    useRoute: vi.fn(),
+    useRouter: vi.fn()
+  }
+})
+
+describe('AttendanceEditView', () => {
+  let mockGetAttendanceSessionByIdHandle: Mock
+  let mockUpdateAttendanceListHandle: Mock
+  let mockRouterReplace: Mock
+
+  beforeEach(() => {
+    vi.useRealTimers()
+    vi.mocked(db.open).mockResolvedValue({} as never)
+    mockGetAttendanceSessionByIdHandle = vi.fn().mockResolvedValue({
+      id: 'attendance-list-1',
+      memberIds: ['member-1'],
+      start: new Date(2026, 2, 27, 18, 0, 0)
+    })
+    mockUpdateAttendanceListHandle = vi.fn().mockResolvedValue(undefined)
+    mockRouterReplace = vi.fn().mockResolvedValue(undefined)
+
+    vi.mocked(useRoute).mockReturnValue({
+      params: {
+        attendanceListId: 'attendance-list-1'
+      }
+    } as never)
+    vi.mocked(useRouter).mockReturnValue({
+      replace: mockRouterReplace
+    } as never)
+    vi.mocked(useAppServices).mockReturnValue({
+      queries: {
+        getAttendanceSessionById: {
+          handle: mockGetAttendanceSessionByIdHandle
+        }
+      },
+      useCases: {
+        updateAttendanceList: {
+          handle: mockUpdateAttendanceListHandle
+        }
+      }
+    } as unknown as ReturnType<typeof useAppServices>)
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  function mountView(locale: 'pl' | 'en' = 'pl') {
+    return mount(AttendanceEditView, {
+      global: {
+        plugins: [createAppI18n(locale)],
+        stubs: {
+          RouterLink: {
+            props: ['to'],
+            template: '<a :href="to" :to="to"><slot /></a>'
+          }
+        }
+      }
+    })
+  }
+
+  function memberRow(wrapper: ReturnType<typeof mountView>, fullName: string) {
+    const row = wrapper
+      .findAll('button')
+      .find((buttonWrapper) => buttonWrapper.text().includes(fullName))
+
+    if (!row) {
+      throw new Error(`Member row not found for ${fullName}`)
+    }
+
+    return row
+  }
+
+  function saveButton(wrapper: ReturnType<typeof mountView>) {
+    const button = wrapper
+      .findAll('button')
+      .find((buttonWrapper) =>
+        /Save changes|Zapisz zmiany/.test(buttonWrapper.text())
+      )
+
+    if (!button) {
+      throw new Error('Save changes button not found')
+    }
+
+    return button
+  }
+
+  it('hydrates the editor from one saved attendance session', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Amanda',
+        lastName: 'Nunes',
+        phoneNumber: '+48 111 111 111',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      },
+      {
+        id: 'member-2',
+        firstName: 'Valentina',
+        lastName: 'Shevchenko',
+        phoneNumber: '+48 222 222 222',
+        createdAt: new Date('2026-03-21T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(mockGetAttendanceSessionByIdHandle).toHaveBeenCalledWith({
+      attendanceListId: 'attendance-list-1'
+    })
+    expect(wrapper.find('#attendance-session-date-trigger').text()).toContain(
+      '27 marca 2026'
+    )
+    expect(wrapper.find('#attendance-session-time-trigger').text()).toContain(
+      '18:00'
+    )
+    expect(memberRow(wrapper, 'Amanda Nunes').classes()).toContain(
+      'attendance-member-row--selected'
+    )
+  })
+
+  it('submits attendance edits through the application layer and returns to history', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Amanda',
+        lastName: 'Nunes',
+        phoneNumber: '+48 111 111 111',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      },
+      {
+        id: 'member-2',
+        firstName: 'Valentina',
+        lastName: 'Shevchenko',
+        phoneNumber: '+48 222 222 222',
+        createdAt: new Date('2026-03-21T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await memberRow(wrapper, 'Valentina Shevchenko').trigger('click')
+    await wrapper.find('#attendance-session-time-trigger').trigger('click')
+    await wrapper.find('#attendance-time').setValue('18:30')
+    await saveButton(wrapper).trigger('click')
+
+    expect(mockUpdateAttendanceListHandle).toHaveBeenCalledWith({
+      attendanceListId: 'attendance-list-1',
+      memberIds: ['member-1', 'member-2'],
+      start: new Date(2026, 2, 27, 18, 30)
+    })
+    expect(mockRouterReplace).toHaveBeenCalledWith('/attendance')
+  })
+
+  it('shows a fallback state when the saved attendance session no longer exists', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockGetAttendanceSessionByIdHandle.mockResolvedValue(null)
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Wybrany trening nie istnieje już w historii.'
+    )
+    expect(wrapper.get('a[to="/attendance"]').attributes('to')).toBe(
+      '/attendance'
+    )
+  })
+
+  it('disables save when the local member roster cannot be loaded', async () => {
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
+
+    vi.mocked(db.members.toArray).mockRejectedValue(new Error('offline'))
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    expect(saveButton(wrapper).attributes('disabled')).toBeDefined()
+
+    consoleErrorSpy.mockRestore()
+  })
+})

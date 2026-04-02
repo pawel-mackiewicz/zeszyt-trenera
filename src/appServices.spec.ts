@@ -47,6 +47,9 @@ describe('appServices', () => {
     expect(services.queries.listAttendanceSessionsByMonth).toBe(
       services.queries.listAttendanceSessionsByMonth
     )
+    expect(services.queries.getAttendanceSessionById).toBe(
+      services.queries.getAttendanceSessionById
+    )
     expect(services.queries.observeMembershipPaymentStatusByMonth).toBe(
       services.queries.observeMembershipPaymentStatusByMonth
     )
@@ -65,6 +68,9 @@ describe('appServices', () => {
     )
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
+    )
+    expect(services.useCases.updateAttendanceList).toBe(
+      services.useCases.updateAttendanceList
     )
     expect(services.useCases.updateMember).toBe(services.useCases.updateMember)
   })
@@ -185,6 +191,63 @@ describe('appServices', () => {
         attendanceCount: 1
       }
     ])
+  })
+
+  it('assembles the attendance edit workflow and session-by-id query on top of the Dexie adapters', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'John',
+      lastName: 'Smith',
+      phoneNumber: '+48 987 654 321'
+    })
+
+    const persistedMembers = await database.members.toArray()
+
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMembers[0].id],
+      start: new Date('2026-03-27T18:00:00Z')
+    })
+
+    const persistedAttendanceList = (
+      await database.attendanceLists.toArray()
+    )[0]
+
+    await services.useCases.updateAttendanceList.handle({
+      attendanceListId: persistedAttendanceList.id,
+      memberIds: persistedMembers.map((member) => member.id),
+      start: new Date('2026-03-27T19:00:00Z')
+    })
+
+    await expect(
+      services.queries.getAttendanceSessionById.handle({
+        attendanceListId: persistedAttendanceList.id
+      })
+    ).resolves.toEqual({
+      id: persistedAttendanceList.id,
+      memberIds: persistedMembers.map((member) => member.id),
+      start: new Date('2026-03-27T19:00:00Z')
+    })
+
+    const persistedEvents = await database.events.toArray()
+    const updatedEvent = persistedEvents.find(
+      (event) => event.eventName === 'attendance-list.updated'
+    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
+
+    expect(updatedEvent).toMatchObject({
+      eventName: 'attendance-list.updated',
+      // Updating attendance must persist the same snapshot payload as the stored row so replay and edit hydration keep one contract.
+      payload: {
+        id: persistedAttendanceList.id,
+        memberIds: persistedMembers.map((member) => member.id),
+        start: new Date('2026-03-27T19:00:00Z')
+      }
+    })
   })
 
   it('assembles the reactive monthly membership payment status query on top of the Dexie adapters', async () => {

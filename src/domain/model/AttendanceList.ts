@@ -45,6 +45,12 @@ export type RegisterAttendanceListInput = {
   start: Date
 }
 
+export type UpdateAttendanceListInput = {
+  attendanceListId: string
+  memberIds: string[]
+  start: Date
+}
+
 export type AttendanceListSnapshot = {
   id: string
   memberIds: string[]
@@ -94,6 +100,48 @@ export class AttendanceList {
     return [attendanceList, event]
   }
 
+  public static rehydrate(snapshot: AttendanceListSnapshot): AttendanceList {
+    // Why: update workflows need a real aggregate loaded from persistence so validation and event creation stay in the domain model instead of use-case glue.
+    return new AttendanceList(
+      {
+        memberIds: snapshot.memberIds,
+        start: snapshot.start
+      },
+      snapshot.id,
+      snapshot.createdAt
+    )
+  }
+
+  public static update(
+    existingAttendanceList: AttendanceList,
+    input: UpdateAttendanceListInput
+  ): [AttendanceList, AttendanceListUpdatedDomainEvent] {
+    if (input.attendanceListId !== existingAttendanceList.id) {
+      throw new AttendanceListIdMismatchError(
+        existingAttendanceList.id,
+        input.attendanceListId
+      )
+    }
+
+    const now = new Date()
+    const memberIds = assertUniqueMemberIds(input.memberIds)
+    const start = assertValidStart(input.start, now)
+    const updatedAttendanceList = new AttendanceList(
+      {
+        memberIds,
+        start
+      },
+      existingAttendanceList.id,
+      existingAttendanceList.createdAt
+    )
+    // Why: update events must carry the same immutable snapshot contract as persistence so offline replay can rebuild edited sessions without event-specific mapping.
+    const event = new AttendanceListUpdatedDomainEvent(
+      updatedAttendanceList.toSnapshot()
+    )
+
+    return [updatedAttendanceList, event]
+  }
+
   // Persistence adapters and event serializers share one snapshot so stored attendance data cannot drift apart.
   public toSnapshot(): AttendanceListSnapshot {
     return {
@@ -126,10 +174,37 @@ export class AttendanceListRecordedDomainEvent extends DomainEvent<AttendanceLis
   }
 }
 
+export class AttendanceListUpdatedDomainEvent extends DomainEvent<AttendanceListSnapshot> {
+  public readonly eventName = 'attendance-list.updated'
+
+  public constructor(attendanceList: AttendanceListSnapshot) {
+    super(attendanceList)
+  }
+}
+
 export class AttendanceListAlreadyExistsError extends Error {
   public constructor(start: Date) {
     super(`Attendance list already exists for start: ${start.toISOString()}`)
     this.name = 'AttendanceListAlreadyExistsError'
+  }
+}
+
+export class AttendanceListNotFoundError extends Error {
+  public constructor(attendanceListId: string) {
+    super(`Attendance list not found: ${attendanceListId}`)
+    this.name = 'AttendanceListNotFoundError'
+  }
+}
+
+export class AttendanceListIdMismatchError extends Error {
+  public constructor(
+    expectedAttendanceListId: string,
+    providedAttendanceListId: string
+  ) {
+    super(
+      `Attendance list update id mismatch. Expected ${expectedAttendanceListId}, got ${providedAttendanceListId}`
+    )
+    this.name = 'AttendanceListIdMismatchError'
   }
 }
 

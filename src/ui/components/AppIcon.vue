@@ -2,6 +2,7 @@
 type IconName =
   | 'add'
   | 'arrow_back'
+  | 'chevron_right'
   | 'check_circle'
   | 'calendar_today'
   | 'expand_more'
@@ -50,6 +51,10 @@ defineProps<{
     </template>
     <template v-else-if="name === 'expand_more'">
       <path d="m6 9 6 6 6-6" />
+    </template>
+    <template v-else-if="name === 'chevron_right'">
+      <!-- What: add a forward chevron to the local icon set. Why: editable attendance history rows need a compact visual cue that still works offline without the remote icon font. -->
+      <path d="m9 6 6 6-6 6" />
     </template>
     <template v-else-if="name === 'group'">
       <path d="M8.5 12a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />

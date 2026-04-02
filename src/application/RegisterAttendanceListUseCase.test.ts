@@ -76,8 +76,19 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
   public readonly existsByStartChecks: Date[] = []
   public existingStarts = new Set<number>()
 
+  async findById(): Promise<AttendanceList | null> {
+    return null
+  }
+
   async save(attendanceList: AttendanceList): Promise<void> {
     this.savedAttendanceLists.push(attendanceList)
+  }
+
+  async update(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance registration tests only rely on save.
+    _attendanceList: AttendanceList
+  ): Promise<void> {
+    throw new Error('Not implemented in this fake')
   }
 
   async existsByStart(start: Date): Promise<boolean> {

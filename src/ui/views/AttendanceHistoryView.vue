@@ -6,6 +6,7 @@ import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
+import { RouterLink } from '@/ui/router/runtime'
 
 type AttendanceHistoryRow = {
   id: string
@@ -137,13 +138,21 @@ onMounted(() => {
       </div>
 
       <div v-else class="attendance-history__rows">
-        <div
+        <!-- What: make each saved session row the entry into attendance editing. Why: coaches correct history by selecting the exact training they want to adjust from the monthly archive. -->
+        <RouterLink
           v-for="(session, index) in sessions"
           :key="session.id"
+          :to="`/attendance/${session.id}/edit`"
           class="attendance-history__row"
           :class="{
             'attendance-history__row--alt': index % 2 === 1
           }"
+          :aria-label="
+            t('actions.editTrainingAria', {
+              date: formatSessionDate(session.start),
+              time: formatSessionTime(session.start)
+            })
+          "
         >
           <p class="attendance-history__row-date">
             {{ formatSessionDate(session.start) }}
@@ -152,9 +161,10 @@ onMounted(() => {
             {{ formatSessionTime(session.start) }}
           </p>
           <p class="attendance-history__row-count">
-            {{ formatAttendanceCount(session.attendanceCount) }}
+            <span>{{ formatAttendanceCount(session.attendanceCount) }}</span>
+            <AppIcon name="chevron_right" />
           </p>
-        </div>
+        </RouterLink>
       </div>
     </section>
 
@@ -234,10 +244,23 @@ onMounted(() => {
   padding: 1.2rem 1rem;
   border-bottom: 1px solid rgba(16, 59, 55, 0.1);
   background: rgba(255, 255, 255, 0.45);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 160ms ease;
 }
 
 .attendance-history__row--alt {
   background: rgba(243, 243, 243, 0.82);
+}
+
+.attendance-history__row:hover,
+.attendance-history__row:focus-visible {
+  background: color-mix(in srgb, var(--color-surface-container-low) 82%, white);
+}
+
+.attendance-history__row:focus-visible {
+  outline: 2px solid rgba(174, 20, 23, 0.42);
+  outline-offset: -2px;
 }
 
 .attendance-history__row:last-child {
@@ -263,7 +286,10 @@ onMounted(() => {
 }
 
 .attendance-history__row-count {
-  text-align: right;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
   font-family: var(--font-mono);
 }
 
@@ -387,7 +413,8 @@ onMounted(() => {
       "attendancePlural": "{count} osób"
     },
     "actions": {
-      "newTraining": "+ DODAJ"
+      "newTraining": "+ DODAJ",
+      "editTrainingAria": "Edytuj trening z dnia {date}, godzina {time}"
     },
     "states": {
       "loading": "Ładowanie historii...",
@@ -411,7 +438,8 @@ onMounted(() => {
       "attendancePlural": "{count} people"
     },
     "actions": {
-      "newTraining": "+ ADD"
+      "newTraining": "+ ADD",
+      "editTrainingAria": "Edit training on {date} at {time}"
     },
     "states": {
       "loading": "Loading history...",

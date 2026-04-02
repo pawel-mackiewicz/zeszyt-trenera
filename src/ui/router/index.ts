@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
 import MembersListView from '@/ui/views/MembersListView.vue'
 import AddMemberView from '@/ui/views/AddMemberView.vue'
+import AttendanceEditView from '@/ui/views/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
 import ClubSetupView from '@/ui/views/ClubSetupView.vue'
@@ -22,6 +23,7 @@ export type AppRouteName =
   | 'add-member'
   | 'attendance-history'
   | 'attendance-record'
+  | 'attendance-edit'
   | 'setup-club'
   | 'setup-trainer'
   | 'debug-indexeddb'
@@ -91,6 +93,16 @@ const baseRoutes = [
     path: '/attendance/new',
     name: 'attendance-record',
     component: AttendanceListView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/attendance'
+    }
+  },
+  {
+    path: '/attendance/:attendanceListId/edit',
+    name: 'attendance-edit',
+    component: AttendanceEditView,
     meta: {
       showBack: true,
       hideBottomNav: true,
