@@ -70,7 +70,7 @@ describe('AddMemberView', () => {
       dateOfBirth: new Date('1990-01-01T00:00:00Z')
     })
 
-    expect(mockRouterReplace).toHaveBeenCalledWith('/')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/member')
   })
 
   it('shows a friendly validation message when the phone number is invalid', async () => {

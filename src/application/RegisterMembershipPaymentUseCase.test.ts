@@ -40,6 +40,17 @@ class FakeMemberRepo implements MemberRepoPort {
     this.savedMembers.push(member)
   }
 
+  async update(
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while payment tests only rely on existsById.
+    _member: Member
+  ): Promise<void> {
+    throw new Error('Not implemented in this fake')
+  }
+
+  async findById(): Promise<Member | null> {
+    return null
+  }
+
   async existsById(memberId: string): Promise<boolean> {
     this.existsByIdChecks.push(memberId)
 

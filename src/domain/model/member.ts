@@ -39,11 +39,37 @@ const assertValidName = (name: string): void => {
   }
 }
 
-export const normalizeMemberName = (name: string): string => {
+const normalizeMemberName = (name: string): string => {
   return name.trim().toLowerCase()
 }
 
+type ValidateMemberProfileInput = {
+  firstName: string
+  lastName: string
+  dateOfBirth?: Date
+  joinedAt?: Date
+}
+
+function validateMemberProfile(
+  input: ValidateMemberProfileInput,
+  now = new Date()
+): void {
+  assertValidBirthDate(input.dateOfBirth, now)
+  assertValidJoinDate(input.joinedAt, input.dateOfBirth, now)
+  assertValidName(input.firstName)
+  assertValidName(input.lastName)
+}
+
 export type RegisterMemberInput = {
+  firstName: string
+  lastName: string
+  phoneNumber: PhoneNumber
+  dateOfBirth?: Date
+  joinedAt?: Date
+}
+
+export type UpdateMemberInput = {
+  memberId: string
   firstName: string
   lastName: string
   phoneNumber: PhoneNumber
@@ -61,6 +87,15 @@ export type MemberSnapshot = {
   createdAt: Date
 }
 
+export type MemberUpdatedSnapshot = {
+  memberId: string
+  firstName: string
+  lastName: string
+  phoneNumber: string
+  dateOfBirth?: Date
+  joinedAt?: Date
+}
+
 export class Member {
   public readonly id: string
 
@@ -71,25 +106,24 @@ export class Member {
   private _joinedAt?: Date
   private _createdAt: Date
 
-  private constructor(input: RegisterMemberInput, id: string) {
+  private constructor(
+    input: RegisterMemberInput,
+    id: string,
+    createdAt?: Date
+  ) {
     this.id = id
     this._firstName = input.firstName
     this._lastName = input.lastName
     this._phoneNumber = input.phoneNumber
     this._dateOfBirth = copyOptionalDate(input.dateOfBirth)
     this._joinedAt = copyOptionalDate(input.joinedAt)
-    this._createdAt = new Date()
+    this._createdAt = copyDate(createdAt ?? new Date())
   }
   public static register(
     input: RegisterMemberInput,
     id: string
   ): [Member, MemberCreatedDomainEvent] {
-    const now = new Date()
-
-    assertValidBirthDate(input.dateOfBirth, now)
-    assertValidJoinDate(input.joinedAt, input.dateOfBirth, now)
-    assertValidName(input.firstName)
-    assertValidName(input.lastName)
+    validateMemberProfile(input)
     const firstName = normalizeMemberName(input.firstName)
     const lastName = normalizeMemberName(input.lastName)
     //
@@ -98,6 +132,59 @@ export class Member {
     // Event payloads store snapshots so local-first replay keeps the original canonical phone and dates even if an aggregate instance is later replaced in memory.
     const event = new MemberCreatedDomainEvent(member.toSnapshot())
     return [member, event]
+  }
+
+  public static rehydrate(snapshot: MemberSnapshot): Member {
+    // Why: update workflows need a real aggregate instance loaded from persistence so validation and event creation stay in the domain model instead of use-case glue.
+    return new Member(
+      {
+        firstName: snapshot.firstName,
+        lastName: snapshot.lastName,
+        phoneNumber: PhoneNumber.create(snapshot.phoneNumber),
+        dateOfBirth: snapshot.dateOfBirth,
+        joinedAt: snapshot.joinedAt
+      },
+      snapshot.id,
+      snapshot.createdAt
+    )
+  }
+
+  public static update(
+    existingMember: Member,
+    input: UpdateMemberInput
+  ): [Member, MemberUpdatedDomainEvent] {
+    if (input.memberId !== existingMember.id) {
+      throw new MemberIdMismatchError(existingMember.id, input.memberId)
+    }
+
+    validateMemberProfile(input)
+
+    const updatedMember = new Member(
+      {
+        firstName: normalizeMemberName(input.firstName),
+        lastName: normalizeMemberName(input.lastName),
+        phoneNumber: input.phoneNumber,
+        dateOfBirth: input.dateOfBirth,
+        joinedAt: input.joinedAt
+      },
+      existingMember.id,
+      existingMember.createdAt
+    )
+
+    const updateEvent = new MemberUpdatedDomainEvent({
+      memberId: updatedMember.id,
+      firstName: updatedMember.firstName,
+      lastName: updatedMember.lastName,
+      phoneNumber: updatedMember.phoneNumber.value,
+      ...(updatedMember.dateOfBirth === undefined
+        ? {}
+        : { dateOfBirth: updatedMember.dateOfBirth }),
+      ...(updatedMember.joinedAt === undefined
+        ? {}
+        : { joinedAt: updatedMember.joinedAt })
+    })
+
+    return [updatedMember, updateEvent]
   }
 
   // Persistence adapters and event serializers share one snapshot so stored member data cannot drift apart.
@@ -150,6 +237,14 @@ export class MemberCreatedDomainEvent extends DomainEvent<MemberSnapshot> {
   }
 }
 
+export class MemberUpdatedDomainEvent extends DomainEvent<MemberUpdatedSnapshot> {
+  public readonly eventName = 'member.updated'
+
+  public constructor(payload: MemberUpdatedSnapshot) {
+    super(payload)
+  }
+}
+
 export class MemberAlreadyExistsError extends Error {
   public constructor() {
     super('Member with the same name and phone number already exists')
@@ -161,6 +256,15 @@ export class MemberNotFoundError extends Error {
   public constructor(memberId: string) {
     super(`Member not found: ${memberId}`)
     this.name = 'MemberNotFoundError'
+  }
+}
+
+export class MemberIdMismatchError extends Error {
+  public constructor(expectedMemberId: string, providedMemberId: string) {
+    super(
+      `Member update id mismatch. Expected ${expectedMemberId}, got ${providedMemberId}`
+    )
+    this.name = 'MemberIdMismatchError'
   }
 }
 

@@ -3,19 +3,27 @@ import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { db } from '@/db'
+import {
+  InvalidMemberBirthDateError,
+  InvalidMemberJoinDateError,
+  InvalidMemberNameError,
+  MemberAlreadyExistsError,
+  MemberNotFoundError
+} from '@/domain/model/member'
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import type { PersistedMember } from '@/infra'
+import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
-import { useRouter } from '@/ui/router/runtime'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 
-const router = useRouter()
+const { useCases } = useAppServices()
 const { t } = useI18n({ useScope: 'local' })
 const savedMembers = ref<PersistedMember[]>([])
 const isLoading = ref(true)
@@ -24,6 +32,25 @@ const maxAgeFilter = ref(AGE_FILTER_MAX)
 const minAgeFilter = ref(AGE_FILTER_MIN)
 
 const openMemberId = ref<string | null>(null)
+const editingMemberId = ref<string | null>(null)
+const editFirstName = ref('')
+const editLastName = ref('')
+const editPhoneNumber = ref('')
+const editDateOfBirth = ref('')
+const editJoinedAt = ref('')
+const isSavingEdit = ref(false)
+type EditErrorKey =
+  | 'submit'
+  | 'invalidPhoneNumber'
+  | 'alreadyExists'
+  | 'invalidBirthDate'
+  | 'invalidJoinDate'
+  | 'invalidName'
+  | 'notFound'
+const editErrorKey = ref<EditErrorKey | null>(null)
+const editError = computed(() =>
+  editErrorKey.value === null ? '' : t(`edit.errors.${editErrorKey.value}`)
+)
 const membersCountLabel = computed(() =>
   t('summary.memberCount', { count: savedMembers.value.length })
 )
@@ -68,8 +95,76 @@ function toggleDetails(id: string) {
   openMemberId.value = openMemberId.value === id ? null : id
 }
 
-function goToAddMember() {
-  router.push('/add-member')
+function formatDateForInput(value: Date | undefined): string {
+  if (!value) return ''
+  return value.toISOString().split('T')[0]
+}
+
+function startEditing(member: PersistedMember) {
+  editErrorKey.value = null
+  editingMemberId.value = member.id
+  editFirstName.value = member.firstName
+  editLastName.value = member.lastName
+  editPhoneNumber.value = member.phoneNumber
+  editDateOfBirth.value = formatDateForInput(member.dateOfBirth)
+  editJoinedAt.value = formatDateForInput(member.joinedAt)
+}
+
+function cancelEditing() {
+  editingMemberId.value = null
+  editErrorKey.value = null
+}
+
+function toUtcDate(value: string) {
+  if (!value) return undefined
+  return new Date(`${value}T00:00:00Z`)
+}
+
+function resolveEditErrorKey(error: unknown): EditErrorKey {
+  if (error instanceof InvalidPhoneNumberError) return 'invalidPhoneNumber'
+  if (error instanceof MemberAlreadyExistsError) return 'alreadyExists'
+  if (error instanceof InvalidMemberBirthDateError) return 'invalidBirthDate'
+  if (error instanceof InvalidMemberJoinDateError) return 'invalidJoinDate'
+  if (error instanceof InvalidMemberNameError) return 'invalidName'
+  if (error instanceof MemberNotFoundError) return 'notFound'
+  return 'submit'
+}
+
+async function saveMemberEdit(memberId: string) {
+  editErrorKey.value = null
+  isSavingEdit.value = true
+
+  try {
+    await useCases.updateMember.handle({
+      memberId,
+      firstName: editFirstName.value.trim(),
+      lastName: editLastName.value.trim(),
+      phoneNumber: editPhoneNumber.value.trim(),
+      ...(editDateOfBirth.value
+        ? { dateOfBirth: toUtcDate(editDateOfBirth.value) }
+        : {}),
+      ...(editJoinedAt.value ? { joinedAt: toUtcDate(editJoinedAt.value) } : {})
+    })
+
+    // What: update the rendered member immediately after saving. Why: local-first UX should confirm edits instantly instead of waiting for a full table reload.
+    savedMembers.value = savedMembers.value.map((member) =>
+      member.id === memberId
+        ? {
+            ...member,
+            firstName: editFirstName.value.trim().toLowerCase(),
+            lastName: editLastName.value.trim().toLowerCase(),
+            phoneNumber: editPhoneNumber.value.trim(),
+            dateOfBirth: toUtcDate(editDateOfBirth.value),
+            joinedAt: toUtcDate(editJoinedAt.value)
+          }
+        : member
+    )
+    cancelEditing()
+  } catch (error: unknown) {
+    editErrorKey.value = resolveEditErrorKey(error)
+  } finally {
+    isSavingEdit.value = false
+  }
 }
 
 onMounted(() => {
@@ -105,13 +200,13 @@ onMounted(() => {
         />
       </div>
       <div class="md:col-span-1 flex justify-end mt-4 md:mt-0">
-        <!-- What: route the icon-only add action through the shared CTA primitive. Why: the roster keeps its compact square trigger, but its states should now move in lockstep with every other primary action. -->
+        <!-- What: express the add-member trigger as the canonical `/member/new` route link. Why: the roster and creation screens now belong to one route family, so moving between them should follow the same nested path structure everywhere in the app. -->
         <AppButton
+          as="router-link"
+          to="/member/new"
           :aria-label="t('actions.addMember')"
           :title="t('actions.addMember')"
           icon-only
-          type="button"
-          @click="goToAddMember"
         >
           <AppIcon name="add" />
         </AppButton>
@@ -148,10 +243,11 @@ onMounted(() => {
         :key="member.id"
         class="group"
         :open="openMemberId === member.id"
-        @click.prevent="toggleDetails(member.id)"
       >
+        <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
         <summary
           class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
+          @click.prevent="toggleDetails(member.id)"
         >
           <div class="flex flex-col">
             <span
@@ -196,6 +292,108 @@ onMounted(() => {
               formatDisplayDate(member.joinedAt)
             }}</span>
           </div>
+          <div
+            class="col-span-2 md:col-span-4 flex justify-end border-t border-outline-variant pt-3"
+          >
+            <!-- What: inline member actions now reuse the shared AppButton primitive. Why: edit flows should inherit the same tap targets and state styling as the rest of this mobile-first PWA instead of shipping view-specific button markup. -->
+            <AppButton
+              v-if="editingMemberId !== member.id"
+              variant="secondary"
+              type="button"
+              @click="startEditing(member)"
+            >
+              {{ t('edit.actions.open') }}
+            </AppButton>
+          </div>
+          <form
+            v-if="editingMemberId === member.id"
+            class="col-span-2 md:col-span-4 mt-2 border-t border-outline-variant pt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+            @submit.prevent="saveMemberEdit(member.id)"
+          >
+            <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
+            <div class="flex flex-col">
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.firstName') }}</label
+              >
+              <!-- What: render the editable first name in uppercase. Why: the edit state should match the member list presentation, so coaches do not see the name switch casing mid-flow. -->
+              <input
+                v-model="editFirstName"
+                type="text"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
+                required
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.lastName') }}</label
+              >
+              <!-- What: render the editable last name in uppercase. Why: the edit form should preserve the same visual identity cues as the roster rows instead of dropping back to lowercase. -->
+              <input
+                v-model="editLastName"
+                type="text"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
+                required
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.phoneNumber') }}</label
+              >
+              <input
+                v-model="editPhoneNumber"
+                type="tel"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                required
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.dateOfBirth') }}</label
+              >
+              <input
+                v-model="editDateOfBirth"
+                type="date"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+              />
+            </div>
+            <div class="flex flex-col">
+              <label
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('edit.fields.joinedAt') }}</label
+              >
+              <input
+                v-model="editJoinedAt"
+                type="date"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+              />
+            </div>
+            <p
+              v-if="editError"
+              class="md:col-span-2 text-danger font-mono text-xs uppercase"
+            >
+              {{ editError }}
+            </p>
+            <div class="md:col-span-2 flex justify-end gap-2">
+              <AppButton
+                variant="secondary"
+                type="button"
+                @click="cancelEditing"
+              >
+                {{ t('edit.actions.cancel') }}
+              </AppButton>
+              <AppButton type="submit" :disabled="isSavingEdit">
+                {{
+                  isSavingEdit
+                    ? t('edit.actions.saving')
+                    : t('edit.actions.save')
+                }}
+              </AppButton>
+            </div>
+          </form>
         </div>
       </details>
     </div>
@@ -224,6 +422,30 @@ onMounted(() => {
       "dateOfBirth": "Data ur.",
       "joinedAt": "Dołączył",
       "missing": "Brak"
+    },
+    "edit": {
+      "actions": {
+        "open": "Edytuj",
+        "cancel": "Anuluj",
+        "save": "Zapisz zmiany",
+        "saving": "Zapisywanie"
+      },
+      "fields": {
+        "firstName": "Imię",
+        "lastName": "Nazwisko",
+        "phoneNumber": "Telefon",
+        "dateOfBirth": "Data ur.",
+        "joinedAt": "Dołączył"
+      },
+      "errors": {
+        "submit": "Nie udało się zapisać zmian.",
+        "invalidPhoneNumber": "Podaj poprawny numer telefonu.",
+        "alreadyExists": "Członek o tych danych już istnieje.",
+        "invalidBirthDate": "Data urodzenia jest nieprawidłowa.",
+        "invalidJoinDate": "Data dołączenia jest nieprawidłowa.",
+        "invalidName": "Imię lub nazwisko jest nieprawidłowe.",
+        "notFound": "Nie znaleziono członka do aktualizacji."
+      }
     }
   },
   "en": {
@@ -246,6 +468,30 @@ onMounted(() => {
       "dateOfBirth": "Birth date",
       "joinedAt": "Joined",
       "missing": "Missing"
+    },
+    "edit": {
+      "actions": {
+        "open": "Edit",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving"
+      },
+      "fields": {
+        "firstName": "First name",
+        "lastName": "Last name",
+        "phoneNumber": "Phone",
+        "dateOfBirth": "Birth date",
+        "joinedAt": "Joined"
+      },
+      "errors": {
+        "submit": "Failed to save changes.",
+        "invalidPhoneNumber": "Enter a valid phone number.",
+        "alreadyExists": "A member with this identity already exists.",
+        "invalidBirthDate": "Birth date is invalid.",
+        "invalidJoinDate": "Join date is invalid.",
+        "invalidName": "First or last name is invalid.",
+        "notFound": "Member could not be found for update."
+      }
     }
   }
 }

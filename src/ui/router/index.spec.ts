@@ -17,7 +17,7 @@ describe('router', () => {
       meta: {
         hideBottomNav: true,
         showBack: true,
-        backTo: '/',
+        backTo: '/member',
         showInMenu: true
       }
     })
@@ -25,6 +25,10 @@ describe('router', () => {
 
   it('registers the attendance route in the normal application flow', () => {
     const routes = createAppRoutes(false)
+    const membersListRoute = routes.find(
+      (route) => route.name === 'members-list'
+    )
+    const addMemberRoute = routes.find((route) => route.name === 'add-member')
     const clubSetupRoute = routes.find((route) => route.name === 'setup-club')
     const trainerSetupRoute = routes.find(
       (route) => route.name === 'setup-trainer'
@@ -51,10 +55,23 @@ describe('router', () => {
         hideBottomNav: true
       }
     })
+    expect(membersListRoute).toMatchObject({
+      path: '/member',
+      alias: '/'
+    })
     expect(membershipPaymentsRoute).toMatchObject({
       path: '/payments',
       meta: {}
     })
+    expect(addMemberRoute).toMatchObject({
+      path: '/member/new',
+      meta: {
+        showBack: true,
+        hideBottomNav: true,
+        backTo: '/member'
+      }
+    })
+    expect(addMemberRoute).not.toHaveProperty('alias')
     expect(attendanceHistoryRoute).toMatchObject({
       path: '/attendance',
       meta: {}
