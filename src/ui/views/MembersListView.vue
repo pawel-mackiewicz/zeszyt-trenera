@@ -322,10 +322,11 @@ onMounted(() => {
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('edit.fields.firstName') }}</label
               >
+              <!-- What: render the editable first name in uppercase. Why: the edit state should match the member list presentation, so coaches do not see the name switch casing mid-flow. -->
               <input
                 v-model="editFirstName"
                 type="text"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
                 required
               />
             </div>
@@ -334,10 +335,11 @@ onMounted(() => {
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('edit.fields.lastName') }}</label
               >
+              <!-- What: render the editable last name in uppercase. Why: the edit form should preserve the same visual identity cues as the roster rows instead of dropping back to lowercase. -->
               <input
                 v-model="editLastName"
                 type="text"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
                 required
               />
             </div>
