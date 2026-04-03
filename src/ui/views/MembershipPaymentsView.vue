@@ -13,6 +13,7 @@ import type {
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
+import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
@@ -84,6 +85,7 @@ const visibleMemberCount = computed(
     filteredUnpaidAbsentMembers.value.length +
     filteredUnpaidAttendedMembers.value.length
 )
+const activeMonthLabel = computed(() => formatMonth(activeMonth.value))
 const confirmationError = computed(() =>
   confirmationErrorKey.value === null
     ? ''
@@ -292,35 +294,21 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="payments-view mx-auto max-w-5xl">
-    <section class="payments-view__hero">
-      <div class="payments-view__title-block">
-        <p class="payments-view__eyebrow">{{ t('hero.eyebrow') }}</p>
-        <h2 class="payments-view__title">{{ t('hero.title') }}</h2>
-      </div>
-
-      <!-- What: reuse the shared month navigator from attendance history. Why: both monthly ledgers should move through time with one consistent mobile-first control and one accessibility contract. -->
+  <div class="payments-view mx-auto max-w-4xl pt-4 pb-12">
+    <section class="mb-10 flex flex-col gap-3">
+      <p
+        class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+      >
+        {{ t('summary.eyebrow') }}
+      </p>
+      <!-- What: move month switching into the first payments control surface. Why: coaches choose the covered ledger before they scan or mark any member, matching the attendance flow's context-first structure. -->
       <MonthSelector
         :model-value="activeMonth"
         @update:model-value="handleMonthChange"
       />
-    </section>
-
-    <section class="payments-view__filters">
-      <!-- What: reuse the shared compact roster search inside the payments filters. Why: the monthly ledger should feel like the same mobile-first member search flow as attendance and members. -->
-      <SearchBar
-        v-model="searchQuery"
-        input-id="payments-search"
-        :input-label="t('search.label')"
-        :placeholder="t('search.placeholder')"
-      />
-
-      <AgeRangeFilter
-        v-model:min-value="minAgeFilter"
-        v-model:max-value="maxAgeFilter"
-        :max-bound="AGE_FILTER_MAX"
-        :min-bound="AGE_FILTER_MIN"
-      />
+      <p class="font-mono text-xs uppercase tracking-[0.18em] text-secondary">
+        {{ activeMonthLabel }}
+      </p>
     </section>
 
     <div v-if="feedbackMessage" class="mb-6">
@@ -330,55 +318,77 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- What: keep filters directly above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance instead of splitting search into a separate hero block. -->
+    <section class="mb-4 pb-2">
+      <div class="flex flex-col gap-2">
+        <AgeRangeFilter
+          v-model:min-value="minAgeFilter"
+          v-model:max-value="maxAgeFilter"
+          :max-bound="AGE_FILTER_MAX"
+          :min-bound="AGE_FILTER_MIN"
+        />
+        <div class="mt-6">
+          <SearchBar
+            v-model="searchQuery"
+            input-id="payments-search"
+            :input-label="t('search.label')"
+            :placeholder="t('search.placeholder')"
+          />
+        </div>
+      </div>
+    </section>
+
     <section
       v-if="isLoading"
-      class="payments-view__state payments-view__state--loading"
+      class="payments-state-card mb-10 px-5 py-6 text-center font-mono text-sm font-bold uppercase text-secondary"
     >
       {{ t('states.loading') }}
     </section>
 
-    <section
-      v-else-if="loadFailed"
-      class="payments-view__state payments-view__state--error"
-    >
-      <p>{{ t('states.error') }}</p>
-      <button
-        class="payments-action-button"
-        type="button"
-        @click="retryLoading"
-      >
+    <section v-else-if="loadFailed" class="payments-state-card mb-10 px-5 py-6">
+      <p class="text-sm leading-6 text-secondary">{{ t('states.error') }}</p>
+      <AppButton variant="secondary" type="button" @click="retryLoading">
         {{ t('states.retry') }}
-      </button>
+      </AppButton>
     </section>
 
     <section
       v-else-if="sourceMemberCount === 0"
-      class="payments-view__empty-card"
+      class="payments-state-card mb-10 px-5 py-6"
     >
-      <p class="payments-view__empty-title">{{ t('states.emptyTitle') }}</p>
-      <p class="payments-view__empty-body">{{ t('states.emptyBody') }}</p>
+      <p class="font-headline text-2xl font-bold uppercase tracking-tight">
+        {{ t('states.emptyTitle') }}
+      </p>
+      <p class="text-sm leading-6 text-secondary">
+        {{ t('states.emptyBody') }}
+      </p>
     </section>
 
     <section
       v-else-if="visibleMemberCount === 0"
-      class="payments-view__empty-card"
+      class="payments-state-card mb-10 px-5 py-6"
     >
-      <p class="payments-view__empty-title">{{ t('states.noMatchesTitle') }}</p>
-      <p class="payments-view__empty-body">{{ t('states.noMatchesBody') }}</p>
+      <p class="font-headline text-2xl font-bold uppercase tracking-tight">
+        {{ t('states.noMatchesTitle') }}
+      </p>
+      <p class="text-sm leading-6 text-secondary">
+        {{ t('states.noMatchesBody') }}
+      </p>
     </section>
 
-    <div v-else class="payments-view__sections">
-      <section class="payments-section">
-        <div class="payments-section__header">
-          <div class="payments-section__badge payments-section__badge--hot">
+    <div v-else class="mb-10 flex flex-col gap-8">
+      <section class="payments-ledger-section">
+        <div class="border-b border-outline-variant px-4 py-3">
+          <div
+            class="payments-ledger-section__title payments-ledger-section__title--alert"
+          >
             {{ t('sections.unpaidAttended.title') }}
           </div>
-          <div class="payments-section__line"></div>
         </div>
 
         <div
           v-if="filteredUnpaidAttendedMembers.length === 0"
-          class="payments-section__empty"
+          class="px-4 py-8 text-center font-mono text-sm font-bold uppercase text-secondary"
         >
           {{ t('sections.unpaidAttended.empty') }}
         </div>
@@ -387,14 +397,18 @@ onBeforeUnmount(() => {
           <article
             v-for="member in filteredUnpaidAttendedMembers"
             :key="member.id"
-            class="payments-row payments-row--urgent"
+            class="payments-member-row bg-primary/5"
           >
-            <div class="payments-row__copy">
-              <div class="payments-row__headline">
-                <p class="payments-row__name">
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-baseline gap-3">
+                <p
+                  class="truncate font-headline text-xl font-bold uppercase tracking-tight"
+                >
                   {{ formatMemberName(member) }}
                 </p>
-                <span class="payments-row__badge">
+                <span
+                  class="font-mono text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-primary"
+                >
                   {{
                     t('table.attendanceBadge', {
                       count: member.attendanceSessionIds.length
@@ -402,12 +416,16 @@ onBeforeUnmount(() => {
                   }}
                 </span>
               </div>
-              <p class="payments-row__meta">{{ formatAge(member) }}</p>
+              <p
+                class="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-secondary"
+              >
+                {{ formatAge(member) }}
+              </p>
             </div>
 
-            <button
+            <AppButton
               :id="`payments-open-confirm-${member.id}`"
-              class="payments-action-button payments-action-button--primary"
+              class="w-full sm:w-auto"
               type="button"
               @click="
                 openPaymentConfirmation(
@@ -417,24 +435,23 @@ onBeforeUnmount(() => {
               "
             >
               {{ t('actions.markAsPaid') }}
-            </button>
+            </AppButton>
           </article>
         </template>
       </section>
 
-      <section class="payments-section">
-        <div class="payments-section__header">
-          <div class="payments-section__badge payments-section__badge--muted">
+      <section class="payments-ledger-section">
+        <div class="border-b border-outline-variant px-4 py-3">
+          <div
+            class="payments-ledger-section__title payments-ledger-section__title--quiet"
+          >
             {{ t('sections.unpaidAbsent.title') }}
           </div>
-          <div
-            class="payments-section__line payments-section__line--soft"
-          ></div>
         </div>
 
         <div
           v-if="filteredUnpaidAbsentMembers.length === 0"
-          class="payments-section__empty"
+          class="px-4 py-8 text-center font-mono text-sm font-bold uppercase text-secondary"
         >
           {{ t('sections.unpaidAbsent.empty') }}
         </div>
@@ -443,40 +460,46 @@ onBeforeUnmount(() => {
           <article
             v-for="member in filteredUnpaidAbsentMembers"
             :key="member.id"
-            class="payments-row payments-row--quiet"
+            class="payments-member-row bg-surface-container-low/60"
           >
-            <div class="payments-row__copy">
-              <p class="payments-row__name">
+            <div class="min-w-0">
+              <p
+                class="truncate font-headline text-xl font-bold uppercase tracking-tight"
+              >
                 {{ formatMemberName(member) }}
               </p>
-              <p class="payments-row__meta">{{ formatAge(member) }}</p>
+              <p
+                class="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-secondary"
+              >
+                {{ formatAge(member) }}
+              </p>
             </div>
 
-            <button
+            <AppButton
               :id="`payments-open-confirm-${member.id}`"
-              class="payments-action-button"
+              class="w-full sm:w-auto"
+              variant="secondary"
               type="button"
               @click="openPaymentConfirmation(member)"
             >
               {{ t('actions.markAsPaid') }}
-            </button>
+            </AppButton>
           </article>
         </template>
       </section>
 
-      <section class="payments-section">
-        <div class="payments-section__header">
-          <div class="payments-section__badge payments-section__badge--dark">
+      <section class="payments-ledger-section">
+        <div class="border-b border-outline-variant px-4 py-3">
+          <div
+            class="payments-ledger-section__title payments-ledger-section__title--paid"
+          >
             {{ t('sections.paid.title') }}
           </div>
-          <div
-            class="payments-section__line payments-section__line--soft"
-          ></div>
         </div>
 
         <div
           v-if="filteredPaidMembers.length === 0"
-          class="payments-section__empty"
+          class="px-4 py-8 text-center font-mono text-sm font-bold uppercase text-secondary"
         >
           {{ t('sections.paid.empty') }}
         </div>
@@ -485,16 +508,22 @@ onBeforeUnmount(() => {
           <article
             v-for="member in filteredPaidMembers"
             :key="member.id"
-            class="payments-row payments-row--paid"
+            class="payments-member-row bg-emerald-50/70"
           >
-            <div class="payments-row__copy">
-              <p class="payments-row__name">
+            <div class="min-w-0">
+              <p
+                class="truncate font-headline text-xl font-bold uppercase tracking-tight"
+              >
                 {{ formatMemberName(member) }}
               </p>
-              <p class="payments-row__meta">{{ formatAge(member) }}</p>
+              <p
+                class="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.16em] text-secondary"
+              >
+                {{ formatAge(member) }}
+              </p>
             </div>
 
-            <span class="payments-row__paid-indicator">
+            <span class="payments-paid-indicator">
               <AppIcon name="check_circle" />
               <span>{{ t('table.paid') }}</span>
             </span>
@@ -504,7 +533,10 @@ onBeforeUnmount(() => {
     </div>
 
     <Transition name="payments-overlay">
-      <div v-if="selectedMemberForConfirmation" class="payments-confirmation">
+      <div
+        v-if="selectedMemberForConfirmation"
+        class="fixed inset-0 z-70 flex items-end justify-center p-4 sm:items-center"
+      >
         <div
           class="payments-confirmation__backdrop"
           @click="closeConfirmationDialog"
@@ -512,19 +544,21 @@ onBeforeUnmount(() => {
         <section
           aria-labelledby="payments-confirmation-title"
           aria-modal="true"
-          class="payments-confirmation__dialog"
+          class="relative grid w-full max-w-lg gap-4 border border-on-surface bg-surface p-5 hard-shadow"
           role="dialog"
         >
-          <p class="payments-confirmation__eyebrow">
+          <p
+            class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+          >
             {{ t('confirmation.eyebrow') }}
           </p>
           <h3
             id="payments-confirmation-title"
-            class="payments-confirmation__title"
+            class="font-headline text-[2rem] font-bold uppercase tracking-tight"
           >
             {{ t('confirmation.title') }}
           </h3>
-          <p class="payments-confirmation__copy">
+          <p class="text-sm leading-6 text-secondary">
             {{
               t('confirmation.body', {
                 memberName: formatMemberName(selectedMemberForConfirmation),
@@ -533,25 +567,55 @@ onBeforeUnmount(() => {
             }}
           </p>
 
-          <dl class="payments-confirmation__details">
+          <dl class="grid gap-3 sm:grid-cols-2">
             <div class="payments-confirmation__detail">
-              <dt>{{ t('confirmation.memberLabel') }}</dt>
-              <dd>{{ formatMemberName(selectedMemberForConfirmation) }}</dd>
+              <dt
+                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+              >
+                {{ t('confirmation.memberLabel') }}
+              </dt>
+              <dd
+                class="font-headline text-lg font-bold uppercase tracking-tight"
+              >
+                {{ formatMemberName(selectedMemberForConfirmation) }}
+              </dd>
             </div>
             <div class="payments-confirmation__detail">
-              <dt>{{ t('confirmation.monthLabel') }}</dt>
-              <dd>{{ selectedMemberForConfirmation.coveredMonthLabel }}</dd>
+              <dt
+                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+              >
+                {{ t('confirmation.monthLabel') }}
+              </dt>
+              <dd
+                class="font-headline text-lg font-bold uppercase tracking-tight"
+              >
+                {{ selectedMemberForConfirmation.coveredMonthLabel }}
+              </dd>
             </div>
             <div class="payments-confirmation__detail">
-              <dt>{{ t('confirmation.ageLabel') }}</dt>
-              <dd>{{ formatAge(selectedMemberForConfirmation) }}</dd>
+              <dt
+                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+              >
+                {{ t('confirmation.ageLabel') }}
+              </dt>
+              <dd
+                class="font-headline text-lg font-bold uppercase tracking-tight"
+              >
+                {{ formatAge(selectedMemberForConfirmation) }}
+              </dd>
             </div>
             <div
               v-if="selectedMemberForConfirmation.attendanceCount > 0"
               class="payments-confirmation__detail"
             >
-              <dt>{{ t('confirmation.attendanceLabel') }}</dt>
-              <dd>
+              <dt
+                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
+              >
+                {{ t('confirmation.attendanceLabel') }}
+              </dt>
+              <dd
+                class="font-headline text-lg font-bold uppercase tracking-tight"
+              >
                 {{
                   t('confirmation.attendanceValue', {
                     count: selectedMemberForConfirmation.attendanceCount
@@ -569,9 +633,10 @@ onBeforeUnmount(() => {
             <span>{{ confirmationError }}</span>
           </div>
 
-          <div class="payments-confirmation__actions">
-            <button
-              class="payments-action-button payments-action-button--primary"
+          <div
+            class="payments-confirmation__actions flex flex-col gap-3 sm:flex-row sm:justify-end"
+          >
+            <AppButton
               :disabled="isConfirmingPayment"
               type="button"
               @click="confirmPayment"
@@ -581,15 +646,15 @@ onBeforeUnmount(() => {
                   ? t('actions.confirmingPayment')
                   : t('actions.confirmPayment')
               }}
-            </button>
-            <button
-              class="payments-action-button"
+            </AppButton>
+            <AppButton
               :disabled="isConfirmingPayment"
+              variant="secondary"
               type="button"
               @click="closeConfirmationDialog"
             >
               {{ t('actions.cancel') }}
-            </button>
+            </AppButton>
           </div>
         </section>
       </div>
@@ -598,378 +663,88 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-input[type='range'] {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
 .payments-view {
-  --payments-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  --payments-surface: rgba(255, 255, 255, 0.82);
   /* What: keep the last payment rows visible above the shell navigation. Why: the monthly ledger is a long-scrolling PWA screen and the fixed bottom nav permanently occupies the lower viewport edge. */
   padding-bottom: max(8.5rem, calc(5rem + env(safe-area-inset-bottom) + 4rem));
 }
 
-.payments-view__hero {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.payments-view__title-block {
-  display: grid;
-  gap: 0.5rem;
-}
-
-.payments-view__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--accent-hot);
-}
-
-.payments-view__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(3.4rem, 13vw, 6.8rem);
-  line-height: 0.9;
-  letter-spacing: -0.08em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.payments-view__filters,
-.payments-section,
-.payments-view__empty-card,
-.payments-view__state,
-.payments-confirmation__dialog {
-  border: 1px solid rgba(16, 59, 55, 0.12);
-  background: var(--payments-surface);
-  box-shadow: var(--payments-shadow);
-  backdrop-filter: blur(10px);
-}
-
-.payments-view__filters {
-  display: grid;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-  padding: 1.1rem 1.1rem 1.25rem;
-}
-
-.payments-view__sections {
-  display: grid;
-  gap: 1.5rem;
-}
-
-.payments-section {
-  display: grid;
-  gap: 0;
-  overflow: hidden;
-}
-
-.payments-section__header {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 1rem 1rem 0;
-}
-
-.payments-section__badge {
-  padding: 0.42rem 0.7rem;
-  border: 1px solid var(--ink);
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.payments-section__badge--hot {
-  background: var(--accent-hot);
-  color: white;
-}
-
-.payments-section__badge--muted {
-  background: white;
-  color: var(--ink);
-}
-
-.payments-section__badge--dark {
-  background: var(--ink);
-  color: white;
-}
-
-.payments-section__line {
-  flex: 1;
-  height: 1px;
-  background: rgba(16, 59, 55, 0.22);
-}
-
-.payments-section__line--soft {
-  opacity: 0.45;
-}
-
-.payments-section__empty {
-  padding: 1.25rem 1rem 1.35rem;
-  color: var(--ink-soft);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  text-transform: uppercase;
-}
-
-.payments-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 1rem;
-  padding: 1rem;
-  border-top: 1px solid rgba(16, 59, 55, 0.08);
-}
-
-.payments-row--urgent {
-  background: linear-gradient(
-    135deg,
-    rgba(255, 244, 240, 0.9),
-    rgba(255, 255, 255, 0.88)
-  );
-}
-
-.payments-row--quiet {
-  background: rgba(255, 255, 255, 0.52);
-}
-
-.payments-row--paid {
-  background: linear-gradient(
-    135deg,
-    rgba(232, 250, 242, 0.92),
-    rgba(255, 255, 255, 0.88)
-  );
-}
-
-.payments-row__copy {
-  min-width: 0;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.payments-row__headline {
-  display: flex;
-  align-items: baseline;
-  gap: 0.8rem;
-  flex-wrap: wrap;
-}
-
-.payments-row__name {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.3rem;
-  font-weight: 800;
-  line-height: 1;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.payments-row__badge,
-.payments-row__meta,
-.payments-row__paid-indicator {
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-}
-
-.payments-row__badge {
-  color: var(--accent-hot);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.payments-row__meta {
-  margin: 0;
-  color: var(--ink-soft);
-  font-size: 0.76rem;
-  letter-spacing: 0.1em;
-}
-
-.payments-row__paid-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: var(--success);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-}
-
-.payments-row__paid-indicator :deep(.app-icon) {
-  width: 1.35rem;
-  height: 1.35rem;
-}
-
-.payments-action-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 3rem;
-  padding: 0 1rem;
-  border: 1px solid var(--ink);
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--ink);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  font-family: var(--font-mono);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease,
-    color 75ms ease;
-}
-
-.payments-action-button:hover,
-.payments-action-button:focus-visible {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-}
-
-.payments-action-button:disabled {
-  opacity: 0.6;
-  cursor: wait;
-  transform: none;
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.payments-action-button--primary {
-  background: linear-gradient(135deg, var(--accent-hot), rgba(161, 63, 48, 1));
-  color: white;
-}
-
-.payments-view__state,
-.payments-view__empty-card {
+.payments-state-card {
   display: grid;
   gap: 1rem;
   justify-items: start;
-  padding: 1.4rem 1.2rem;
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-surface);
+  box-shadow: 2px 2px 0 0 rgba(26, 28, 28, 0.92);
 }
 
-.payments-view__state--loading {
-  color: var(--ink-soft);
+.payments-ledger-section {
+  overflow: hidden;
+  border-top: 1px solid var(--color-on-surface);
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.payments-ledger-section__title {
   font-family: var(--font-mono);
+  font-size: 0.6875rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
-.payments-view__state--error {
-  color: var(--danger);
+.payments-ledger-section__title--alert {
+  color: var(--color-primary);
 }
 
-.payments-view__empty-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.5rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: var(--ink);
+.payments-ledger-section__title--quiet {
+  color: var(--color-secondary);
 }
 
-.payments-view__empty-body {
-  margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.6;
+.payments-ledger-section__title--paid {
+  color: var(--success);
 }
 
-.payments-confirmation {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-  display: flex;
-  align-items: end;
-  justify-content: center;
+.payments-member-row {
+  display: grid;
+  gap: 1rem;
   padding: 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.payments-member-row:last-child {
+  border-bottom: 0;
+}
+
+.payments-paid-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  justify-self: start;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+.payments-paid-indicator :deep(.app-icon) {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .payments-confirmation__backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(17, 41, 39, 0.45);
-  backdrop-filter: blur(3px);
-}
-
-.payments-confirmation__dialog {
-  position: relative;
-  width: min(100%, 32rem);
-  display: grid;
-  gap: 1rem;
-  padding: 1.35rem;
-}
-
-.payments-confirmation__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--accent-hot);
-}
-
-.payments-confirmation__title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.7rem, 7vw, 2.4rem);
-  line-height: 0.96;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.payments-confirmation__copy {
-  margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.55;
-}
-
-.payments-confirmation__details {
-  display: grid;
-  gap: 0.85rem;
-  margin: 0;
+  background: rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(2px);
 }
 
 .payments-confirmation__detail {
   display: grid;
-  gap: 0.22rem;
-  padding: 0.8rem 0.9rem;
-  border: 1px solid rgba(16, 59, 55, 0.08);
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.payments-confirmation__detail dt {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-
-.payments-confirmation__detail dd {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: var(--ink);
-}
-
-.payments-confirmation__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.35rem;
+  padding: 0.875rem;
+  border: 1px solid var(--color-outline-variant);
+  background: var(--color-surface-container-low);
 }
 
 .payments-overlay-enter-active,
@@ -986,29 +761,13 @@ input[type='range'] {
 }
 
 @media (min-width: 720px) {
-  .payments-view__hero {
-    flex-direction: row;
-    align-items: end;
-    justify-content: space-between;
-  }
-
-  .payments-view__filters {
-    grid-template-columns: minmax(0, 1.2fr) minmax(18rem, 0.8fr);
-    align-items: end;
-  }
-
-  .payments-row {
+  .payments-member-row {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
-  .payments-confirmation {
-    align-items: center;
-  }
-
-  .payments-confirmation__actions {
-    flex-direction: row;
-    justify-content: end;
+  .payments-paid-indicator {
+    justify-self: end;
   }
 }
 </style>
@@ -1016,9 +775,8 @@ input[type='range'] {
 <i18n lang="json">
 {
   "pl": {
-    "hero": {
-      "eyebrow": "Miesięczny status składek",
-      "title": "Płatności"
+    "summary": {
+      "eyebrow": "Miesięczny status składek"
     },
     "search": {
       "label": "Szukaj członka",
@@ -1032,15 +790,15 @@ input[type='range'] {
     },
     "sections": {
       "unpaidAttended": {
-        "title": "Nieopłacone i obecni",
+        "title": "Obecni i nieopłacili",
         "empty": "Brak nieopłaconych osób z obecnościami w tym miesiącu."
       },
       "unpaidAbsent": {
-        "title": "Nieopłacone i nieobecni",
+        "title": "Nieobecni i nieopłacili",
         "empty": "Brak nieopłaconych nieobecnych w tym miesiącu."
       },
       "paid": {
-        "title": "Opłacone",
+        "title": "Opłacili",
         "empty": "Brak opłaconych osób w tym miesiącu."
       }
     },
@@ -1079,9 +837,8 @@ input[type='range'] {
     }
   },
   "en": {
-    "hero": {
-      "eyebrow": "Monthly membership ledger",
-      "title": "Payments"
+    "summary": {
+      "eyebrow": "Monthly membership ledger"
     },
     "search": {
       "label": "Search member",
@@ -1095,15 +852,15 @@ input[type='range'] {
     },
     "sections": {
       "unpaidAttended": {
-        "title": "Unpaid and attended",
+        "title": "Attended and unpaid",
         "empty": "No unpaid members with attendance in this month."
       },
       "unpaidAbsent": {
-        "title": "Unpaid and absent",
+        "title": "Absent and unpaid",
         "empty": "No unpaid absent members in this month."
       },
       "paid": {
-        "title": "Paid",
+        "title": "Paid up",
         "empty": "No paid members in this month."
       }
     },

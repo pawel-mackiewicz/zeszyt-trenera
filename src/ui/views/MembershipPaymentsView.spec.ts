@@ -164,12 +164,12 @@ describe('MembershipPaymentsView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Nieopłacone i obecni')
+    expect(wrapper.text()).toContain('Obecni i nieopłacili')
     expect(wrapper.text()).toContain('Royce Gracie')
     expect(wrapper.text()).toContain('2 TR.')
-    expect(wrapper.text()).toContain('Nieopłacone i nieobecni')
+    expect(wrapper.text()).toContain('Nieobecni i nieopłacili')
     expect(wrapper.text()).toContain('Georges St-Pierre')
-    expect(wrapper.text()).toContain('Opłacone')
+    expect(wrapper.text()).toContain('Opłacili')
     expect(wrapper.text()).toContain('Amanda Nunes')
   })
 
