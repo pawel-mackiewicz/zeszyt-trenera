@@ -120,6 +120,11 @@ const isAttendanceSectionActive = computed(
     isAttendanceRecordRoute.value ||
     isAttendanceEditRoute.value
 )
+// What: force the selected bottom-nav tab to paint its own readable foreground. Why: relying on inherited text color made the selected-state contrast too fragile for the mobile shell.
+const activeBottomNavStateClasses = 'bg-primary text-white'
+const inactiveBottomNavStateClasses =
+  'text-on-surface hover:bg-surface-container-low'
+const activeBottomNavForegroundClasses = 'text-white'
 const title = computed(() => {
   const routeName = currentRouteName.value
 
@@ -444,6 +449,14 @@ function navigationLabel(item: NavigationItem) {
 
   return t(translationKey)
 }
+
+function bottomNavStateClasses(isActive: boolean) {
+  return isActive ? activeBottomNavStateClasses : inactiveBottomNavStateClasses
+}
+
+function bottomNavForegroundClasses(isActive: boolean) {
+  return isActive ? activeBottomNavForegroundClasses : ''
+}
 </script>
 
 <template>
@@ -685,15 +698,15 @@ function navigationLabel(item: NavigationItem) {
         <RouterLink
           to="/member"
           class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
-          :class="[
-            isMembersRoute
-              ? 'bg-primary text-white'
-              : 'text-on-surface hover:bg-surface-container-low'
-          ]"
+          :class="bottomNavStateClasses(isMembersRoute)"
         >
-          <AppIcon name="group" />
+          <AppIcon
+            name="group"
+            :class="bottomNavForegroundClasses(isMembersRoute)"
+          />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+            :class="bottomNavForegroundClasses(isMembersRoute)"
             >{{ t('bottomNav.members') }}</span
           >
         </RouterLink>
@@ -701,31 +714,31 @@ function navigationLabel(item: NavigationItem) {
         <RouterLink
           to="/payments"
           class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
-          :class="[
-            isMembershipPaymentsRoute
-              ? 'bg-primary text-white'
-              : 'text-on-surface hover:bg-surface-container-low'
-          ]"
+          :class="bottomNavStateClasses(isMembershipPaymentsRoute)"
         >
-          <AppIcon name="payments" />
+          <AppIcon
+            name="payments"
+            :class="bottomNavForegroundClasses(isMembershipPaymentsRoute)"
+          />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+            :class="bottomNavForegroundClasses(isMembershipPaymentsRoute)"
             >{{ t('bottomNav.payments') }}</span
           >
         </RouterLink>
         <!-- What: send the attendance tab straight to the history route. Why: coaches should reach saved sessions in one tap on mobile, while the live recording flow stays anchored inside the history screen instead of a popover. -->
         <RouterLink
           to="/attendance"
-          class="relative w-full border-x border-on-surface/10 flex flex-col items-center justify-center text-on-surface px-4 py-1 transition-all"
-          :class="[
-            isAttendanceSectionActive
-              ? 'bg-primary text-white'
-              : 'text-on-surface hover:bg-surface-container-low'
-          ]"
+          class="relative w-full border-x border-on-surface/10 flex flex-col items-center justify-center px-4 py-1 transition-all"
+          :class="bottomNavStateClasses(isAttendanceSectionActive)"
         >
-          <AppIcon name="calendar_today" />
+          <AppIcon
+            name="calendar_today"
+            :class="bottomNavForegroundClasses(isAttendanceSectionActive)"
+          />
           <span
             class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
+            :class="bottomNavForegroundClasses(isAttendanceSectionActive)"
           >
             {{ t('bottomNav.attendance') }}
           </span>

@@ -165,6 +165,34 @@ describe('AppShell', () => {
       .find((buttonWrapper) => buttonWrapper.text().includes(text))
   }
 
+  // What: verify each tab's surface and foreground together. Why: the active-route checks should fail if the red navbar tab ever loses its readable icon and label color again.
+  function expectBottomNavTabState(
+    wrapper: VueWrapper,
+    path: string,
+    active: boolean
+  ) {
+    const link = wrapper.get(`a[href="${path}"]`)
+    const classes = link.classes()
+    const iconClasses = link.get('svg').classes()
+    const labelClasses = link.get('span').classes()
+
+    if (active) {
+      expect(classes).toContain('bg-primary')
+      expect(classes).toContain('text-white')
+      expect(classes).not.toContain('text-on-surface')
+      expect(iconClasses).toContain('text-white')
+      expect(labelClasses).toContain('text-white')
+
+      return
+    }
+
+    expect(classes).toContain('text-on-surface')
+    expect(classes).not.toContain('bg-primary')
+    expect(classes).not.toContain('text-white')
+    expect(iconClasses).not.toContain('text-white')
+    expect(labelClasses).not.toContain('text-white')
+  }
+
   async function emitSetupStatus(value: SetupStatus) {
     mockSetupStatus = value
     mockSetupStatusObservers.forEach((observer) => observer.next(value))
@@ -351,6 +379,17 @@ describe('AppShell', () => {
     expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBe('en')
   })
 
+  it('activates the members route title on the members screen', () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    expect(document.title).toBe('Członkowie • Zeszyt Trenera')
+    expectBottomNavTabState(wrapper, '/member', true)
+    expectBottomNavTabState(wrapper, '/payments', false)
+    expectBottomNavTabState(wrapper, '/attendance', false)
+  })
+
   it('activates the attendance route title on the history screen', () => {
     mockRoute.name = 'attendance-history'
     mockRoute.path = '/attendance'
@@ -361,9 +400,9 @@ describe('AppShell', () => {
     })
 
     expect(document.title).toBe('Historia treningów • Zeszyt Trenera')
-    expect(wrapper.get('a[href="/attendance"]').classes()).toContain(
-      'bg-primary'
-    )
+    expectBottomNavTabState(wrapper, '/attendance', true)
+    expectBottomNavTabState(wrapper, '/member', false)
+    expectBottomNavTabState(wrapper, '/payments', false)
   })
 
   it('keeps the attendance tab active on the attendance edit screen', () => {
@@ -376,9 +415,9 @@ describe('AppShell', () => {
     })
 
     expect(document.title).toBe('Edycja treningu • Zeszyt Trenera')
-    expect(wrapper.get('a[href="/attendance"]').classes()).toContain(
-      'bg-primary'
-    )
+    expectBottomNavTabState(wrapper, '/attendance', true)
+    expectBottomNavTabState(wrapper, '/member', false)
+    expectBottomNavTabState(wrapper, '/payments', false)
   })
 
   it('activates the payments route title on the monthly ledger screen', () => {
@@ -391,7 +430,9 @@ describe('AppShell', () => {
     })
 
     expect(document.title).toBe('Płatności • Zeszyt Trenera')
-    expect(wrapper.get('a[href="/payments"]').classes()).toContain('bg-primary')
+    expectBottomNavTabState(wrapper, '/payments', true)
+    expectBottomNavTabState(wrapper, '/member', false)
+    expectBottomNavTabState(wrapper, '/attendance', false)
   })
 
   it('routes the bottom attendance tab straight to training history', () => {
