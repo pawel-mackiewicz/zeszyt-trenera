@@ -1,20 +1,21 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.4.17",
+  "version": "0.4.22",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.30.3",
+  "packageManager": "pnpm@10.33.0",
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc --noEmit -p tsconfig.app.json && vite build",
-    "preview": "vite preview",
+    "preview": "pnpm run build && wrangler dev",
     "prepare": "pnpm run hooks:install",
     "typecheck": "vue-tsc --noEmit -p tsconfig.app.json",
     "lint": "eslint .",
     "lint:fix": "sh scripts/run-lint-fix.sh",
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "format": "sh scripts/run-prettier.sh",
-    "test": "vitest run"
+    "test": "vitest run",
+    "deploy": "pnpm run build && wrangler deploy"
   },
   "dependencies": {
     "dexie": "^4.3.0",
@@ -27,6 +28,7 @@
     "workbox-window": "^7.4.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.31.0",
     "@eslint/js": "^10.0.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/roboto-mono": "^5.2.8",
@@ -51,6 +53,7 @@
     "vite": "^7.3.1",
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.0",
-    "vue-tsc": "^3.2.5"
+    "vue-tsc": "^3.2.5",
+    "wrangler": "^4.80.0"
   }
 }

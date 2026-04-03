@@ -7,6 +7,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
+import { cloudflare } from '@cloudflare/vite-plugin'
+
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
 ) as {
@@ -63,7 +65,8 @@ export default defineConfig({
         enabled: true,
         suppressWarnings: true
       }
-    })
+    }),
+    cloudflare()
   ],
   resolve: {
     alias: {

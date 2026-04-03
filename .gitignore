@@ -4,3 +4,10 @@ coverage
 .DS_Store
 pnpm-lock.yaml
 .temp/*
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
