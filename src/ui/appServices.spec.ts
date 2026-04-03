@@ -56,6 +56,9 @@ describe('uiAppServices', () => {
         registerTrainer: {
           handle
         },
+        resetApplicationData: {
+          handle
+        },
         updateAttendanceList: {
           handle
         },

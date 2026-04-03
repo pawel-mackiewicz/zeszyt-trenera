@@ -4,6 +4,10 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
+import {
+  normalizeResetConfirmationPhrase,
+  RESET_APPLICATION_CONFIRMATION_PHRASE
+} from '@/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
@@ -30,7 +34,7 @@ type ObservableSubscription = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
-const { queries } = useAppServices()
+const { queries, useCases } = useAppServices()
 const { t, tm } = useI18n({ useScope: 'local' })
 const { locale } = useI18n({ useScope: 'global' })
 
@@ -77,6 +81,11 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
+const resetModalVisible = ref(false)
+const resetConfirmationInput = ref('')
+const resetInProgress = ref(false)
+const resetErrorVisible = ref(false)
+const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
 let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
@@ -181,6 +190,11 @@ const updateErrorMessage = computed(() => {
   // What: derive the banner copy from the safe error kind only. Why: browser update errors should never be echoed back into the production UI.
   return t(`update.error.${updateError.value.kind}`)
 })
+const isResetConfirmationValid = computed(
+  () =>
+    normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
+    resetConfirmationPhrase
+)
 const shellStateEyebrow = computed(() =>
   isBlockingApplication.value
     ? t('shellState.blocked.eyebrow')
@@ -341,6 +355,19 @@ function closeMenu() {
   appStore.hideInstallCoach()
 }
 
+function openResetModal() {
+  closeMenu()
+  resetErrorVisible.value = false
+  resetConfirmationInput.value = ''
+  resetModalVisible.value = true
+}
+
+function closeResetModal() {
+  resetModalVisible.value = false
+  resetErrorVisible.value = false
+  resetConfirmationInput.value = ''
+}
+
 function handleBack() {
   if (route.meta.backTo) {
     router.push(route.meta.backTo as string)
@@ -374,6 +401,28 @@ function handleInstallLater() {
 
 async function handleUpdateAction() {
   await refreshApplication()
+}
+
+async function confirmResetApplicationData() {
+  if (!isResetConfirmationValid.value || resetInProgress.value) {
+    return
+  }
+
+  resetInProgress.value = true
+  resetErrorVisible.value = false
+
+  try {
+    // What: route full-reset writes through the dedicated app workflow. Why: the shell must never mutate Dexie directly, so destructive data wipes stay behind the application boundary.
+    await useCases.resetApplicationData.handle({
+      confirmationPhrase: resetConfirmationInput.value
+    })
+    closeResetModal()
+  } catch (error) {
+    resetErrorVisible.value = true
+    console.error('Failed to reset all local application data.', error)
+  } finally {
+    resetInProgress.value = false
+  }
 }
 
 function reloadApplication() {
@@ -530,8 +579,80 @@ function navigationLabel(item: NavigationItem) {
             >
               {{ updateActionLabel }}
             </AppButton>
+            <!-- What: expose a hard reset action in the shell menu. Why: when local-first data drifts on a shared phone, coaches need one recoverable path back to clean setup without reinstalling the PWA. -->
+            <AppButton
+              class="mt-3 w-full"
+              type="button"
+              variant="secondary"
+              data-testid="open-reset-modal"
+              @click="openResetModal"
+            >
+              {{ t('menu.resetData.action') }}
+            </AppButton>
           </div>
         </div>
+      </div>
+
+      <div
+        v-if="resetModalVisible"
+        class="fixed inset-0 z-[70] flex items-center justify-center px-6"
+      >
+        <div
+          class="absolute inset-0 bg-black/40"
+          @click="closeResetModal"
+        ></div>
+        <section class="shell-modal relative w-full max-w-xl">
+          <div class="shell-modal__content">
+            <!-- What: keep the destructive modal copy limited to the action, consequence, and phrase field. Why: mobile-first confirmation flows are easier to scan when duplicate helper lines do not push the required phrase below the fold. -->
+            <h2 class="shell-modal__title">{{ t('menu.resetData.title') }}</h2>
+            <p class="shell-modal__copy">{{ t('menu.resetData.copy') }}</p>
+            <!-- What: spell out the destructive consequence before the phrase. Why: destructive confirmations are safer when the coach reads the outcome and the required phrase in one sentence instead of seeing the token in isolation. -->
+            <p class="shell-modal__copy font-bold">
+              {{
+                t('menu.resetData.phraseLabel', {
+                  phrase: resetConfirmationPhrase
+                })
+              }}
+            </p>
+            <input
+              id="reset-confirmation"
+              v-model="resetConfirmationInput"
+              class="w-full rounded-none border border-on-surface/20 bg-surface px-3 py-3 font-mono text-xs text-on-surface"
+              type="text"
+              autocomplete="off"
+              :aria-label="t('menu.resetData.inputLabel')"
+              data-testid="reset-confirmation-input"
+            />
+            <p
+              v-if="resetErrorVisible"
+              class="mt-3 text-xs text-danger font-mono"
+            >
+              {{ t('menu.resetData.error') }}
+            </p>
+          </div>
+          <div class="shell-modal__actions">
+            <AppButton
+              type="button"
+              variant="secondary"
+              :disabled="resetInProgress"
+              @click="closeResetModal"
+            >
+              {{ t('common.cancel') }}
+            </AppButton>
+            <AppButton
+              type="button"
+              :disabled="!isResetConfirmationValid || resetInProgress"
+              data-testid="confirm-reset-button"
+              @click="confirmResetApplicationData"
+            >
+              {{
+                resetInProgress
+                  ? t('menu.resetData.pending')
+                  : t('menu.resetData.confirm')
+              }}
+            </AppButton>
+          </div>
+        </section>
       </div>
 
       <main class="pt-24 px-6 max-w-5xl mx-auto pb-32">
@@ -927,6 +1048,7 @@ function navigationLabel(item: NavigationItem) {
       "name": "Zeszyt Trenera"
     },
     "common": {
+      "cancel": "Anuluj",
       "hide": "Ukryj",
       "later": "Później",
       "understand": "Rozumiem"
@@ -936,7 +1058,17 @@ function navigationLabel(item: NavigationItem) {
     },
     "menu": {
       "debugIndexedDb": "Debug IndexedDB",
-      "languageLabel": "Język"
+      "languageLabel": "Język",
+      "resetData": {
+        "action": "Reset aplikacji",
+        "confirm": "Usuń wszystko",
+        "copy": "To usunie wszystkich członków, treningi, płatności, ustawienia klubu i trenera tylko z tego urządzenia.",
+        "error": "Nie udało się wyczyścić danych. Spróbuj ponownie.",
+        "inputLabel": "Wpisz frazę potwierdzającą",
+        "pending": "Usuwanie...",
+        "phraseLabel": "Aby usunąć wszystkie dane, wpisz: {phrase}",
+        "title": "Usuń wszystkie dane aplikacji"
+      }
     },
     "routes": {
       "membersList": "Członkowie",
@@ -1019,6 +1151,7 @@ function navigationLabel(item: NavigationItem) {
       "name": "Coach Notebook"
     },
     "common": {
+      "cancel": "Cancel",
       "hide": "Hide",
       "later": "Later",
       "understand": "Understood"
@@ -1028,7 +1161,17 @@ function navigationLabel(item: NavigationItem) {
     },
     "menu": {
       "debugIndexedDb": "Debug IndexedDB",
-      "languageLabel": "Language"
+      "languageLabel": "Language",
+      "resetData": {
+        "action": "Reset app data",
+        "confirm": "Delete everything",
+        "copy": "This removes all members, trainings, payments, and club/trainer setup only on this device.",
+        "error": "Data reset failed. Try again.",
+        "inputLabel": "Type the confirmation phrase",
+        "pending": "Deleting...",
+        "phraseLabel": "To delete all data, type: {phrase}",
+        "title": "Delete all app data"
+      }
     },
     "routes": {
       "membersList": "Members",
