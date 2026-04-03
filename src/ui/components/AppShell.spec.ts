@@ -68,6 +68,7 @@ describe('AppShell', () => {
   let mockRoute: MockRoute
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
+  let mockResetApplicationData: Mock
 
   beforeEach(() => {
     window.localStorage.clear()
@@ -77,6 +78,7 @@ describe('AppShell', () => {
     mockNeedRefresh = ref(false)
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
+    mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockSetupStatusObservers = []
     mockSetupStatus = 'ready'
 
@@ -129,7 +131,11 @@ describe('AppShell', () => {
           }))
         }
       } as unknown,
-      useCases: {} as unknown
+      useCases: {
+        resetApplicationData: {
+          handle: mockResetApplicationData
+        }
+      } as unknown
     } as unknown as ReturnType<typeof useAppServices>)
     vi.mocked(createNavigationItems).mockReturnValue([])
   })
@@ -407,5 +413,43 @@ describe('AppShell', () => {
     expect(wrapper.get('a[href="/attendance"]').text().toUpperCase()).toContain(
       'OBECNOŚCI'
     )
+  })
+
+  it('enables full reset for case-insensitive confirmation phrase', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
+
+    const confirmButton = wrapper.get('[data-testid="confirm-reset-button"]')
+
+    expect(confirmButton.attributes('disabled')).toBeDefined()
+
+    await wrapper
+      .get('[data-testid="reset-confirmation-input"]')
+      .setValue('delete all data')
+    await nextTick()
+
+    expect(confirmButton.attributes('disabled')).toBeUndefined()
+  })
+
+  it('resets app data after explicit confirmation phrase and confirm click', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
+    await wrapper
+      .get('[data-testid="reset-confirmation-input"]')
+      .setValue('DELETE ALL DATA')
+    await wrapper.get('[data-testid="confirm-reset-button"]').trigger('click')
+
+    expect(mockResetApplicationData).toHaveBeenCalledWith({
+      confirmationPhrase: 'DELETE ALL DATA'
+    })
+    expect(wrapper.text()).not.toContain('Usuń wszystkie dane aplikacji')
   })
 })

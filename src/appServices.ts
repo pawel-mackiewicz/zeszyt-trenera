@@ -5,6 +5,7 @@ import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
+import { ResetApplicationDataUseCase } from '@/application/ResetApplicationDataUseCase'
 import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListUseCase'
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
@@ -12,11 +13,13 @@ import type { RegisterAttendanceListCommand } from '@/application/requests/Regis
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
+import type { ResetApplicationDataCommand } from '@/application/requests/ResetApplicationDataCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
 import type { UpdateAttendanceListCommand } from '@/application/requests/UpdateAttendanceListCommand'
 import type { UpdateMemberCommand } from '@/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
+import { DexieAppResetRepo } from '@/infra/db/DexieAppResetRepo'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
@@ -50,6 +53,7 @@ export type AppUseCases = {
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
+  readonly resetApplicationData: UseCase<ResetApplicationDataCommand>
   readonly updateAttendanceList: UseCase<UpdateAttendanceListCommand>
   readonly updateMember: UseCase<UpdateMemberCommand>
 }
@@ -98,6 +102,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveAttendanceListRepo = lazy(
     () => new DexieAttendanceListRepo(database)
   )
+  const resolveAppResetRepo = lazy(() => new DexieAppResetRepo(database))
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
@@ -178,6 +183,13 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveEventRepo()
       )
   )
+  const resolveResetApplicationData = lazy(
+    () =>
+      new ResetApplicationDataUseCase(
+        resolveUnitOfWork(),
+        resolveAppResetRepo()
+      )
+  )
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
@@ -195,6 +207,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get registerTrainer() {
       return resolveRegisterTrainer()
+    },
+    get resetApplicationData() {
+      return resolveResetApplicationData()
     },
     get updateAttendanceList() {
       return resolveUpdateAttendanceList()

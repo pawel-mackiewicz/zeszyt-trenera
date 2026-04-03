@@ -69,10 +69,52 @@ describe('appServices', () => {
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
     )
+    expect(services.useCases.resetApplicationData).toBe(
+      services.useCases.resetApplicationData
+    )
     expect(services.useCases.updateAttendanceList).toBe(
       services.useCases.updateAttendanceList
     )
     expect(services.useCases.updateMember).toBe(services.useCases.updateMember)
+  })
+
+  it('assembles the app reset workflow that clears every persisted table', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerClub.handle({
+      clubName: 'Reset Club',
+      foundingDate: new Date('2001-01-01T00:00:00Z')
+    })
+    await services.useCases.registerTrainer.handle({
+      trainerName: 'Reset Trainer'
+    })
+    await services.useCases.registerMember.handle({
+      firstName: 'Reset',
+      lastName: 'Member',
+      phoneNumber: '+48 555 444 333'
+    })
+
+    const persistedMember = (await database.members.toArray())[0]
+
+    await services.useCases.registerMembershipPayment.handle({
+      memberId: persistedMember.id,
+      coveredMonth: '2026-03'
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMember.id],
+      start: new Date('2026-03-30T18:00:00Z')
+    })
+
+    await services.useCases.resetApplicationData.handle({
+      confirmationPhrase: 'DELETE ALL DATA'
+    })
+
+    await expect(database.clubs.count()).resolves.toBe(0)
+    await expect(database.trainers.count()).resolves.toBe(0)
+    await expect(database.members.count()).resolves.toBe(0)
+    await expect(database.membershipPayments.count()).resolves.toBe(0)
+    await expect(database.attendanceLists.count()).resolves.toBe(0)
+    await expect(database.events.count()).resolves.toBe(0)
   })
 
   it('assembles Dexie adapters that persist a club and matching event row', async () => {
