@@ -603,11 +603,10 @@ function navigationLabel(item: NavigationItem) {
         ></div>
         <section class="shell-modal relative w-full max-w-xl">
           <div class="shell-modal__content">
-            <p class="shell-modal__eyebrow">
-              {{ t('menu.resetData.eyebrow') }}
-            </p>
+            <!-- What: keep the destructive modal copy limited to the action, consequence, and phrase field. Why: mobile-first confirmation flows are easier to scan when duplicate helper lines do not push the required phrase below the fold. -->
             <h2 class="shell-modal__title">{{ t('menu.resetData.title') }}</h2>
             <p class="shell-modal__copy">{{ t('menu.resetData.copy') }}</p>
+            <!-- What: spell out the destructive consequence before the phrase. Why: destructive confirmations are safer when the coach reads the outcome and the required phrase in one sentence instead of seeing the token in isolation. -->
             <p class="shell-modal__copy font-bold">
               {{
                 t('menu.resetData.phraseLabel', {
@@ -615,18 +614,13 @@ function navigationLabel(item: NavigationItem) {
                 })
               }}
             </p>
-            <label
-              class="mb-2 block font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-secondary"
-              for="reset-confirmation"
-            >
-              {{ t('menu.resetData.inputLabel') }}
-            </label>
             <input
               id="reset-confirmation"
               v-model="resetConfirmationInput"
               class="w-full rounded-none border border-on-surface/20 bg-surface px-3 py-3 font-mono text-xs text-on-surface"
               type="text"
               autocomplete="off"
+              :aria-label="t('menu.resetData.inputLabel')"
               data-testid="reset-confirmation-input"
             />
             <p
@@ -1069,11 +1063,10 @@ function navigationLabel(item: NavigationItem) {
         "action": "Reset aplikacji",
         "confirm": "Usuń wszystko",
         "copy": "To usunie wszystkich członków, treningi, płatności, ustawienia klubu i trenera tylko z tego urządzenia.",
-        "eyebrow": "Tryb awaryjny",
         "error": "Nie udało się wyczyścić danych. Spróbuj ponownie.",
         "inputLabel": "Wpisz frazę potwierdzającą",
         "pending": "Usuwanie...",
-        "phraseLabel": "Wpisz dokładnie: {phrase}",
+        "phraseLabel": "Aby usunąć wszystkie dane, wpisz: {phrase}",
         "title": "Usuń wszystkie dane aplikacji"
       }
     },
@@ -1173,11 +1166,10 @@ function navigationLabel(item: NavigationItem) {
         "action": "Reset app data",
         "confirm": "Delete everything",
         "copy": "This removes all members, trainings, payments, and club/trainer setup only on this device.",
-        "eyebrow": "Emergency mode",
         "error": "Data reset failed. Try again.",
         "inputLabel": "Type the confirmation phrase",
         "pending": "Deleting...",
-        "phraseLabel": "Type exactly: {phrase}",
+        "phraseLabel": "To delete all data, type: {phrase}",
         "title": "Delete all app data"
       }
     },
