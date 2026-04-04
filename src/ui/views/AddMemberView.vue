@@ -19,7 +19,8 @@ const { t } = useI18n({ useScope: 'local' })
 
 const firstName = ref('')
 const lastName = ref('')
-const phoneNumber = ref('')
+// What: prefill the phone input with Poland's country code. Why: most members use Polish numbers, so this removes repetitive typing on every mobile add-member flow.
+const phoneNumber = ref('+48 ')
 const dateOfBirth = ref('')
 const joinedAt = ref('')
 

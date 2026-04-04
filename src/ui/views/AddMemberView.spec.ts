@@ -73,6 +73,15 @@ describe('AddMemberView', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/member')
   })
 
+  it('prefills the phone field with the +48 prefix', () => {
+    const wrapper = mountView()
+
+    expect(
+      (wrapper.find('input[id="phoneNumber"]').element as HTMLInputElement)
+        .value
+    ).toBe('+48 ')
+  })
+
   it('shows a friendly validation message when the phone number is invalid', async () => {
     mockRegisterMemberHandle.mockRejectedValue(
       new InvalidPhoneNumberError('bad-number')
