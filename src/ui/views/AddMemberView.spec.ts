@@ -127,6 +127,28 @@ describe('AddMemberView', () => {
     expect(wrapper.text()).not.toContain('low-level failure')
   })
 
+  it('shows a floating alert on submit failure and lets the user dismiss it', async () => {
+    mockRegisterMemberHandle.mockRejectedValue(new Error('low-level failure'))
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+
+    await wrapper.find('form').trigger('submit.prevent')
+
+    const alert = wrapper.find('[role="alert"]')
+    expect(alert.exists()).toBe(true)
+    expect(alert.text()).toContain(
+      'The member could not be saved. Check the details and try again.'
+    )
+    expect(wrapper.find('button[type="button"]').text()).toContain('Dismiss')
+
+    await wrapper.find('button[type="button"]').trigger('click')
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
   it('renders field copy from the local English dictionary', () => {
     const wrapper = mountView('en')
 

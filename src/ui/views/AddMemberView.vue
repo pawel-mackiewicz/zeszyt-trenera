@@ -39,6 +39,11 @@ const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
 
+function dismissSubmitError() {
+  // What: let coaches close the floating error banner after reading it. Why: the requirement says save errors must stay visible but also be easy to turn off.
+  submitErrorKey.value = null
+}
+
 function toUtcDate(value: string) {
   if (!value) return undefined
   return new Date(`${value}T00:00:00Z`)
@@ -111,11 +116,20 @@ async function handleSubmit() {
     <form class="space-y-10" @submit.prevent="handleSubmit">
       <div
         v-if="submitError"
-        class="bg-danger/10 border border-danger p-4 mb-6"
+        class="fixed inset-x-4 top-4 z-50 md:left-1/2 md:right-auto md:w-[min(32rem,calc(100%-2rem))] md:-translate-x-1/2 bg-danger/95 text-on-danger border border-danger p-4 shadow-lg"
+        role="alert"
       >
-        <p class="font-mono text-sm text-danger font-bold uppercase">
+        <!-- What: keep save failures above the form fields and keyboard. Why: mobile users can miss inline errors when the form is long, so this must float at the top layer. -->
+        <p class="font-mono text-sm font-bold uppercase pr-24">
           {{ submitError }}
         </p>
+        <button
+          type="button"
+          class="absolute right-3 top-3 font-mono text-xs font-bold uppercase tracking-wide"
+          @click="dismissSubmitError"
+        >
+          {{ t('actions.dismiss') }}
+        </button>
       </div>
 
       <!-- Personal Information Cluster -->
@@ -213,7 +227,8 @@ async function handleSubmit() {
   "pl": {
     "actions": {
       "submit": "Zapisz",
-      "submitting": "Zapisywanie"
+      "submitting": "Zapisywanie",
+      "dismiss": "Zamknij"
     },
     "errors": {
       "required": "Podaj imię, nazwisko i numer telefonu.",
@@ -248,7 +263,8 @@ async function handleSubmit() {
   "en": {
     "actions": {
       "submit": "Save",
-      "submitting": "Saving"
+      "submitting": "Saving",
+      "dismiss": "Dismiss"
     },
     "errors": {
       "required": "Enter the first name, last name, and phone number.",
