@@ -139,7 +139,7 @@ async function handleSubmit() {
     "fields": {
       "clubName": {
         "label": "Nazwa klubu",
-        "placeholder": "Na przykład ZKS Włókniarz Częstochowa"
+        "placeholder": "Wpisz nazwę swojego klubu tutaj..."
       },
       "foundingDate": {
         "label": "Data założenia"
@@ -163,7 +163,7 @@ async function handleSubmit() {
     "fields": {
       "clubName": {
         "label": "Club name",
-        "placeholder": "For example Riverside Wrestling Club"
+        "placeholder": "Type your club name here..."
       },
       "foundingDate": {
         "label": "Founding date"
