@@ -334,6 +334,37 @@ describe('AppShell', () => {
     expect(mockRouterReplace).toHaveBeenLastCalledWith('/setup/trainer')
   })
 
+  it('keeps the shell unlocked when missing club setup was skipped intentionally', () => {
+    mockSetupStatus = 'requires-club'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setClubSetupSkipped(true)
+      appStore.setTrainerSetupSkipped(true)
+      appStore.setAppReady()
+    })
+
+    expect(mockRouterReplace).not.toHaveBeenCalledWith('/setup/club')
+    expect(wrapper.find('header').exists()).toBe(true)
+  })
+
+  it('shows deferred setup entries in the hamburger menu while records are still missing', async () => {
+    mockSetupStatus = 'requires-club'
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setClubSetupSkipped(true)
+      appStore.setTrainerSetupSkipped(true)
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+
+    expect(wrapper.text()).toContain('Konfiguracja klubu')
+
+    await emitSetupStatus('requires-trainer')
+
+    expect(wrapper.text()).toContain('Konfiguracja trenera')
+  })
+
   it('returns to the members route once setup becomes complete', async () => {
     mockSetupStatus = 'requires-trainer'
     mockRoute.name = 'setup-trainer'

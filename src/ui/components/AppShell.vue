@@ -53,6 +53,8 @@ const {
   installSurface,
   isOnline,
   setupStatus,
+  clubSetupSkipped,
+  trainerSetupSkipped,
   showInstallEntry,
   shouldAutoOpenInstallModal,
   updateError
@@ -136,12 +138,37 @@ const isSetupChecking = computed(
 const isSetupGateActive = computed(
   () =>
     appReadiness.value === 'ready' &&
-    (setupStatus.value === 'requires-club' ||
-      setupStatus.value === 'requires-trainer')
+    ((setupStatus.value === 'requires-club' && !clubSetupSkipped.value) ||
+      (setupStatus.value === 'requires-trainer' && !trainerSetupSkipped.value))
 )
 const isShellReady = computed(
-  () => appReadiness.value === 'ready' && setupStatus.value === 'ready'
+  () => appReadiness.value === 'ready' && !isSetupGateActive.value
 )
+const setupNavigationItems = computed<NavigationItem[]>(() => {
+  const items: NavigationItem[] = []
+
+  if (setupStatus.value === 'requires-club') {
+    // What: expose the missing setup route in the menu until the club exists. Why: skipped first-run onboarding must stay recoverable from the shell without forcing users back into the gate.
+    items.push({
+      name: 'setup-club',
+      to: '/setup/club'
+    })
+  }
+
+  if (setupStatus.value === 'requires-trainer') {
+    // What: show trainer setup in the menu while trainer data is missing. Why: coaches who skip onboarding still need a direct way to finish identity setup later.
+    items.push({
+      name: 'setup-trainer',
+      to: '/setup/trainer'
+    })
+  }
+
+  return items
+})
+const menuNavigationItems = computed(() => [
+  ...setupNavigationItems.value,
+  ...navigationItems
+])
 const isBlockingApplication = computed(() => appReadiness.value === 'blocked')
 const manualInstallTranslationKey = 'install.manual.iosSafari' as const
 const installModalEyebrow = computed(() =>
@@ -298,19 +325,30 @@ watch(
 )
 
 watch(
-  [appReadiness, setupStatus, currentRouteName],
+  [
+    appReadiness,
+    setupStatus,
+    currentRouteName,
+    clubSetupSkipped,
+    trainerSetupSkipped
+  ],
   ([readiness, nextSetupStatus, routeName]) => {
     if (readiness !== 'ready') {
       return
     }
 
-    if (nextSetupStatus === 'requires-club' && routeName !== 'setup-club') {
+    if (
+      nextSetupStatus === 'requires-club' &&
+      !clubSetupSkipped.value &&
+      routeName !== 'setup-club'
+    ) {
       router.replace('/setup/club')
       return
     }
 
     if (
       nextSetupStatus === 'requires-trainer' &&
+      !trainerSetupSkipped.value &&
       routeName !== 'setup-trainer'
     ) {
       router.replace('/setup/trainer')
@@ -516,11 +554,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
             </p>
           </div>
           <nav
-            v-if="navigationItems.length > 0"
+            v-if="menuNavigationItems.length > 0"
             class="flex-1 overflow-y-auto py-4"
           >
             <RouterLink
-              v-for="item in navigationItems"
+              v-for="item in menuNavigationItems"
               :key="item.name"
               :to="item.to"
               class="block px-6 py-4 font-mono text-sm uppercase font-bold text-on-surface hover:bg-surface-container-low transition-colors"

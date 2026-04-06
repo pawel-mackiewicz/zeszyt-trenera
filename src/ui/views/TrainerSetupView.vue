@@ -6,10 +6,14 @@ import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
+import { useRouter } from '@/ui/router/runtime'
+import { useAppStore } from '@/ui/stores/app'
 
 type SubmitErrorKey = 'required' | 'alreadyExists' | 'submit'
 
 const { useCases } = useAppServices()
+const router = useRouter()
+const appStore = useAppStore()
 const { t } = useI18n({ useScope: 'local' })
 
 const trainerName = ref('')
@@ -42,6 +46,8 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
+    // What: clear the skip marker before persisting setup. Why: saving trainer identity should immediately retire the deferred-onboarding state for this step.
+    appStore.setTrainerSetupSkipped(false)
     await useCases.registerTrainer.handle({
       trainerName: nextTrainerName
     })
@@ -50,6 +56,12 @@ async function handleSubmit() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function skipSetup() {
+  // What: remember that trainer setup was deferred intentionally. Why: first-run onboarding must become optional while keeping a clear return path in the shell menu.
+  appStore.setTrainerSetupSkipped(true)
+  void router.push('/member')
 }
 </script>
 
@@ -82,7 +94,11 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div class="flex justify-end pt-4">
+      <div class="flex justify-between pt-4">
+        <!-- What: expose a skip action on the final setup step. Why: users can enter the app immediately and complete trainer identity from the menu once ready. -->
+        <AppButton type="button" variant="secondary" @click="skipSetup">
+          {{ t('actions.skip') }}
+        </AppButton>
         <!-- What: keep onboarding submit actions on the shared CTA primitive. Why: the final setup step should stay visually consistent with the rest of the app without shipping its own button recipe. -->
         <AppButton :disabled="isSubmitting" type="submit">
           {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
@@ -98,6 +114,7 @@ async function handleSubmit() {
     "title": "Dodaj trenera",
     "step": "Krok 2 z 2",
     "actions": {
+      "skip": "Pomiń na teraz",
       "submit": "Zapisz trenera",
       "submitting": "Zapisywanie..."
     },
@@ -118,6 +135,7 @@ async function handleSubmit() {
     "title": "Add the trainer",
     "step": "Step 2 of 2",
     "actions": {
+      "skip": "Skip for now",
       "submit": "Save trainer",
       "submitting": "Saving..."
     },

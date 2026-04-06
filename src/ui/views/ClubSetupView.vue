@@ -6,10 +6,14 @@ import { ClubAlreadyExistsError } from '@/domain/model/club'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
+import { useRouter } from '@/ui/router/runtime'
+import { useAppStore } from '@/ui/stores/app'
 
 type SubmitErrorKey = 'required' | 'invalidDate' | 'alreadyExists' | 'submit'
 
 const { useCases } = useAppServices()
+const router = useRouter()
+const appStore = useAppStore()
 const { t } = useI18n({ useScope: 'local' })
 
 const clubName = ref('')
@@ -54,6 +58,8 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
+    // What: clear the skip marker before persisting setup. Why: once club identity is intentionally saved, onboarding should stop treating this step as deferred.
+    appStore.setClubSetupSkipped(false)
     await useCases.registerClub.handle({
       clubName: nextClubName,
       foundingDate: nextFoundingDate
@@ -63,6 +69,12 @@ async function handleSubmit() {
   } finally {
     isSubmitting.value = false
   }
+}
+
+function skipSetup() {
+  // What: persist the skip decision in app shell state. Why: onboarding should not trap the user in first-run setup when they choose to postpone entering club data.
+  appStore.setClubSetupSkipped(true)
+  void router.push('/setup/trainer')
 }
 </script>
 
@@ -110,7 +122,11 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div class="flex justify-end pt-4">
+      <div class="flex justify-between pt-4">
+        <!-- What: render an explicit skip action for first-run setup. Why: coaches can continue into the notebook immediately and finish setup later from the hamburger menu. -->
+        <AppButton type="button" variant="secondary" @click="skipSetup">
+          {{ t('actions.skip') }}
+        </AppButton>
         <!-- What: keep onboarding submit actions on the shared CTA primitive. Why: setup screens should inherit the same tactile button states as the shell without owning another copy of the visual recipe. -->
         <AppButton :disabled="isSubmitting" type="submit">
           {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
@@ -126,6 +142,7 @@ async function handleSubmit() {
     "title": "Dodaj klub",
     "step": "Krok 1 z 2",
     "actions": {
+      "skip": "Pomiń na teraz",
       "submit": "Zapisz klub",
       "submitting": "Zapisywanie..."
     },
@@ -150,6 +167,7 @@ async function handleSubmit() {
     "title": "Add the club",
     "step": "Step 1 of 2",
     "actions": {
+      "skip": "Skip for now",
       "submit": "Save club",
       "submitting": "Saving..."
     },

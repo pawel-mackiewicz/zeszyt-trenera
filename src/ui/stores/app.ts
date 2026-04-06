@@ -13,6 +13,8 @@ export type UpdateErrorState = {
 
 const INSTALL_MODAL_SHOWN_STORAGE_KEY =
   'zeszyt-trenera.install-modal-shown-once'
+const CLUB_SETUP_SKIPPED_STORAGE_KEY = 'zeszyt-trenera.setup-club-skipped'
+const TRAINER_SETUP_SKIPPED_STORAGE_KEY = 'zeszyt-trenera.setup-trainer-skipped'
 
 function isStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches
@@ -56,6 +58,11 @@ export const useAppStore = defineStore('app', () => {
   const dbConnected = ref(false)
   // What: keep setup completeness separate from database readiness. Why: the shell must distinguish between "cannot boot" and "booted, but still missing required local identity data".
   const setupStatus = ref<SetupStatus>('checking')
+  // What: persist whether onboarding steps were intentionally skipped on this device. Why: setup should become optional after an explicit skip while still surfacing missing data in the menu.
+  const clubSetupSkipped = ref(readStoredFlag(CLUB_SETUP_SKIPPED_STORAGE_KEY))
+  const trainerSetupSkipped = ref(
+    readStoredFlag(TRAINER_SETUP_SKIPPED_STORAGE_KEY)
+  )
 
   const showInstallEntry = computed(
     () => !installed.value && installSurface.value !== 'hidden'
@@ -65,6 +72,10 @@ export const useAppStore = defineStore('app', () => {
       appReadiness.value === 'ready' &&
       showInstallEntry.value &&
       !installModalShown.value
+  )
+  const needsClubSetup = computed(() => setupStatus.value === 'requires-club')
+  const needsTrainerSetup = computed(
+    () => setupStatus.value === 'requires-trainer'
   )
 
   function setOnlineStatus(value: boolean) {
@@ -162,6 +173,22 @@ export const useAppStore = defineStore('app', () => {
 
   function setSetupStatus(value: SetupStatus) {
     setupStatus.value = value
+
+    if (value === 'ready') {
+      // What: clear skip markers once setup is complete. Why: persisted records make onboarding menu reminders obsolete and prevent stale skip state from leaking into future resets.
+      setClubSetupSkipped(false)
+      setTrainerSetupSkipped(false)
+    }
+  }
+
+  function setClubSetupSkipped(value: boolean) {
+    clubSetupSkipped.value = value
+    writeStoredFlag(CLUB_SETUP_SKIPPED_STORAGE_KEY, value)
+  }
+
+  function setTrainerSetupSkipped(value: boolean) {
+    trainerSetupSkipped.value = value
+    writeStoredFlag(TRAINER_SETUP_SKIPPED_STORAGE_KEY, value)
   }
 
   return {
@@ -180,6 +207,10 @@ export const useAppStore = defineStore('app', () => {
     blockingIssue,
     dbConnected,
     setupStatus,
+    clubSetupSkipped,
+    trainerSetupSkipped,
+    needsClubSetup,
+    needsTrainerSetup,
     setOnlineStatus,
     setInstallAvailability,
     setInstallSurface,
@@ -195,6 +226,8 @@ export const useAppStore = defineStore('app', () => {
     setUpdateError,
     clearUpdateError,
     setDbConnected,
-    setSetupStatus
+    setSetupStatus,
+    setClubSetupSkipped,
+    setTrainerSetupSkipped
   }
 })

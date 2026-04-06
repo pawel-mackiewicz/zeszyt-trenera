@@ -4,17 +4,29 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { ClubAlreadyExistsError } from '@/domain/model/club'
 import { useAppServices } from '@/ui/appServices'
 import { createAppI18n } from '@/ui/i18n'
+import { useRouter } from '@/ui/router/runtime'
+import { useAppStore } from '@/ui/stores/app'
 import ClubSetupView from '@/ui/views/ClubSetupView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()
 }))
+vi.mock('@/ui/router/runtime', () => ({
+  useRouter: vi.fn()
+}))
+vi.mock('@/ui/stores/app', () => ({
+  useAppStore: vi.fn()
+}))
 
 describe('ClubSetupView', () => {
   let mockRegisterClubHandle: Mock
+  let mockRouterPush: Mock
+  let mockSetClubSetupSkipped: Mock
 
   beforeEach(() => {
     mockRegisterClubHandle = vi.fn().mockResolvedValue(undefined)
+    mockRouterPush = vi.fn().mockResolvedValue(undefined)
+    mockSetClubSetupSkipped = vi.fn()
 
     vi.mocked(useAppServices).mockReturnValue({
       useCases: {
@@ -24,6 +36,12 @@ describe('ClubSetupView', () => {
       } as unknown,
       queries: {} as unknown
     } as unknown as ReturnType<typeof useAppServices>)
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockRouterPush
+    } as unknown as ReturnType<typeof useRouter>)
+    vi.mocked(useAppStore).mockReturnValue({
+      setClubSetupSkipped: mockSetClubSetupSkipped
+    } as unknown as ReturnType<typeof useAppStore>)
   })
 
   function mountView(locale: 'pl' | 'en' = 'pl') {
@@ -81,5 +99,15 @@ describe('ClubSetupView', () => {
 
     expect(wrapper.text()).toContain('Add the club')
     expect(wrapper.text()).toContain('Save club')
+  })
+
+  it('allows skipping club setup and routes to trainer setup', async () => {
+    const wrapper = mountView()
+
+    await wrapper.find('button[type="button"]').trigger('click')
+
+    expect(mockSetClubSetupSkipped).toHaveBeenCalledWith(true)
+    expect(mockRouterPush).toHaveBeenCalledWith('/setup/trainer')
+    expect(mockRegisterClubHandle).not.toHaveBeenCalled()
   })
 })
