@@ -173,7 +173,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="h-full pt-4 pb-12">
+  <div class="members-list-view h-full pt-4">
     <!-- Status Indicator / Stats -->
     <div class="mb-12">
       <div
@@ -187,30 +187,14 @@ onMounted(() => {
     </div>
 
     <!-- Utility Bar -->
-    <section
-      class="mb-12 grid grid-cols-1 md:grid-cols-12 gap-0 border-b-2 border-on-surface pb-4 items-end"
-    >
-      <div class="md:col-span-11">
-        <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
-        <SearchBar
-          v-model="searchQuery"
-          input-id="members-search"
-          :input-label="t('search.label')"
-          :placeholder="t('search.placeholder')"
-        />
-      </div>
-      <div class="md:col-span-1 flex justify-end mt-4 md:mt-0">
-        <!-- What: express the add-member trigger as the canonical `/member/new` route link. Why: the roster and creation screens now belong to one route family, so moving between them should follow the same nested path structure everywhere in the app. -->
-        <AppButton
-          as="router-link"
-          to="/member/new"
-          :aria-label="t('actions.addMember')"
-          :title="t('actions.addMember')"
-          icon-only
-        >
-          <AppIcon name="add" />
-        </AppButton>
-      </div>
+    <section class="mb-12 border-b-2 border-on-surface pb-4">
+      <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
+      <SearchBar
+        v-model="searchQuery"
+        input-id="members-search"
+        :input-label="t('search.label')"
+        :placeholder="t('search.placeholder')"
+      />
     </section>
 
     <!-- Additional filters -->
@@ -397,8 +381,36 @@ onMounted(() => {
         </div>
       </details>
     </div>
+
+    <div class="members-list-view__action-fab">
+      <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
+      <AppButton
+        as="router-link"
+        to="/member/new"
+        :aria-label="t('actions.addMember')"
+        :title="t('actions.addMember')"
+        icon-only
+      >
+        <AppIcon name="add" />
+      </AppButton>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.members-list-view {
+  /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
+  padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
+}
+
+.members-list-view__action-fab {
+  /* What: anchor the add-member CTA to the lower-right viewport edge. Why: member creation should stay reachable from any scroll position instead of being tied to the filter toolbar. */
+  position: fixed;
+  right: max(1rem, calc((100vw - 64rem) / 2 + 1.5rem));
+  bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
+  z-index: 45;
+}
+</style>
 
 <i18n lang="json">
 {
