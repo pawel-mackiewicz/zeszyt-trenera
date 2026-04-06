@@ -1028,7 +1028,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
 }
 
 .fade-enter-from,
-.fade-leave-to,
+.fade-leave-to {
+  /* What: keep route transitions on opacity only. Why: applying transform to the routed view root turns it into the containing block for nested fixed-position FABs, which makes mobile actions render inline for a frame on reload before snapping back to the viewport. */
+  opacity: 0;
+}
+
 .overlay-pop-enter-from,
 .overlay-pop-leave-to {
   opacity: 0;

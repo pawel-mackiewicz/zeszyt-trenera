@@ -382,7 +382,7 @@ onMounted(() => {
       </details>
     </div>
 
-    <div class="members-list-view__action-fab">
+    <div class="members-list-view__action-fab app-floating-action">
       <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
       <AppButton
         as="router-link"
@@ -401,14 +401,6 @@ onMounted(() => {
 .members-list-view {
   /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
-}
-
-.members-list-view__action-fab {
-  /* What: anchor the add-member CTA to the lower-right viewport edge. Why: member creation should stay reachable from any scroll position instead of being tied to the filter toolbar. */
-  position: fixed;
-  right: max(1rem, calc((100vw - 64rem) / 2 + 1.5rem));
-  bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
-  z-index: 45;
 }
 </style>
 

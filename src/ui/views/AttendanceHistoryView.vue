@@ -169,7 +169,7 @@ onMounted(() => {
     </section>
 
     <!-- What: keep the add action floating above the shell navigation on every scroll position. Why: the attendance recorder needs to stay reachable from the archive view without forcing coaches to return to the bottom of a long monthly list. -->
-    <div class="attendance-history__action-fab">
+    <div class="attendance-history__action-fab app-floating-action">
       <AppButton as="router-link" to="/attendance/new">
         {{ t('actions.newTraining') }}
       </AppButton>
@@ -182,14 +182,6 @@ onMounted(() => {
   --history-panel-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
   /* What: keep the floating add action from covering the last ledger rows. Why: the bottom navigation and safe-area inset take permanent space in the PWA shell, so the history content needs matching clearance. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
-}
-
-.attendance-history__action-fab {
-  /* What: anchor the add action above the fixed shell navigation. Why: this screen needs one always-visible entry into the live attendance flow without changing the button’s original shape. */
-  position: fixed;
-  right: max(1rem, calc((100vw - 64rem) / 2 + 1.5rem));
-  bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
-  z-index: 45;
 }
 
 .attendance-history__hero {
