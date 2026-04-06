@@ -109,8 +109,8 @@ async function handleSubmit() {
     },
     "fields": {
       "trainerName": {
-        "label": "Imię i nazwisko",
-        "placeholder": "Na przykład Jan Kowalski"
+        "label": "Imię",
+        "placeholder": "Na przykład Janek"
       }
     }
   },
@@ -130,7 +130,7 @@ async function handleSubmit() {
     "fields": {
       "trainerName": {
         "label": "Full name",
-        "placeholder": "For example Jane Doe"
+        "placeholder": "For example Joe"
       }
     }
   }
