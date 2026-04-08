@@ -58,7 +58,8 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
-    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+    await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
+    await wrapper.find('input[id="phoneNumberRest"]').setValue('111 222 333')
     await wrapper.find('input[id="dateOfBirth"]').setValue('1990-01-01')
 
     await wrapper.find('form').trigger('submit.prevent')
@@ -73,13 +74,32 @@ describe('AddMemberView', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/member')
   })
 
-  it('prefills the phone field with the +48 prefix', () => {
+  it('prefills the country code field with the +48 prefix', () => {
     const wrapper = mountView()
 
     expect(
-      (wrapper.find('input[id="phoneNumber"]').element as HTMLInputElement)
+      (wrapper.find('input[id="phoneCountryCode"]').element as HTMLInputElement)
         .value
-    ).toBe('+48 ')
+    ).toBe('+48')
+    expect(
+      (wrapper.find('input[id="phoneNumberRest"]').element as HTMLInputElement)
+        .value
+    ).toBe('')
+  })
+
+  it('submits a null phone number when the local part is blank', async () => {
+    const wrapper = mountView()
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(mockRegisterMemberHandle).toHaveBeenCalledWith({
+      firstName: 'Bao',
+      lastName: 'Ninh',
+      phoneNumber: null
+    })
   })
 
   it('shows a friendly validation message when the phone number is invalid', async () => {
@@ -91,7 +111,8 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
-    await wrapper.find('input[id="phoneNumber"]').setValue('bad-number')
+    await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
+    await wrapper.find('input[id="phoneNumberRest"]').setValue('bad-number')
 
     await wrapper.find('form').trigger('submit.prevent')
 
@@ -106,7 +127,7 @@ describe('AddMemberView', () => {
 
     await wrapper.find('form').trigger('submit.prevent')
 
-    expect(wrapper.text()).toContain('Podaj imię, nazwisko i numer telefonu.')
+    expect(wrapper.text()).toContain('Podaj imię i nazwisko.')
     expect(mockRegisterMemberHandle).not.toHaveBeenCalled()
   })
 
@@ -117,7 +138,8 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
-    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+    await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
+    await wrapper.find('input[id="phoneNumberRest"]').setValue('111 222 333')
 
     await wrapper.find('form').trigger('submit.prevent')
 
@@ -132,6 +154,8 @@ describe('AddMemberView', () => {
 
     expect(wrapper.text()).toContain('First name')
     expect(wrapper.text()).toContain('Phone number')
+    expect(wrapper.text()).toContain('Country code')
+    expect(wrapper.text()).toContain('Rest of number')
     expect(wrapper.text()).toContain('Save')
   })
 })

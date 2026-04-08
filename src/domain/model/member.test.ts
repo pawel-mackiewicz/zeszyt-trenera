@@ -36,7 +36,7 @@ describe('Member Model', () => {
     expect(member.firstName).toBe('jane')
     expect(member.lastName).toBe('doe')
     expect(member.phoneNumber).toBe(phoneNumber)
-    expect(member.phoneNumber.value).toBe('+48123456789')
+    expect(member.phoneNumber?.value).toBe('+48123456789')
 
     expect(member.createdAt).toBeDefined()
     expect(member.createdAt).toBeInstanceOf(Date)
@@ -147,6 +147,25 @@ describe('Member Model', () => {
     expect(member.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
   })
 
+  it('allows registration with only first and last name', () => {
+    const [member, event] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe'
+      },
+      'member-1'
+    )
+
+    expect(member.phoneNumber).toBeUndefined()
+    expect(member.toSnapshot()).toEqual({
+      id: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe',
+      createdAt: member.createdAt
+    })
+    expect(event.payload).toEqual(member.toSnapshot())
+  })
+
   it('normalizes first and last names to lowercase during registration', () => {
     const [member] = Member.register(
       {
@@ -179,6 +198,48 @@ describe('Member Model', () => {
         phoneNumber: createPhoneNumber()
       })
     ).toThrow(MemberIdMismatchError)
+  })
+
+  it('rehydrates a member without a phone number', () => {
+    const createdAt = new Date('2026-03-01T00:00:00Z')
+    const member = Member.rehydrate({
+      id: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe',
+      createdAt
+    })
+
+    expect(member.phoneNumber).toBeUndefined()
+    expect(member.toSnapshot()).toEqual({
+      id: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe',
+      createdAt
+    })
+  })
+
+  it('allows updates that clear the phone number', () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber()
+      },
+      'member-1'
+    )
+
+    const [updatedMember, updateEvent] = Member.update(member, {
+      memberId: 'member-1',
+      firstName: 'Jane',
+      lastName: 'Doe'
+    })
+
+    expect(updatedMember.phoneNumber).toBeUndefined()
+    expect(updateEvent.payload).toEqual({
+      memberId: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe'
+    })
   })
 
   it('rejects registration if birth date is not in the past', () => {

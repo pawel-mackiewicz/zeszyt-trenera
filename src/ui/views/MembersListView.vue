@@ -105,7 +105,8 @@ function startEditing(member: PersistedMember) {
   editingMemberId.value = member.id
   editFirstName.value = member.firstName
   editLastName.value = member.lastName
-  editPhoneNumber.value = member.phoneNumber
+  // What: hydrate the inline edit field with a real empty string when the stored member has no phone. Why: the mobile edit form still expects text input state even though persistence now allows the field to be missing entirely.
+  editPhoneNumber.value = member.phoneNumber ?? ''
   editDateOfBirth.value = formatDateForInput(member.dateOfBirth)
   editJoinedAt.value = formatDateForInput(member.joinedAt)
 }
@@ -153,7 +154,10 @@ async function saveMemberEdit(memberId: string) {
             ...member,
             firstName: editFirstName.value.trim().toLowerCase(),
             lastName: editLastName.value.trim().toLowerCase(),
-            phoneNumber: editPhoneNumber.value.trim(),
+            // What: mirror the new persisted member shape during optimistic updates. Why: the list should not reintroduce the old empty-string sentinel while waiting for the next Dexie read.
+            ...(editPhoneNumber.value.trim()
+              ? { phoneNumber: editPhoneNumber.value.trim() }
+              : { phoneNumber: undefined }),
             dateOfBirth: toUtcDate(editDateOfBirth.value),
             joinedAt: toUtcDate(editJoinedAt.value)
           }

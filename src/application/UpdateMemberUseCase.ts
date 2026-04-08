@@ -14,7 +14,8 @@ export class UpdateMemberUseCase implements UseCase<UpdateMemberCommand> {
   ) {}
 
   public async handle(dto: UpdateMemberCommand): Promise<void> {
-    const phoneNumber = PhoneNumber.create(dto.phoneNumber)
+    // Why: update commands can now clear optional fields, so the application layer must distinguish a blank phone from an invalid non-empty phone before the aggregate applies the change.
+    const phoneNumber = this.normalizeOptionalPhoneNumber(dto.phoneNumber)
 
     await this.uow.execute(async () => {
       const existingMember = await this.memberRepo.findById(dto.memberId)
@@ -34,5 +35,15 @@ export class UpdateMemberUseCase implements UseCase<UpdateMemberCommand> {
       await this.eventRepo.save(updatedEvent)
       await this.memberRepo.update(updatedMember)
     })
+  }
+
+  private normalizeOptionalPhoneNumber(rawPhoneNumber: string | undefined) {
+    const normalizedPhoneNumber = rawPhoneNumber?.trim()
+    if (!normalizedPhoneNumber) {
+      return undefined
+    }
+
+    // Why: updates should still reject malformed phone data whenever the user actually provides a number instead of intentionally clearing the field.
+    return PhoneNumber.create(normalizedPhoneNumber)
   }
 }
