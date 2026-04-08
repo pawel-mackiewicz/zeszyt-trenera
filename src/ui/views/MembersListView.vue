@@ -192,220 +192,222 @@ onMounted(() => {
       @dismiss="dismissEditError"
     />
 
-  <div class="members-list-view h-full pt-4">
-    <!-- Status Indicator / Stats -->
-    <div class="mb-12">
-      <div
-        class="inline-block bg-primary text-white px-4 py-2 border border-on-surface hide-empty hard-shadow"
-      >
-        <span
-          class="font-headline text-5xl font-black leading-none uppercase"
-          >{{ membersCountLabel }}</span
-        >
-      </div>
-    </div>
-
-    <!-- Utility Bar -->
-    <section class="mb-12 border-b-2 border-on-surface pb-4">
-      <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
-      <SearchBar
-        v-model="searchQuery"
-        input-id="members-search"
-        :input-label="t('search.label')"
-        :placeholder="t('search.placeholder')"
-      />
-    </section>
-
-    <!-- Additional filters -->
-    <section class="mb-8 border-b-2 border-on-surface pb-6">
-      <AgeRangeFilter
-        v-model:min-value="minAgeFilter"
-        v-model:max-value="maxAgeFilter"
-        :max-bound="AGE_FILTER_MAX"
-        :min-bound="AGE_FILTER_MIN"
-      />
-    </section>
-
-    <!-- Member Ledger List -->
-    <div class="space-y-0 border-t-2 border-on-surface">
-      <div
-        v-if="isLoading"
-        class="p-8 text-center font-mono text-secondary uppercase animate-pulse"
-      >
-        {{ t('states.loading') }}
-      </div>
-      <div
-        v-if="!isLoading && filteredMembers.length === 0"
-        class="p-8 text-center font-mono text-secondary uppercase"
-      >
-        {{ t('states.empty') }}
-      </div>
-
-      <details
-        v-for="member in filteredMembers"
-        :key="member.id"
-        class="group"
-        :open="openMemberId === member.id"
-      >
-        <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
-        <summary
-          class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
-          @click.prevent="toggleDetails(member.id)"
-        >
-          <div class="flex flex-col">
-            <span
-              class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
-              >{{ member.firstName }} {{ member.lastName }}</span
-            >
-          </div>
-          <AppIcon
-            class="expand-icon transition-transform duration-200 text-secondary"
-            :class="{ 'rotate-180': openMemberId === member.id }"
-            name="expand_more"
-          />
-        </summary>
+    <!-- What: keep the floating alert and the roster list inside one shared root container. Why: this mobile-first members screen needs balanced template structure so Vue can compile the view and still pin the global error surface above the scrollable content. -->
+    <div class="members-list-view h-full pt-4">
+      <!-- Status Indicator / Stats -->
+      <div class="mb-12">
         <div
-          v-show="openMemberId === member.id"
-          class="p-4 bg-white/60 backdrop-blur-sm border-b border-outline-variant grid grid-cols-2 md:grid-cols-4 gap-4"
+          class="inline-block bg-primary text-white px-4 py-2 border border-on-surface hide-empty hard-shadow"
         >
-          <div class="flex flex-col">
-            <span
-              class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >{{ t('details.phoneNumber') }}</span
-            >
-            <span class="font-mono text-sm">{{
-              member.phoneNumber ?? t('details.missing')
-            }}</span>
-          </div>
-          <div class="flex flex-col">
-            <span
-              class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >{{ t('details.dateOfBirth') }}</span
-            >
-            <span class="font-mono text-sm">{{
-              formatDisplayDate(member.dateOfBirth)
-            }}</span>
-          </div>
-          <div class="flex flex-col">
-            <span
-              class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-              >{{ t('details.joinedAt') }}</span
-            >
-            <span class="font-mono text-sm">{{
-              formatDisplayDate(member.joinedAt)
-            }}</span>
-          </div>
+          <span
+            class="font-headline text-5xl font-black leading-none uppercase"
+            >{{ membersCountLabel }}</span
+          >
+        </div>
+      </div>
+
+      <!-- Utility Bar -->
+      <section class="mb-12 border-b-2 border-on-surface pb-4">
+        <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
+        <SearchBar
+          v-model="searchQuery"
+          input-id="members-search"
+          :input-label="t('search.label')"
+          :placeholder="t('search.placeholder')"
+        />
+      </section>
+
+      <!-- Additional filters -->
+      <section class="mb-8 border-b-2 border-on-surface pb-6">
+        <AgeRangeFilter
+          v-model:min-value="minAgeFilter"
+          v-model:max-value="maxAgeFilter"
+          :max-bound="AGE_FILTER_MAX"
+          :min-bound="AGE_FILTER_MIN"
+        />
+      </section>
+
+      <!-- Member Ledger List -->
+      <div class="space-y-0 border-t-2 border-on-surface">
+        <div
+          v-if="isLoading"
+          class="p-8 text-center font-mono text-secondary uppercase animate-pulse"
+        >
+          {{ t('states.loading') }}
+        </div>
+        <div
+          v-if="!isLoading && filteredMembers.length === 0"
+          class="p-8 text-center font-mono text-secondary uppercase"
+        >
+          {{ t('states.empty') }}
+        </div>
+
+        <details
+          v-for="member in filteredMembers"
+          :key="member.id"
+          class="group"
+          :open="openMemberId === member.id"
+        >
+          <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
+          <summary
+            class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
+            @click.prevent="toggleDetails(member.id)"
+          >
+            <div class="flex flex-col">
+              <span
+                class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
+                >{{ member.firstName }} {{ member.lastName }}</span
+              >
+            </div>
+            <AppIcon
+              class="expand-icon transition-transform duration-200 text-secondary"
+              :class="{ 'rotate-180': openMemberId === member.id }"
+              name="expand_more"
+            />
+          </summary>
           <div
-            class="col-span-2 md:col-span-4 flex justify-end border-t border-outline-variant pt-3"
+            v-show="openMemberId === member.id"
+            class="p-4 bg-white/60 backdrop-blur-sm border-b border-outline-variant grid grid-cols-2 md:grid-cols-4 gap-4"
           >
-            <!-- What: inline member actions now reuse the shared AppButton primitive. Why: edit flows should inherit the same tap targets and state styling as the rest of this mobile-first PWA instead of shipping view-specific button markup. -->
-            <AppButton
-              v-if="editingMemberId !== member.id"
-              variant="secondary"
-              type="button"
-              @click="startEditing(member)"
+            <div class="flex flex-col">
+              <span
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('details.phoneNumber') }}</span
+              >
+              <span class="font-mono text-sm">{{
+                member.phoneNumber ?? t('details.missing')
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('details.dateOfBirth') }}</span
+              >
+              <span class="font-mono text-sm">{{
+                formatDisplayDate(member.dateOfBirth)
+              }}</span>
+            </div>
+            <div class="flex flex-col">
+              <span
+                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                >{{ t('details.joinedAt') }}</span
+              >
+              <span class="font-mono text-sm">{{
+                formatDisplayDate(member.joinedAt)
+              }}</span>
+            </div>
+            <div
+              class="col-span-2 md:col-span-4 flex justify-end border-t border-outline-variant pt-3"
             >
-              {{ t('edit.actions.open') }}
-            </AppButton>
-          </div>
-          <form
-            v-if="editingMemberId === member.id"
-            class="col-span-2 md:col-span-4 mt-2 border-t border-outline-variant pt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
-            @submit.prevent="saveMemberEdit(member.id)"
-          >
-            <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
-            <div class="flex flex-col">
-              <!-- What: keep the edit labels plain even for mandatory identity fields. Why: the explicit required marker is reserved for the add-member flow, while edit stays visually lighter for quick inline corrections. -->
-              <label
-                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-                >{{ t('edit.fields.firstName') }}</label
-              >
-              <!-- What: render the editable first name in uppercase. Why: the edit state should match the member list presentation, so coaches do not see the name switch casing mid-flow. -->
-              <input
-                v-model="editFirstName"
-                type="text"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
-                required
-              />
-            </div>
-            <div class="flex flex-col">
-              <label
-                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-                >{{ t('edit.fields.lastName') }}</label
-              >
-              <!-- What: render the editable last name in uppercase. Why: the edit form should preserve the same visual identity cues as the roster rows instead of dropping back to lowercase. -->
-              <input
-                v-model="editLastName"
-                type="text"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
-                required
-              />
-            </div>
-            <div class="flex flex-col">
-              <label
-                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-                >{{ t('edit.fields.phoneNumber') }}</label
-              >
-              <input
-                v-model="editPhoneNumber"
-                type="tel"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
-              />
-            </div>
-            <div class="flex flex-col">
-              <label
-                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-                >{{ t('edit.fields.dateOfBirth') }}</label
-              >
-              <input
-                v-model="editDateOfBirth"
-                type="date"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
-              />
-            </div>
-            <div class="flex flex-col">
-              <label
-                class="font-label text-[0.6rem] text-secondary uppercase font-bold"
-                >{{ t('edit.fields.joinedAt') }}</label
-              >
-              <input
-                v-model="editJoinedAt"
-                type="date"
-                class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
-              />
-            </div>
-            <div class="md:col-span-2 flex justify-end gap-2">
+              <!-- What: inline member actions now reuse the shared AppButton primitive. Why: edit flows should inherit the same tap targets and state styling as the rest of this mobile-first PWA instead of shipping view-specific button markup. -->
               <AppButton
+                v-if="editingMemberId !== member.id"
                 variant="secondary"
                 type="button"
-                @click="cancelEditing"
+                @click="startEditing(member)"
               >
-                {{ t('edit.actions.cancel') }}
-              </AppButton>
-              <AppButton type="submit" :disabled="isSavingEdit">
-                {{
-                  isSavingEdit
-                    ? t('edit.actions.saving')
-                    : t('edit.actions.save')
-                }}
+                {{ t('edit.actions.open') }}
               </AppButton>
             </div>
-          </form>
-        </div>
-      </details>
-    </div>
+            <form
+              v-if="editingMemberId === member.id"
+              class="col-span-2 md:col-span-4 mt-2 border-t border-outline-variant pt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
+              @submit.prevent="saveMemberEdit(member.id)"
+            >
+              <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
+              <div class="flex flex-col">
+                <!-- What: keep the edit labels plain even for mandatory identity fields. Why: the explicit required marker is reserved for the add-member flow, while edit stays visually lighter for quick inline corrections. -->
+                <label
+                  class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                  >{{ t('edit.fields.firstName') }}</label
+                >
+                <!-- What: render the editable first name in uppercase. Why: the edit state should match the member list presentation, so coaches do not see the name switch casing mid-flow. -->
+                <input
+                  v-model="editFirstName"
+                  type="text"
+                  class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
+                  required
+                />
+              </div>
+              <div class="flex flex-col">
+                <label
+                  class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                  >{{ t('edit.fields.lastName') }}</label
+                >
+                <!-- What: render the editable last name in uppercase. Why: the edit form should preserve the same visual identity cues as the roster rows instead of dropping back to lowercase. -->
+                <input
+                  v-model="editLastName"
+                  type="text"
+                  class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
+                  required
+                />
+              </div>
+              <div class="flex flex-col">
+                <label
+                  class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                  >{{ t('edit.fields.phoneNumber') }}</label
+                >
+                <input
+                  v-model="editPhoneNumber"
+                  type="tel"
+                  class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                />
+              </div>
+              <div class="flex flex-col">
+                <label
+                  class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                  >{{ t('edit.fields.dateOfBirth') }}</label
+                >
+                <input
+                  v-model="editDateOfBirth"
+                  type="date"
+                  class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                />
+              </div>
+              <div class="flex flex-col">
+                <label
+                  class="font-label text-[0.6rem] text-secondary uppercase font-bold"
+                  >{{ t('edit.fields.joinedAt') }}</label
+                >
+                <input
+                  v-model="editJoinedAt"
+                  type="date"
+                  class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                />
+              </div>
+              <div class="md:col-span-2 flex justify-end gap-2">
+                <AppButton
+                  variant="secondary"
+                  type="button"
+                  @click="cancelEditing"
+                >
+                  {{ t('edit.actions.cancel') }}
+                </AppButton>
+                <AppButton type="submit" :disabled="isSavingEdit">
+                  {{
+                    isSavingEdit
+                      ? t('edit.actions.saving')
+                      : t('edit.actions.save')
+                  }}
+                </AppButton>
+              </div>
+            </form>
+          </div>
+        </details>
+      </div>
 
-    <div class="members-list-view__action-fab app-floating-action">
-      <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
-      <AppButton
-        as="router-link"
-        to="/member/new"
-        :aria-label="t('actions.addMember')"
-        :title="t('actions.addMember')"
-        icon-only
-      >
-        <AppIcon name="add" />
-      </AppButton>
+      <div class="members-list-view__action-fab app-floating-action">
+        <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
+        <AppButton
+          as="router-link"
+          to="/member/new"
+          :aria-label="t('actions.addMember')"
+          :title="t('actions.addMember')"
+          icon-only
+        >
+          <AppIcon name="add" />
+        </AppButton>
+      </div>
     </div>
   </div>
 </template>
