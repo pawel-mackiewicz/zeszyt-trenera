@@ -2,6 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '@/db'
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { createAppI18n } from '@/ui/i18n'
 import { createAppServicesProvides } from '@/ui/appServices'
 import MembersListView from '@/ui/views/MembersListView.vue'
@@ -163,5 +164,43 @@ describe('MembersListView', () => {
       dateOfBirth: new Date('1990-01-01T00:00:00.000Z'),
       joinedAt: new Date('2024-01-01T00:00:00.000Z')
     })
+  })
+
+  it('shows roster edit errors in the floating alert and lets the user dismiss them', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Anderson',
+        lastName: 'Silva',
+        phoneNumber: '+48 111 111 111',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      }
+    ])
+    mockUpdateMemberHandle.mockRejectedValue(
+      new InvalidPhoneNumberError('bad-number')
+    )
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Edit')
+      ?.trigger('click')
+    await wrapper.find('input[type="tel"]').setValue('bad-number')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'Enter a valid phone number.'
+    )
+
+    const dismissButton = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Dismiss')
+    expect(dismissButton).toBeDefined()
+    await dismissButton?.trigger('click')
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 })

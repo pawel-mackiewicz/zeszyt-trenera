@@ -381,6 +381,7 @@ onMounted(() => {
     :success-message="successMessage"
     @clear-submission-feedback="clearSubmissionFeedback"
     @commit-session-field="handleCommitSessionField"
+    @dismiss-submit-error="clearSubmissionFeedback"
     @discard-draft="discardStoredDraft"
     @restore-draft="restoreStoredDraft"
     @submit="handleSubmit"

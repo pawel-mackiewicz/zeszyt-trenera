@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { TrainerAlreadyExistsError } from '@/domain/model/trainer'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
 
 type SubmitErrorKey = 'required' | 'alreadyExists' | 'submit'
@@ -18,6 +19,11 @@ const submitErrorKey = ref<SubmitErrorKey | null>(null)
 const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
+
+function dismissSubmitError() {
+  // What: let onboarding hide the shared floating error card after it has been read. Why: the trainer step should keep recoverable save problems visible without forcing the coach to keep staring at a stale warning.
+  submitErrorKey.value = null
+}
 
 function resolveSubmitErrorKey(error: unknown): SubmitErrorKey {
   // What: map setup write failures to the trainer step dictionary. Why: the final onboarding screen should keep recovery copy short and specific to the action the coach just took.
@@ -57,11 +63,13 @@ async function handleSubmit() {
   <SetupStageLayout :step-label="t('step')" :title="t('title')">
     <!-- What: end setup with one direct trainer form. Why: the shell should unlock as soon as the final required identity is saved, without extra confirmation screens or branching. -->
     <form class="space-y-8" @submit.prevent="handleSubmit">
-      <div v-if="submitError" class="border border-danger bg-danger/10 p-4">
-        <p class="font-mono text-sm font-bold uppercase text-danger">
-          {{ submitError }}
-        </p>
-      </div>
+      <!-- What: reuse the floating error card during setup. Why: the final onboarding step should present save failures with the same top-level treatment as the rest of the app even though the shell header is hidden here. -->
+      <FloatingErrorAlert
+        v-if="submitError"
+        :message="submitError"
+        top-offset="screen"
+        @dismiss="dismissSubmitError"
+      />
 
       <div class="grid gap-7">
         <div>

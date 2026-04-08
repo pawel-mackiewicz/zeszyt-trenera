@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { ClubAlreadyExistsError } from '@/domain/model/club'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
 
 type SubmitErrorKey = 'required' | 'invalidDate' | 'alreadyExists' | 'submit'
@@ -19,6 +20,11 @@ const submitErrorKey = ref<SubmitErrorKey | null>(null)
 const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
+
+function dismissSubmitError() {
+  // What: let onboarding hide the shared floating error card after it has been read. Why: first-run setup should surface save failures prominently without trapping the screen behind a persistent warning.
+  submitErrorKey.value = null
+}
 
 function toUtcDate(value: string) {
   return new Date(`${value}T00:00:00Z`)
@@ -70,11 +76,13 @@ async function handleSubmit() {
   <SetupStageLayout :step-label="t('step')" :title="t('title')">
     <!-- What: keep the club setup form compact and single-purpose. Why: the first-run mobile flow should ask only for the minimum club identity required by the domain model. -->
     <form class="space-y-8" @submit.prevent="handleSubmit">
-      <div v-if="submitError" class="border border-danger bg-danger/10 p-4">
-        <p class="font-mono text-sm font-bold uppercase text-danger">
-          {{ submitError }}
-        </p>
-      </div>
+      <!-- What: reuse the floating error card during setup. Why: the first-run flow should announce recoverable write problems with the same top-level treatment as the rest of the app even though the shell header is hidden here. -->
+      <FloatingErrorAlert
+        v-if="submitError"
+        :message="submitError"
+        top-offset="screen"
+        @dismiss="dismissSubmitError"
+      />
 
       <div class="grid gap-7">
         <div>
