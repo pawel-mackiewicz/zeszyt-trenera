@@ -164,4 +164,89 @@ describe('MembersListView', () => {
       joinedAt: new Date('2024-01-01T00:00:00.000Z')
     })
   })
+
+  it('keeps edit labels plain while letting the edit form clear phone', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Anderson',
+        lastName: 'Silva',
+        phoneNumber: '+48 111 111 111',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+        joinedAt: new Date('2024-01-01T00:00:00Z'),
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      }
+    ])
+    mockUpdateMemberHandle.mockResolvedValue(undefined)
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+    const editButton = wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Edit')
+    expect(editButton).toBeDefined()
+    await editButton?.trigger('click')
+
+    const form = wrapper.get('form')
+    const labelTexts = form
+      .findAll('label')
+      .map((label) => label.text().replace(/\s+/g, ' ').trim())
+
+    expect(labelTexts).toStrictEqual([
+      'First name',
+      'Last name',
+      'Phone',
+      'Birth date',
+      'Joined'
+    ])
+
+    const textInputs = form.findAll('input[type="text"]')
+    expect(textInputs[0]?.attributes('required')).toBe('')
+    expect(textInputs[1]?.attributes('required')).toBe('')
+    expect(form.get('input[type="tel"]').attributes('required')).toBeUndefined()
+    expect(
+      form.get('input[type="date"]').attributes('required')
+    ).toBeUndefined()
+
+    await form.get('input[type="tel"]').setValue('')
+    await form.trigger('submit.prevent')
+    await flushPromises()
+
+    expect(mockUpdateMemberHandle).toHaveBeenCalledWith({
+      memberId: 'member-1',
+      firstName: 'Anderson',
+      lastName: 'Silva',
+      phoneNumber: '',
+      dateOfBirth: new Date('1990-01-01T00:00:00.000Z'),
+      joinedAt: new Date('2024-01-01T00:00:00.000Z')
+    })
+    expect(wrapper.text()).toContain('Missing')
+  })
+
+  it('renders missing phone with the same typography as missing date details', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Anderson',
+        lastName: 'Silva',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+
+    const missingValueSpans = wrapper
+      .findAll('span')
+      .filter((span) => span.text() === 'Missing')
+
+    expect(missingValueSpans).toHaveLength(3)
+    expect(missingValueSpans[0]?.classes().sort()).toStrictEqual(
+      missingValueSpans[1]?.classes().sort()
+    )
+  })
 })

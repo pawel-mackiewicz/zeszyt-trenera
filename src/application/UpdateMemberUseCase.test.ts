@@ -11,7 +11,10 @@ import {
   MemberUpdatedDomainEvent
 } from '@/domain/model/member'
 import { Member, type MemberSnapshot } from '@/domain/model/member'
-import { type PhoneNumber } from '@/domain/model/vo/PhoneNumber'
+import {
+  InvalidPhoneNumberError,
+  type PhoneNumber
+} from '@/domain/model/vo/PhoneNumber'
 
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
@@ -96,7 +99,7 @@ describe('UpdateMemberUseCase', () => {
         lastName: 'doe'
       })
     ])
-    expect(memberRepo.updates[0]?.phoneNumber.value).toBe('+48123456789')
+    expect(memberRepo.updates[0]?.phoneNumber?.value).toBe('+48123456789')
     expect(eventRepo.savedEvents).toHaveLength(1)
     expect(eventRepo.savedEvents[0]).toBeInstanceOf(MemberUpdatedDomainEvent)
   })
@@ -127,6 +130,44 @@ describe('UpdateMemberUseCase', () => {
       })
     ).resolves.toBeUndefined()
     expect(memberRepo.updates).toHaveLength(1)
+  })
+
+  it('clears the stored phone number when the update input is blank', async () => {
+    memberRepo.membersById.set('member-1', Member.rehydrate(memberSnapshot()))
+
+    await useCase.handle({
+      memberId: 'member-1',
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '   '
+    })
+
+    expect(memberRepo.updates).toHaveLength(1)
+    expect(memberRepo.updates[0]?.phoneNumber).toBeUndefined()
+    expect(eventRepo.savedEvents[0]).toBeInstanceOf(MemberUpdatedDomainEvent)
+    expect(
+      (eventRepo.savedEvents[0] as MemberUpdatedDomainEvent).payload
+    ).toEqual({
+      memberId: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe'
+    })
+  })
+
+  it('rejects invalid non-empty phone numbers during update', async () => {
+    memberRepo.membersById.set('member-1', Member.rehydrate(memberSnapshot()))
+
+    await expect(
+      useCase.handle({
+        memberId: 'member-1',
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: '123456789'
+      })
+    ).rejects.toThrow(InvalidPhoneNumberError)
+
+    expect(memberRepo.updates).toHaveLength(0)
+    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })
 

@@ -105,7 +105,8 @@ function startEditing(member: PersistedMember) {
   editingMemberId.value = member.id
   editFirstName.value = member.firstName
   editLastName.value = member.lastName
-  editPhoneNumber.value = member.phoneNumber
+  // What: hydrate the inline edit field with a real empty string when the stored member has no phone. Why: the mobile edit form still expects text input state even though persistence now allows the field to be missing entirely.
+  editPhoneNumber.value = member.phoneNumber ?? ''
   editDateOfBirth.value = formatDateForInput(member.dateOfBirth)
   editJoinedAt.value = formatDateForInput(member.joinedAt)
 }
@@ -153,7 +154,10 @@ async function saveMemberEdit(memberId: string) {
             ...member,
             firstName: editFirstName.value.trim().toLowerCase(),
             lastName: editLastName.value.trim().toLowerCase(),
-            phoneNumber: editPhoneNumber.value.trim(),
+            // What: mirror the new persisted member shape during optimistic updates. Why: the list should not reintroduce the old empty-string sentinel while waiting for the next Dexie read.
+            ...(editPhoneNumber.value.trim()
+              ? { phoneNumber: editPhoneNumber.value.trim() }
+              : { phoneNumber: undefined }),
             dateOfBirth: toUtcDate(editDateOfBirth.value),
             joinedAt: toUtcDate(editJoinedAt.value)
           }
@@ -254,8 +258,8 @@ onMounted(() => {
               class="font-label text-[0.6rem] text-secondary uppercase font-bold"
               >{{ t('details.phoneNumber') }}</span
             >
-            <span class="font-mono text-sm font-medium">{{
-              member.phoneNumber
+            <span class="font-mono text-sm">{{
+              member.phoneNumber ?? t('details.missing')
             }}</span>
           </div>
           <div class="flex flex-col">
@@ -296,6 +300,7 @@ onMounted(() => {
           >
             <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
             <div class="flex flex-col">
+              <!-- What: keep the edit labels plain even for mandatory identity fields. Why: the explicit required marker is reserved for the add-member flow, while edit stays visually lighter for quick inline corrections. -->
               <label
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('edit.fields.firstName') }}</label
@@ -330,7 +335,6 @@ onMounted(() => {
                 v-model="editPhoneNumber"
                 type="tel"
                 class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
-                required
               />
             </div>
             <div class="flex flex-col">
