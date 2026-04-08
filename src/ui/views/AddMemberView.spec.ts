@@ -102,6 +102,44 @@ describe('AddMemberView', () => {
     })
   })
 
+  it('marks only the name inputs as required in the registration form', () => {
+    const wrapper = mountView('en')
+    const labelTexts = wrapper
+      .findAll('label')
+      .map((label) => label.text().replace(/\s+/g, ' ').trim())
+    const requiredMarkers = wrapper.findAll('label span[aria-hidden="true"]')
+
+    expect(
+      labelTexts.filter((labelText) => labelText.includes('*'))
+    ).toStrictEqual(['First name *', 'Last name *'])
+    expect(requiredMarkers).toHaveLength(2)
+    expect(requiredMarkers[0]?.classes()).toEqual(
+      expect.arrayContaining([
+        'ml-1',
+        'inline-block',
+        'text-sm',
+        'leading-none',
+        'font-black',
+        'text-danger'
+      ])
+    )
+
+    expect(wrapper.get('input[id="firstName"]').attributes('required')).toBe('')
+    expect(wrapper.get('input[id="lastName"]').attributes('required')).toBe('')
+    expect(
+      wrapper.get('input[id="phoneCountryCode"]').attributes('required')
+    ).toBeUndefined()
+    expect(
+      wrapper.get('input[id="phoneNumberRest"]').attributes('required')
+    ).toBeUndefined()
+    expect(wrapper.get('input[id="dateOfBirth"]').attributes('required')).toBe(
+      undefined
+    )
+    expect(wrapper.get('input[id="joinedAt"]').attributes('required')).toBe(
+      undefined
+    )
+  })
+
   it('shows a friendly validation message when the phone number is invalid', async () => {
     mockRegisterMemberHandle.mockRejectedValue(
       new InvalidPhoneNumberError('bad-number')

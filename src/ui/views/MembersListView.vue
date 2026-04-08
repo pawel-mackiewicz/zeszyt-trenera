@@ -258,8 +258,8 @@ onMounted(() => {
               class="font-label text-[0.6rem] text-secondary uppercase font-bold"
               >{{ t('details.phoneNumber') }}</span
             >
-            <span class="font-mono text-sm font-medium">{{
-              member.phoneNumber
+            <span class="font-mono text-sm">{{
+              member.phoneNumber ?? t('details.missing')
             }}</span>
           </div>
           <div class="flex flex-col">
@@ -300,6 +300,7 @@ onMounted(() => {
           >
             <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
             <div class="flex flex-col">
+              <!-- What: keep the edit labels plain even for mandatory identity fields. Why: the explicit required marker is reserved for the add-member flow, while edit stays visually lighter for quick inline corrections. -->
               <label
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('edit.fields.firstName') }}</label
@@ -334,7 +335,6 @@ onMounted(() => {
                 v-model="editPhoneNumber"
                 type="tel"
                 class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
-                required
               />
             </div>
             <div class="flex flex-col">

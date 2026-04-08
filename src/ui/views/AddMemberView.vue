@@ -130,10 +130,16 @@ async function handleSubmit() {
       <!-- Personal Information Cluster -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         <div class="relative group">
+          <!-- What: show a stronger required marker only on the two identity fields the app must have. Why: registration now matches the application contract where phone and dates can stay empty, so the mandatory fields need to stand out at a glance on small screens. -->
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="firstName"
-            >{{ t('fields.firstName.label') }}</label
+            >{{ t('fields.firstName.label') }}
+            <span
+              aria-hidden="true"
+              class="ml-1 inline-block text-sm leading-none font-black text-danger"
+              >*</span
+            ></label
           >
           <input
             id="firstName"
@@ -148,7 +154,12 @@ async function handleSubmit() {
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="lastName"
-            >{{ t('fields.lastName.label') }}</label
+            >{{ t('fields.lastName.label') }}
+            <span
+              aria-hidden="true"
+              class="ml-1 inline-block text-sm leading-none font-black text-danger"
+              >*</span
+            ></label
           >
           <input
             id="lastName"
