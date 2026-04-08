@@ -61,7 +61,8 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
-    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+    await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
+    await wrapper.find('input[id="phoneNumberRest"]').setValue('111 222 333')
     await wrapper.find('form').trigger('submit.prevent')
 
     return wrapper
