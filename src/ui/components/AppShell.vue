@@ -10,6 +10,7 @@ import {
 } from '@/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -373,6 +374,11 @@ function closeResetModal() {
   resetConfirmationInput.value = ''
 }
 
+function dismissResetError() {
+  // What: let the destructive reset flow clear the shared floating error card. Why: coaches may need to keep the modal open while removing a stale validation warning from the top of the screen.
+  resetErrorVisible.value = false
+}
+
 function handleBack() {
   if (route.meta.backTo) {
     router.push(route.meta.backTo as string)
@@ -636,12 +642,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
               :aria-label="t('menu.resetData.inputLabel')"
               data-testid="reset-confirmation-input"
             />
-            <p
-              v-if="resetErrorVisible"
-              class="mt-3 text-xs text-danger font-mono"
-            >
-              {{ t('menu.resetData.error') }}
-            </p>
           </div>
           <div class="shell-modal__actions">
             <AppButton
@@ -668,20 +668,23 @@ function bottomNavForegroundClasses(isActive: boolean) {
         </section>
       </div>
 
+      <!-- What: keep reset failures on the shared floating surface even while the confirmation dialog stays mounted. Why: destructive local-data wipes must still expose a recovery message when the application-layer reset rejects. -->
+      <FloatingErrorAlert
+        v-if="resetErrorVisible"
+        :message="t('menu.resetData.error')"
+        stack-level="modal"
+        top-offset="shell"
+        @dismiss="dismissResetError"
+      />
+
       <main class="pt-24 px-6 max-w-5xl mx-auto pb-32">
-        <div v-if="updateErrorMessage" class="mb-6 grid gap-3">
-          <div class="message-banner message-banner--danger">
-            <strong>{{ t('update.bannerTitle') }}</strong>
-            <span>{{ updateErrorMessage }}</span>
-            <button
-              class="message-banner__action"
-              type="button"
-              @click="appStore.clearUpdateError()"
-            >
-              {{ t('common.hide') }}
-            </button>
-          </div>
-        </div>
+        <FloatingErrorAlert
+          v-if="updateErrorMessage"
+          :message="updateErrorMessage"
+          :title="t('update.bannerTitle')"
+          top-offset="shell"
+          @dismiss="appStore.clearUpdateError()"
+        />
 
         <RouterView v-slot="{ Component }">
           <Transition name="fade" mode="out-in">
@@ -1009,8 +1012,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
   line-height: 1.5;
 }
 
-.install-coach-card__action,
-.message-banner__action {
+.install-coach-card__action {
   justify-self: flex-start;
   background: transparent;
   color: var(--accent-strong);

@@ -69,6 +69,23 @@ describe('TrainerSetupView', () => {
     )
   })
 
+  it('shows the setup error in the floating alert and lets the user dismiss it', async () => {
+    mockRegisterTrainerHandle.mockRejectedValue(new TrainerAlreadyExistsError())
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('input[id="trainerName"]').setValue('Jane Doe')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'The trainer is already saved on this device.'
+    )
+
+    await wrapper.find('button[type="button"]').trigger('click')
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
   it('renders the local English onboarding copy', () => {
     const wrapper = mountView('en')
 

@@ -1,4 +1,4 @@
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
@@ -492,5 +492,29 @@ describe('AppShell', () => {
       confirmationPhrase: 'DELETE ALL DATA'
     })
     expect(wrapper.text()).not.toContain('Usuń wszystkie dane aplikacji')
+  })
+
+  it('keeps reset failures visible above the confirmation modal', async () => {
+    mockResetApplicationData.mockRejectedValueOnce(new Error('reset failed'))
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
+    await wrapper
+      .get('[data-testid="reset-confirmation-input"]')
+      .setValue('DELETE ALL DATA')
+    await wrapper.get('[data-testid="confirm-reset-button"]').trigger('click')
+    await flushPromises()
+
+    // What: assert the failed reset still renders the shared alert in the modal-safe layer. Why: the destructive confirmation dialog stays open on failure, so the recovery copy cannot hide behind the overlay.
+    const resetErrorAlert = wrapper.get('.floating-error-alert--modal')
+
+    expect(wrapper.text()).toContain('Usuń wszystkie dane aplikacji')
+    expect(resetErrorAlert.text()).toContain(
+      'Nie udało się wyczyścić danych. Spróbuj ponownie.'
+    )
   })
 })

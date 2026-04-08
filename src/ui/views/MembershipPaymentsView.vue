@@ -15,6 +15,7 @@ import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import {
@@ -176,6 +177,16 @@ function closeConfirmationDialog() {
   clearConfirmationDialog()
 }
 
+function dismissPaymentFeedback() {
+  // What: let coaches clear the shared floating feedback error after reading it. Why: duplicate-payment warnings should stay visible long enough to explain the no-op without occupying the top of the ledger forever.
+  paymentFeedback.value = null
+}
+
+function dismissConfirmationError() {
+  // What: let the confirmation flow clear the shared floating error card while keeping the dialog open. Why: a failed payment write should be retryable without forcing the coach to stare at a stale warning between attempts.
+  confirmationErrorKey.value = null
+}
+
 function unsubscribePaymentsLedger() {
   paymentsSubscription?.unsubscribe()
   paymentsSubscription = null
@@ -311,12 +322,14 @@ onBeforeUnmount(() => {
       </p>
     </section>
 
-    <div v-if="feedbackMessage" class="mb-6">
-      <div class="message-banner message-banner--danger">
-        <strong>{{ t('feedback.title') }}</strong>
-        <span>{{ feedbackMessage }}</span>
-      </div>
-    </div>
+    <!-- What: surface ledger feedback through the shared floating error card. Why: duplicate-payment warnings should appear in the same top-level location as other recoverable errors instead of blending into the ledger content. -->
+    <FloatingErrorAlert
+      v-if="feedbackMessage"
+      :message="feedbackMessage"
+      :title="t('feedback.title')"
+      top-offset="shell"
+      @dismiss="dismissPaymentFeedback"
+    />
 
     <!-- What: keep filters directly above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance instead of splitting search into a separate hero block. -->
     <section class="mb-4 pb-2">
@@ -625,13 +638,13 @@ onBeforeUnmount(() => {
             </div>
           </dl>
 
-          <div
+          <FloatingErrorAlert
             v-if="confirmationError"
-            class="message-banner message-banner--danger"
-          >
-            <strong>{{ t('confirmation.errors.title') }}</strong>
-            <span>{{ confirmationError }}</span>
-          </div>
+            :message="confirmationError"
+            :title="t('confirmation.errors.title')"
+            top-offset="shell"
+            @dismiss="dismissConfirmationError"
+          />
 
           <div
             class="payments-confirmation__actions flex flex-col gap-3 sm:flex-row sm:justify-end"

@@ -11,6 +11,7 @@ import { MemberNotFoundError } from '@/domain/model/member'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceSessionEditor from '@/ui/components/AttendanceSessionEditor.vue'
 import AppButton from '@/ui/components/AppButton.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useAttendanceEditor } from '@/ui/composables/useAttendanceEditor'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 
@@ -244,6 +245,7 @@ onMounted(() => {
     success-message=""
     @clear-submission-feedback="clearSubmissionFeedback"
     @commit-session-field="handleCommitSessionField"
+    @dismiss-submit-error="clearSubmissionFeedback"
     @submit="handleSubmit"
     @toggle-member="handleToggleMember"
     @toggle-session-field="handleToggleSessionField"
@@ -256,10 +258,13 @@ onMounted(() => {
 
   <div v-else class="mx-auto max-w-4xl pt-4 pb-12">
     <section class="border border-on-surface bg-surface px-5 py-6 hard-shadow">
-      <div class="message-banner message-banner--danger">
-        <strong>{{ t('states.title') }}</strong>
-        <span>{{ loadErrorMessage }}</span>
-      </div>
+      <!-- What: keep edit-load failures on the shared floating alert surface. Why: even non-dismissable recovery errors should read from the same top-level location as the rest of the app so coaches know where to look first. -->
+      <FloatingErrorAlert
+        :dismissible="false"
+        :message="loadErrorMessage"
+        :title="t('states.title')"
+        top-offset="shell"
+      />
       <div class="mt-4 flex justify-start">
         <!-- What: keep recovery on the shared button primitive. Why: a broken edit target should still hand the coach back to the attendance history through the same route-aware control language as the rest of the shell. -->
         <AppButton as="router-link" to="/attendance">

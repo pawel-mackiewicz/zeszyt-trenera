@@ -76,6 +76,26 @@ describe('ClubSetupView', () => {
     )
   })
 
+  it('shows the setup error in the floating alert and lets the user dismiss it', async () => {
+    mockRegisterClubHandle.mockRejectedValue(new ClubAlreadyExistsError())
+
+    const wrapper = mountView('en')
+
+    await wrapper
+      .find('input[id="clubName"]')
+      .setValue('Riverside Wrestling Club')
+    await wrapper.find('input[id="foundingDate"]').setValue('1946-01-01')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.get('[role="alert"]').text()).toContain(
+      'The club is already saved on this device.'
+    )
+
+    await wrapper.find('button[type="button"]').trigger('click')
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
   it('renders the local English onboarding copy', () => {
     const wrapper = mountView('en')
 

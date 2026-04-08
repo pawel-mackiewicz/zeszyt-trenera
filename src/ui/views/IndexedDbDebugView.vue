@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { db, type TrainerNotebookDb } from '@/db'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useIndexedDbInspector } from '@/ui/composables/useIndexedDbInspector'
 
 const props = defineProps<{
@@ -139,13 +140,15 @@ function handleClearTable(tableName: string) {
       </div>
     </article>
 
-    <article v-if="errorKind" class="debug-card debug-card--error" role="alert">
-      <p class="debug-card__eyebrow">{{ errorEyebrow }}</p>
-      <h2 class="debug-card__title debug-card__title--small">
-        {{ errorTitle }}
-      </h2>
-      <p class="debug-card__copy">{{ errorMessage }}</p>
-    </article>
+    <!-- What: reuse the floating error card even in the debug inspector. Why: recoverable local-inspection failures should announce themselves in the same top-level place as the rest of the app, even when they are not dismissible. -->
+    <FloatingErrorAlert
+      v-if="errorKind"
+      :dismissible="false"
+      :eyebrow="errorEyebrow"
+      :message="errorMessage"
+      :title="errorTitle"
+      top-offset="shell"
+    />
 
     <article
       v-for="table in tableSnapshots"
@@ -306,17 +309,6 @@ function handleClearTable(tableName: string) {
     rgba(199, 106, 43, 0.18)
   );
   transform: rotate(18deg);
-}
-
-.debug-card--error {
-  background:
-    linear-gradient(
-      140deg,
-      rgba(255, 246, 242, 0.96),
-      rgba(250, 224, 216, 0.84)
-    ),
-    var(--bg-panel);
-  border-color: rgba(161, 63, 48, 0.2);
 }
 
 .debug-card--table {
@@ -573,8 +565,7 @@ function handleClearTable(tableName: string) {
     align-items: start;
   }
 
-  .debug-card--hero,
-  .debug-card--error {
+  .debug-card--hero {
     grid-column: 1 / -1;
   }
 

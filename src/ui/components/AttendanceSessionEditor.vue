@@ -10,6 +10,7 @@ import {
 } from '@/ui/composables/useAttendanceEditor'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
@@ -61,6 +62,7 @@ const emit = defineEmits<{
   'update:sessionTime': [value: string]
   'clear-submission-feedback': []
   'commit-session-field': []
+  'dismiss-submit-error': []
 }>()
 
 const { t, locale } = useI18n({ useScope: 'local' })
@@ -278,12 +280,14 @@ function formatMemberAge(member: PersistedMember) {
       </div>
     </div>
 
-    <div v-if="submitError" class="mb-6">
-      <div class="message-banner message-banner--danger">
-        <strong>{{ t(`modes.${mode}.errorsTitle`) }}</strong>
-        <span>{{ submitError }}</span>
-      </div>
-    </div>
+    <!-- What: surface attendance save failures on the shared floating card. Why: create and edit routes should expose recoverable write problems in the same place as the rest of the app instead of burying them inside the editor column. -->
+    <FloatingErrorAlert
+      v-if="submitError"
+      :message="submitError"
+      :title="t(`modes.${mode}.errorsTitle`)"
+      top-offset="shell"
+      @dismiss="emit('dismiss-submit-error')"
+    />
 
     <!-- What: keep filters and the roster in one continuous surface across attendance create and edit. Why: coaches should relearn this phone-sized scanning pattern only once even though one route creates a session and the other updates it. -->
     <section class="mb-4 pb-2">

@@ -11,6 +11,7 @@ import {
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useRouter } from '@/ui/router/runtime'
 
 const router = useRouter()
@@ -40,6 +41,11 @@ const submitErrorKey = ref<SubmitErrorKey | null>(null)
 const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
+
+function dismissSubmitError() {
+  // What: let coaches close the shared floating error card after reading it. Why: recoverable save failures should stay visible until the coach acts, but not pin the screen once the message is clear.
+  submitErrorKey.value = null
+}
 
 function toUtcDate(value: string) {
   if (!value) return undefined
@@ -118,14 +124,13 @@ async function handleSubmit() {
   <div class="max-w-2xl mx-auto pt-10 pb-32">
     <!-- Form Section -->
     <form class="space-y-10" @submit.prevent="handleSubmit">
-      <div
+      <!-- What: route add-member failures through the shared floating alert. Why: this screen should announce recoverable save problems in the same place and with the same swipe-to-dismiss behavior as the rest of the app. -->
+      <FloatingErrorAlert
         v-if="submitError"
-        class="bg-danger/10 border border-danger p-4 mb-6"
-      >
-        <p class="font-mono text-sm text-danger font-bold uppercase">
-          {{ submitError }}
-        </p>
-      </div>
+        :message="submitError"
+        top-offset="shell"
+        @dismiss="dismissSubmitError"
+      />
 
       <!-- Personal Information Cluster -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">

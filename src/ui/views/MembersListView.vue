@@ -16,6 +16,7 @@ import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
@@ -116,6 +117,11 @@ function cancelEditing() {
   editErrorKey.value = null
 }
 
+function dismissEditError() {
+  // What: let roster editing clear the shared floating error card after it has been read. Why: the coach should be able to keep the member form open for corrections without a stale warning lingering at the top of the screen.
+  editErrorKey.value = null
+}
+
 function toUtcDate(value: string) {
   if (!value) return undefined
   return new Date(`${value}T00:00:00Z`)
@@ -177,6 +183,15 @@ onMounted(() => {
 </script>
 
 <template>
+  <div class="h-full pt-4 pb-12">
+    <!-- What: surface roster edit failures through the shared floating error card. Why: member updates should announce recoverable write problems in the same top-level location as the rest of the app instead of only inside one expanded row. -->
+    <FloatingErrorAlert
+      v-if="editError"
+      :message="editError"
+      top-offset="shell"
+      @dismiss="dismissEditError"
+    />
+
   <div class="members-list-view h-full pt-4">
     <!-- Status Indicator / Stats -->
     <div class="mb-12">
@@ -359,12 +374,6 @@ onMounted(() => {
                 class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
               />
             </div>
-            <p
-              v-if="editError"
-              class="md:col-span-2 text-danger font-mono text-xs uppercase"
-            >
-              {{ editError }}
-            </p>
             <div class="md:col-span-2 flex justify-end gap-2">
               <AppButton
                 variant="secondary"
