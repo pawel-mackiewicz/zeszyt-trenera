@@ -44,6 +44,7 @@ export class DexieMemberRepo implements MemberRepoPort {
   }
 
   private toPersistedMember(member: Member): PersistedMember {
+    // Why: the persistence contract now matches the domain snapshot, so storage can preserve a real missing phone value instead of carrying an empty-string sentinel across offline reads.
     return member.toSnapshot()
   }
 
@@ -52,7 +53,7 @@ export class DexieMemberRepo implements MemberRepoPort {
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,
-      phoneNumber: member.phoneNumber,
+      ...(member.phoneNumber ? { phoneNumber: member.phoneNumber } : {}),
       ...(member.dateOfBirth === undefined
         ? {}
         : { dateOfBirth: member.dateOfBirth }),

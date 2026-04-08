@@ -95,6 +95,30 @@ export class TrainerNotebookDb extends Dexie {
       // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
       attendanceLists: 'id, &start'
     })
+
+    this.version(10)
+      .stores({
+        clubs: 'id',
+        events: 'eventId, eventName, occurredAt',
+        trainers: 'id',
+        // The compound identity index still supports duplicate checks when a phone number exists, while members without one simply stay out of that optional index path.
+        members: 'id, [firstName+lastName+phoneNumber]',
+        // What: keep the month-level payment lookup introduced in v9. Why: payment status reads still group by month first on mobile devices.
+        membershipPayments: 'id, [memberId+coveredMonth], coveredMonth',
+        // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
+        attendanceLists: 'id, &start'
+      })
+      .upgrade((transaction) => {
+        // What: remove the old empty-string phone sentinel from member rows. Why: persistence now needs to preserve the difference between "phone missing" and "phone stored" for local-first rehydration.
+        return transaction
+          .table('members')
+          .toCollection()
+          .modify((member: PersistedMember) => {
+            if (member.phoneNumber === '') {
+              delete member.phoneNumber
+            }
+          })
+      })
   }
 }
 

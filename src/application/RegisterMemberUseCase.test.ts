@@ -85,7 +85,7 @@ class FakeMemberRepo implements MemberRepoPort {
         (member) =>
           member.firstName === firstName &&
           member.lastName === lastName &&
-          member.phoneNumber.value === phoneNumber.value
+          member.phoneNumber?.value === phoneNumber.value
       )
     )
   }
@@ -151,7 +151,7 @@ describe('RegisterMemberUseCase', () => {
     const savedMember = memberRepo.savedMembers[0]
     expect(savedMember.firstName).toBe('jane')
     expect(savedMember.lastName).toBe('doe')
-    expect(savedMember.phoneNumber.value).toBe('+48123456789')
+    expect(savedMember.phoneNumber?.value).toBe('+48123456789')
     expect(savedMember.dateOfBirth).toEqual(new Date('2010-01-01T00:00:00Z'))
     expect(savedMember.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
     // The fixed ID proves the workflow consumes the injected generator instead of letting the aggregate allocate infrastructure identifiers.
@@ -182,6 +182,46 @@ describe('RegisterMemberUseCase', () => {
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(memberRepo.savedMembers).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
+  })
+
+  it('registers a member without phone and skips duplicate lookup', async () => {
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '   '
+    })
+
+    expect(memberRepo.existsChecks).toHaveLength(0)
+    expect(memberRepo.savedMembers).toHaveLength(1)
+    expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
+    expect(eventRepo.savedEvents).toHaveLength(1)
+    expect(
+      (eventRepo.savedEvents[0] as MemberCreatedDomainEvent).payload
+    ).toEqual(
+      expect.not.objectContaining({
+        phoneNumber: expect.anything()
+      })
+    )
+  })
+
+  it('treats an explicit null phone number as an absent phone', async () => {
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: null
+    })
+
+    expect(memberRepo.existsChecks).toHaveLength(0)
+    expect(memberRepo.savedMembers).toHaveLength(1)
+    expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
+    expect(eventRepo.savedEvents).toHaveLength(1)
+    expect(
+      (eventRepo.savedEvents[0] as MemberCreatedDomainEvent).payload
+    ).toEqual(
+      expect.not.objectContaining({
+        phoneNumber: expect.anything()
+      })
+    )
   })
 
   it('throws when trying to register the same member identity twice', async () => {

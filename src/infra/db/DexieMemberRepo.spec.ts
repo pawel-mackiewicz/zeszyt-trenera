@@ -48,11 +48,33 @@ describe('DexieMemberRepo', () => {
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,
-      phoneNumber: member.phoneNumber.value,
+      phoneNumber: member.phoneNumber?.value,
       dateOfBirth: member.dateOfBirth,
       joinedAt: member.joinedAt,
       createdAt: member.createdAt
     })
+  })
+
+  it('omits the persisted phone field when the member does not have one', async () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe'
+      },
+      'member-1'
+    )
+
+    await repository.save(member)
+
+    const persistedMember = await database.members.get(member.id)
+
+    expect(persistedMember).toEqual({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      createdAt: member.createdAt
+    })
+    expect(persistedMember && 'phoneNumber' in persistedMember).toBe(false)
   })
 
   it('persists name in lower case regardless of input casing', async () => {
@@ -178,7 +200,21 @@ describe('DexieMemberRepo', () => {
 
     expect(loaded).not.toBeNull()
     expect(loaded?.id).toBe('member-1')
-    expect(loaded?.phoneNumber.value).toBe('+48123456789')
+    expect(loaded?.phoneNumber?.value).toBe('+48123456789')
+  })
+
+  it('rehydrates a member aggregate without a phone when the row omits it', async () => {
+    await database.members.add({
+      id: 'member-1',
+      firstName: 'jane',
+      lastName: 'doe',
+      createdAt: new Date('2026-03-01T00:00:00Z')
+    })
+
+    const loaded = await repository.findById('member-1')
+
+    expect(loaded).not.toBeNull()
+    expect(loaded?.phoneNumber).toBeUndefined()
   })
 
   it('checks duplicate identity lookup by name and phone', async () => {

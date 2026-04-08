@@ -20,8 +20,10 @@ const { t } = useI18n({ useScope: 'local' })
 
 const firstName = ref('')
 const lastName = ref('')
-// What: prefill the phone input with Poland's country code. Why: most members use Polish numbers, so this removes repetitive typing on every mobile add-member flow.
-const phoneNumber = ref('+48 ')
+// What: keep the country code in its own input with a Polish default. Why: most registrations use the same prefix, so separating it cuts repetitive typing on the mobile-first add-member flow.
+const countryCode = ref('+48')
+// What: store the subscriber part separately from the country code. Why: the form must be able to intentionally submit “no phone” without forcing users to clear a prefilled prefix.
+const phoneNumberRest = ref('')
 const dateOfBirth = ref('')
 const joinedAt = ref('')
 
@@ -80,9 +82,10 @@ async function handleSubmit() {
 
   const fName = firstName.value.trim()
   const lName = lastName.value.trim()
-  const phone = phoneNumber.value.trim()
+  const countryCodePart = countryCode.value.trim()
+  const phoneNumberPart = phoneNumberRest.value.trim()
 
-  if (!fName || !lName || !phone) {
+  if (!fName || !lName) {
     // What: keep the form state as a local error key. Why: required-field guidance is specific to this form and belongs next to its field copy.
     submitErrorKey.value = 'required'
     return
@@ -91,10 +94,16 @@ async function handleSubmit() {
   isSubmitting.value = true
 
   try {
+    // What: collapse the split phone inputs into one application command field. Why: the UI owns the mobile-friendly input shape, while the application layer still owns normalization of present vs absent phone data.
+    const phoneNumber = phoneNumberPart
+      ? `${countryCodePart} ${phoneNumberPart}`.trim()
+      : null
+
     await useCases.registerMember.handle({
       firstName: fName,
       lastName: lName,
-      phoneNumber: phone,
+      // What: send null when the local phone part is empty. Why: the application layer should receive an explicit absence instead of inferring meaning from the UI’s split input state.
+      phoneNumber,
       ...(dateOfBirth.value
         ? { dateOfBirth: toUtcDate(dateOfBirth.value) }
         : {}),
@@ -126,10 +135,16 @@ async function handleSubmit() {
       <!-- Personal Information Cluster -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         <div class="relative group">
+          <!-- What: show a stronger required marker only on the two identity fields the app must have. Why: registration now matches the application contract where phone and dates can stay empty, so the mandatory fields need to stand out at a glance on small screens. -->
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="firstName"
-            >{{ t('fields.firstName.label') }}</label
+            >{{ t('fields.firstName.label') }}
+            <span
+              aria-hidden="true"
+              class="ml-1 inline-block text-sm leading-none font-black text-danger"
+              >*</span
+            ></label
           >
           <input
             id="firstName"
@@ -144,7 +159,12 @@ async function handleSubmit() {
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="lastName"
-            >{{ t('fields.lastName.label') }}</label
+            >{{ t('fields.lastName.label') }}
+            <span
+              aria-hidden="true"
+              class="ml-1 inline-block text-sm leading-none font-black text-danger"
+              >*</span
+            ></label
           >
           <input
             id="lastName"
@@ -158,17 +178,41 @@ async function handleSubmit() {
         <div class="relative group md:col-span-2">
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
-            for="phoneNumber"
+            for="phoneCountryCode"
             >{{ t('fields.phoneNumber.label') }}</label
           >
-          <input
-            id="phoneNumber"
-            v-model="phoneNumber"
-            class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
-            :placeholder="t('fields.phoneNumber.placeholder')"
-            type="tel"
-            required
-          />
+          <div
+            class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:gap-6"
+          >
+            <div class="relative group">
+              <label
+                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                for="phoneCountryCode"
+                >{{ t('fields.phoneNumber.countryCodeLabel') }}</label
+              >
+              <input
+                id="phoneCountryCode"
+                v-model="countryCode"
+                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
+                :placeholder="t('fields.phoneNumber.countryCodePlaceholder')"
+                type="tel"
+              />
+            </div>
+            <div class="relative group">
+              <label
+                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                for="phoneNumberRest"
+                >{{ t('fields.phoneNumber.localNumberLabel') }}</label
+              >
+              <input
+                id="phoneNumberRest"
+                v-model="phoneNumberRest"
+                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
+                :placeholder="t('fields.phoneNumber.localNumberPlaceholder')"
+                type="tel"
+              />
+            </div>
+          </div>
         </div>
         <div class="relative group">
           <label
@@ -221,7 +265,7 @@ async function handleSubmit() {
       "submitting": "Zapisywanie"
     },
     "errors": {
-      "required": "Podaj imię, nazwisko i numer telefonu.",
+      "required": "Podaj imię i nazwisko.",
       "submit": "Nie udało się zapisać członka. Sprawdź dane i spróbuj ponownie.",
       "invalidPhoneNumber": "Sprawdź numer telefonu. Użyj numeru z kierunkowym kraju, na przykład +48 000 000 000.",
       "alreadyExists": "Członek z takim imieniem, nazwiskiem i numerem telefonu jest już zapisany.",
@@ -240,7 +284,10 @@ async function handleSubmit() {
       },
       "phoneNumber": {
         "label": "Numer telefonu",
-        "placeholder": "+48 000 000 000"
+        "countryCodeLabel": "Kierunkowy",
+        "countryCodePlaceholder": "+48",
+        "localNumberLabel": "Reszta numeru",
+        "localNumberPlaceholder": "000 000 000"
       },
       "dateOfBirth": {
         "label": "Data urodzenia"
@@ -256,7 +303,7 @@ async function handleSubmit() {
       "submitting": "Saving"
     },
     "errors": {
-      "required": "Enter the first name, last name, and phone number.",
+      "required": "Enter the first name and last name.",
       "submit": "The member could not be saved. Check the details and try again.",
       "invalidPhoneNumber": "Check the phone number. Use a number with the country code, for example +48 000 000 000.",
       "alreadyExists": "A member with this name and phone number is already saved.",
@@ -275,7 +322,10 @@ async function handleSubmit() {
       },
       "phoneNumber": {
         "label": "Phone number",
-        "placeholder": "+48 000 000 000"
+        "countryCodeLabel": "Country code",
+        "countryCodePlaceholder": "+48",
+        "localNumberLabel": "Rest of number",
+        "localNumberPlaceholder": "000 000 000"
       },
       "dateOfBirth": {
         "label": "Date of birth"

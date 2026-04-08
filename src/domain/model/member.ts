@@ -63,7 +63,7 @@ function validateMemberProfile(
 export type RegisterMemberInput = {
   firstName: string
   lastName: string
-  phoneNumber: PhoneNumber
+  phoneNumber?: PhoneNumber
   dateOfBirth?: Date
   joinedAt?: Date
 }
@@ -72,7 +72,7 @@ export type UpdateMemberInput = {
   memberId: string
   firstName: string
   lastName: string
-  phoneNumber: PhoneNumber
+  phoneNumber?: PhoneNumber
   dateOfBirth?: Date
   joinedAt?: Date
 }
@@ -81,7 +81,7 @@ export type MemberSnapshot = {
   id: string
   firstName: string
   lastName: string
-  phoneNumber: string
+  phoneNumber?: string
   dateOfBirth?: Date
   joinedAt?: Date
   createdAt: Date
@@ -91,7 +91,7 @@ export type MemberUpdatedSnapshot = {
   memberId: string
   firstName: string
   lastName: string
-  phoneNumber: string
+  phoneNumber?: string
   dateOfBirth?: Date
   joinedAt?: Date
 }
@@ -101,7 +101,7 @@ export class Member {
 
   private _firstName: string
   private _lastName: string
-  private _phoneNumber: PhoneNumber
+  private _phoneNumber?: PhoneNumber
   private _dateOfBirth?: Date
   private _joinedAt?: Date
   private _createdAt: Date
@@ -140,7 +140,11 @@ export class Member {
       {
         firstName: snapshot.firstName,
         lastName: snapshot.lastName,
-        phoneNumber: PhoneNumber.create(snapshot.phoneNumber),
+        // Why: persisted member snapshots may now omit phone numbers, so rehydration must preserve that absence instead of inventing placeholder identity data.
+        phoneNumber:
+          snapshot.phoneNumber === undefined
+            ? undefined
+            : PhoneNumber.create(snapshot.phoneNumber),
         dateOfBirth: snapshot.dateOfBirth,
         joinedAt: snapshot.joinedAt
       },
@@ -175,7 +179,10 @@ export class Member {
       memberId: updatedMember.id,
       firstName: updatedMember.firstName,
       lastName: updatedMember.lastName,
-      phoneNumber: updatedMember.phoneNumber.value,
+      // Why: update events must mirror the aggregate snapshot contract so local-first replay can tell the difference between keeping and clearing optional contact data.
+      ...(updatedMember.phoneNumber === undefined
+        ? {}
+        : { phoneNumber: updatedMember.phoneNumber.value }),
       ...(updatedMember.dateOfBirth === undefined
         ? {}
         : { dateOfBirth: updatedMember.dateOfBirth }),
@@ -194,7 +201,9 @@ export class Member {
       firstName: this.firstName,
       lastName: this.lastName,
       // Snapshots stay string-based so event payloads and persisted rows keep the same contract outside the domain model.
-      phoneNumber: this.phoneNumber.value,
+      ...(this.phoneNumber === undefined
+        ? {}
+        : { phoneNumber: this.phoneNumber.value }),
       ...(this.dateOfBirth === undefined
         ? {}
         : { dateOfBirth: this.dateOfBirth }),
@@ -212,6 +221,7 @@ export class Member {
   }
 
   public get phoneNumber() {
+    // Why: member state now models phone as optional data, so callers must observe a real absence instead of inferring one from a sentinel string.
     return this._phoneNumber
   }
 
