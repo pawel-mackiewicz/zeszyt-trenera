@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { nextTick } from 'vue'
 
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { createAppI18n } from '@/ui/i18n'
@@ -51,6 +52,35 @@ describe('AddMemberView', () => {
         plugins: [createAppI18n(locale)]
       }
     })
+  }
+
+  async function showUnexpectedFailureAlert(locale: 'pl' | 'en' = 'en') {
+    mockRegisterMemberHandle.mockRejectedValue(new Error('low-level failure'))
+
+    const wrapper = mountView(locale)
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    return wrapper
+  }
+
+  async function dispatchPointerEvent(
+    element: HTMLElement,
+    type: string,
+    clientY: number,
+    pointerId = 1
+  ) {
+    element.dispatchEvent(
+      Object.assign(new Event(type, { bubbles: true }), {
+        pointerId,
+        clientY
+      })
+    )
+
+    await nextTick()
   }
 
   it('submits a new member successfully and navigates back', async () => {
@@ -128,15 +158,7 @@ describe('AddMemberView', () => {
   })
 
   it('shows a floating alert on submit failure and lets the user dismiss it', async () => {
-    mockRegisterMemberHandle.mockRejectedValue(new Error('low-level failure'))
-
-    const wrapper = mountView('en')
-
-    await wrapper.find('input[id="firstName"]').setValue('Bao')
-    await wrapper.find('input[id="lastName"]').setValue('Ninh')
-    await wrapper.find('input[id="phoneNumber"]').setValue('+48 111 222 333')
-
-    await wrapper.find('form').trigger('submit.prevent')
+    const wrapper = await showUnexpectedFailureAlert('en')
 
     const alert = wrapper.find('[role="alert"]')
     expect(alert.exists()).toBe(true)
@@ -147,6 +169,39 @@ describe('AddMemberView', () => {
 
     await wrapper.find('button[type="button"]').trigger('click')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('dismisses the floating alert when the user swipes it upward past the threshold', async () => {
+    const wrapper = await showUnexpectedFailureAlert('en')
+    const alertElement = wrapper.find('[role="alert"]').element as HTMLElement
+
+    await dispatchPointerEvent(alertElement, 'pointerdown', 180)
+    await dispatchPointerEvent(alertElement, 'pointermove', 48)
+    await dispatchPointerEvent(alertElement, 'pointerup', 48)
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+  })
+
+  it('keeps the floating alert visible when the upward swipe is too short', async () => {
+    const wrapper = await showUnexpectedFailureAlert('en')
+    const alertElement = wrapper.find('[role="alert"]').element as HTMLElement
+
+    await dispatchPointerEvent(alertElement, 'pointerdown', 180)
+    await dispatchPointerEvent(alertElement, 'pointermove', 132)
+    await dispatchPointerEvent(alertElement, 'pointerup', 132)
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+  })
+
+  it('keeps the floating alert visible when the user drags it downward', async () => {
+    const wrapper = await showUnexpectedFailureAlert('en')
+    const alertElement = wrapper.find('[role="alert"]').element as HTMLElement
+
+    await dispatchPointerEvent(alertElement, 'pointerdown', 180)
+    await dispatchPointerEvent(alertElement, 'pointermove', 240)
+    await dispatchPointerEvent(alertElement, 'pointerup', 240)
+
+    expect(wrapper.find('[role="alert"]').exists()).toBe(true)
   })
 
   it('renders field copy from the local English dictionary', () => {

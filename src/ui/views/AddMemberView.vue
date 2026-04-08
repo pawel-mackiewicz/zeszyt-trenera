@@ -38,10 +38,78 @@ const submitErrorKey = ref<SubmitErrorKey | null>(null)
 const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
+const submitErrorSwipeOffsetY = ref(0)
+const submitErrorSwipePointerId = ref<number | null>(null)
+const submitErrorSwipeStartY = ref(0)
+const isSubmitErrorDragging = ref(false)
+const submitErrorAlertStyle = computed(() => ({
+  '--submit-error-offset-y': `${submitErrorSwipeOffsetY.value}px`
+}))
+const SUBMIT_ERROR_SWIPE_DISMISS_THRESHOLD_PX = 96
+
+function resetSubmitErrorSwipeState() {
+  submitErrorSwipeOffsetY.value = 0
+  submitErrorSwipePointerId.value = null
+  submitErrorSwipeStartY.value = 0
+  isSubmitErrorDragging.value = false
+}
 
 function dismissSubmitError() {
   // What: let coaches close the floating error banner after reading it. Why: the requirement says save errors must stay visible but also be easy to turn off.
+  resetSubmitErrorSwipeState()
   submitErrorKey.value = null
+}
+
+function startSubmitErrorSwipe(event: PointerEvent) {
+  const target = event.currentTarget as HTMLElement | null
+
+  if (target === null || submitErrorKey.value === null) {
+    return
+  }
+
+  // What: bind the drag to one active pointer. Why: coaches should be able to flick the banner away on touch screens without the gesture jumping between contacts.
+  submitErrorSwipePointerId.value = event.pointerId
+  submitErrorSwipeStartY.value = event.clientY
+  submitErrorSwipeOffsetY.value = 0
+  isSubmitErrorDragging.value = true
+  target.setPointerCapture?.(event.pointerId)
+}
+
+function moveSubmitErrorSwipe(event: PointerEvent) {
+  if (
+    !isSubmitErrorDragging.value ||
+    event.pointerId !== submitErrorSwipePointerId.value
+  ) {
+    return
+  }
+
+  submitErrorSwipeOffsetY.value = Math.min(
+    0,
+    event.clientY - submitErrorSwipeStartY.value
+  )
+}
+
+function finishSubmitErrorSwipe(
+  event: PointerEvent,
+  options: { dismissOnThreshold: boolean }
+) {
+  if (event.pointerId !== submitErrorSwipePointerId.value) {
+    return
+  }
+
+  const target = event.currentTarget as HTMLElement | null
+  const shouldDismiss =
+    options.dismissOnThreshold &&
+    submitErrorSwipeOffsetY.value <= -SUBMIT_ERROR_SWIPE_DISMISS_THRESHOLD_PX
+
+  target?.releasePointerCapture?.(event.pointerId)
+
+  if (shouldDismiss) {
+    dismissSubmitError()
+    return
+  }
+
+  resetSubmitErrorSwipeState()
 }
 
 function toUtcDate(value: string) {
@@ -75,6 +143,7 @@ function resolveSubmitErrorKey(error: unknown): SubmitErrorKey {
 }
 
 async function handleSubmit() {
+  resetSubmitErrorSwipeState()
   submitErrorKey.value = null
 
   const fName = firstName.value.trim()
@@ -116,17 +185,30 @@ async function handleSubmit() {
     <form class="space-y-10" @submit.prevent="handleSubmit">
       <div
         v-if="submitError"
-        class="fixed inset-x-4 top-4 z-50 md:left-1/2 md:right-auto md:w-[min(32rem,calc(100%-2rem))] md:-translate-x-1/2 bg-danger/95 text-on-danger border border-danger p-4 shadow-lg"
+        class="submit-error-alert fixed inset-x-4 z-50 border border-danger bg-surface p-4 text-danger shadow-lg md:left-1/2 md:right-auto md:w-[min(32rem,calc(100%-2rem))]"
+        :class="{
+          'submit-error-alert--settling': !isSubmitErrorDragging
+        }"
+        :style="submitErrorAlertStyle"
         role="alert"
+        @pointerdown="startSubmitErrorSwipe"
+        @pointermove="moveSubmitErrorSwipe"
+        @pointerup="
+          finishSubmitErrorSwipe($event, { dismissOnThreshold: true })
+        "
+        @pointercancel="
+          finishSubmitErrorSwipe($event, { dismissOnThreshold: false })
+        "
       >
-        <!-- What: keep save failures above the form fields and keyboard. Why: mobile users can miss inline errors when the form is long, so this must float at the top layer. -->
-        <p class="font-mono text-sm font-bold uppercase pr-24">
+        <!-- What: keep save failures above the form fields and keyboard on an opaque surface. Why: this screen needs the stronger placement of a floating banner without the content behind it bleeding through. -->
+        <p class="pr-24 font-mono text-sm font-bold uppercase">
           {{ submitError }}
         </p>
         <button
           type="button"
           class="absolute right-3 top-3 font-mono text-xs font-bold uppercase tracking-wide"
           @click="dismissSubmitError"
+          @pointerdown.stop
         >
           {{ t('actions.dismiss') }}
         </button>
@@ -298,3 +380,26 @@ async function handleSubmit() {
   }
 }
 </i18n>
+
+<style scoped>
+.submit-error-alert {
+  /* What: dock the floating alert below the fixed shell header instead of the raw viewport edge. Why: the error should stay topmost without visually colliding with the persistent navbar in the PWA shell. */
+  top: calc(env(safe-area-inset-top, 0px) + 5rem);
+  transform: translateY(var(--submit-error-offset-y, 0px));
+  touch-action: none;
+  will-change: transform, opacity;
+}
+
+.submit-error-alert--settling {
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+@media (min-width: 768px) {
+  .submit-error-alert {
+    /* What: keep the floating error centered on wider layouts while it animates vertically. Why: desktop still needs the same swipe-off motion without drifting away from the form column. */
+    transform: translate(-50%, var(--submit-error-offset-y, 0px));
+  }
+}
+</style>
