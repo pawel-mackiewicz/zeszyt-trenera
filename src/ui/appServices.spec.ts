@@ -41,6 +41,12 @@ describe('uiAppServices', () => {
         }
       },
       useCases: {
+        bootstrapDemoMode: {
+          handle
+        },
+        leaveDemoMode: {
+          handle
+        },
         registerAttendanceList: {
           handle
         },

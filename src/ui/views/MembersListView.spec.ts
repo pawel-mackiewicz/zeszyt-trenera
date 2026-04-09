@@ -2,7 +2,6 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { db } from '@/db'
-import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { createAppI18n } from '@/ui/i18n'
 import { createAppServicesProvides } from '@/ui/appServices'
 import MembersListView from '@/ui/views/MembersListView.vue'

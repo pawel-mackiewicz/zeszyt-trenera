@@ -69,6 +69,7 @@ describe('AppShell', () => {
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
   let mockResetApplicationData: Mock
+  let mockLeaveDemoMode: Mock
 
   beforeEach(() => {
     window.localStorage.clear()
@@ -79,6 +80,7 @@ describe('AppShell', () => {
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
+    mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
     mockSetupStatusObservers = []
     mockSetupStatus = 'ready'
 
@@ -132,6 +134,9 @@ describe('AppShell', () => {
         }
       } as unknown,
       useCases: {
+        leaveDemoMode: {
+          handle: mockLeaveDemoMode
+        },
         resetApplicationData: {
           handle: mockResetApplicationData
         }
@@ -261,6 +266,78 @@ describe('AppShell', () => {
 
     expect(wrapper.text()).toContain('Aktualizuj aplikację')
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
+  })
+
+  it('shows the demo exit CTA in the header only while demo mode is active', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setDemoModeActive(true)
+    })
+
+    expect(wrapper.get('[data-testid="open-demo-modal"]').text()).toContain(
+      'Wyjdź z demo'
+    )
+
+    await wrapper.get('[data-testid="open-demo-modal"]').trigger('click')
+
+    expect(wrapper.text()).toContain('Sprawdź demo')
+    expect(wrapper.text()).toContain('Przejdź na swoje dane')
+    expect(
+      wrapper.get('[data-testid="continue-demo-button"]').classes()
+    ).toContain('app-button--primary')
+    expect(
+      wrapper.get('[data-testid="confirm-leave-demo-button"]').classes()
+    ).toContain('app-button--secondary')
+  })
+
+  it('keeps demo exploration as the default modal action', async () => {
+    const { wrapper, store } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setDemoModeActive(true)
+      appStore.showDemoIntroModal()
+    })
+
+    await wrapper.get('[data-testid="continue-demo-button"]').trigger('click')
+
+    expect(mockLeaveDemoMode).not.toHaveBeenCalled()
+    expect(store.demoIntroModalVisible).toBe(false)
+  })
+
+  it('leaves demo mode through the application layer and closes the modal', async () => {
+    const { wrapper, store } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setDemoModeActive(true)
+      appStore.showDemoIntroModal()
+    })
+
+    await wrapper
+      .get('[data-testid="confirm-leave-demo-button"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(mockLeaveDemoMode).toHaveBeenCalledWith({})
+    expect(store.demoModeActive).toBe(false)
+    expect(store.demoIntroModalVisible).toBe(false)
+  })
+
+  it('keeps demo-exit failures visible above the modal', async () => {
+    mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setDemoModeActive(true)
+      appStore.showDemoIntroModal()
+    })
+
+    await wrapper
+      .get('[data-testid="confirm-leave-demo-button"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Sprawdź demo')
+    expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
+      'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
+    )
   })
 
   it('disables the menu update action while the new shell is activating', async () => {
@@ -474,6 +551,19 @@ describe('AppShell', () => {
     await nextTick()
 
     expect(confirmButton.attributes('disabled')).toBeUndefined()
+  })
+
+  it('hides the generic reset action while demo mode is active', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+      appStore.setDemoModeActive(true)
+    })
+
+    await wrapper.find('header button').trigger('click')
+
+    expect(wrapper.find('[data-testid="open-reset-modal"]').exists()).toBe(
+      false
+    )
   })
 
   it('resets app data after explicit confirmation phrase and confirm click', async () => {

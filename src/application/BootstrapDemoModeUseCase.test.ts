@@ -1,0 +1,150 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+
+import { BootstrapDemoModeUseCase } from '@/application/BootstrapDemoModeUseCase'
+import { createDemoSeed } from '@/application/demo/createDemoSeed'
+import type { DemoLifecycleStorePort } from '@/application/ports/DemoLifecycleStorePort'
+import type { EventRepoPort } from '@/application/ports/EventRepoPort'
+import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
+import type { MembershipPaymentRepoPort } from '@/application/ports/MembershipPaymentRepoPort'
+import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
+import type { UnitOfWork } from '@/application/ports/UnitOfWork'
+import type { AppResetRepoPort } from '@/application/ports/AppResetRepoPort'
+import type { AttendanceListRepoPort } from '@/application/ports/AttendanceListRepoPort'
+import type { ClockPort } from '@/application/ports/ClockPort'
+import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
+import type { IdGeneratorPort } from '@/application/ports/IdGeneratorPort'
+
+describe('BootstrapDemoModeUseCase', () => {
+  let unitOfWork: UnitOfWork
+  let appResetRepo: AppResetRepoPort
+  let clubRepo: ClubRepoPort
+  let trainerRepo: TrainerRepoPort
+  let memberRepo: MemberRepoPort
+  let membershipPaymentRepo: MembershipPaymentRepoPort
+  let attendanceListRepo: AttendanceListRepoPort
+  let eventRepo: EventRepoPort
+  let idGenerator: IdGeneratorPort
+  let clock: ClockPort
+  let demoLifecycleStore: DemoLifecycleStorePort
+
+  beforeEach(() => {
+    let generatedIdIndex = 0
+    let clubExists = false
+    let trainerExists = false
+
+    unitOfWork = {
+      execute: async <T>(action: () => Promise<T>) => await action()
+    }
+    appResetRepo = {
+      clearAllData: vi.fn().mockResolvedValue(undefined)
+    }
+    clubRepo = {
+      save: vi.fn(async () => {
+        clubExists = true
+      }),
+      exists: vi.fn(async () => clubExists)
+    }
+    trainerRepo = {
+      save: vi.fn(async () => {
+        trainerExists = true
+      }),
+      exists: vi.fn(async () => trainerExists)
+    }
+    memberRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      findById: vi.fn().mockResolvedValue(null),
+      existsById: vi.fn().mockResolvedValue(false),
+      existsByNameAndBirthDate: vi.fn().mockResolvedValue(false)
+    }
+    membershipPaymentRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+      existsByMemberIdAndCoveredMonth: vi.fn().mockResolvedValue(false)
+    }
+    attendanceListRepo = {
+      findById: vi.fn().mockResolvedValue(null),
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      existsByStart: vi.fn().mockResolvedValue(false)
+    }
+    eventRepo = {
+      save: vi.fn().mockResolvedValue(undefined)
+    }
+    idGenerator = {
+      generate: vi.fn(() => `generated-id-${generatedIdIndex++}`)
+    }
+    clock = {
+      now: vi.fn(() => new Date(2026, 3, 9, 12, 0, 0))
+    }
+    demoLifecycleStore = {
+      readState: vi.fn().mockResolvedValue('uninitialized'),
+      writeState: vi.fn().mockResolvedValue(undefined)
+    }
+  })
+
+  it('seeds demo data on the first clean launch and opens the intro modal once', async () => {
+    const expectedDemoSeed = createDemoSeed(new Date(2026, 3, 9, 12, 0, 0))
+    const useCase = new BootstrapDemoModeUseCase(
+      unitOfWork,
+      appResetRepo,
+      clubRepo,
+      trainerRepo,
+      memberRepo,
+      membershipPaymentRepo,
+      attendanceListRepo,
+      eventRepo,
+      idGenerator,
+      clock,
+      demoLifecycleStore
+    )
+
+    await expect(useCase.handle({})).resolves.toEqual({
+      mode: 'demo',
+      introModal: true
+    })
+    expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
+    expect(clubRepo.save).toHaveBeenCalledTimes(1)
+    expect(trainerRepo.save).toHaveBeenCalledTimes(1)
+    expect(memberRepo.save).toHaveBeenCalledTimes(50)
+    expect(membershipPaymentRepo.save).toHaveBeenCalledTimes(
+      expectedDemoSeed.membershipPayments.length
+    )
+    expect(attendanceListRepo.save).toHaveBeenCalledTimes(
+      expectedDemoSeed.attendanceLists.length
+    )
+    expect(eventRepo.save).toHaveBeenCalledTimes(
+      2 +
+        expectedDemoSeed.members.length +
+        expectedDemoSeed.membershipPayments.length +
+        expectedDemoSeed.attendanceLists.length
+    )
+    expect(demoLifecycleStore.writeState).toHaveBeenCalledWith('active')
+  })
+
+  it('skips seeding entirely when demo mode was already dismissed on this device', async () => {
+    vi.mocked(demoLifecycleStore.readState).mockResolvedValue('dismissed')
+    const useCase = new BootstrapDemoModeUseCase(
+      unitOfWork,
+      appResetRepo,
+      clubRepo,
+      trainerRepo,
+      memberRepo,
+      membershipPaymentRepo,
+      attendanceListRepo,
+      eventRepo,
+      idGenerator,
+      clock,
+      demoLifecycleStore
+    )
+
+    await expect(useCase.handle({})).resolves.toEqual({
+      mode: 'standard',
+      introModal: false
+    })
+    expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
+    expect(clubRepo.save).not.toHaveBeenCalled()
+    expect(trainerRepo.save).not.toHaveBeenCalled()
+    expect(memberRepo.save).not.toHaveBeenCalled()
+    expect(demoLifecycleStore.writeState).not.toHaveBeenCalled()
+  })
+})
