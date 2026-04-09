@@ -14,7 +14,6 @@ import {
   AttendanceListRecordedDomainEvent
 } from '@/domain/model/AttendanceList'
 import { MemberNotFoundError } from '@/domain/model/member'
-import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { Member } from '@/domain/model/member'
 
 class FakeUnitOfWork implements UnitOfWork {
@@ -59,13 +58,13 @@ class FakeMemberRepo implements MemberRepoPort {
     return this.existingMemberIds.has(memberId)
   }
 
-  async existsByNameAndPhone(
+  async existsByNameAndBirthDate(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
     _firstName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
     _lastName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
-    _phoneNumber: PhoneNumber
+    _dateOfBirth: Date
   ): Promise<boolean> {
     return false
   }

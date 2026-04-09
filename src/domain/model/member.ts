@@ -4,9 +4,17 @@ import { copyDate, copyOptionalDate } from './DateUtils'
 
 const assertValidBirthDate = (
   dateOfBirth: Date | undefined,
-  now: Date
+  now: Date,
+  isRequired = false
 ): void => {
-  if (!dateOfBirth) return
+  if (!dateOfBirth) {
+    // Why: member registration now depends on a canonical birth date for identity and downstream age-based reads, so the domain must reject missing values when the workflow says they are mandatory.
+    if (isRequired) {
+      throw new InvalidMemberBirthDateError()
+    }
+
+    return
+  }
 
   if (dateOfBirth >= now) {
     throw new InvalidMemberBirthDateError()
@@ -54,9 +62,10 @@ type ValidateMemberProfileInput = {
 
 function validateMemberProfile(
   input: ValidateMemberProfileInput,
-  now = new Date()
+  requireBirthDate = false
 ): void {
-  assertValidBirthDate(input.dateOfBirth, now)
+  const now = new Date()
+  assertValidBirthDate(input.dateOfBirth, now, requireBirthDate)
   assertValidJoinDate(input.joinedAt, input.dateOfBirth, now)
   assertValidName(input.firstName)
   assertValidName(input.lastName)
@@ -66,12 +75,20 @@ export type RegisterMemberInput = {
   firstName: string
   lastName: string
   phoneNumber?: PhoneNumber
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
 export type UpdateMemberInput = {
   memberId: string
+  firstName: string
+  lastName: string
+  phoneNumber?: PhoneNumber
+  dateOfBirth?: Date
+  joinedAt?: Date
+}
+
+type MemberStateInput = {
   firstName: string
   lastName: string
   phoneNumber?: PhoneNumber
@@ -108,11 +125,7 @@ export class Member {
   private _joinedAt?: Date
   private _createdAt: Date
 
-  private constructor(
-    input: RegisterMemberInput,
-    id: string,
-    createdAt?: Date
-  ) {
+  private constructor(input: MemberStateInput, id: string, createdAt?: Date) {
     this.id = id
     this._firstName = input.firstName
     this._lastName = input.lastName
@@ -125,7 +138,7 @@ export class Member {
     input: RegisterMemberInput,
     id: string
   ): [Member, MemberCreatedDomainEvent] {
-    validateMemberProfile(input)
+    validateMemberProfile(input, true)
     const firstName = normalizeMemberName(input.firstName)
     const lastName = normalizeMemberName(input.lastName)
     //
@@ -259,7 +272,7 @@ export class MemberUpdatedDomainEvent extends DomainEvent<MemberUpdatedSnapshot>
 
 export class MemberAlreadyExistsError extends Error {
   public constructor() {
-    super('Member with the same name and phone number already exists')
+    super('Member with the same name and birth date already exists')
     this.name = 'MemberAlreadyExistsError'
   }
 }

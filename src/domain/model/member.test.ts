@@ -14,6 +14,10 @@ function createPhoneNumber(rawPhoneNumber = '+48 123 456 789') {
   return PhoneNumber.create(rawPhoneNumber)
 }
 
+function createBirthDate(rawBirthDate = '2010-01-01T00:00:00Z') {
+  return new Date(rawBirthDate)
+}
+
 describe('Member Model', () => {
   afterEach(() => {
     vi.useRealTimers()
@@ -29,7 +33,8 @@ describe('Member Model', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber
+        phoneNumber,
+        dateOfBirth: createBirthDate()
       },
       id
     )
@@ -56,6 +61,7 @@ describe('Member Model', () => {
       firstName: 'jane',
       lastName: 'doe',
       phoneNumber: '+48123456789',
+      dateOfBirth: createBirthDate(),
       createdAt: member.createdAt
     })
 
@@ -66,12 +72,13 @@ describe('Member Model', () => {
     expect(event.payload).toEqual(member.toSnapshot())
   })
 
-  it('toSnapshot omits optional date fields when the member does not have them', () => {
+  it('toSnapshot omits optional join date when the member does not have it', () => {
     const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -84,9 +91,9 @@ describe('Member Model', () => {
       firstName: 'jane',
       lastName: 'doe',
       phoneNumber: '+48123456789',
+      dateOfBirth: createBirthDate(),
       createdAt: member.createdAt
     })
-    expect('dateOfBirth' in snapshot).toBe(false)
     expect('joinedAt' in snapshot).toBe(false)
   })
 
@@ -114,7 +121,7 @@ describe('Member Model', () => {
   })
 
   it('keeps date fields immutable when callers mutate shared references', () => {
-    const dateOfBirth = new Date('2010-01-01T00:00:00Z')
+    const dateOfBirth = createBirthDate()
     const joinedAt = new Date('2024-09-01T00:00:00Z')
     const [member] = Member.register(
       {
@@ -151,11 +158,12 @@ describe('Member Model', () => {
     expect(member.joinedAt).toEqual(new Date('2024-09-01T00:00:00Z'))
   })
 
-  it('allows registration with only first and last name', () => {
+  it('allows registration without phone when birth date is provided', () => {
     const [member, event] = Member.register(
       {
         firstName: 'Jane',
-        lastName: 'Doe'
+        lastName: 'Doe',
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -165,6 +173,7 @@ describe('Member Model', () => {
       id: 'member-1',
       firstName: 'jane',
       lastName: 'doe',
+      dateOfBirth: createBirthDate(),
       createdAt: member.createdAt
     })
     expect(event.payload).toEqual(member.toSnapshot())
@@ -175,7 +184,8 @@ describe('Member Model', () => {
       {
         firstName: 'JaNe  ',
         lastName: '  dOe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -189,7 +199,8 @@ describe('Member Model', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -227,7 +238,8 @@ describe('Member Model', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -258,6 +270,19 @@ describe('Member Model', () => {
           phoneNumber: createPhoneNumber(),
           dateOfBirth: futureDate
         },
+        'member-1'
+      )
+    ).toThrow(InvalidMemberBirthDateError)
+  })
+
+  it('rejects registration if birth date is missing', () => {
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: createPhoneNumber()
+        } as unknown as Parameters<typeof Member.register>[0],
         'member-1'
       )
     ).toThrow(InvalidMemberBirthDateError)
@@ -307,6 +332,7 @@ describe('Member Model', () => {
           firstName: 'Jane',
           lastName: 'Doe',
           phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate(),
           joinedAt: futureDate
         },
         'member-1'
@@ -335,7 +361,8 @@ describe('Member Model', () => {
         {
           firstName: '',
           lastName: 'Doe',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )
@@ -346,7 +373,8 @@ describe('Member Model', () => {
         {
           firstName: '   ',
           lastName: 'Doe',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )
@@ -357,7 +385,8 @@ describe('Member Model', () => {
         {
           firstName: 'Jane!@#',
           lastName: 'Doe',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )
@@ -370,7 +399,8 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: '',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )
@@ -381,7 +411,8 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: '   ',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )
@@ -392,7 +423,8 @@ describe('Member Model', () => {
         {
           firstName: 'Jane',
           lastName: 'Doe$%',
-          phoneNumber: createPhoneNumber()
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: createBirthDate()
         },
         'member-1'
       )

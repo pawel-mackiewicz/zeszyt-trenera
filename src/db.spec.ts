@@ -21,7 +21,7 @@ describe('db', () => {
     )
 
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(10)
+    expect(db.verno).toBe(11)
     expect(db.tables).toHaveLength(6)
     expect(clubsTable?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
@@ -38,8 +38,9 @@ describe('db', () => {
     expect(trainersTable?.schema.primKey.name).toBe('id')
     expect(trainersTable?.schema.indexes.map((index) => index.name)).toEqual([])
     expect(membersTable?.schema.primKey.name).toBe('id')
+    // Member registration now deduplicates on stable identity data, so the Dexie schema should expose the birth-date compound index instead of the old phone-based one.
     expect(membersTable?.schema.indexes.map((index) => index.name)).toEqual([
-      '[firstName+lastName+phoneNumber]'
+      '[firstName+lastName+dateOfBirth]'
     ])
     expect(membershipPaymentsTable?.schema.primKey.name).toBe('id')
     expect(

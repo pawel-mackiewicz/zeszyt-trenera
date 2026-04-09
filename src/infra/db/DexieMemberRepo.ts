@@ -1,6 +1,5 @@
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import { Member, type MemberSnapshot } from '@/domain/model/member'
-import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedMember } from '@/infra'
 
@@ -29,15 +28,15 @@ export class DexieMemberRepo implements MemberRepoPort {
     return persistedMember != null
   }
 
-  public async existsByNameAndPhone(
+  public async existsByNameAndBirthDate(
     firstName: string,
     lastName: string,
-    phoneNumber: PhoneNumber
+    dateOfBirth: Date
   ): Promise<boolean> {
-    // The local-first duplicate check needs one indexed identity lookup so offline registration stays cheap as the notebook grows.
+    // Why: birth date now defines member identity at registration time, so offline duplicate checks need one indexed lookup that does not depend on optional phone data.
     const persistedMember = await this.database.members
-      .where('[firstName+lastName+phoneNumber]')
-      .equals([firstName, lastName, phoneNumber.value])
+      .where('[firstName+lastName+dateOfBirth]')
+      .equals([firstName, lastName, dateOfBirth])
       .first()
 
     return persistedMember != null

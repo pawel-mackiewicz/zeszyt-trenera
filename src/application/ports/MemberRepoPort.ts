@@ -1,4 +1,3 @@
-import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import type { Member } from '@/domain/model/member'
 
 export interface MemberRepoPort {
@@ -6,9 +5,9 @@ export interface MemberRepoPort {
   update(member: Member): Promise<void>
   findById(memberId: string): Promise<Member | null>
   existsById(memberId: string): Promise<boolean>
-  existsByNameAndPhone(
+  existsByNameAndBirthDate(
     firstName: string,
     lastName: string,
-    phoneNumber: PhoneNumber
+    dateOfBirth: Date
   ): Promise<boolean>
 }

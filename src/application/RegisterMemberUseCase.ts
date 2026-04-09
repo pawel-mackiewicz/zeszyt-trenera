@@ -25,7 +25,7 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
       await this.ensureMemberDoesNotExist(
         member.firstName,
         member.lastName,
-        member.phoneNumber
+        dto.dateOfBirth
       )
 
       await this.memberRepo.save(member)
@@ -36,19 +36,14 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
   private async ensureMemberDoesNotExist(
     firstName: string,
     lastName: string,
-    phoneNumber: PhoneNumber | undefined
+    dateOfBirth: Date
   ): Promise<void> {
-    // Why: registration now permits members without a phone number, so duplicate checks should only run when the identity still contains a canonical phone component.
-    if (!phoneNumber) {
-      return
-    }
-
-    // Member registration allows many records overall, but the duplicate identity rule must be checked from within the same transaction that persists the member and event.
+    // Why: the registration contract now guarantees birth date, so duplicate checks can use the required identity key directly instead of carrying legacy optional-member typing through the write path.
     if (
-      await this.memberRepo.existsByNameAndPhone(
+      await this.memberRepo.existsByNameAndBirthDate(
         firstName,
         lastName,
-        phoneNumber
+        dateOfBirth
       )
     ) {
       throw new MemberAlreadyExistsError()

@@ -119,6 +119,18 @@ export class TrainerNotebookDb extends Dexie {
             }
           })
       })
+
+    this.version(11).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // Why: duplicate member checks now use stable identity data instead of optional contact data, so local-first registration needs a name-plus-birth-date index.
+      members: 'id, [firstName+lastName+dateOfBirth]',
+      // What: keep the month-level payment lookup introduced in v9. Why: payment status reads still group by month first on mobile devices.
+      membershipPayments: 'id, [memberId+coveredMonth], coveredMonth',
+      // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
+      attendanceLists: 'id, &start'
+    })
   }
 }
 

@@ -27,6 +27,10 @@ function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
 }
 
+function createBirthDate(rawBirthDate: string) {
+  return new Date(rawBirthDate)
+}
+
 describe('appServices', () => {
   let database: TrainerNotebookDb
 
@@ -91,7 +95,8 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Reset',
       lastName: 'Member',
-      phoneNumber: '+48 555 444 333'
+      phoneNumber: '+48 555 444 333',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     const persistedMember = (await database.members.toArray())[0]
@@ -152,12 +157,14 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
     await services.useCases.registerMember.handle({
       firstName: 'John',
       lastName: 'Smith',
-      phoneNumber: '+48 987 654 321'
+      phoneNumber: '+48 987 654 321',
+      dateOfBirth: createBirthDate('2011-01-01T00:00:00Z')
     })
 
     const persistedMembers = await database.members.toArray()
@@ -194,12 +201,14 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
     await services.useCases.registerMember.handle({
       firstName: 'John',
       lastName: 'Smith',
-      phoneNumber: '+48 987 654 321'
+      phoneNumber: '+48 987 654 321',
+      dateOfBirth: createBirthDate('2011-01-01T00:00:00Z')
     })
 
     const persistedMembers = await database.members.toArray()
@@ -241,12 +250,14 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
     await services.useCases.registerMember.handle({
       firstName: 'John',
       lastName: 'Smith',
-      phoneNumber: '+48 987 654 321'
+      phoneNumber: '+48 987 654 321',
+      dateOfBirth: createBirthDate('2011-01-01T00:00:00Z')
     })
 
     const persistedMembers = await database.members.toArray()
@@ -516,14 +527,16 @@ describe('appServices', () => {
     await useCase.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     await expect(
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: '+48123456789',
+        dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
       })
     ).rejects.toThrow(MemberAlreadyExistsError)
 
@@ -539,12 +552,14 @@ describe('appServices', () => {
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48 123 456 789'
+        phoneNumber: '+48 123 456 789',
+        dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
       }),
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48123456789'
+        phoneNumber: '+48123456789',
+        dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
       })
     ])
 
@@ -571,13 +586,15 @@ describe('appServices', () => {
     await useCase.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48123456789'
+      phoneNumber: '+48123456789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     await useCase.handle({
       firstName: 'John',
       lastName: 'Doe',
-      phoneNumber: '+48123456789'
+      phoneNumber: '+48123456789',
+      dateOfBirth: createBirthDate('2011-01-01T00:00:00Z')
     })
 
     await expect(database.members.toArray()).resolves.toHaveLength(2)
@@ -590,7 +607,8 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     const persistedMember = (await database.members.toArray())[0]
@@ -625,7 +643,8 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     const persistedMember = (await database.members.toArray())[0]
@@ -670,7 +689,8 @@ describe('appServices', () => {
     await services.useCases.registerMember.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
     })
 
     const persistedMember = (await database.members.toArray())[0]

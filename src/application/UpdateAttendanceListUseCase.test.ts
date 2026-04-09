@@ -15,8 +15,6 @@ import {
 } from '@/domain/model/AttendanceList'
 import type { Member } from '@/domain/model/member'
 import { MemberNotFoundError } from '@/domain/model/member'
-import type { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
@@ -50,13 +48,13 @@ class FakeMemberRepo implements MemberRepoPort {
     return this.existingMemberIds.has(memberId)
   }
 
-  async existsByNameAndPhone(
+  async existsByNameAndBirthDate(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
     _firstName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
     _lastName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
-    _phoneNumber: PhoneNumber
+    _dateOfBirth: Date
   ): Promise<boolean> {
     return false
   }

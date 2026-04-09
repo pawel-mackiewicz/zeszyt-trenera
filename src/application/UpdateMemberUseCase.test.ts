@@ -11,10 +11,7 @@ import {
   MemberUpdatedDomainEvent
 } from '@/domain/model/member'
 import { Member, type MemberSnapshot } from '@/domain/model/member'
-import {
-  InvalidPhoneNumberError,
-  type PhoneNumber
-} from '@/domain/model/vo/PhoneNumber'
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
@@ -45,13 +42,13 @@ class FakeMemberRepo implements MemberRepoPort {
     return this.membersById.has(memberId)
   }
 
-  async existsByNameAndPhone(
+  async existsByNameAndBirthDate(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
     _firstName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
     _lastName: string,
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
-    _phoneNumber: PhoneNumber
+    _dateOfBirth: Date
   ): Promise<boolean> {
     return false
   }

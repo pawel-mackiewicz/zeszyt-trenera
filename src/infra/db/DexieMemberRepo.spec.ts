@@ -13,6 +13,10 @@ function createPhoneNumber(rawPhoneNumber = '+48123456789') {
   return PhoneNumber.create(rawPhoneNumber)
 }
 
+function createBirthDate(rawBirthDate = '2010-01-01T00:00:00Z') {
+  return new Date(rawBirthDate)
+}
+
 describe('DexieMemberRepo', () => {
   let database: TrainerNotebookDb
   let repository: DexieMemberRepo
@@ -33,7 +37,7 @@ describe('DexieMemberRepo', () => {
         firstName: 'Jane',
         lastName: 'Doe',
         phoneNumber: createPhoneNumber(),
-        dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+        dateOfBirth: createBirthDate(),
         joinedAt: new Date('2024-09-01T00:00:00Z')
       },
       'member-1'
@@ -59,7 +63,8 @@ describe('DexieMemberRepo', () => {
     const [member] = Member.register(
       {
         firstName: 'Jane',
-        lastName: 'Doe'
+        lastName: 'Doe',
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -72,6 +77,7 @@ describe('DexieMemberRepo', () => {
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,
+      dateOfBirth: member.dateOfBirth,
       createdAt: member.createdAt
     })
     expect(persistedMember && 'phoneNumber' in persistedMember).toBe(false)
@@ -82,7 +88,8 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'JaNe',
         lastName: 'dOe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -98,7 +105,7 @@ describe('DexieMemberRepo', () => {
 
   it('reports when no matching member exists yet', async () => {
     await expect(
-      repository.existsByNameAndPhone('Jane', 'Doe', createPhoneNumber())
+      repository.existsByNameAndBirthDate('Jane', 'Doe', createBirthDate())
     ).resolves.toBe(false)
   })
 
@@ -106,12 +113,13 @@ describe('DexieMemberRepo', () => {
     await expect(repository.existsById('member-1')).resolves.toBe(false)
   })
 
-  it('reports when the same name and phone number already exist', async () => {
+  it('reports when the same name and birth date already exist', async () => {
     const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -119,16 +127,17 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('jane', 'doe', createPhoneNumber())
+      repository.existsByNameAndBirthDate('jane', 'doe', createBirthDate())
     ).resolves.toBe(true)
   })
 
-  it('does not treat a matching phone number with a different name as a duplicate', async () => {
+  it('does not treat a matching birth date with a different name as a duplicate', async () => {
     const [member] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -136,7 +145,29 @@ describe('DexieMemberRepo', () => {
     await repository.save(member)
 
     await expect(
-      repository.existsByNameAndPhone('john', 'doe', createPhoneNumber())
+      repository.existsByNameAndBirthDate('john', 'doe', createBirthDate())
+    ).resolves.toBe(false)
+  })
+
+  it('does not treat the same normalized name with a different birth date as a duplicate', async () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
+      },
+      'member-1'
+    )
+
+    await repository.save(member)
+
+    await expect(
+      repository.existsByNameAndBirthDate(
+        'jane',
+        'doe',
+        createBirthDate('2011-01-01T00:00:00Z')
+      )
     ).resolves.toBe(false)
   })
 
@@ -145,7 +176,8 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -160,7 +192,8 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -190,7 +223,8 @@ describe('DexieMemberRepo', () => {
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
@@ -201,6 +235,7 @@ describe('DexieMemberRepo', () => {
     expect(loaded).not.toBeNull()
     expect(loaded?.id).toBe('member-1')
     expect(loaded?.phoneNumber?.value).toBe('+48123456789')
+    expect(loaded?.dateOfBirth).toEqual(createBirthDate())
   })
 
   it('rehydrates a member aggregate without a phone when the row omits it', async () => {
@@ -217,19 +252,20 @@ describe('DexieMemberRepo', () => {
     expect(loaded?.phoneNumber).toBeUndefined()
   })
 
-  it('checks duplicate identity lookup by name and phone', async () => {
+  it('checks duplicate identity lookup by name and birth date', async () => {
     const [memberOne] = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       },
       'member-1'
     )
     await repository.save(memberOne)
 
     await expect(
-      repository.existsByNameAndPhone('jane', 'doe', createPhoneNumber())
+      repository.existsByNameAndBirthDate('jane', 'doe', createBirthDate())
     ).resolves.toBe(true)
   })
 })

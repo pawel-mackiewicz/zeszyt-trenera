@@ -116,11 +116,12 @@ async function handleSubmit() {
 
   const fName = firstName.value.trim()
   const lName = lastName.value.trim()
+  const birthDateValue = dateOfBirth.value
   const countryCodePart = countryCode.value.trim()
   const phoneNumberPart = phoneNumberRest.value.trim()
 
-  if (!fName || !lName) {
-    // What: keep the form state as a local error key. Why: required-field guidance is specific to this form and belongs next to its field copy.
+  if (!fName || !lName || !birthDateValue) {
+    // What: block empty birth dates in the same local guard as missing names. Why: the screen now mirrors the stricter registration contract so incomplete identity data never reaches the write workflow.
     submitErrorKey.value = 'required'
     return
   }
@@ -138,9 +139,8 @@ async function handleSubmit() {
       lastName: lName,
       // What: send null when the local phone part is empty. Why: the application layer should receive an explicit absence instead of inferring meaning from the UI’s split input state.
       phoneNumber,
-      ...(dateOfBirth.value
-        ? { dateOfBirth: toUtcDate(dateOfBirth.value) }
-        : {}),
+      // What: always submit the canonical UTC birth date. Why: registration now requires that value and uses it for offline duplicate checks.
+      dateOfBirth: toUtcDate(birthDateValue)!,
       ...(joinedAt.value ? { joinedAt: toUtcDate(joinedAt.value) } : {})
     })
 
@@ -169,7 +169,7 @@ async function handleSubmit() {
       <!-- Personal Information Cluster -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
         <div class="relative group">
-          <!-- What: show a stronger required marker only on the two identity fields the app must have. Why: registration now matches the application contract where phone and dates can stay empty, so the mandatory fields need to stand out at a glance on small screens. -->
+          <!-- What: show a stronger required marker on every field the add-member flow refuses to save without. Why: coaches fill this form quickly on small screens, so the mandatory inputs must be obvious before they hit a validation alert. -->
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="firstName"
@@ -249,10 +249,16 @@ async function handleSubmit() {
           </div>
         </div>
         <div class="relative group md:col-span-2">
+          <!-- What: mark birth date as required on the section label while keeping age as the faster helper input. Why: the saved member profile now must always include one canonical birth date, but coaches can still reach it through the age shortcut. -->
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="dateOfBirth"
-            >{{ t('fields.dateOfBirth.label') }}</label
+            >{{ t('fields.dateOfBirth.label') }}
+            <span
+              aria-hidden="true"
+              class="ml-1 inline-block text-sm leading-none font-black text-danger"
+              >*</span
+            ></label
           >
           <!-- What: keep the age shortcut and exact birth date in one inline row. Why: coaches should be able to compare and adjust both values without toggling modes or leaving the form rhythm used elsewhere in the app. -->
           <div
@@ -292,6 +298,7 @@ async function handleSubmit() {
                 v-model="dateOfBirthInputModel"
                 class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200 uppercase"
                 type="date"
+                required
               />
             </div>
           </div>
@@ -332,10 +339,10 @@ async function handleSubmit() {
       "submitting": "Zapisywanie"
     },
     "errors": {
-      "required": "Podaj imię i nazwisko.",
+      "required": "Podaj imię, nazwisko i datę urodzenia.",
       "submit": "Nie udało się zapisać członka. Sprawdź dane i spróbuj ponownie.",
       "invalidPhoneNumber": "Sprawdź numer telefonu. Użyj numeru z kierunkowym kraju, na przykład +48 000 000 000.",
-      "alreadyExists": "Członek z takim imieniem, nazwiskiem i numerem telefonu jest już zapisany.",
+      "alreadyExists": "Członek z takim imieniem, nazwiskiem i datą urodzenia jest już zapisany.",
       "invalidBirthDate": "Data urodzenia musi być w przeszłości.",
       "invalidJoinDate": "Data dołączenia musi być późniejsza niż data urodzenia i nie może być z przyszłości.",
       "invalidName": "W polach imię i nazwisko użyj tylko liter, spacji lub łączników."
@@ -373,10 +380,10 @@ async function handleSubmit() {
       "submitting": "Saving"
     },
     "errors": {
-      "required": "Enter the first name and last name.",
+      "required": "Enter the first name, last name, and date of birth.",
       "submit": "The member could not be saved. Check the details and try again.",
       "invalidPhoneNumber": "Check the phone number. Use a number with the country code, for example +48 000 000 000.",
-      "alreadyExists": "A member with this name and phone number is already saved.",
+      "alreadyExists": "A member with this name and date of birth is already saved.",
       "invalidBirthDate": "The date of birth must be in the past.",
       "invalidJoinDate": "The join date must be after the date of birth and cannot be in the future.",
       "invalidName": "Use only letters, spaces, or hyphens in the name fields."

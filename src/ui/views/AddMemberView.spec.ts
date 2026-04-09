@@ -73,6 +73,7 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="dateOfBirth"]').setValue('1990-01-01')
     await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
     await wrapper.find('input[id="phoneNumberRest"]').setValue('111 222 333')
     await wrapper.find('form').trigger('submit.prevent')
@@ -142,13 +143,15 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="dateOfBirth"]').setValue('1990-01-01')
 
     await wrapper.find('form').trigger('submit.prevent')
 
     expect(mockRegisterMemberHandle).toHaveBeenCalledWith({
       firstName: 'Bao',
       lastName: 'Ninh',
-      phoneNumber: null
+      phoneNumber: null,
+      dateOfBirth: new Date('1990-01-01T00:00:00Z')
     })
   })
 
@@ -212,7 +215,7 @@ describe('AddMemberView', () => {
     ).toBe('')
   })
 
-  it('marks only the name inputs as required in the registration form', () => {
+  it('marks the add-member mandatory fields as required in the registration form', () => {
     const wrapper = mountView('en')
     const labelTexts = wrapper
       .findAll('label')
@@ -221,8 +224,8 @@ describe('AddMemberView', () => {
 
     expect(
       labelTexts.filter((labelText) => labelText.includes('*'))
-    ).toStrictEqual(['First name *', 'Last name *'])
-    expect(requiredMarkers).toHaveLength(2)
+    ).toStrictEqual(['First name *', 'Last name *', 'Date of birth *'])
+    expect(requiredMarkers).toHaveLength(3)
     expect(requiredMarkers[0]?.classes()).toEqual(
       expect.arrayContaining([
         'ml-1',
@@ -243,7 +246,7 @@ describe('AddMemberView', () => {
       wrapper.get('input[id="phoneNumberRest"]').attributes('required')
     ).toBeUndefined()
     expect(wrapper.get('input[id="dateOfBirth"]').attributes('required')).toBe(
-      undefined
+      ''
     )
     expect(wrapper.get('input[id="joinedAt"]').attributes('required')).toBe(
       undefined
@@ -259,6 +262,7 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="dateOfBirth"]').setValue('1990-01-01')
     await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
     await wrapper.find('input[id="phoneNumberRest"]').setValue('bad-number')
 
@@ -275,7 +279,20 @@ describe('AddMemberView', () => {
 
     await wrapper.find('form').trigger('submit.prevent')
 
-    expect(wrapper.text()).toContain('Podaj imię i nazwisko.')
+    expect(wrapper.text()).toContain('Podaj imię, nazwisko i datę urodzenia.')
+    expect(mockRegisterMemberHandle).not.toHaveBeenCalled()
+  })
+
+  it('blocks submit when the birth date is missing even if the names are filled', async () => {
+    const wrapper = mountView('en')
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(wrapper.text()).toContain(
+      'Enter the first name, last name, and date of birth.'
+    )
     expect(mockRegisterMemberHandle).not.toHaveBeenCalled()
   })
 
@@ -286,6 +303,7 @@ describe('AddMemberView', () => {
 
     await wrapper.find('input[id="firstName"]').setValue('Bao')
     await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('input[id="dateOfBirth"]').setValue('1990-01-01')
     await wrapper.find('input[id="phoneCountryCode"]').setValue('+48')
     await wrapper.find('input[id="phoneNumberRest"]').setValue('111 222 333')
 

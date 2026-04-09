@@ -7,11 +7,9 @@ import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import type { DomainEvent } from '@/domain/events/DomainEvent'
+import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import {
-  InvalidPhoneNumberError,
-  type PhoneNumber
-} from '@/domain/model/vo/PhoneNumber'
-import {
+  InvalidMemberBirthDateError,
   Member,
   MemberAlreadyExistsError,
   MemberCreatedDomainEvent
@@ -37,13 +35,13 @@ class FakeMemberRepo implements MemberRepoPort {
   public readonly existsChecks: Array<{
     firstName: string
     lastName: string
-    phoneNumber: string
+    dateOfBirth: Date
   }> = []
   public existingIdentity:
     | {
         firstName: string
         lastName: string
-        phoneNumber: string
+        dateOfBirth: Date
       }
     | undefined
 
@@ -66,26 +64,27 @@ class FakeMemberRepo implements MemberRepoPort {
     return this.savedMembers.some((member) => member.id === memberId)
   }
 
-  async existsByNameAndPhone(
+  async existsByNameAndBirthDate(
     firstName: string,
     lastName: string,
-    phoneNumber: PhoneNumber
+    dateOfBirth: Date
   ): Promise<boolean> {
     this.existsChecks.push({
       firstName,
       lastName,
-      phoneNumber: phoneNumber.value
+      dateOfBirth: new Date(dateOfBirth.getTime())
     })
 
     return (
       (this.existingIdentity?.firstName === firstName &&
         this.existingIdentity?.lastName === lastName &&
-        this.existingIdentity?.phoneNumber === phoneNumber.value) ||
+        this.existingIdentity?.dateOfBirth.getTime() ===
+          dateOfBirth.getTime()) ||
       this.savedMembers.some(
         (member) =>
           member.firstName === firstName &&
           member.lastName === lastName &&
-          member.phoneNumber?.value === phoneNumber.value
+          member.dateOfBirth?.getTime() === dateOfBirth.getTime()
       )
     )
   }
@@ -142,7 +141,7 @@ describe('RegisterMemberUseCase', () => {
       {
         firstName: 'jane',
         lastName: 'doe',
-        phoneNumber: '+48123456789'
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       }
     ])
     expect(uow.execute).toHaveBeenCalledTimes(1)
@@ -173,7 +172,8 @@ describe('RegisterMemberUseCase', () => {
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '123456789'
+        phoneNumber: '123456789',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       })
     ).rejects.toThrow(InvalidPhoneNumberError)
 
@@ -184,14 +184,36 @@ describe('RegisterMemberUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
-  it('registers a member without phone and skips duplicate lookup', async () => {
+  it('throws before opening the unit of work when birth date is missing at runtime', async () => {
+    await expect(
+      useCase.handle({
+        firstName: 'Jane',
+        lastName: 'Doe'
+      } as unknown as RegisterMemberCommand)
+    ).rejects.toThrow(InvalidMemberBirthDateError)
+
+    expect(memberRepo.existsChecks).toHaveLength(0)
+    expect(uow.execute).toHaveBeenCalledTimes(1)
+    expect(idGenerator.generatedIds).toEqual(['member-generated-by-test'])
+    expect(memberRepo.savedMembers).toHaveLength(0)
+    expect(eventRepo.savedEvents).toHaveLength(0)
+  })
+
+  it('registers a member without phone and still checks duplicates by birth date', async () => {
     await useCase.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '   '
+      phoneNumber: '   ',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     })
 
-    expect(memberRepo.existsChecks).toHaveLength(0)
+    expect(memberRepo.existsChecks).toEqual([
+      {
+        firstName: 'jane',
+        lastName: 'doe',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
+      }
+    ])
     expect(memberRepo.savedMembers).toHaveLength(1)
     expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
     expect(eventRepo.savedEvents).toHaveLength(1)
@@ -208,10 +230,17 @@ describe('RegisterMemberUseCase', () => {
     await useCase.handle({
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: null
+      phoneNumber: null,
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     })
 
-    expect(memberRepo.existsChecks).toHaveLength(0)
+    expect(memberRepo.existsChecks).toEqual([
+      {
+        firstName: 'jane',
+        lastName: 'doe',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
+      }
+    ])
     expect(memberRepo.savedMembers).toHaveLength(1)
     expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
     expect(eventRepo.savedEvents).toHaveLength(1)
@@ -228,14 +257,15 @@ describe('RegisterMemberUseCase', () => {
     memberRepo.existingIdentity = {
       firstName: 'jane',
       lastName: 'doe',
-      phoneNumber: '+48123456789'
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     }
 
     await expect(
       useCase.handle({
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48 123 456 789'
+        phoneNumber: '+48 123 456 789',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       })
     ).rejects.toThrow(MemberAlreadyExistsError)
 
@@ -243,7 +273,7 @@ describe('RegisterMemberUseCase', () => {
       {
         firstName: 'jane',
         lastName: 'doe',
-        phoneNumber: '+48123456789'
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       }
     ])
     expect(uow.execute).toHaveBeenCalledTimes(1)
@@ -252,18 +282,38 @@ describe('RegisterMemberUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
+  it('allows the same normalized name when the birth date differs', async () => {
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
+    })
+
+    await useCase.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: null,
+      dateOfBirth: new Date('2011-01-01T00:00:00Z')
+    })
+
+    expect(memberRepo.savedMembers).toHaveLength(2)
+    expect(eventRepo.savedEvents).toHaveLength(2)
+  })
+
   it('rejects a concurrent second registration for the same normalized identity', async () => {
     const dto: RegisterMemberCommand = {
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     }
 
     const results = await Promise.allSettled([
       useCase.handle(dto),
       useCase.handle({
         ...dto,
-        phoneNumber: '+48123456789'
+        phoneNumber: null
       })
     ])
 
