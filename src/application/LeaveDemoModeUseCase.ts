@@ -21,5 +21,7 @@ export class LeaveDemoModeUseCase implements UseCase<LeaveDemoModeCommand> {
 
     // Why: the "do not auto-seed again" choice has to survive the database wipe itself, so the lifecycle flag lives outside Dexie and is written only after the local notebook is clean.
     await this.demoLifecycleStore.writeState('dismissed')
+    // Why: removing the active-demo marker after the dismissal write keeps refreshed shells from reopening demo chrome if storage writes partially fail on a flaky mobile browser.
+    await this.demoLifecycleStore.writeDemoModeActive(false)
   }
 }
