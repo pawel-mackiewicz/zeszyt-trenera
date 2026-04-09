@@ -460,6 +460,7 @@ async function confirmResetApplicationData() {
       confirmationPhrase: resetConfirmationInput.value
     })
     closeResetModal()
+    reloadApplication()
   } catch (error) {
     resetErrorVisible.value = true
     console.error('Failed to reset all local application data.', error)
@@ -490,6 +491,7 @@ async function leaveDemoMode() {
 }
 
 function reloadApplication() {
+  // What: restart the whole shell after a successful full reset. Why: the current session still holds Pinia and i18n state in memory, so a cold boot is the safe way to reflect the cleared local-first state immediately.
   window.location.reload()
 }
 
@@ -1226,7 +1228,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "resetData": {
         "action": "Reset aplikacji",
         "confirm": "Usuń wszystko",
-        "copy": "To usunie wszystkich członków, treningi, płatności, ustawienia klubu i trenera tylko z tego urządzenia.",
+        "copy": "To usunie wszystkich członków, treningi, płatności, konfigurację klubu i trenera oraz lokalne ustawienia aplikacji zapisane na tym urządzeniu.",
         "error": "Nie udało się wyczyścić danych. Spróbuj ponownie.",
         "inputLabel": "Wpisz frazę potwierdzającą",
         "pending": "Usuwanie...",
@@ -1341,7 +1343,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "resetData": {
         "action": "Reset app data",
         "confirm": "Delete everything",
-        "copy": "This removes all members, trainings, payments, and club/trainer setup only on this device.",
+        "copy": "This removes all members, trainings, payments, club/trainer setup, and app-owned local state stored on this device.",
         "error": "Data reset failed. Try again.",
         "inputLabel": "Type the confirmation phrase",
         "pending": "Deleting...",

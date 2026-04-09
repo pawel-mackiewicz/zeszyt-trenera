@@ -1,6 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
 import { AttendanceListAlreadyExistsError } from '@/domain/model/AttendanceList'
 import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
@@ -24,8 +25,6 @@ vi.mock('@/ui/router/runtime', () => ({
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()
 }))
-
-const ATTENDANCE_DRAFT_STORAGE_KEY = 'zeszyt-trenera.attendance-draft'
 
 describe('AttendanceListView', () => {
   let mockRegisterAttendanceListHandle: Mock

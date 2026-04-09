@@ -2,8 +2,7 @@ import type {
   DemoLifecycleState,
   DemoLifecycleStorePort
 } from '@/application/ports/DemoLifecycleStorePort'
-
-export const DEMO_LIFECYCLE_STORAGE_KEY = 'zeszyt-trenera.demo-lifecycle'
+import { DEMO_LIFECYCLE_STORAGE_KEY } from '@/appStorageKeys'
 
 type LifecycleStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>
 

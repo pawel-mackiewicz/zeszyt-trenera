@@ -5,6 +5,7 @@ import {
   ResetApplicationDataUseCase
 } from '@/application/ResetApplicationDataUseCase'
 import type { AppResetRepoPort } from '@/application/ports/AppResetRepoPort'
+import type { AppStateResetPort } from '@/application/ports/AppStateResetPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 
 describe('ResetApplicationDataUseCase', () => {
@@ -12,10 +13,17 @@ describe('ResetApplicationDataUseCase', () => {
     const appResetRepo: AppResetRepoPort = {
       clearAllData: vi.fn().mockResolvedValue(undefined)
     }
+    const appStateReset: AppStateResetPort = {
+      clearPersistedState: vi.fn().mockResolvedValue(undefined)
+    }
     const unitOfWork: UnitOfWork = {
       execute: vi.fn(async (action) => await action())
     }
-    const useCase = new ResetApplicationDataUseCase(unitOfWork, appResetRepo)
+    const useCase = new ResetApplicationDataUseCase(
+      unitOfWork,
+      appResetRepo,
+      appStateReset
+    )
 
     await useCase.handle({
       confirmationPhrase: 'DELETE ALL DATA'
@@ -23,32 +31,48 @@ describe('ResetApplicationDataUseCase', () => {
 
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1)
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
+    expect(appStateReset.clearPersistedState).toHaveBeenCalledTimes(1)
   })
 
   it('accepts lower-case confirmation phrase', async () => {
     const appResetRepo: AppResetRepoPort = {
       clearAllData: vi.fn().mockResolvedValue(undefined)
     }
+    const appStateReset: AppStateResetPort = {
+      clearPersistedState: vi.fn().mockResolvedValue(undefined)
+    }
     const unitOfWork: UnitOfWork = {
       execute: vi.fn(async (action) => await action())
     }
-    const useCase = new ResetApplicationDataUseCase(unitOfWork, appResetRepo)
+    const useCase = new ResetApplicationDataUseCase(
+      unitOfWork,
+      appResetRepo,
+      appStateReset
+    )
 
     await useCase.handle({
       confirmationPhrase: 'delete all data'
     })
     expect(unitOfWork.execute).toHaveBeenCalledTimes(1)
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
+    expect(appStateReset.clearPersistedState).toHaveBeenCalledTimes(1)
   })
 
   it('rejects reset when confirmation phrase is invalid', async () => {
     const appResetRepo: AppResetRepoPort = {
       clearAllData: vi.fn().mockResolvedValue(undefined)
     }
+    const appStateReset: AppStateResetPort = {
+      clearPersistedState: vi.fn().mockResolvedValue(undefined)
+    }
     const unitOfWork: UnitOfWork = {
       execute: vi.fn(async (action) => await action())
     }
-    const useCase = new ResetApplicationDataUseCase(unitOfWork, appResetRepo)
+    const useCase = new ResetApplicationDataUseCase(
+      unitOfWork,
+      appResetRepo,
+      appStateReset
+    )
 
     await expect(
       useCase.handle({
@@ -57,5 +81,6 @@ describe('ResetApplicationDataUseCase', () => {
     ).rejects.toBeInstanceOf(InvalidResetConfirmationPhraseError)
     expect(unitOfWork.execute).not.toHaveBeenCalled()
     expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
+    expect(appStateReset.clearPersistedState).not.toHaveBeenCalled()
   })
 })
