@@ -1,3 +1,4 @@
+import type { AppStateResetPort } from '@/application/ports/AppStateResetPort'
 import type { AppResetRepoPort } from '@/application/ports/AppResetRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import {
@@ -16,7 +17,8 @@ export class InvalidResetConfirmationPhraseError extends Error {
 export class ResetApplicationDataUseCase implements UseCase<ResetApplicationDataCommand> {
   public constructor(
     private readonly unitOfWork: UnitOfWork,
-    private readonly appResetRepo: AppResetRepoPort
+    private readonly appResetRepo: AppResetRepoPort,
+    private readonly appStateReset: AppStateResetPort
   ) {}
 
   public async handle(request: ResetApplicationDataCommand): Promise<void> {
@@ -32,5 +34,8 @@ export class ResetApplicationDataUseCase implements UseCase<ResetApplicationData
     await this.unitOfWork.execute(async () => {
       await this.appResetRepo.clearAllData()
     })
+
+    // Why: Dexie reset alone is not enough for a true factory reset because the shell also keeps a small amount of browser state outside the database.
+    await this.appStateReset.clearPersistedState()
   }
 }

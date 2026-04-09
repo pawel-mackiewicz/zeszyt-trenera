@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
+import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
 import {
   AttendanceListAlreadyExistsError,
   InvalidAttendanceListStartError
@@ -26,8 +27,6 @@ type AttendanceDraft = {
   sessionTime: string
   selectedMemberIds: string[]
 }
-
-const ATTENDANCE_DRAFT_STORAGE_KEY = 'zeszyt-trenera.attendance-draft'
 
 const router = useRouter()
 const { useCases } = useAppServices()

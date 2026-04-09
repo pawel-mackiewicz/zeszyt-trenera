@@ -34,6 +34,7 @@ import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRep
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
+import { LocalStorageAppStateResetter } from '@/infra/LocalStorageAppStateResetter'
 import { LocalStorageDemoLifecycleStore } from '@/infra/LocalStorageDemoLifecycleStore'
 import { SystemClock } from '@/infra/SystemClock'
 import {
@@ -117,6 +118,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new DexieAttendanceListRepo(database)
   )
   const resolveAppResetRepo = lazy(() => new DexieAppResetRepo(database))
+  const resolveAppStateReset = lazy(() => new LocalStorageAppStateResetter())
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
@@ -229,7 +231,8 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () =>
       new ResetApplicationDataUseCase(
         resolveUnitOfWork(),
-        resolveAppResetRepo()
+        resolveAppResetRepo(),
+        resolveAppStateReset()
       )
   )
 

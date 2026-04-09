@@ -3,13 +3,14 @@ import { createPinia, setActivePinia } from 'pinia'
 import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
+import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
 import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppShell from '@/ui/components/AppShell.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
-import { APP_LOCALE_STORAGE_KEY, createAppI18n } from '@/ui/i18n'
+import { createAppI18n } from '@/ui/i18n'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
@@ -567,6 +568,9 @@ describe('AppShell', () => {
   })
 
   it('resets app data after explicit confirmation phrase and confirm click', async () => {
+    const reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
     })
@@ -581,11 +585,17 @@ describe('AppShell', () => {
     expect(mockResetApplicationData).toHaveBeenCalledWith({
       confirmationPhrase: 'DELETE ALL DATA'
     })
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).not.toContain('Usuń wszystkie dane aplikacji')
+
+    reloadSpy.mockRestore()
   })
 
   it('keeps reset failures visible above the confirmation modal', async () => {
     mockResetApplicationData.mockRejectedValueOnce(new Error('reset failed'))
+    const reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
 
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
@@ -606,5 +616,8 @@ describe('AppShell', () => {
     expect(resetErrorAlert.text()).toContain(
       'Nie udało się wyczyścić danych. Spróbuj ponownie.'
     )
+    expect(reloadSpy).not.toHaveBeenCalled()
+
+    reloadSpy.mockRestore()
   })
 })

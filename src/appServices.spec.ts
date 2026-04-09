@@ -2,6 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Observable } from 'dexie'
 
 import {
+  APP_LOCALE_STORAGE_KEY,
+  ATTENDANCE_DRAFT_STORAGE_KEY,
+  DEMO_LIFECYCLE_STORAGE_KEY,
+  INSTALL_MODAL_SHOWN_STORAGE_KEY
+} from '@/appStorageKeys'
+import {
   AttendanceListAlreadyExistsError,
   type AttendanceListSnapshot
 } from '@/domain/model/AttendanceList'
@@ -93,7 +99,7 @@ describe('appServices', () => {
     expect(services.useCases.updateMember).toBe(services.useCases.updateMember)
   })
 
-  it('assembles the app reset workflow that clears every persisted table', async () => {
+  it('assembles the app reset workflow that clears persisted data and app-owned browser state', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerClub.handle({
@@ -120,6 +126,17 @@ describe('appServices', () => {
       memberIds: [persistedMember.id],
       start: new Date('2026-03-30T18:00:00Z')
     })
+    window.localStorage.setItem(APP_LOCALE_STORAGE_KEY, 'en')
+    window.localStorage.setItem(INSTALL_MODAL_SHOWN_STORAGE_KEY, '1')
+    window.localStorage.setItem(DEMO_LIFECYCLE_STORAGE_KEY, 'dismissed')
+    window.localStorage.setItem(
+      ATTENDANCE_DRAFT_STORAGE_KEY,
+      JSON.stringify({
+        sessionDate: '2026-03-30',
+        sessionTime: '18:00',
+        selectedMemberIds: [persistedMember.id]
+      })
+    )
 
     await services.useCases.resetApplicationData.handle({
       confirmationPhrase: 'DELETE ALL DATA'
@@ -131,6 +148,12 @@ describe('appServices', () => {
     await expect(database.membershipPayments.count()).resolves.toBe(0)
     await expect(database.attendanceLists.count()).resolves.toBe(0)
     await expect(database.events.count()).resolves.toBe(0)
+    expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBeNull()
+    expect(
+      window.localStorage.getItem(INSTALL_MODAL_SHOWN_STORAGE_KEY)
+    ).toBeNull()
+    expect(window.localStorage.getItem(DEMO_LIFECYCLE_STORAGE_KEY)).toBeNull()
+    expect(window.localStorage.getItem(ATTENDANCE_DRAFT_STORAGE_KEY)).toBeNull()
   })
 
   it('assembles Dexie adapters that persist a club and matching event row', async () => {

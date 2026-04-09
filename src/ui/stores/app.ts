@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 
+import { INSTALL_MODAL_SHOWN_STORAGE_KEY } from '@/appStorageKeys'
 import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
 
 export type AppReadiness = 'checking' | 'ready' | 'blocked'
@@ -10,9 +11,6 @@ export type UpdateErrorKind = 'registration' | 'activation'
 export type UpdateErrorState = {
   kind: UpdateErrorKind
 }
-
-const INSTALL_MODAL_SHOWN_STORAGE_KEY =
-  'zeszyt-trenera.install-modal-shown-once'
 
 function isStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches

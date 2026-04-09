@@ -1,9 +1,10 @@
 import { createI18n } from 'vue-i18n'
+import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
 
-export const APP_LOCALE_STORAGE_KEY = 'zeszyt-trenera.locale'
 export const APP_LOCALES = ['pl', 'en'] as const
 export const APP_FALLBACK_LOCALE = 'en' as const
 export const APP_DEFAULT_LOCALE = 'pl' as const
+export { APP_LOCALE_STORAGE_KEY }
 
 export type AppLocale = (typeof APP_LOCALES)[number]
 
