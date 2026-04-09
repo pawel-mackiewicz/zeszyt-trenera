@@ -5,6 +5,7 @@ import {
   APP_LOCALE_STORAGE_KEY,
   ATTENDANCE_DRAFT_STORAGE_KEY,
   DEMO_LIFECYCLE_STORAGE_KEY,
+  DEMO_MODE_ACTIVE_STORAGE_KEY,
   INSTALL_MODAL_SHOWN_STORAGE_KEY
 } from '@/appStorageKeys'
 import {
@@ -129,6 +130,7 @@ describe('appServices', () => {
     window.localStorage.setItem(APP_LOCALE_STORAGE_KEY, 'en')
     window.localStorage.setItem(INSTALL_MODAL_SHOWN_STORAGE_KEY, '1')
     window.localStorage.setItem(DEMO_LIFECYCLE_STORAGE_KEY, 'dismissed')
+    window.localStorage.setItem(DEMO_MODE_ACTIVE_STORAGE_KEY, '1')
     window.localStorage.setItem(
       ATTENDANCE_DRAFT_STORAGE_KEY,
       JSON.stringify({
@@ -153,6 +155,7 @@ describe('appServices', () => {
       window.localStorage.getItem(INSTALL_MODAL_SHOWN_STORAGE_KEY)
     ).toBeNull()
     expect(window.localStorage.getItem(DEMO_LIFECYCLE_STORAGE_KEY)).toBeNull()
+    expect(window.localStorage.getItem(DEMO_MODE_ACTIVE_STORAGE_KEY)).toBeNull()
     expect(window.localStorage.getItem(ATTENDANCE_DRAFT_STORAGE_KEY)).toBeNull()
   })
 
@@ -515,6 +518,27 @@ describe('appServices', () => {
     expect(previousMonthSessions).toHaveLength(
       expectedDemoSeed.summary.previousMonthSessionCount
     )
+    expect(window.localStorage.getItem(DEMO_MODE_ACTIVE_STORAGE_KEY)).toBe('1')
+  })
+
+  it('keeps demo mode active after a refreshed boot while the seeded notebook still exists', async () => {
+    const services = createAppServices(database)
+
+    await expect(
+      services.useCases.bootstrapDemoMode.handle({})
+    ).resolves.toEqual({
+      mode: 'demo',
+      introModal: true
+    })
+
+    const refreshedServices = createAppServices(database)
+
+    await expect(
+      refreshedServices.useCases.bootstrapDemoMode.handle({})
+    ).resolves.toEqual({
+      mode: 'demo',
+      introModal: false
+    })
   })
 
   it('assembles the leave-demo workflow that clears seeded data and suppresses future auto-demo boots', async () => {
@@ -529,6 +553,10 @@ describe('appServices', () => {
     await expect(database.membershipPayments.count()).resolves.toBe(0)
     await expect(database.attendanceLists.count()).resolves.toBe(0)
     await expect(database.events.count()).resolves.toBe(0)
+    expect(window.localStorage.getItem(DEMO_LIFECYCLE_STORAGE_KEY)).toBe(
+      'dismissed'
+    )
+    expect(window.localStorage.getItem(DEMO_MODE_ACTIVE_STORAGE_KEY)).toBeNull()
     await expect(
       services.useCases.bootstrapDemoMode.handle({})
     ).resolves.toEqual({

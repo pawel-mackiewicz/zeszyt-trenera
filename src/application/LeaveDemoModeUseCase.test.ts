@@ -14,8 +14,10 @@ describe('LeaveDemoModeUseCase', () => {
       clearAllData: vi.fn().mockResolvedValue(undefined)
     }
     const demoLifecycleStore: DemoLifecycleStorePort = {
-      readState: vi.fn().mockResolvedValue('active'),
-      writeState: vi.fn().mockResolvedValue(undefined)
+      readState: vi.fn().mockResolvedValue('uninitialized'),
+      writeState: vi.fn().mockResolvedValue(undefined),
+      readDemoModeActive: vi.fn().mockResolvedValue(true),
+      writeDemoModeActive: vi.fn().mockResolvedValue(undefined)
     }
     const useCase = new LeaveDemoModeUseCase(
       unitOfWork,
@@ -26,5 +28,6 @@ describe('LeaveDemoModeUseCase', () => {
     await expect(useCase.handle({})).resolves.toBeUndefined()
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
     expect(demoLifecycleStore.writeState).toHaveBeenCalledWith('dismissed')
+    expect(demoLifecycleStore.writeDemoModeActive).toHaveBeenCalledWith(false)
   })
 })

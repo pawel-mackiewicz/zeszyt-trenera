@@ -4,6 +4,7 @@ import {
   APP_LOCALE_STORAGE_KEY,
   ATTENDANCE_DRAFT_STORAGE_KEY,
   DEMO_LIFECYCLE_STORAGE_KEY,
+  DEMO_MODE_ACTIVE_STORAGE_KEY,
   INSTALL_MODAL_SHOWN_STORAGE_KEY
 } from '@/appStorageKeys'
 import { LocalStorageAppStateResetter } from '@/infra/LocalStorageAppStateResetter'
@@ -21,6 +22,7 @@ describe('LocalStorageAppStateResetter', () => {
       [APP_LOCALE_STORAGE_KEY],
       [INSTALL_MODAL_SHOWN_STORAGE_KEY],
       [DEMO_LIFECYCLE_STORAGE_KEY],
+      [DEMO_MODE_ACTIVE_STORAGE_KEY],
       [ATTENDANCE_DRAFT_STORAGE_KEY]
     ])
   })
@@ -34,6 +36,6 @@ describe('LocalStorageAppStateResetter', () => {
     const resetter = new LocalStorageAppStateResetter(storage)
 
     await expect(resetter.clearPersistedState()).resolves.toBeUndefined()
-    expect(storage.removeItem).toHaveBeenCalledTimes(4)
+    expect(storage.removeItem).toHaveBeenCalledTimes(5)
   })
 })

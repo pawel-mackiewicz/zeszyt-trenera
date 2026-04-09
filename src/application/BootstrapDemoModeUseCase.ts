@@ -48,6 +48,9 @@ export class BootstrapDemoModeUseCase implements UseCase<
     void request
 
     const lifecycleState = await this.demoLifecycleStore.readState()
+    const demoModeActive = await this.demoLifecycleStore.readDemoModeActive()
+    const clubExists = await this.clubRepo.exists()
+    const trainerExists = await this.trainerRepo.exists()
 
     if (lifecycleState === 'dismissed') {
       return {
@@ -56,7 +59,16 @@ export class BootstrapDemoModeUseCase implements UseCase<
       }
     }
 
-    if ((await this.clubRepo.exists()) || (await this.trainerRepo.exists())) {
+    // Why: the persisted demo flag describes which notebook is currently mounted, so a refresh must keep demo chrome visible as long as the local data still belongs to the seeded notebook.
+    if (demoModeActive && clubExists && trainerExists) {
+      return {
+        mode: 'demo',
+        introModal: false
+      }
+    }
+
+    // Why: only non-demo boots should treat existing setup rows as user-owned data; otherwise a refreshed demo notebook would be mistaken for a finished real setup.
+    if (!demoModeActive && (clubExists || trainerExists)) {
       return {
         mode: 'standard',
         introModal: false
@@ -65,7 +77,10 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
     const demoSeed = createDemoSeed(this.clock.now())
     const seededDemoMode = await this.unitOfWork.execute(async () => {
-      if ((await this.clubRepo.exists()) || (await this.trainerRepo.exists())) {
+      if (
+        !demoModeActive &&
+        ((await this.clubRepo.exists()) || (await this.trainerRepo.exists()))
+      ) {
         return false
       }
 
@@ -138,17 +153,17 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
     if (!seededDemoMode) {
       return {
-        mode: 'standard',
+        mode: demoModeActive ? 'demo' : 'standard',
         introModal: false
       }
     }
 
-    await this.demoLifecycleStore.writeState('active')
+    await this.demoLifecycleStore.writeDemoModeActive(true)
 
     return {
       mode: 'demo',
-      // Why: the modal should explain demo mode only on the first seeded boot; reopening it on every later launch would turn the shell into a repetitive blocker instead of a lightweight guide.
-      introModal: lifecycleState === 'uninitialized'
+      // Why: the modal should explain demo mode only on the first seeded boot; later repairs or refreshes should reopen straight into the notebook without repeating the same onboarding copy.
+      introModal: lifecycleState === 'uninitialized' && !demoModeActive
     }
   }
 }
