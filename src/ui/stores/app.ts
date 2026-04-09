@@ -58,8 +58,12 @@ export const useAppStore = defineStore('app', () => {
   const demoModeActive = ref(false)
   const demoIntroModalVisible = ref(false)
 
+  // What: treat demo mode as a no-install-prompt state for the shell. Why: the seeded notebook should stay focused on product exploration instead of interrupting trial sessions with install CTAs.
   const showInstallEntry = computed(
-    () => !installed.value && installSurface.value !== 'hidden'
+    () =>
+      !demoModeActive.value &&
+      !installed.value &&
+      installSurface.value !== 'hidden'
   )
   const shouldAutoOpenInstallModal = computed(
     () =>
@@ -167,6 +171,12 @@ export const useAppStore = defineStore('app', () => {
 
   function setDemoModeActive(value: boolean) {
     demoModeActive.value = value
+
+    if (value) {
+      // What: close install-only surfaces as soon as demo mode takes over the shell. Why: a coach browsing seeded data should not see stale install chrome that was prepared for the regular notebook flow.
+      installModalVisible.value = false
+      installCoachVisible.value = false
+    }
 
     if (!value) {
       demoIntroModalVisible.value = false

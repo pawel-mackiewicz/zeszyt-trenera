@@ -60,6 +60,24 @@ describe('useAppStore', () => {
     expect(store.installCoachVisible).toBe(false)
   })
 
+  it('suppresses install entry points while demo mode is active', () => {
+    const store = useAppStore()
+
+    store.setInstallSurface('native')
+    store.openInstallModal()
+    store.showInstallCoach()
+    store.setDemoModeActive(true)
+
+    expect(store.showInstallEntry).toBe(false)
+    expect(store.installModalVisible).toBe(false)
+    expect(store.installCoachVisible).toBe(false)
+
+    store.setDemoModeActive(false)
+
+    expect(store.showInstallEntry).toBe(true)
+    expect(store.installModalVisible).toBe(false)
+  })
+
   it('stores and clears service-worker registration errors without blocking the shell', () => {
     const store = useAppStore()
 

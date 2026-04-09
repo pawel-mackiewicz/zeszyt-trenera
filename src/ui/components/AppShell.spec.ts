@@ -235,6 +235,21 @@ describe('AppShell', () => {
     expect(store.showInstallEntry).toBe(true)
   })
 
+  it('keeps the install modal hidden while demo mode is active', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setInstallSurface('native')
+      appStore.setDemoModeActive(true)
+      appStore.setAppReady()
+    })
+
+    expect(wrapper.text()).not.toContain('Zainstaluj Zeszyt Trenera')
+
+    await wrapper.find('header button').trigger('click')
+
+    // What: assert the menu action disappears together with the modal trigger path. Why: hiding only the modal would leave a dead-end install CTA inside the demo shell.
+    expect(wrapper.text()).not.toContain('Zainstaluj aplikację')
+  })
+
   it('renders manual install steps when the browser has no native prompt', () => {
     vi.mocked(usePwaInstall).mockReturnValue({
       promptInstall: vi.fn().mockResolvedValue(false),
