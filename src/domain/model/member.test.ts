@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import {
@@ -15,6 +15,10 @@ function createPhoneNumber(rawPhoneNumber = '+48 123 456 789') {
 }
 
 describe('Member Model', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('should create a member with all required properties', () => {
     const id = 'member-1'
     const beforeCreation = new Date()
@@ -274,6 +278,23 @@ describe('Member Model', () => {
         'member-1'
       )
     ).toThrow(InvalidMemberBirthDateError)
+  })
+
+  it('allows January 1 in the 120-year boundary year', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    expect(() =>
+      Member.register(
+        {
+          firstName: 'Jane',
+          lastName: 'Doe',
+          phoneNumber: createPhoneNumber(),
+          dateOfBirth: new Date('1906-01-01T00:00:00Z')
+        },
+        'member-1'
+      )
+    ).not.toThrow()
   })
 
   it('rejects registration if joined_at is in the future', () => {

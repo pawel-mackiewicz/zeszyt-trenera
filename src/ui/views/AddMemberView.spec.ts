@@ -1,5 +1,13 @@
 import { mount } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock
+} from 'vitest'
 import { nextTick } from 'vue'
 
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
@@ -20,6 +28,10 @@ vi.mock('@/ui/appServices', () => ({
 describe('AddMemberView', () => {
   let mockRouterReplace: Mock
   let mockRegisterMemberHandle: Mock
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
 
   beforeEach(() => {
     mockRouterReplace = vi.fn()
@@ -105,6 +117,13 @@ describe('AddMemberView', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/member')
   })
 
+  it('renders age and exact date inputs together by default', () => {
+    const wrapper = mountView('en')
+
+    expect(wrapper.find('input[id="dateOfBirth"]').exists()).toBe(true)
+    expect(wrapper.find('select[id="dateOfBirthAge"]').exists()).toBe(true)
+  })
+
   it('prefills the country code field with the +48 prefix', () => {
     const wrapper = mountView()
 
@@ -131,6 +150,66 @@ describe('AddMemberView', () => {
       lastName: 'Ninh',
       phoneNumber: null
     })
+  })
+
+  it('submits January 1 for the selected age', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('input[id="firstName"]').setValue('Bao')
+    await wrapper.find('input[id="lastName"]').setValue('Ninh')
+    await wrapper.find('select[id="dateOfBirthAge"]').setValue('12')
+    await wrapper.find('form').trigger('submit.prevent')
+
+    expect(mockRegisterMemberHandle).toHaveBeenCalledWith({
+      firstName: 'Bao',
+      lastName: 'Ninh',
+      phoneNumber: null,
+      dateOfBirth: new Date('2014-01-01T00:00:00Z')
+    })
+  })
+
+  it('writes the resolved January date into the exact date field when age is selected', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('select[id="dateOfBirthAge"]').setValue('12')
+
+    expect(
+      (wrapper.get('input[id="dateOfBirth"]').element as HTMLInputElement).value
+    ).toBe('2014-01-01')
+  })
+
+  it('derives the age picker value from a manually entered birth date', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('input[id="dateOfBirth"]').setValue('2010-09-10')
+
+    expect(
+      (wrapper.get('select[id="dateOfBirthAge"]').element as HTMLSelectElement)
+        .value
+    ).toBe('15')
+  })
+
+  it('clears the canonical birth date when the age picker is reset', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-09T12:00:00Z'))
+
+    const wrapper = mountView('en')
+
+    await wrapper.find('select[id="dateOfBirthAge"]').setValue('12')
+    await wrapper.find('select[id="dateOfBirthAge"]').setValue('')
+
+    expect(
+      (wrapper.get('input[id="dateOfBirth"]').element as HTMLInputElement).value
+    ).toBe('')
   })
 
   it('marks only the name inputs as required in the registration form', () => {
@@ -226,9 +305,9 @@ describe('AddMemberView', () => {
     expect(alert.text()).toContain(
       'The member could not be saved. Check the details and try again.'
     )
-    expect(wrapper.find('button[type="button"]').text()).toContain('Dismiss')
+    expect(alert.find('button[type="button"]').text()).toContain('Dismiss')
 
-    await wrapper.find('button[type="button"]').trigger('click')
+    await alert.find('button[type="button"]').trigger('click')
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
   })
 
@@ -272,6 +351,9 @@ describe('AddMemberView', () => {
     expect(wrapper.text()).toContain('Phone number')
     expect(wrapper.text()).toContain('Country code')
     expect(wrapper.text()).toContain('Rest of number')
+    expect(wrapper.text()).toContain('Date of birth')
+    expect(wrapper.text()).toContain('Exact date')
+    expect(wrapper.text()).toContain('Age')
     expect(wrapper.text()).toContain('Save')
   })
 })

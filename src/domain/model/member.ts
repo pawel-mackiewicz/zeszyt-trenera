@@ -11,9 +11,11 @@ const assertValidBirthDate = (
   if (dateOfBirth >= now) {
     throw new InvalidMemberBirthDateError()
   }
-  const tooOld = new Date(now)
-  tooOld.setUTCFullYear(tooOld.getUTCFullYear() - 120)
-  if (dateOfBirth <= tooOld) {
+  const earliestAllowedBirthDate = new Date(
+    Date.UTC(now.getUTCFullYear() - 120, 0, 1)
+  )
+  // Why: age-first entry normalizes to January 1 of the chosen birth year, so the aggregate must treat the full 120-year boundary year as valid instead of rejecting that canonicalized date partway through the year.
+  if (dateOfBirth < earliestAllowedBirthDate) {
     throw new InvalidMemberBirthDateError()
   }
 }

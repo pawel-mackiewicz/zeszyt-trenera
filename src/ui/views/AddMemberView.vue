@@ -13,6 +13,12 @@ import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useRouter } from '@/ui/router/runtime'
+import {
+  AGE_ENTRY_MAX,
+  AGE_ENTRY_MIN,
+  birthDateInputValueFromAge,
+  resolveAgeFromBirthDate
+} from '@/ui/utils/ageRange'
 
 const router = useRouter()
 const { useCases } = useAppServices()
@@ -25,7 +31,12 @@ const countryCode = ref('+48')
 // What: store the subscriber part separately from the country code. Why: the form must be able to intentionally submit “no phone” without forcing users to clear a prefilled prefix.
 const phoneNumberRest = ref('')
 const dateOfBirth = ref('')
+const selectedAge = ref('')
 const joinedAt = ref('')
+const ageOptions = Array.from(
+  { length: AGE_ENTRY_MAX - AGE_ENTRY_MIN + 1 },
+  (_, index) => AGE_ENTRY_MIN + index
+)
 
 const isSubmitting = ref(false)
 type SubmitErrorKey =
@@ -41,6 +52,23 @@ const submitErrorKey = ref<SubmitErrorKey | null>(null)
 const submitError = computed(() =>
   submitErrorKey.value === null ? '' : t(`errors.${submitErrorKey.value}`)
 )
+const dateOfBirthInputModel = computed({
+  get: () => dateOfBirth.value,
+  set: (value: string) => {
+    dateOfBirth.value = value
+    syncSelectedAgeFromBirthDate()
+  }
+})
+const ageInputModel = computed({
+  get: () => selectedAge.value,
+  set: (value: string) => {
+    selectedAge.value = value
+    // What: keep the lightweight age selector writing into the same birth-date field as the calendar input. Why: the form can expose both shortcuts side by side while the application layer still receives one canonical date contract.
+    dateOfBirth.value = value
+      ? (birthDateInputValueFromAge(Number(value)) ?? '')
+      : ''
+  }
+})
 
 function dismissSubmitError() {
   // What: let coaches close the shared floating error card after reading it. Why: recoverable save failures should stay visible until the coach acts, but not pin the screen once the message is clear.
@@ -50,6 +78,12 @@ function dismissSubmitError() {
 function toUtcDate(value: string) {
   if (!value) return undefined
   return new Date(`${value}T00:00:00Z`)
+}
+
+function syncSelectedAgeFromBirthDate() {
+  const resolvedAge = resolveAgeFromBirthDate(dateOfBirth.value)
+
+  selectedAge.value = resolvedAge === null ? '' : String(resolvedAge)
 }
 
 function resolveSubmitErrorKey(error: unknown): SubmitErrorKey {
@@ -214,19 +248,52 @@ async function handleSubmit() {
             </div>
           </div>
         </div>
-        <div class="relative group">
+        <div class="relative group md:col-span-2">
           <label
             class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
             for="dateOfBirth"
             >{{ t('fields.dateOfBirth.label') }}</label
           >
-          <div class="relative">
-            <input
-              id="dateOfBirth"
-              v-model="dateOfBirth"
-              class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200 uppercase"
-              type="date"
-            />
+          <!-- What: keep the age shortcut and exact birth date in one inline row. Why: coaches should be able to compare and adjust both values without toggling modes or leaving the form rhythm used elsewhere in the app. -->
+          <div
+            class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 md:grid-cols-[7rem_minmax(0,1fr)] md:gap-6"
+          >
+            <div class="relative group">
+              <label
+                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                for="dateOfBirthAge"
+                >{{ t('fields.dateOfBirth.ageLabel') }}</label
+              >
+              <select
+                id="dateOfBirthAge"
+                v-model="ageInputModel"
+                class="w-full appearance-none bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200"
+              >
+                <option value="">
+                  {{ t('fields.dateOfBirth.agePlaceholder') }}
+                </option>
+                <option
+                  v-for="age in ageOptions"
+                  :key="age"
+                  :value="String(age)"
+                >
+                  {{ age }}
+                </option>
+              </select>
+            </div>
+            <div class="relative group">
+              <label
+                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                for="dateOfBirth"
+                >{{ t('fields.dateOfBirth.exactDateLabel') }}</label
+              >
+              <input
+                id="dateOfBirth"
+                v-model="dateOfBirthInputModel"
+                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200 uppercase"
+                type="date"
+              />
+            </div>
           </div>
         </div>
         <div class="relative group">
@@ -290,7 +357,10 @@ async function handleSubmit() {
         "localNumberPlaceholder": "000 000 000"
       },
       "dateOfBirth": {
-        "label": "Data urodzenia"
+        "label": "Data urodzenia",
+        "ageLabel": "Wiek",
+        "exactDateLabel": "Dokładna data",
+        "agePlaceholder": "Wybierz"
       },
       "joinedAt": {
         "label": "Data dołączenia"
@@ -328,7 +398,10 @@ async function handleSubmit() {
         "localNumberPlaceholder": "000 000 000"
       },
       "dateOfBirth": {
-        "label": "Date of birth"
+        "label": "Date of birth",
+        "ageLabel": "Age",
+        "exactDateLabel": "Exact date",
+        "agePlaceholder": "Select"
       },
       "joinedAt": {
         "label": "Join date"

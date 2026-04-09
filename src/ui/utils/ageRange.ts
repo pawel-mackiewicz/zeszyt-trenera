@@ -1,12 +1,17 @@
 export const AGE_FILTER_MIN = 5
 export const AGE_FILTER_MAX = 80
+export const AGE_ENTRY_MIN = 1
+export const AGE_ENTRY_MAX = 120
 
 export type AgeRange = {
   min: number
   max: number
 }
 
-export function calculateAge(value: Date | string | undefined): number | null {
+export function calculateAge(
+  value: Date | string | undefined,
+  now = new Date()
+): number | null {
   if (!value) {
     return null
   }
@@ -17,15 +22,39 @@ export function calculateAge(value: Date | string | undefined): number | null {
     return null
   }
 
-  const today = new Date()
-  let age = today.getFullYear() - birthDate.getFullYear()
-  const monthDelta = today.getMonth() - birthDate.getMonth()
+  let age = now.getFullYear() - birthDate.getFullYear()
+  const monthDelta = now.getMonth() - birthDate.getMonth()
 
   if (
     monthDelta < 0 ||
-    (monthDelta === 0 && today.getDate() < birthDate.getDate())
+    (monthDelta === 0 && now.getDate() < birthDate.getDate())
   ) {
     age -= 1
+  }
+
+  return age
+}
+
+export function birthDateInputValueFromAge(
+  age: number,
+  now = new Date()
+): string | null {
+  if (!Number.isInteger(age) || age < AGE_ENTRY_MIN || age > AGE_ENTRY_MAX) {
+    return null
+  }
+
+  // What: translate age-only entry into one canonical date string. Why: the add-member form can offer a faster mobile picker without changing the application layer contract that still persists a birth date.
+  return `${now.getFullYear() - age}-01-01`
+}
+
+export function resolveAgeFromBirthDate(
+  value: Date | string | undefined,
+  now = new Date()
+): number | null {
+  const age = calculateAge(value, now)
+
+  if (age === null || age < AGE_ENTRY_MIN || age > AGE_ENTRY_MAX) {
+    return null
   }
 
   return age
