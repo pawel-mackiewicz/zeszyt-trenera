@@ -281,8 +281,14 @@ describe('AppShell', () => {
 
     await wrapper.get('[data-testid="open-demo-modal"]').trigger('click')
 
-    expect(wrapper.text()).toContain('Sprawdź demo')
-    expect(wrapper.text()).toContain('Przejdź na swoje dane')
+    // What: assert against the modal controls instead of the demo copy. Why: the CTA contract should stay covered even when product wording changes between releases.
+    expect(wrapper.find('.shell-modal__title').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
+      ''
+    )
+    expect(
+      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
+    ).not.toBe('')
     expect(
       wrapper.get('[data-testid="continue-demo-button"]').classes()
     ).toContain('app-button--primary')
@@ -335,7 +341,7 @@ describe('AppShell', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(wrapper.text()).toContain('Sprawdź demo')
+    expect(wrapper.find('.shell-modal__title').exists()).toBe(true)
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
@@ -554,7 +560,7 @@ describe('AppShell', () => {
     expect(confirmButton.attributes('disabled')).toBeUndefined()
   })
 
-  it('hides the generic reset action while demo mode is active', async () => {
+  it('keeps the generic reset action visible while demo mode is active', async () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
       appStore.setDemoModeActive(true)
@@ -562,9 +568,7 @@ describe('AppShell', () => {
 
     await wrapper.find('header button').trigger('click')
 
-    expect(wrapper.find('[data-testid="open-reset-modal"]').exists()).toBe(
-      false
-    )
+    expect(wrapper.find('[data-testid="open-reset-modal"]').exists()).toBe(true)
   })
 
   it('resets app data after explicit confirmation phrase and confirm click', async () => {

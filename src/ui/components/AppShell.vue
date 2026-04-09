@@ -239,6 +239,7 @@ const isInstallModalActive = computed(() => {
 const isDemoIntroModalActive = computed(
   () => isShellReady.value && demoIntroModalVisible.value
 )
+// What: keep the demo entry and exit labels sourced from one local dictionary. Why: the shorter trial-focused wording needs to stay aligned across the header CTA and modal actions in every locale.
 const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
 const demoExitActionLabel = computed(() =>
   demoExitInProgress.value
@@ -663,9 +664,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
             >
               {{ updateActionLabel }}
             </AppButton>
-            <!-- What: expose a hard reset action in the shell menu. Why: when local-first data drifts on a shared phone, coaches need one recoverable path back to clean setup without reinstalling the PWA. -->
+            <!-- What: keep the hard reset action available in the shell menu even during demo mode. Why: a coach who is only testing the seeded notebook still needs the same one-tap recovery path back to clean setup without leaving demo first. -->
             <AppButton
-              v-if="!demoModeActive"
               class="mt-3 w-full"
               type="button"
               variant="secondary"
@@ -1238,14 +1238,14 @@ function bottomNavForegroundClasses(isActive: boolean) {
     },
     "demo": {
       "eyebrow": "Tryb demo",
-      "title": "Sprawdź demo",
-      "copy": "Sprawdź członków, historię treningów i płatności na przykładowych danych zapisanych lokalnie. Na swoje dane przejdziesz później jednym kliknięciem.",
+      "title": "Sprawdź apkę",
+      "copy": "Sprawdź zeszyt-trenera na testowych danych :)",
       "error": "Nie udało się wyjść z trybu demo. Spróbuj ponownie.",
       "actions": {
         "open": "Wyjdź z demo",
-        "confirm": "Przejdź na swoje dane",
+        "confirm": "Już testowałem :)",
         "pending": "Przechodzę do konfiguracji...",
-        "stay": "Sprawdź demo"
+        "stay": "Sprawdzam!"
       }
     },
     "routes": {
@@ -1353,14 +1353,14 @@ function bottomNavForegroundClasses(isActive: boolean) {
     },
     "demo": {
       "eyebrow": "Demo mode",
-      "title": "Explore the demo",
-      "copy": "Explore members, training history, and payments on example data stored locally on this device. You can switch to your own data later in one tap.",
+      "title": "Check out the app",
+      "copy": "Check out Coach Notebook on sample data :)",
       "error": "Demo mode could not be cleared. Try again.",
       "actions": {
         "open": "Leave demo",
-        "confirm": "Start with my data",
+        "confirm": "I've tested it :)",
         "pending": "Opening setup...",
-        "stay": "Explore the demo"
+        "stay": "Checking it out!"
       }
     },
     "routes": {
