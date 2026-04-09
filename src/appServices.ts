@@ -31,6 +31,7 @@ import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
 import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRepo'
+import { DexieNotebookBootstrapStateRepo } from '@/infra/db/DexieNotebookBootstrapStateRepo'
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
@@ -114,6 +115,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveMembershipPaymentRepo = lazy(
     () => new DexieMembershipPaymentRepo(database)
   )
+  const resolveNotebookBootstrapStateRepo = lazy(
+    () => new DexieNotebookBootstrapStateRepo(database)
+  )
   const resolveAttendanceListRepo = lazy(
     () => new DexieAttendanceListRepo(database)
   )
@@ -132,6 +136,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new BootstrapDemoModeUseCase(
         resolveUnitOfWork(),
         resolveAppResetRepo(),
+        resolveNotebookBootstrapStateRepo(),
         resolveClubRepo(),
         resolveTrainerRepo(),
         resolveMemberRepo(),

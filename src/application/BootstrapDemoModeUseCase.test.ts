@@ -6,6 +6,11 @@ import type { DemoLifecycleStorePort } from '@/application/ports/DemoLifecycleSt
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { MembershipPaymentRepoPort } from '@/application/ports/MembershipPaymentRepoPort'
+import {
+  NOTEBOOK_BOOTSTRAP_STATES,
+  type NotebookBootstrapState,
+  type NotebookBootstrapStatePort
+} from '@/application/ports/NotebookBootstrapStatePort'
 import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { AppResetRepoPort } from '@/application/ports/AppResetRepoPort'
@@ -23,14 +28,15 @@ describe('BootstrapDemoModeUseCase', () => {
   let membershipPaymentRepo: MembershipPaymentRepoPort
   let attendanceListRepo: AttendanceListRepoPort
   let eventRepo: EventRepoPort
+  let notebookBootstrapStateRepo: NotebookBootstrapStatePort
   let idGenerator: IdGeneratorPort
   let clock: ClockPort
   let demoLifecycleStore: DemoLifecycleStorePort
 
   beforeEach(() => {
     let generatedIdIndex = 0
-    let clubExists = false
-    let trainerExists = false
+    let notebookBootstrapState: NotebookBootstrapState =
+      NOTEBOOK_BOOTSTRAP_STATES.EMPTY
 
     unitOfWork = {
       execute: async <T>(action: () => Promise<T>) => await action()
@@ -38,17 +44,22 @@ describe('BootstrapDemoModeUseCase', () => {
     appResetRepo = {
       clearAllData: vi.fn().mockResolvedValue(undefined)
     }
+    notebookBootstrapStateRepo = {
+      readBootstrapState: vi.fn(async () => notebookBootstrapState)
+    }
     clubRepo = {
       save: vi.fn(async () => {
-        clubExists = true
+        if (notebookBootstrapState === NOTEBOOK_BOOTSTRAP_STATES.EMPTY) {
+          notebookBootstrapState = NOTEBOOK_BOOTSTRAP_STATES.SETUP_INCOMPLETE
+        }
       }),
-      exists: vi.fn(async () => clubExists)
+      exists: vi.fn().mockResolvedValue(false)
     }
     trainerRepo = {
       save: vi.fn(async () => {
-        trainerExists = true
+        notebookBootstrapState = NOTEBOOK_BOOTSTRAP_STATES.SETUP_READY
       }),
-      exists: vi.fn(async () => trainerExists)
+      exists: vi.fn().mockResolvedValue(false)
     }
     memberRepo = {
       save: vi.fn().mockResolvedValue(undefined),
@@ -89,6 +100,7 @@ describe('BootstrapDemoModeUseCase', () => {
     const useCase = new BootstrapDemoModeUseCase(
       unitOfWork,
       appResetRepo,
+      notebookBootstrapStateRepo,
       clubRepo,
       trainerRepo,
       memberRepo,
@@ -101,7 +113,7 @@ describe('BootstrapDemoModeUseCase', () => {
     )
 
     await expect(useCase.handle({})).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: true
     })
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
@@ -129,6 +141,7 @@ describe('BootstrapDemoModeUseCase', () => {
     const useCase = new BootstrapDemoModeUseCase(
       unitOfWork,
       appResetRepo,
+      notebookBootstrapStateRepo,
       clubRepo,
       trainerRepo,
       memberRepo,
@@ -141,7 +154,7 @@ describe('BootstrapDemoModeUseCase', () => {
     )
 
     await expect(useCase.handle({})).resolves.toEqual({
-      mode: 'standard',
+      demoModeActive: false,
       introModal: false
     })
     expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
@@ -154,11 +167,13 @@ describe('BootstrapDemoModeUseCase', () => {
 
   it('keeps demo mode active across refreshes when the seeded notebook is already present', async () => {
     vi.mocked(demoLifecycleStore.readDemoModeActive).mockResolvedValue(true)
-    vi.mocked(clubRepo.exists).mockResolvedValue(true)
-    vi.mocked(trainerRepo.exists).mockResolvedValue(true)
+    vi.mocked(notebookBootstrapStateRepo.readBootstrapState).mockResolvedValue(
+      NOTEBOOK_BOOTSTRAP_STATES.SETUP_READY
+    )
     const useCase = new BootstrapDemoModeUseCase(
       unitOfWork,
       appResetRepo,
+      notebookBootstrapStateRepo,
       clubRepo,
       trainerRepo,
       memberRepo,
@@ -171,7 +186,7 @@ describe('BootstrapDemoModeUseCase', () => {
     )
 
     await expect(useCase.handle({})).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: false
     })
     expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
@@ -183,15 +198,13 @@ describe('BootstrapDemoModeUseCase', () => {
 
   it('repairs an active demo notebook when only part of the seeded data survived', async () => {
     vi.mocked(demoLifecycleStore.readDemoModeActive).mockResolvedValue(true)
-    vi.mocked(clubRepo.exists)
-      .mockResolvedValueOnce(true)
-      .mockResolvedValueOnce(true)
-    vi.mocked(trainerRepo.exists)
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(false)
+    vi.mocked(notebookBootstrapStateRepo.readBootstrapState).mockResolvedValue(
+      NOTEBOOK_BOOTSTRAP_STATES.SETUP_INCOMPLETE
+    )
     const useCase = new BootstrapDemoModeUseCase(
       unitOfWork,
       appResetRepo,
+      notebookBootstrapStateRepo,
       clubRepo,
       trainerRepo,
       memberRepo,
@@ -204,10 +217,39 @@ describe('BootstrapDemoModeUseCase', () => {
     )
 
     await expect(useCase.handle({})).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: false
     })
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
     expect(demoLifecycleStore.writeDemoModeActive).toHaveBeenCalledWith(true)
+  })
+
+  it('treats orphaned local data as standard mode instead of overwriting it with demo content', async () => {
+    vi.mocked(notebookBootstrapStateRepo.readBootstrapState).mockResolvedValue(
+      NOTEBOOK_BOOTSTRAP_STATES.SETUP_INCOMPLETE
+    )
+    const useCase = new BootstrapDemoModeUseCase(
+      unitOfWork,
+      appResetRepo,
+      notebookBootstrapStateRepo,
+      clubRepo,
+      trainerRepo,
+      memberRepo,
+      membershipPaymentRepo,
+      attendanceListRepo,
+      eventRepo,
+      idGenerator,
+      clock,
+      demoLifecycleStore
+    )
+
+    await expect(useCase.handle({})).resolves.toEqual({
+      demoModeActive: false,
+      introModal: false
+    })
+    expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
+    expect(clubRepo.save).not.toHaveBeenCalled()
+    expect(trainerRepo.save).not.toHaveBeenCalled()
+    expect(demoLifecycleStore.writeDemoModeActive).not.toHaveBeenCalled()
   })
 })

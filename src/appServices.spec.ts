@@ -450,7 +450,7 @@ describe('appServices', () => {
     await expect(
       services.useCases.bootstrapDemoMode.handle({})
     ).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: true
     })
     await expect(database.clubs.count()).resolves.toBe(1)
@@ -527,7 +527,7 @@ describe('appServices', () => {
     await expect(
       services.useCases.bootstrapDemoMode.handle({})
     ).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: true
     })
 
@@ -536,9 +536,30 @@ describe('appServices', () => {
     await expect(
       refreshedServices.useCases.bootstrapDemoMode.handle({})
     ).resolves.toEqual({
-      mode: 'demo',
+      demoModeActive: true,
       introModal: false
     })
+  })
+
+  it('does not overwrite incomplete local notebook data with demo seed content', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Local',
+      lastName: 'Only',
+      phoneNumber: '+48 500 600 700',
+      dateOfBirth: createBirthDate('2012-05-01T00:00:00Z')
+    })
+
+    await expect(
+      services.useCases.bootstrapDemoMode.handle({})
+    ).resolves.toEqual({
+      demoModeActive: false,
+      introModal: false
+    })
+    await expect(database.members.count()).resolves.toBe(1)
+    await expect(database.clubs.count()).resolves.toBe(0)
+    await expect(database.trainers.count()).resolves.toBe(0)
   })
 
   it('assembles the leave-demo workflow that clears seeded data and suppresses future auto-demo boots', async () => {
@@ -560,7 +581,7 @@ describe('appServices', () => {
     await expect(
       services.useCases.bootstrapDemoMode.handle({})
     ).resolves.toEqual({
-      mode: 'standard',
+      demoModeActive: false,
       introModal: false
     })
     await expect(database.members.count()).resolves.toBe(0)

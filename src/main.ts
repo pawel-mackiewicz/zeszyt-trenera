@@ -36,7 +36,8 @@ function bootstrap() {
 
       const demoMode = await services.useCases.bootstrapDemoMode.handle({})
 
-      appStore.setDemoModeActive(demoMode.mode === 'demo')
+      // What: consume the application result as a direct boolean flag. Why: the UI shell only needs to know whether demo mode is active, so bootstrap should not leak mode-string parsing into the entrypoint.
+      appStore.setDemoModeActive(demoMode.demoModeActive)
 
       if (demoMode.introModal) {
         // What: only surface the onboarding modal when this boot actually created demo data. Why: later launches should reopen straight into the notebook instead of re-explaining the same seeded state.
