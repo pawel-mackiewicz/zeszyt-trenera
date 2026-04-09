@@ -96,13 +96,24 @@ const DEMO_MEMBER_NAMES: DemoName[] = [
   { firstName: 'Cain', lastName: 'Velasquez' },
   { firstName: 'Lyoto', lastName: 'Machida' },
   { firstName: 'Bj', lastName: 'Penn' },
-  { firstName: 'Henry', lastName: 'Cejudo' }
+  { firstName: 'Henry', lastName: 'Cejudo' },
+  // Why: make demo rosters feel closer to the app's Polish audience during onboarding, screenshots, and local demos.
+  { firstName: 'Mamed', lastName: 'Khalidov' },
+  { firstName: 'Mariusz', lastName: 'Pudzianowski' },
+  { firstName: 'Janek', lastName: 'Błachowicz' },
+  { firstName: 'Mateusz', lastName: 'Gamrot' },
+  { firstName: 'Karolina', lastName: 'Kowalkiewicz' },
+  { firstName: 'Damian', lastName: 'Janikowski' },
+  { firstName: 'Michał', lastName: 'Materla' },
+  { firstName: 'Łukasz', lastName: 'Jurkowski' },
+  { firstName: 'Artur', lastName: 'Szpilka' },
+  { firstName: 'Tomasz', lastName: 'Adamek' }
 ]
 
 const DEMO_MEMBER_AGES = [
   5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26,
   27, 28, 29, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60,
-  61, 62, 63, 64, 65, 67, 69, 71, 73, 75
+  61, 62, 63, 64, 65, 67, 69, 71, 73, 75, 19, 31, 33, 35, 37, 39, 41, 43, 45, 47
 ] as const
 
 const MONTH_SESSION_TEMPLATE = [
