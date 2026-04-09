@@ -17,6 +17,7 @@ const props = withDefaults(
     as: 'button',
     disabled: false,
     iconOnly: false,
+    to: '',
     type: 'button',
     variant: 'primary'
   }

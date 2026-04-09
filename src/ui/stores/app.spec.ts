@@ -75,4 +75,19 @@ describe('useAppStore', () => {
 
     expect(store.updateError).toBeNull()
   })
+
+  it('tracks demo-mode visibility separately from normal setup state', () => {
+    const store = useAppStore()
+
+    store.setDemoModeActive(true)
+    store.showDemoIntroModal()
+
+    expect(store.demoModeActive).toBe(true)
+    expect(store.demoIntroModalVisible).toBe(true)
+
+    store.setDemoModeActive(false)
+
+    expect(store.demoModeActive).toBe(false)
+    expect(store.demoIntroModalVisible).toBe(false)
+  })
 })

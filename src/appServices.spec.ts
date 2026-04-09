@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Observable } from 'dexie'
 
 import {
@@ -20,6 +20,7 @@ import {
   type TrainerSnapshot
 } from '@/domain/model/trainer'
 import { createAppServices } from '@/appServices'
+import { createDemoSeed } from '@/application/demo/createDemoSeed'
 import type { PersistedDomainEvent } from '@/infra'
 import { TrainerNotebookDb } from '@/db'
 
@@ -35,10 +36,14 @@ describe('appServices', () => {
   let database: TrainerNotebookDb
 
   beforeEach(() => {
+    window.localStorage.clear()
+    vi.useRealTimers()
     database = new TrainerNotebookDb(createTestDbName('register-club'))
   })
 
   afterEach(async () => {
+    vi.useRealTimers()
+    window.localStorage.clear()
     database.close()
     await database.delete()
   })
@@ -59,6 +64,12 @@ describe('appServices', () => {
     )
     expect(services.queries.observeSetupStatus).toBe(
       services.queries.observeSetupStatus
+    )
+    expect(services.useCases.bootstrapDemoMode).toBe(
+      services.useCases.bootstrapDemoMode
+    )
+    expect(services.useCases.leaveDemoMode).toBe(
+      services.useCases.leaveDemoMode
     )
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
@@ -395,6 +406,113 @@ describe('appServices', () => {
         )
       ).unpaidAttendedMembers[0].attendanceSessionIds
     ).toEqual(attendanceLists.map((attendanceList) => attendanceList.id))
+  })
+
+  it('assembles the demo bootstrap workflow with dynamic months and varied unpaid attendance', async () => {
+    const now = new Date()
+    const expectedDemoSeed = createDemoSeed(now)
+    const previousMonthReference = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      Math.min(now.getDate(), 9),
+      12,
+      0,
+      0
+    )
+    const services = createAppServices(database)
+
+    await expect(
+      services.useCases.bootstrapDemoMode.handle({})
+    ).resolves.toEqual({
+      mode: 'demo',
+      introModal: true
+    })
+    await expect(database.clubs.count()).resolves.toBe(1)
+    await expect(database.trainers.count()).resolves.toBe(1)
+    await expect(database.members.count()).resolves.toBe(50)
+
+    const currentMonthStatus = await waitForFirstEmission(
+      services.queries.observeMembershipPaymentStatusByMonth.handle({
+        month: now
+      })
+    )
+    const currentMonthSessions =
+      await services.queries.listAttendanceSessionsByMonth.handle({
+        month: now
+      })
+    const previousMonthStatus = await waitForFirstEmission(
+      services.queries.observeMembershipPaymentStatusByMonth.handle({
+        month: previousMonthReference
+      })
+    )
+    const previousMonthSessions =
+      await services.queries.listAttendanceSessionsByMonth.handle({
+        month: previousMonthReference
+      })
+
+    expect(currentMonthStatus.paidMembers.length).toBeGreaterThan(0)
+    expect(currentMonthStatus.unpaidAbsentMembers.length).toBeGreaterThan(0)
+    expect(currentMonthStatus.unpaidAttendedMembers.length).toBeGreaterThan(0)
+    expect(currentMonthStatus.unpaidAttendedMembers.length).toBeLessThanOrEqual(
+      3
+    )
+    if (currentMonthStatus.unpaidAttendedMembers.length > 1) {
+      expect(
+        new Set(
+          currentMonthStatus.unpaidAttendedMembers.map(
+            (member) => member.attendanceSessionIds.length
+          )
+        ).size
+      ).toBeGreaterThan(1)
+    }
+    expect(previousMonthStatus.paidMembers.length).toBeGreaterThan(0)
+    expect(previousMonthStatus.unpaidAbsentMembers.length).toBeGreaterThan(0)
+    expect(previousMonthStatus.unpaidAttendedMembers.length).toBeGreaterThan(0)
+    expect(
+      previousMonthStatus.unpaidAttendedMembers.length
+    ).toBeLessThanOrEqual(3)
+    if (previousMonthStatus.unpaidAttendedMembers.length > 1) {
+      expect(
+        new Set(
+          previousMonthStatus.unpaidAttendedMembers.map(
+            (member) => member.attendanceSessionIds.length
+          )
+        ).size
+      ).toBeGreaterThan(1)
+    }
+    expect(currentMonthSessions).toHaveLength(
+      expectedDemoSeed.summary.currentMonthSessionCount
+    )
+    expect(
+      currentMonthSessions.every(
+        (attendanceSession) =>
+          attendanceSession.start.getTime() <= now.getTime()
+      )
+    ).toBe(true)
+    expect(previousMonthSessions).toHaveLength(
+      expectedDemoSeed.summary.previousMonthSessionCount
+    )
+  })
+
+  it('assembles the leave-demo workflow that clears seeded data and suppresses future auto-demo boots', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.bootstrapDemoMode.handle({})
+    await services.useCases.leaveDemoMode.handle({})
+
+    await expect(database.clubs.count()).resolves.toBe(0)
+    await expect(database.trainers.count()).resolves.toBe(0)
+    await expect(database.members.count()).resolves.toBe(0)
+    await expect(database.membershipPayments.count()).resolves.toBe(0)
+    await expect(database.attendanceLists.count()).resolves.toBe(0)
+    await expect(database.events.count()).resolves.toBe(0)
+    await expect(
+      services.useCases.bootstrapDemoMode.handle({})
+    ).resolves.toEqual({
+      mode: 'standard',
+      introModal: false
+    })
+    await expect(database.members.count()).resolves.toBe(0)
   })
 
   it('assembles the reactive setup-status query on top of the Dexie adapters', async () => {

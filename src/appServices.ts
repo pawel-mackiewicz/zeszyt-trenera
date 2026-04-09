@@ -1,5 +1,10 @@
 import type { Observable } from 'dexie'
 
+import {
+  BootstrapDemoModeUseCase,
+  type BootstrapDemoModeResult
+} from '@/application/BootstrapDemoModeUseCase'
+import { LeaveDemoModeUseCase } from '@/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
@@ -9,6 +14,8 @@ import { ResetApplicationDataUseCase } from '@/application/ResetApplicationDataU
 import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListUseCase'
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
+import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
+import type { LeaveDemoModeCommand } from '@/application/requests/LeaveDemoModeCommand'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
@@ -27,6 +34,8 @@ import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRep
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
+import { LocalStorageDemoLifecycleStore } from '@/infra/LocalStorageDemoLifecycleStore'
+import { SystemClock } from '@/infra/SystemClock'
 import {
   GetAttendanceSessionByIdQuery,
   type AttendanceSessionDetails,
@@ -48,6 +57,11 @@ import {
 } from '@/read/ObserveSetupStatusQuery'
 
 export type AppUseCases = {
+  readonly bootstrapDemoMode: UseCase<
+    BootstrapDemoModeCommand,
+    BootstrapDemoModeResult
+  >
+  readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
@@ -107,6 +121,34 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
   const resolveIdGenerator = lazy(() => new IdGenerator())
+  const resolveClock = lazy(() => new SystemClock())
+  const resolveDemoLifecycleStore = lazy(
+    () => new LocalStorageDemoLifecycleStore()
+  )
+  const resolveBootstrapDemoMode = lazy(
+    () =>
+      new BootstrapDemoModeUseCase(
+        resolveUnitOfWork(),
+        resolveAppResetRepo(),
+        resolveClubRepo(),
+        resolveTrainerRepo(),
+        resolveMemberRepo(),
+        resolveMembershipPaymentRepo(),
+        resolveAttendanceListRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator(),
+        resolveClock(),
+        resolveDemoLifecycleStore()
+      )
+  )
+  const resolveLeaveDemoMode = lazy(
+    () =>
+      new LeaveDemoModeUseCase(
+        resolveUnitOfWork(),
+        resolveAppResetRepo(),
+        resolveDemoLifecycleStore()
+      )
+  )
   const resolveRegisterAttendanceList = lazy(
     () =>
       new RegisterAttendanceListUseCase(
@@ -193,6 +235,12 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
+    get bootstrapDemoMode() {
+      return resolveBootstrapDemoMode()
+    },
+    get leaveDemoMode() {
+      return resolveLeaveDemoMode()
+    },
     get registerAttendanceList() {
       return resolveRegisterAttendanceList()
     },

@@ -56,6 +56,9 @@ export const useAppStore = defineStore('app', () => {
   const dbConnected = ref(false)
   // What: keep setup completeness separate from database readiness. Why: the shell must distinguish between "cannot boot" and "booted, but still missing required local identity data".
   const setupStatus = ref<SetupStatus>('checking')
+  // What: keep demo-mode bootstrap state in Pinia instead of deriving it from routes. Why: the shell has to react immediately after startup seeding and after leaving demo mode, before any navigation settles.
+  const demoModeActive = ref(false)
+  const demoIntroModalVisible = ref(false)
 
   const showInstallEntry = computed(
     () => !installed.value && installSurface.value !== 'hidden'
@@ -164,6 +167,22 @@ export const useAppStore = defineStore('app', () => {
     setupStatus.value = value
   }
 
+  function setDemoModeActive(value: boolean) {
+    demoModeActive.value = value
+
+    if (!value) {
+      demoIntroModalVisible.value = false
+    }
+  }
+
+  function showDemoIntroModal() {
+    demoIntroModalVisible.value = true
+  }
+
+  function dismissDemoIntroModal() {
+    demoIntroModalVisible.value = false
+  }
+
   return {
     isOnline,
     canInstall,
@@ -180,6 +199,8 @@ export const useAppStore = defineStore('app', () => {
     blockingIssue,
     dbConnected,
     setupStatus,
+    demoModeActive,
+    demoIntroModalVisible,
     setOnlineStatus,
     setInstallAvailability,
     setInstallSurface,
@@ -195,6 +216,9 @@ export const useAppStore = defineStore('app', () => {
     setUpdateError,
     clearUpdateError,
     setDbConnected,
-    setSetupStatus
+    setSetupStatus,
+    setDemoModeActive,
+    showDemoIntroModal,
+    dismissDemoIntroModal
   }
 })

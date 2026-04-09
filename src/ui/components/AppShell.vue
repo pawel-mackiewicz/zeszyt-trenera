@@ -47,6 +47,8 @@ const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
 const {
   appReadiness,
   blockingIssue,
+  demoIntroModalVisible,
+  demoModeActive,
   installCoachVisible,
   installed,
   installModalVisible,
@@ -87,6 +89,8 @@ const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
 const resetErrorVisible = ref(false)
 const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
+const demoExitInProgress = ref(false)
+const demoExitErrorVisible = ref(false)
 let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
@@ -232,6 +236,15 @@ const isInstallModalActive = computed(() => {
   // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
   return isShellReady.value && installModalVisible.value
 })
+const isDemoIntroModalActive = computed(
+  () => isShellReady.value && demoIntroModalVisible.value
+)
+const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
+const demoExitActionLabel = computed(() =>
+  demoExitInProgress.value
+    ? t('demo.actions.pending')
+    : t('demo.actions.confirm')
+)
 
 function unsubscribeSetupStatus() {
   setupStatusSubscription?.unsubscribe()
@@ -261,9 +274,9 @@ function subscribeToSetupStatus() {
 
 // The auto-open install modal is intentionally one-time so the shell nudges once without becoming repetitive on every launch.
 watch(
-  [shouldAutoOpenInstallModal, isShellReady],
-  ([value, shellReady]) => {
-    if (value && shellReady) {
+  [shouldAutoOpenInstallModal, isShellReady, demoIntroModalVisible],
+  ([value, shellReady, demoModalVisible]) => {
+    if (value && shellReady && !demoModalVisible) {
       appStore.openInstallModal('automatic')
     }
   },
@@ -379,6 +392,25 @@ function dismissResetError() {
   resetErrorVisible.value = false
 }
 
+function openDemoIntroModal() {
+  demoExitErrorVisible.value = false
+  appStore.showDemoIntroModal()
+}
+
+function closeDemoIntroModal() {
+  if (demoExitInProgress.value) {
+    return
+  }
+
+  demoExitErrorVisible.value = false
+  appStore.dismissDemoIntroModal()
+}
+
+function dismissDemoExitError() {
+  // What: let the demo exit flow clear the shared floating error card while the modal stays open. Why: coaches may need to retry the transition into real setup without a stale warning blocking the shell.
+  demoExitErrorVisible.value = false
+}
+
 function handleBack() {
   if (route.meta.backTo) {
     router.push(route.meta.backTo as string)
@@ -433,6 +465,27 @@ async function confirmResetApplicationData() {
     console.error('Failed to reset all local application data.', error)
   } finally {
     resetInProgress.value = false
+  }
+}
+
+async function leaveDemoMode() {
+  if (demoExitInProgress.value) {
+    return
+  }
+
+  demoExitInProgress.value = true
+  demoExitErrorVisible.value = false
+
+  try {
+    // What: route demo exit through one dedicated application workflow. Why: leaving seeded data behind must stay inside the application boundary so Dexie never gets cleared directly from the shell.
+    await useCases.leaveDemoMode.handle({})
+    appStore.setDemoModeActive(false)
+    appStore.dismissDemoIntroModal()
+  } catch (error) {
+    demoExitErrorVisible.value = true
+    console.error('Failed to leave demo mode.', error)
+  } finally {
+    demoExitInProgress.value = false
   }
 }
 
@@ -495,6 +548,16 @@ function bottomNavForegroundClasses(isActive: boolean) {
           </h1>
         </div>
         <div class="relative flex items-center gap-2">
+          <!-- What: keep the demo exit CTA inside the shell header. Why: demo mode should remain escapable from anywhere in the notebook without introducing a second navigation pattern. -->
+          <button
+            v-if="demoModeActive"
+            class="demo-header-action"
+            data-testid="open-demo-modal"
+            type="button"
+            @click="openDemoIntroModal"
+          >
+            {{ demoHeaderActionLabel }}
+          </button>
           <span
             v-if="!isOnline"
             class="inline-flex items-center rounded-full border border-danger/25 bg-danger/10 px-2.5 py-1 font-mono text-[10px] text-danger font-bold uppercase"
@@ -600,6 +663,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
             </AppButton>
             <!-- What: expose a hard reset action in the shell menu. Why: when local-first data drifts on a shared phone, coaches need one recoverable path back to clean setup without reinstalling the PWA. -->
             <AppButton
+              v-if="!demoModeActive"
               class="mt-3 w-full"
               type="button"
               variant="secondary"
@@ -611,6 +675,53 @@ function bottomNavForegroundClasses(isActive: boolean) {
           </div>
         </div>
       </div>
+
+      <Transition name="overlay-pop">
+        <div
+          v-if="isDemoIntroModalActive"
+          class="fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4"
+        >
+          <div
+            class="absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
+            @click="closeDemoIntroModal"
+          ></div>
+          <section class="shell-modal relative w-full max-w-lg">
+            <p class="shell-modal__eyebrow">{{ t('demo.eyebrow') }}</p>
+            <h2 class="shell-modal__title">{{ t('demo.title') }}</h2>
+            <!-- What: keep the demo welcome copy to one compact paragraph. Why: the first-run mobile modal should explain the seeded notebook without forcing coaches to read through a second block before they can explore it. -->
+            <p class="shell-modal__copy">{{ t('demo.copy') }}</p>
+            <div class="shell-modal__actions">
+              <!-- What: make staying in demo the primary CTA. Why: the landing modal should default to exploration so coaches can inspect the seeded local notebook before committing to setup. -->
+              <AppButton
+                type="button"
+                data-testid="continue-demo-button"
+                :disabled="demoExitInProgress"
+                @click="closeDemoIntroModal"
+              >
+                {{ t('demo.actions.stay') }}
+              </AppButton>
+              <AppButton
+                type="button"
+                variant="secondary"
+                :disabled="demoExitInProgress"
+                data-testid="confirm-leave-demo-button"
+                @click="leaveDemoMode"
+              >
+                {{ demoExitActionLabel }}
+              </AppButton>
+            </div>
+          </section>
+        </div>
+      </Transition>
+
+      <!-- What: keep demo-exit failures on the shared floating surface while the modal stays mounted. Why: the coach should understand that leaving demo mode failed without losing the current explanation or CTA context. -->
+      <FloatingErrorAlert
+        v-if="demoExitErrorVisible"
+        :message="t('demo.error')"
+        stack-level="modal"
+        top-offset="shell"
+        @dismiss="dismissDemoExitError"
+      />
 
       <div
         v-if="resetModalVisible"
@@ -859,6 +970,40 @@ function bottomNavForegroundClasses(isActive: boolean) {
   color: white;
 }
 
+.demo-header-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.25rem;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-on-surface);
+  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
+  background: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  transition:
+    transform 75ms ease,
+    box-shadow 75ms ease,
+    background-color 75ms ease;
+}
+
+.demo-header-action:hover,
+.demo-header-action:focus-visible {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--color-surface-container-low);
+}
+
+.demo-header-action:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 3px;
+}
+
 .shell-state-card {
   width: min(100%, 34rem);
   display: grid;
@@ -1089,6 +1234,18 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "title": "Usuń wszystkie dane aplikacji"
       }
     },
+    "demo": {
+      "eyebrow": "Tryb demo",
+      "title": "Sprawdź demo",
+      "copy": "Sprawdź członków, historię treningów i płatności na przykładowych danych zapisanych lokalnie. Na swoje dane przejdziesz później jednym kliknięciem.",
+      "error": "Nie udało się wyjść z trybu demo. Spróbuj ponownie.",
+      "actions": {
+        "open": "Wyjdź z demo",
+        "confirm": "Przejdź na swoje dane",
+        "pending": "Przechodzę do konfiguracji...",
+        "stay": "Sprawdź demo"
+      }
+    },
     "routes": {
       "membersList": "Członkowie",
       "membershipPayments": "Płatności",
@@ -1190,6 +1347,18 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "pending": "Deleting...",
         "phraseLabel": "To delete all data, type: {phrase}",
         "title": "Delete all app data"
+      }
+    },
+    "demo": {
+      "eyebrow": "Demo mode",
+      "title": "Explore the demo",
+      "copy": "Explore members, training history, and payments on example data stored locally on this device. You can switch to your own data later in one tap.",
+      "error": "Demo mode could not be cleared. Try again.",
+      "actions": {
+        "open": "Leave demo",
+        "confirm": "Start with my data",
+        "pending": "Opening setup...",
+        "stay": "Explore the demo"
       }
     },
     "routes": {

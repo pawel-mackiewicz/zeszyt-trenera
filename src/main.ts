@@ -31,12 +31,28 @@ function bootstrap() {
 
   void database
     .open()
-    .then(() => {
+    .then(async () => {
       appStore.setDbConnected(true)
+
+      const demoMode = await services.useCases.bootstrapDemoMode.handle({})
+
+      appStore.setDemoModeActive(demoMode.mode === 'demo')
+
+      if (demoMode.introModal) {
+        // What: only surface the onboarding modal when this boot actually created demo data. Why: later launches should reopen straight into the notebook instead of re-explaining the same seeded state.
+        appStore.showDemoIntroModal()
+      }
+
       appStore.setAppReady()
     })
     .catch((error: unknown) => {
-      appStore.blockApplication('database')
+      appStore.blockApplication(appStore.dbConnected ? 'bootstrap' : 'database')
+
+      if (appStore.dbConnected) {
+        console.error('Failed to bootstrap the local demo mode.', error)
+        return
+      }
+
       console.error('Failed to open the local database.', error)
     })
 }
