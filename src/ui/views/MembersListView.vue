@@ -116,6 +116,11 @@ function formatDateForInput(value: Date | undefined): string {
   return value.toISOString().split('T')[0]
 }
 
+function toPhoneDialHref(phoneNumber: string): string {
+  // What: convert roster phone text into a dialable URI before rendering. Why: inline edit previews can keep spacing while mobile call intents require a compact tel target.
+  return `tel:${phoneNumber.replace(/\s+/g, '')}`
+}
+
 function startEditing(member: PersistedMember) {
   editErrorKey.value = null
   editingMemberId.value = member.id
@@ -295,8 +300,18 @@ onMounted(() => {
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('details.phoneNumber') }}</span
               >
-              <span class="font-mono text-sm">{{
-                member.phoneNumber ?? t('details.missing')
+              <!-- What: make stored phone numbers tap-to-call inside member details. Why: coaches usually work on phones, so initiating contact should happen directly from this local roster screen without copy/paste. -->
+              <a
+                v-if="member.phoneNumber?.trim()"
+                class="members-list-view__phone-link"
+                :href="toPhoneDialHref(member.phoneNumber)"
+                :aria-label="`${t('details.phoneNumber')}: ${member.phoneNumber}`"
+                :title="`${t('details.phoneNumber')}: ${member.phoneNumber}`"
+              >
+                {{ member.phoneNumber }}
+              </a>
+              <span v-else class="font-mono text-sm">{{
+                t('details.missing')
               }}</span>
             </div>
             <div class="flex flex-col">
@@ -437,6 +452,51 @@ onMounted(() => {
 .members-list-view {
   /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
+}
+
+.members-list-view__phone-link {
+  /* What: style tap-to-call numbers as compact action chips. Why: plain inline text hides affordance, while this treatment matches the app's tactile button language so phone actions are unmistakable on mobile. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.25rem;
+  width: fit-content;
+  padding: 0.35rem 0.55rem;
+  border: 1px solid var(--color-on-surface);
+  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: color-mix(
+    in srgb,
+    var(--color-primary) 70%,
+    transparent
+  );
+  transition:
+    transform 75ms ease,
+    box-shadow 75ms ease,
+    background-color 75ms ease;
+}
+
+.members-list-view__phone-link:hover {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+  background: var(--color-surface-container-low);
+}
+
+.members-list-view__phone-link:active {
+  transform: scale(0.97);
+  box-shadow: none;
+}
+
+.members-list-view__phone-link:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 2px;
 }
 </style>
 

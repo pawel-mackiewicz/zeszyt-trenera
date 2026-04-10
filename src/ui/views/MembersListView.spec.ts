@@ -356,6 +356,27 @@ describe('MembersListView', () => {
     expect(wrapper.text()).toContain('Missing')
   })
 
+  it('renders saved phone numbers as tap-to-call links', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Anderson',
+        lastName: 'Silva',
+        phoneNumber: '+48 111 111 111',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+
+    const phoneLink = wrapper.get('a[href="tel:+48111111111"]')
+    expect(phoneLink.classes()).toContain('members-list-view__phone-link')
+    expect(phoneLink.text()).toBe('+48 111 111 111')
+  })
+
   it('renders missing phone with the same typography as missing date details', async () => {
     vi.mocked(db.members.toArray).mockResolvedValue([
       {
@@ -376,6 +397,7 @@ describe('MembersListView', () => {
       .filter((span) => span.text() === 'Missing')
 
     expect(missingValueSpans).toHaveLength(3)
+    expect(wrapper.find('a[href^="tel:"]').exists()).toBe(false)
     expect(missingValueSpans[0]?.classes().sort()).toStrictEqual(
       missingValueSpans[1]?.classes().sort()
     )
