@@ -121,6 +121,11 @@ function toPhoneDialHref(phoneNumber: string): string {
   return `tel:${phoneNumber.replace(/\s+/g, '')}`
 }
 
+function toPhoneMessageHref(phoneNumber: string): string {
+  // What: convert roster phone text into a message URI before rendering. Why: the member list should offer a direct SMS path beside calling without forcing users to retype numbers on mobile.
+  return `sms:${phoneNumber.replace(/\s+/g, '')}`
+}
+
 function startEditing(member: PersistedMember) {
   editErrorKey.value = null
   editingMemberId.value = member.id
@@ -300,16 +305,31 @@ onMounted(() => {
                 class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                 >{{ t('details.phoneNumber') }}</span
               >
-              <!-- What: make stored phone numbers tap-to-call inside member details. Why: coaches usually work on phones, so initiating contact should happen directly from this local roster screen without copy/paste. -->
-              <a
+              <!-- What: split phone contact into two explicit actions: call and msg. Why: the roster should expose both common outreach paths as immediate taps instead of hiding one behind manual copy or context menus. -->
+              <div
                 v-if="member.phoneNumber?.trim()"
-                class="members-list-view__phone-link"
-                :href="toPhoneDialHref(member.phoneNumber)"
-                :aria-label="`${t('details.phoneNumber')}: ${member.phoneNumber}`"
-                :title="`${t('details.phoneNumber')}: ${member.phoneNumber}`"
+                class="members-list-view__phone-actions"
               >
-                {{ member.phoneNumber }}
-              </a>
+                <span class="font-mono text-sm">{{ member.phoneNumber }}</span>
+                <div class="members-list-view__phone-actions-row">
+                  <a
+                    class="members-list-view__phone-action"
+                    :href="toPhoneDialHref(member.phoneNumber)"
+                    :aria-label="`${t('details.actions.call')} ${member.phoneNumber}`"
+                    :title="`${t('details.actions.call')} ${member.phoneNumber}`"
+                  >
+                    {{ t('details.actions.call') }}
+                  </a>
+                  <a
+                    class="members-list-view__phone-action members-list-view__phone-action--secondary"
+                    :href="toPhoneMessageHref(member.phoneNumber)"
+                    :aria-label="`${t('details.actions.msg')} ${member.phoneNumber}`"
+                    :title="`${t('details.actions.msg')} ${member.phoneNumber}`"
+                  >
+                    {{ t('details.actions.msg') }}
+                  </a>
+                </div>
+              </div>
               <span v-else class="font-mono text-sm">{{
                 t('details.missing')
               }}</span>
@@ -454,47 +474,58 @@ onMounted(() => {
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
 }
 
-.members-list-view__phone-link {
-  /* What: style tap-to-call numbers as compact action chips. Why: plain inline text hides affordance, while this treatment matches the app's tactile button language so phone actions are unmistakable on mobile. */
+.members-list-view__phone-actions {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.members-list-view__phone-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.members-list-view__phone-action {
+  /* What: style call and msg as compact tactile buttons in one shared recipe. Why: these sibling actions should read as a deliberate pair and stay obvious targets in dense mobile roster rows. */
   display: inline-flex;
   align-items: center;
-  min-height: 2.25rem;
-  width: fit-content;
-  padding: 0.35rem 0.55rem;
+  justify-content: center;
+  min-height: 2rem;
+  min-width: 3.5rem;
+  padding: 0.3rem 0.6rem;
   border: 1px solid var(--color-on-surface);
   box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
   background: var(--color-surface);
   color: var(--color-primary);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.2;
-  letter-spacing: 0.06em;
-  text-decoration-line: underline;
-  text-decoration-thickness: 1px;
-  text-underline-offset: 0.22em;
-  text-decoration-color: color-mix(
-    in srgb,
-    var(--color-primary) 70%,
-    transparent
-  );
+  font-family: var(--font-label);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1;
+  text-transform: lowercase;
   transition:
     transform 75ms ease,
     box-shadow 75ms ease,
     background-color 75ms ease;
 }
 
-.members-list-view__phone-link:hover {
+.members-list-view__phone-action--secondary {
+  color: var(--color-on-surface);
+  background: var(--color-surface-container-low);
+}
+
+.members-list-view__phone-action:hover {
   transform: translate(2px, 2px);
   box-shadow: none;
   background: var(--color-surface-container-low);
 }
 
-.members-list-view__phone-link:active {
+.members-list-view__phone-action:active {
   transform: scale(0.97);
   box-shadow: none;
 }
 
-.members-list-view__phone-link:focus-visible {
+.members-list-view__phone-action:focus-visible {
   outline: 2px solid var(--color-on-surface);
   outline-offset: 2px;
 }
@@ -521,7 +552,11 @@ onMounted(() => {
       "phoneNumber": "Telefon",
       "dateOfBirth": "Data ur.",
       "joinedAt": "Dołączył",
-      "missing": "Brak"
+      "missing": "Brak",
+      "actions": {
+        "call": "zadzwoń",
+        "msg": "sms"
+      }
     },
     "edit": {
       "actions": {
@@ -567,7 +602,11 @@ onMounted(() => {
       "phoneNumber": "Phone",
       "dateOfBirth": "Birth date",
       "joinedAt": "Joined",
-      "missing": "Missing"
+      "missing": "Missing",
+      "actions": {
+        "call": "call",
+        "msg": "msg"
+      }
     },
     "edit": {
       "actions": {

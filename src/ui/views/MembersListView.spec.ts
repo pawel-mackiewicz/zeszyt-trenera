@@ -356,7 +356,7 @@ describe('MembersListView', () => {
     expect(wrapper.text()).toContain('Missing')
   })
 
-  it('renders saved phone numbers as tap-to-call links', async () => {
+  it('renders call and msg actions for saved phone numbers', async () => {
     vi.mocked(db.members.toArray).mockResolvedValue([
       {
         id: 'member-1',
@@ -372,9 +372,34 @@ describe('MembersListView', () => {
 
     await wrapper.find('summary').trigger('click')
 
-    const phoneLink = wrapper.get('a[href="tel:+48111111111"]')
-    expect(phoneLink.classes()).toContain('members-list-view__phone-link')
-    expect(phoneLink.text()).toBe('+48 111 111 111')
+    const callAction = wrapper.get('a[href="tel:+48111111111"]')
+    const msgAction = wrapper.get('a[href="sms:+48111111111"]')
+    expect(wrapper.text()).toContain('+48 111 111 111')
+    expect(callAction.text()).toBe('call')
+    expect(msgAction.text()).toBe('msg')
+  })
+
+  it('localizes call and msg actions in Polish', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Anderson',
+        lastName: 'Silva',
+        phoneNumber: '+48 111 111 111',
+        createdAt: new Date('2026-03-20T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('pl')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+
+    const callAction = wrapper.get('a[href="tel:+48111111111"]')
+    const msgAction = wrapper.get('a[href="sms:+48111111111"]')
+
+    expect(callAction.text()).toBe('zadzwoń')
+    expect(msgAction.text()).toBe('sms')
   })
 
   it('renders missing phone with the same typography as missing date details', async () => {
@@ -398,6 +423,7 @@ describe('MembersListView', () => {
 
     expect(missingValueSpans).toHaveLength(3)
     expect(wrapper.find('a[href^="tel:"]').exists()).toBe(false)
+    expect(wrapper.find('a[href^="sms:"]').exists()).toBe(false)
     expect(missingValueSpans[0]?.classes().sort()).toStrictEqual(
       missingValueSpans[1]?.classes().sort()
     )
