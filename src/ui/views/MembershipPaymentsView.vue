@@ -18,10 +18,10 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
+import { calculateAge } from '@/ui/utils/age'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
-  calculateAge,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 

@@ -17,20 +17,28 @@ import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import MembersSortTool from '@/ui/components/MembersSortTool.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
+import {
+  sortMembers,
+  type MemberSortDirection,
+  type MemberSortField
+} from '@/ui/utils/memberSort'
 
 const { useCases } = useAppServices()
-const { t } = useI18n({ useScope: 'local' })
+const { t, locale } = useI18n({ useScope: 'local' })
 const savedMembers = ref<PersistedMember[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
 const maxAgeFilter = ref(AGE_FILTER_MAX)
 const minAgeFilter = ref(AGE_FILTER_MIN)
+const memberSortField = ref<MemberSortField>('firstName')
+const memberSortDirection = ref<MemberSortDirection>('asc')
 
 const openMemberId = ref<string | null>(null)
 const editingMemberId = ref<string | null>(null)
@@ -56,15 +64,15 @@ const membersCountLabel = computed(() =>
   t('summary.memberCount', { count: savedMembers.value.length })
 )
 
+function formatMemberName(member: PersistedMember): string {
+  return `${member.firstName} ${member.lastName}`
+}
+
 async function loadSavedMembers() {
   isLoading.value = true
   try {
     await db.open()
-    const members = await db.members.toArray()
-    // Sort logic could simply be by createdAt desc initially
-    savedMembers.value = members.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    )
+    savedMembers.value = await db.members.toArray()
   } catch (error) {
     console.error('Failed to load members', error)
   } finally {
@@ -73,16 +81,23 @@ async function loadSavedMembers() {
 }
 
 const filteredMembers = computed(() => {
-  return savedMembers.value.filter((m) => {
-    const fullName = `${m.firstName} ${m.lastName}`.toLowerCase()
+  const visibleMembers = savedMembers.value.filter((member) => {
+    const fullName = formatMemberName(member).toLowerCase()
     const matchesSearch = fullName.includes(searchQuery.value.toLowerCase())
     const matchesAge = matchesAgeRange(
-      m.dateOfBirth,
+      member.dateOfBirth,
       minAgeFilter.value,
       maxAgeFilter.value
     )
 
     return matchesSearch && matchesAge
+  })
+
+  // What: pass visible members into the shared sorter instead of keeping comparator internals in the view. Why: this screen should keep local-first filtering concerns while reusable utilities own ordering rules.
+  return sortMembers(visibleMembers, {
+    field: memberSortField.value,
+    direction: memberSortDirection.value,
+    locale: locale.value
   })
 })
 
@@ -214,6 +229,12 @@ onMounted(() => {
           input-id="members-search"
           :input-label="t('search.label')"
           :placeholder="t('search.placeholder')"
+        />
+
+        <!-- What: delegate the roster sorting UI to one shared component. Why: this keeps sort copy, toggle behavior, and mobile-first styling consistent with other reusable filter tools like AgeRangeFilter. -->
+        <MembersSortTool
+          v-model:sort-field="memberSortField"
+          v-model:sort-direction="memberSortDirection"
         />
       </section>
 

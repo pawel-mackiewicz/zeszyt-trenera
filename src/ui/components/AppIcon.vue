@@ -2,6 +2,8 @@
 type IconName =
   | 'add'
   | 'arrow_back'
+  | 'arrow_downward'
+  | 'arrow_upward'
   | 'chevron_right'
   | 'check_circle'
   | 'calendar_today'
@@ -31,6 +33,15 @@ defineProps<{
     <template v-if="name === 'arrow_back'">
       <path d="M19 12H5" />
       <path d="m12 19-7-7 7-7" />
+    </template>
+    <template v-else-if="name === 'arrow_upward'">
+      <!-- What: add dedicated sort-direction arrows to the local icon set. Why: the roster sort controls need unmistakable ascending and descending cues that still render offline inside the installed PWA. -->
+      <path d="M12 19V5" />
+      <path d="m6 11 6-6 6 6" />
+    </template>
+    <template v-else-if="name === 'arrow_downward'">
+      <path d="M12 5v14" />
+      <path d="m18 13-6 6-6-6" />
     </template>
     <template v-else-if="name === 'menu'">
       <path d="M4 7h16" />

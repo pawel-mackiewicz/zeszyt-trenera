@@ -18,7 +18,7 @@ import {
   AGE_ENTRY_MIN,
   birthDateInputValueFromAge,
   resolveAgeFromBirthDate
-} from '@/ui/utils/ageRange'
+} from '@/ui/utils/age'
 
 const router = useRouter()
 const { useCases } = useAppServices()

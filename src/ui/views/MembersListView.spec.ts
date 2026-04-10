@@ -84,6 +84,137 @@ describe('MembersListView', () => {
     )
   })
 
+  it('sorts members alphabetically by the visible full name', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Zane',
+        lastName: 'Beta',
+        createdAt: new Date('2026-03-22T10:00:00Z')
+      },
+      {
+        id: 'member-2',
+        firstName: 'Adam',
+        lastName: 'Zulu',
+        createdAt: new Date('2026-03-23T10:00:00Z')
+      },
+      {
+        id: 'member-3',
+        firstName: 'Adam',
+        lastName: 'Alpha',
+        createdAt: new Date('2026-03-24T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    expect(
+      wrapper
+        .findAll('summary .font-headline')
+        .map((summaryName) => summaryName.text())
+    ).toStrictEqual(['Adam Alpha', 'Adam Zulu', 'Zane Beta'])
+  })
+
+  it('renders dedicated sort field choices and one direction toggle', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    const sortOptions = wrapper
+      .get('#members-sort-field')
+      .findAll('option')
+      .map((option) => ({
+        text: option.text(),
+        value: option.element.getAttribute('value')
+      }))
+
+    expect(sortOptions).toStrictEqual([
+      { text: 'First name', value: 'firstName' },
+      { text: 'Last name', value: 'lastName' },
+      { text: 'Age', value: 'dateOfBirth' },
+      { text: 'Join date', value: 'joinedAt' }
+    ])
+    const directionToggle = wrapper.get(
+      'button[aria-label="Direction: Ascending"]'
+    )
+
+    expect(directionToggle.attributes('title')).toBe('Direction: Ascending')
+  })
+
+  it('changes roster ordering when the selected sort field or direction changes', async () => {
+    vi.mocked(db.members.toArray).mockResolvedValue([
+      {
+        id: 'member-1',
+        firstName: 'Zane',
+        lastName: 'Beta',
+        dateOfBirth: new Date('1994-06-01T00:00:00Z'),
+        joinedAt: new Date('2024-02-01T00:00:00Z'),
+        createdAt: new Date('2026-03-22T10:00:00Z')
+      },
+      {
+        id: 'member-2',
+        firstName: 'Adam',
+        lastName: 'Zulu',
+        dateOfBirth: new Date('1986-03-01T00:00:00Z'),
+        joinedAt: new Date('2023-01-15T00:00:00Z'),
+        createdAt: new Date('2026-03-23T10:00:00Z')
+      },
+      {
+        id: 'member-3',
+        firstName: 'Adam',
+        lastName: 'Alpha',
+        dateOfBirth: new Date('2003-08-01T00:00:00Z'),
+        joinedAt: new Date('2025-04-01T00:00:00Z'),
+        createdAt: new Date('2026-03-24T10:00:00Z')
+      }
+    ])
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    const renderedNames = () =>
+      wrapper
+        .findAll('summary .font-headline')
+        .map((summaryName) => summaryName.text())
+
+    expect(renderedNames()).toStrictEqual([
+      'Adam Alpha',
+      'Adam Zulu',
+      'Zane Beta'
+    ])
+
+    await wrapper.get('#members-sort-field').setValue('lastName')
+    await flushPromises()
+
+    expect(renderedNames()).toStrictEqual([
+      'Adam Alpha',
+      'Zane Beta',
+      'Adam Zulu'
+    ])
+
+    await wrapper
+      .get('button[aria-label="Direction: Ascending"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(renderedNames()).toStrictEqual([
+      'Adam Zulu',
+      'Zane Beta',
+      'Adam Alpha'
+    ])
+
+    await wrapper.get('#members-sort-field').setValue('joinedAt')
+    await flushPromises()
+
+    expect(renderedNames()).toStrictEqual([
+      'Adam Alpha',
+      'Zane Beta',
+      'Adam Zulu'
+    ])
+  })
+
   it('keeps unknown ages at the default range and normalizes crossed handles', async () => {
     vi.mocked(db.members.toArray).mockResolvedValue([
       {

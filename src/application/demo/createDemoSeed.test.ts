@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { createDemoSeed } from '@/application/demo/createDemoSeed'
-import { calculateAge } from '@/ui/utils/ageRange'
+import { calculateAge } from '@/ui/utils/age'
 
 describe('createDemoSeed', () => {
   it('derives current and previous months from runtime now, not a hard-coded year', () => {
