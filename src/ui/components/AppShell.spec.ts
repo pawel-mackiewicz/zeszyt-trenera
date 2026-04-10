@@ -530,6 +530,24 @@ describe('AppShell', () => {
     )
   })
 
+  it('shows technical backup-export details when the workflow throws a browser error', async () => {
+    mockExportDatabaseBackup.mockRejectedValueOnce(
+      new DOMException('Gesture required', 'NotAllowedError')
+    )
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Szczegóły techniczne: NotAllowedError: Gesture required'
+    )
+  })
+
   it('opens the native file picker from the backup import menu action', async () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()

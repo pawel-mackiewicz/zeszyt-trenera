@@ -89,6 +89,7 @@ const backupImportInProgress = ref(false)
 const backupImportErrorVisible = ref(false)
 const backupExportInProgress = ref(false)
 const backupExportErrorVisible = ref(false)
+const backupExportErrorMessage = ref<string | null>(null)
 const resetModalVisible = ref(false)
 const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
@@ -205,6 +206,9 @@ const updateErrorMessage = computed(() => {
   // What: derive the banner copy from the safe error kind only. Why: browser update errors should never be echoed back into the production UI.
   return t(`update.error.${updateError.value.kind}`)
 })
+const backupExportAlertMessage = computed(
+  () => backupExportErrorMessage.value ?? t('menu.exportBackup.error')
+)
 const isResetConfirmationValid = computed(
   () =>
     normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
@@ -383,6 +387,7 @@ function closeMenu() {
 function dismissBackupExportError() {
   // What: let coaches dismiss backup export failures from the shell-level alert. Why: backup retries should not be blocked by stale error copy once the issue is understood.
   backupExportErrorVisible.value = false
+  backupExportErrorMessage.value = null
 }
 
 function dismissBackupImportError() {
@@ -441,17 +446,57 @@ async function exportDatabaseBackup() {
 
   closeMenu()
   backupExportErrorVisible.value = false
+  backupExportErrorMessage.value = null
   backupExportInProgress.value = true
 
   try {
     // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
     await useCases.exportDatabaseBackup.handle({})
   } catch (error) {
+    // What: attach technical browser error details to the shared export alert. Why: Android share/download failures are often browser-specific and impossible to diagnose from generic copy.
+    backupExportErrorMessage.value = buildBackupExportErrorMessage(t, error)
     backupExportErrorVisible.value = true
     console.error('Failed to export local database backup.', error)
   } finally {
     backupExportInProgress.value = false
   }
+}
+
+function buildBackupExportErrorMessage(
+  translate: (key: string, values?: Record<string, unknown>) => string,
+  error: unknown
+): string {
+  const errorDetails = formatErrorDetails(error)
+
+  if (!errorDetails) {
+    return translate('menu.exportBackup.error')
+  }
+
+  return `${translate('menu.exportBackup.error')} ${translate(
+    'menu.exportBackup.errorDetails',
+    {
+      details: errorDetails
+    }
+  )}`
+}
+
+function formatErrorDetails(error: unknown): string | null {
+  if (error instanceof DOMException || error instanceof Error) {
+    const message = error.message.trim()
+
+    if (message.length === 0) {
+      return error.name
+    }
+
+    return `${error.name}: ${message}`
+  }
+
+  if (typeof error === 'string') {
+    const message = error.trim()
+    return message.length > 0 ? message : null
+  }
+
+  return null
 }
 
 function openResetModal() {
@@ -847,7 +892,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
       <!-- What: route backup-export failures through the shared floating alert. Why: backup issues should be visible in the same shell-level recovery surface as other recoverable errors. -->
       <FloatingErrorAlert
         v-if="backupExportErrorVisible"
-        :message="t('menu.exportBackup.error')"
+        :message="backupExportAlertMessage"
         top-offset="shell"
         @dismiss="dismissBackupExportError"
       />
@@ -1363,7 +1408,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "exportBackup": {
         "action": "Eksportuj kopię danych",
         "pending": "Eksportowanie kopii...",
-        "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie."
+        "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie.",
+        "errorDetails": "Szczegóły techniczne: {details}"
       },
       "importBackup": {
         "action": "Przywróć z kopii danych",
@@ -1488,7 +1534,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "exportBackup": {
         "action": "Export backup",
         "pending": "Exporting backup...",
-        "error": "Backup export failed. Try again."
+        "error": "Backup export failed. Try again.",
+        "errorDetails": "Technical details: {details}"
       },
       "importBackup": {
         "action": "Restore from backup",

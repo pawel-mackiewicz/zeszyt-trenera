@@ -73,6 +73,30 @@ describe('BrowserBackupFileDelivery', () => {
     expect(clickSpy).toHaveBeenCalledTimes(1)
   })
 
+  it('falls back to object-url download when canShare throws on files payload', async () => {
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    const environment = createEnvironment({
+      browserNavigator: {
+        canShare: vi.fn().mockImplementation(() => {
+          throw new TypeError('files are not shareable')
+        }),
+        share: vi.fn()
+      }
+    })
+    const delivery = new BrowserBackupFileDelivery(environment)
+    const file = new File(['{}'], 'backup.json', {
+      type: 'application/json'
+    })
+
+    await expect(delivery.deliver(file)).resolves.toBeUndefined()
+
+    expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(environment.browserNavigator.share).not.toHaveBeenCalled()
+  })
+
   it('silently ignores AbortError when the share sheet is dismissed', async () => {
     const share = vi
       .fn()
@@ -89,6 +113,33 @@ describe('BrowserBackupFileDelivery', () => {
     })
 
     await expect(delivery.deliver(file)).resolves.toBeUndefined()
+  })
+
+  it('falls back to download when share rejects with capability errors', async () => {
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    const share = vi
+      .fn()
+      .mockRejectedValue(
+        new DOMException('Gesture required', 'NotAllowedError')
+      )
+    const environment = createEnvironment({
+      browserNavigator: {
+        canShare: vi.fn().mockReturnValue(true),
+        share
+      }
+    })
+    const delivery = new BrowserBackupFileDelivery(environment)
+    const file = new File(['{}'], 'backup.json', {
+      type: 'application/json'
+    })
+
+    await expect(delivery.deliver(file)).resolves.toBeUndefined()
+
+    expect(share).toHaveBeenCalledWith({ files: [file] })
+    expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
   })
 
   it('rethrows non-abort share errors', async () => {
