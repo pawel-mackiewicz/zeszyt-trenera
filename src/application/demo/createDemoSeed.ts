@@ -1,5 +1,7 @@
 import { toMembershipPaymentCoveredMonth } from '@/domain/model/MembershipPayment'
 
+//todo: move to infra probably
+
 type DemoName = {
   firstName: string
   lastName: string
