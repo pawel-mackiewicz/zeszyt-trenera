@@ -84,6 +84,9 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
+const backupImportInput = ref<HTMLInputElement | null>(null)
+const backupImportInProgress = ref(false)
+const backupImportErrorVisible = ref(false)
 const backupExportInProgress = ref(false)
 const backupExportErrorVisible = ref(false)
 const resetModalVisible = ref(false)
@@ -382,6 +385,55 @@ function dismissBackupExportError() {
   backupExportErrorVisible.value = false
 }
 
+function dismissBackupImportError() {
+  // What: let coaches dismiss backup import failures from the shell-level alert. Why: restore retries should not stay blocked by stale error copy once the issue is understood.
+  backupImportErrorVisible.value = false
+}
+
+function openBackupImportPicker() {
+  if (backupImportInProgress.value) {
+    return
+  }
+
+  closeMenu()
+  backupImportErrorVisible.value = false
+  // What: trigger restore through a hidden native file input. Why: OS pickers keep JSON selection consistent across mobile and desktop without custom upload UI.
+  backupImportInput.value?.click()
+}
+
+async function handleBackupImportSelection(event: Event) {
+  if (backupImportInProgress.value) {
+    return
+  }
+
+  const fileInput = event.target as HTMLInputElement | null
+  const selectedBackupFile = fileInput?.files?.[0]
+
+  if (!selectedBackupFile) {
+    return
+  }
+
+  backupImportErrorVisible.value = false
+  backupImportInProgress.value = true
+
+  try {
+    // What: route backup restore through one dedicated application workflow. Why: destructive clear-and-import writes must stay behind the same application boundary as every other Dexie mutation.
+    await useCases.importDatabaseBackup.handle({
+      backupFile: selectedBackupFile
+    })
+    reloadApplication()
+  } catch (error) {
+    backupImportErrorVisible.value = true
+    console.error('Failed to import local database backup.', error)
+  } finally {
+    // What: clear the picker value after each attempt. Why: browsers do not emit change when the same file is selected twice unless the input value is reset.
+    if (fileInput) {
+      fileInput.value = ''
+    }
+    backupImportInProgress.value = false
+  }
+}
+
 async function exportDatabaseBackup() {
   if (backupExportInProgress.value) {
     return
@@ -553,6 +605,16 @@ function bottomNavForegroundClasses(isActive: boolean) {
     class="app-canvas min-h-screen text-on-surface font-body selection:bg-primary selection:text-white"
   >
     <template v-if="isShellReady">
+      <!-- What: keep the restore control as a hidden native file input. Why: browser file pickers are the most reliable cross-platform path for local JSON backup selection in a PWA shell. -->
+      <input
+        ref="backupImportInput"
+        class="sr-only"
+        type="file"
+        accept=".json,application/json"
+        data-testid="import-backup-input"
+        @change="handleBackupImportSelection"
+      />
+
       <header
         class="fixed top-0 w-full z-40 flex justify-between items-center px-6 h-16 bg-surface/90 backdrop-blur-md border-b border-on-surface/10 transition-colors"
       >
@@ -706,6 +768,21 @@ function bottomNavForegroundClasses(isActive: boolean) {
                   : t('menu.exportBackup.action')
               }}
             </AppButton>
+            <!-- What: expose local backup restore from the shell menu. Why: coaches need a direct recovery path that can overwrite stale on-device rows with a trusted backup. -->
+            <AppButton
+              class="mt-3 w-full"
+              type="button"
+              variant="secondary"
+              data-testid="import-backup-button"
+              :disabled="backupImportInProgress"
+              @click="openBackupImportPicker"
+            >
+              {{
+                backupImportInProgress
+                  ? t('menu.importBackup.pending')
+                  : t('menu.importBackup.action')
+              }}
+            </AppButton>
             <!-- What: keep the hard reset action available in the shell menu even during demo mode. Why: a coach who is only testing the seeded notebook still needs the same one-tap recovery path back to clean setup without leaving demo first. -->
             <AppButton
               class="mt-3 w-full"
@@ -773,6 +850,14 @@ function bottomNavForegroundClasses(isActive: boolean) {
         :message="t('menu.exportBackup.error')"
         top-offset="shell"
         @dismiss="dismissBackupExportError"
+      />
+
+      <!-- What: route backup-import failures through the shared floating alert. Why: corrupted or incompatible restore files should surface in the same shell-level recovery lane as export/reset errors. -->
+      <FloatingErrorAlert
+        v-if="backupImportErrorVisible"
+        :message="t('menu.importBackup.error')"
+        top-offset="shell"
+        @dismiss="dismissBackupImportError"
       />
 
       <div
@@ -1280,6 +1365,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "pending": "Eksportowanie kopii...",
         "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie."
       },
+      "importBackup": {
+        "action": "Przywróć z kopii danych",
+        "pending": "Przywracanie kopii...",
+        "error": "Nie udało się przywrócić kopii danych. Sprawdź plik i spróbuj ponownie."
+      },
       "resetData": {
         "action": "Reset aplikacji",
         "confirm": "Usuń wszystko",
@@ -1399,6 +1489,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "action": "Export backup",
         "pending": "Exporting backup...",
         "error": "Backup export failed. Try again."
+      },
+      "importBackup": {
+        "action": "Restore from backup",
+        "pending": "Restoring backup...",
+        "error": "Backup restore failed. Check the file and try again."
       },
       "resetData": {
         "action": "Reset app data",

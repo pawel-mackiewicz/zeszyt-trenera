@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Observable } from 'dexie'
+import { exportDB } from 'dexie-export-import'
 
 import {
   APP_LOCALE_STORAGE_KEY,
@@ -77,6 +78,9 @@ describe('appServices', () => {
     )
     expect(services.useCases.exportDatabaseBackup).toBe(
       services.useCases.exportDatabaseBackup
+    )
+    expect(services.useCases.importDatabaseBackup).toBe(
+      services.useCases.importDatabaseBackup
     )
     expect(services.useCases.leaveDemoMode).toBe(
       services.useCases.leaveDemoMode
@@ -163,6 +167,46 @@ describe('appServices', () => {
     expect(window.localStorage.getItem(DEMO_LIFECYCLE_STORAGE_KEY)).toBeNull()
     expect(window.localStorage.getItem(DEMO_MODE_ACTIVE_STORAGE_KEY)).toBeNull()
     expect(window.localStorage.getItem(ATTENDANCE_DRAFT_STORAGE_KEY)).toBeNull()
+  })
+
+  it('assembles the backup import workflow that overwrites existing local rows', async () => {
+    const services = createAppServices(database)
+    await services.useCases.registerClub.handle({
+      clubName: 'Imported Club',
+      foundingDate: new Date('2002-01-01T00:00:00Z')
+    })
+    await services.useCases.registerTrainer.handle({
+      trainerName: 'Imported Trainer'
+    })
+
+    const backupBlob = await exportDB(database)
+    const backupFile = new File([backupBlob], 'backup.json', {
+      type: 'application/json'
+    })
+
+    await services.useCases.resetApplicationData.handle({
+      confirmationPhrase: 'DELETE ALL DATA'
+    })
+
+    await services.useCases.registerClub.handle({
+      clubName: 'Local Club',
+      foundingDate: new Date('1999-01-01T00:00:00Z')
+    })
+
+    await services.useCases.importDatabaseBackup.handle({
+      backupFile
+    })
+
+    await expect(database.clubs.toArray()).resolves.toMatchObject([
+      {
+        name: 'Imported Club'
+      }
+    ])
+    await expect(database.trainers.toArray()).resolves.toMatchObject([
+      {
+        name: 'Imported Trainer'
+      }
+    ])
   })
 
   it('assembles Dexie adapters that persist a club and matching event row', async () => {

@@ -5,6 +5,7 @@ import {
   type BootstrapDemoModeResult
 } from '@/application/BootstrapDemoModeUseCase'
 import { ExportDatabaseBackupUseCase } from '@/application/ExportDatabaseBackupUseCase'
+import { ImportDatabaseBackupUseCase } from '@/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
@@ -18,6 +19,7 @@ import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
 import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
 import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
+import type { ImportDatabaseBackupCommand } from '@/application/requests/ImportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/application/requests/LeaveDemoModeCommand'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
@@ -33,6 +35,7 @@ import { BrowserSmsComposer } from '@/infra/BrowserSmsComposer'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/infra/db/DexieAppResetRepo'
 import { DexieDatabaseBackupExporter } from '@/infra/db/DexieDatabaseBackupExporter'
+import { DexieDatabaseBackupImporter } from '@/infra/db/DexieDatabaseBackupImporter'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
@@ -73,6 +76,7 @@ export type AppUseCases = {
     BootstrapDemoModeResult
   >
   readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
+  readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
@@ -143,6 +147,10 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveDatabaseBackupExport = lazy(
     () => new DexieDatabaseBackupExporter(database)
   )
+  // Backup import keeps restore semantics in one adapter so shell flows never call Dexie import APIs directly.
+  const resolveDatabaseBackupImport = lazy(
+    () => new DexieDatabaseBackupImporter(database)
+  )
   const resolveBackupFileDelivery = lazy(() => new BrowserBackupFileDelivery())
   const resolveDemoLifecycleStore = lazy(
     () => new LocalStorageDemoLifecycleStore()
@@ -186,6 +194,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveBackupFileDelivery(),
         resolveClock()
       )
+  )
+  const resolveImportDatabaseBackup = lazy(
+    () => new ImportDatabaseBackupUseCase(resolveDatabaseBackupImport())
   )
   const resolveRegisterAttendanceList = lazy(
     () =>
@@ -288,6 +299,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get exportDatabaseBackup() {
       return resolveExportDatabaseBackup()
+    },
+    get importDatabaseBackup() {
+      return resolveImportDatabaseBackup()
     },
     get leaveDemoMode() {
       return resolveLeaveDemoMode()

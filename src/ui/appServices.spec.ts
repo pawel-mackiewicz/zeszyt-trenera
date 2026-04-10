@@ -47,6 +47,9 @@ describe('uiAppServices', () => {
         exportDatabaseBackup: {
           handle
         },
+        importDatabaseBackup: {
+          handle
+        },
         leaveDemoMode: {
           handle
         },

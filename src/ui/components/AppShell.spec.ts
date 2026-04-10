@@ -69,6 +69,7 @@ describe('AppShell', () => {
   let mockRoute: MockRoute
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
+  let mockImportDatabaseBackup: Mock
   let mockExportDatabaseBackup: Mock
   let mockResetApplicationData: Mock
   let mockLeaveDemoMode: Mock
@@ -81,6 +82,7 @@ describe('AppShell', () => {
     mockNeedRefresh = ref(false)
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
+    mockImportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockExportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
@@ -137,6 +139,9 @@ describe('AppShell', () => {
         }
       } as unknown,
       useCases: {
+        importDatabaseBackup: {
+          handle: mockImportDatabaseBackup
+        },
         exportDatabaseBackup: {
           handle: mockExportDatabaseBackup
         },
@@ -523,6 +528,84 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Nie udało się wyeksportować kopii danych. Spróbuj ponownie.'
     )
+  })
+
+  it('opens the native file picker from the backup import menu action', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+
+    const importInput = wrapper.get('[data-testid="import-backup-input"]')
+      .element as HTMLInputElement
+    const inputClickSpy = vi
+      .spyOn(importInput, 'click')
+      .mockImplementation(() => undefined)
+
+    await wrapper.get('[data-testid="import-backup-button"]').trigger('click')
+
+    // What: verify the menu action delegates to the hidden native input click. Why: restore should rely on the browser picker instead of a custom upload surface.
+    expect(inputClickSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('imports a selected backup file through the application layer and reloads on success', async () => {
+    const reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+    const backupFile = new File(['{"formatName":"dexie"}'], 'backup.json', {
+      type: 'application/json'
+    })
+    const importInput = wrapper.get('[data-testid="import-backup-input"]')
+      .element as HTMLInputElement
+
+    Object.defineProperty(importInput, 'files', {
+      value: [backupFile],
+      configurable: true
+    })
+
+    await wrapper.get('[data-testid="import-backup-input"]').trigger('change')
+    await flushPromises()
+
+    expect(mockImportDatabaseBackup).toHaveBeenCalledWith({
+      backupFile
+    })
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+
+    reloadSpy.mockRestore()
+  })
+
+  it('shows the floating backup import error when restore fails', async () => {
+    mockImportDatabaseBackup.mockRejectedValueOnce(new Error('import failed'))
+    const reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+    const backupFile = new File(['{"formatName":"dexie"}'], 'backup.json', {
+      type: 'application/json'
+    })
+    const importInput = wrapper.get('[data-testid="import-backup-input"]')
+      .element as HTMLInputElement
+
+    Object.defineProperty(importInput, 'files', {
+      value: [backupFile],
+      configurable: true
+    })
+
+    await wrapper.get('[data-testid="import-backup-input"]').trigger('change')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Nie udało się przywrócić kopii danych. Sprawdź plik i spróbuj ponownie.'
+    )
+    expect(reloadSpy).not.toHaveBeenCalled()
+
+    reloadSpy.mockRestore()
   })
 
   it('switches locale from the hamburger menu and persists the choice locally', async () => {
