@@ -56,7 +56,6 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         id: 'member-other-month-payment',
         firstName: 'Rickson',
         lastName: 'Gracie',
-        phoneNumber: '+48444444444',
         createdAt: new Date('2026-01-04T00:00:00Z')
       }
     ])
@@ -107,7 +106,8 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
           id: 'member-paid',
           firstName: 'Amanda',
           lastName: 'Nunes',
-          dateOfBirth: new Date('1990-05-30T00:00:00Z')
+          dateOfBirth: new Date('1990-05-30T00:00:00Z'),
+          hasPhoneNumber: true
         }
       ],
       unpaidAbsentMembers: [
@@ -115,7 +115,8 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
           id: 'member-absent',
           firstName: 'Georges',
           lastName: 'St-Pierre',
-          dateOfBirth: new Date('1981-05-19T00:00:00Z')
+          dateOfBirth: new Date('1981-05-19T00:00:00Z'),
+          hasPhoneNumber: true
         }
       ],
       unpaidAttendedMembers: [
@@ -124,6 +125,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
           firstName: 'Royce',
           lastName: 'Gracie',
           dateOfBirth: new Date('1966-12-12T00:00:00Z'),
+          hasPhoneNumber: true,
           attendanceSessionIds: ['attendance-1', 'attendance-2']
         },
         {
@@ -131,6 +133,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
           firstName: 'Rickson',
           lastName: 'Gracie',
           dateOfBirth: undefined,
+          hasPhoneNumber: false,
           attendanceSessionIds: ['attendance-2']
         }
       ]
@@ -183,6 +186,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         firstName: 'Royce',
         lastName: 'Gracie',
         dateOfBirth: new Date('1966-12-12T00:00:00Z'),
+        hasPhoneNumber: true,
         attendanceSessionIds: ['attendance-1']
       }
     ])
@@ -191,7 +195,8 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         id: 'member-attended',
         firstName: 'Royce',
         lastName: 'Gracie',
-        dateOfBirth: new Date('1966-12-12T00:00:00Z')
+        dateOfBirth: new Date('1966-12-12T00:00:00Z'),
+        hasPhoneNumber: true
       }
     ])
     expect(afterPayment.unpaidAttendedMembers).toEqual([])
@@ -228,7 +233,8 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         id: 'member-absent',
         firstName: 'Georges',
         lastName: 'St-Pierre',
-        dateOfBirth: new Date('1981-05-19T00:00:00Z')
+        dateOfBirth: new Date('1981-05-19T00:00:00Z'),
+        hasPhoneNumber: true
       }
     ])
     expect(afterAttendance.unpaidAttendedMembers).toEqual([
@@ -237,6 +243,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         firstName: 'Georges',
         lastName: 'St-Pierre',
         dateOfBirth: new Date('1981-05-19T00:00:00Z'),
+        hasPhoneNumber: true,
         attendanceSessionIds: ['attendance-1']
       }
     ])

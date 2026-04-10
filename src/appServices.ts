@@ -11,6 +11,7 @@ import { RegisterMemberUseCase } from '@/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/application/RegisterMembershipPaymentUseCase'
 import { RegisterTrainerUseCase } from '@/application/RegisterTrainerUseCase'
 import { ResetApplicationDataUseCase } from '@/application/ResetApplicationDataUseCase'
+import { SendMembershipPaymentReminderUseCase } from '@/application/SendMembershipPaymentReminderUseCase'
 import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListUseCase'
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
@@ -22,9 +23,11 @@ import type { RegisterMemberCommand } from '@/application/requests/RegisterMembe
 import type { RegisterMembershipPaymentCommand } from '@/application/requests/RegisterMembershipPaymentCommand'
 import type { ResetApplicationDataCommand } from '@/application/requests/ResetApplicationDataCommand'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
+import type { SendMembershipPaymentReminderCommand } from '@/application/requests/SendMembershipPaymentReminderCommand'
 import type { UpdateAttendanceListCommand } from '@/application/requests/UpdateAttendanceListCommand'
 import type { UpdateMemberCommand } from '@/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
+import { BrowserSmsComposer } from '@/infra/BrowserSmsComposer'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/infra/db/DexieAppResetRepo'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
@@ -32,9 +35,11 @@ import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
 import { DexieMembershipPaymentRepo } from '@/infra/db/DexieMembershipPaymentRepo'
 import { DexieNotebookBootstrapStateRepo } from '@/infra/db/DexieNotebookBootstrapStateRepo'
+import { DexiePaymentReminderSender } from '@/infra/db/DexiePaymentReminderSender'
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { IdGenerator } from '@/infra/IdGenerator'
+import { LocalizedPaymentReminderMessageBuilder } from '@/infra/LocalizedPaymentReminderMessageBuilder'
 import { LocalStorageAppStateResetter } from '@/infra/LocalStorageAppStateResetter'
 import { LocalStorageDemoLifecycleStore } from '@/infra/LocalStorageDemoLifecycleStore'
 import { SystemClock } from '@/infra/SystemClock'
@@ -70,6 +75,7 @@ export type AppUseCases = {
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
   readonly resetApplicationData: UseCase<ResetApplicationDataCommand>
+  readonly sendMembershipPaymentReminder: UseCase<SendMembershipPaymentReminderCommand>
   readonly updateAttendanceList: UseCase<UpdateAttendanceListCommand>
   readonly updateMember: UseCase<UpdateMemberCommand>
 }
@@ -131,6 +137,13 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveDemoLifecycleStore = lazy(
     () => new LocalStorageDemoLifecycleStore()
   )
+  const resolvePaymentReminderSender = lazy(
+    () => new DexiePaymentReminderSender(database)
+  )
+  const resolvePaymentReminderMessageBuilder = lazy(
+    () => new LocalizedPaymentReminderMessageBuilder()
+  )
+  const resolveSmsComposer = lazy(() => new BrowserSmsComposer())
   const resolveBootstrapDemoMode = lazy(
     () =>
       new BootstrapDemoModeUseCase(
@@ -240,6 +253,15 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveAppStateReset()
       )
   )
+  const resolveSendMembershipPaymentReminder = lazy(
+    () =>
+      new SendMembershipPaymentReminderUseCase(
+        resolveMemberRepo(),
+        resolvePaymentReminderSender(),
+        resolvePaymentReminderMessageBuilder(),
+        resolveSmsComposer()
+      )
+  )
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
@@ -266,6 +288,10 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get resetApplicationData() {
       return resolveResetApplicationData()
+    },
+    // Keeping reminder dispatch behind the shared use-case bag lets payments stay UI-thin while the application layer owns SMS body construction and sender identity lookup.
+    get sendMembershipPaymentReminder() {
+      return resolveSendMembershipPaymentReminder()
     },
     get updateAttendanceList() {
       return resolveUpdateAttendanceList()

@@ -3,9 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import {
+  MemberPhoneNumberMissingError,
+  PaymentReminderSenderMissingError
+} from '@/application/SendMembershipPaymentReminderUseCase'
+import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
 } from '@/domain/model/MembershipPayment'
+import { MemberNotFoundError } from '@/domain/model/member'
 import type {
   MembershipPaymentStatusByMonthResult,
   MembershipPaymentStatusMemberListItem,
@@ -30,6 +35,12 @@ type ObservableSubscription = {
 }
 
 type ConfirmationErrorKey = 'submit' | null
+type ReminderErrorKey =
+  | 'memberMissing'
+  | 'phoneMissing'
+  | 'senderMissing'
+  | 'submit'
+  | null
 
 type PaymentFeedback = {
   kind: 'alreadyRecorded'
@@ -58,6 +69,8 @@ const result = ref<MembershipPaymentStatusByMonthResult>({
   unpaidAttendedMembers: []
 })
 const paymentFeedback = ref<PaymentFeedback>(null)
+const reminderErrorKey = ref<ReminderErrorKey>(null)
+const reminderInFlightMemberId = ref<string | null>(null)
 const selectedMemberForConfirmation = ref<ConfirmPaymentTarget | null>(null)
 const confirmationErrorKey = ref<ConfirmationErrorKey>(null)
 const isConfirmingPayment = ref(false)
@@ -102,6 +115,11 @@ const feedbackMessage = computed(() => {
     month: paymentFeedback.value.coveredMonthLabel
   })
 })
+const reminderErrorMessage = computed(() =>
+  reminderErrorKey.value === null
+    ? ''
+    : t(`reminder.errors.${reminderErrorKey.value}`)
+)
 
 function startOfMonth(value: Date): Date {
   return new Date(value.getFullYear(), value.getMonth(), 1)
@@ -182,6 +200,11 @@ function dismissPaymentFeedback() {
   paymentFeedback.value = null
 }
 
+function dismissReminderError() {
+  // What: let coaches clear reminder-specific errors without changing any list filters. Why: SMS launch failures are recoverable side-effects and should not force a month or search reset to continue work.
+  reminderErrorKey.value = null
+}
+
 function dismissConfirmationError() {
   // What: let the confirmation flow clear the shared floating error card while keeping the dialog open. Why: a failed payment write should be retryable without forcing the coach to stare at a stale warning between attempts.
   confirmationErrorKey.value = null
@@ -219,6 +242,7 @@ function subscribeToPaymentsLedger(monthStart: Date) {
 function handleMonthChange(month: Date) {
   // What: reset month-specific UI state before swapping the shared selector value. Why: payment feedback and confirmation copy belong to one covered month and must not leak into the next ledger.
   paymentFeedback.value = null
+  reminderErrorKey.value = null
   closeConfirmationDialog()
   activeMonth.value = month
 }
@@ -276,6 +300,44 @@ async function confirmPayment() {
   }
 }
 
+function isSendingReminderForMember(memberId: string): boolean {
+  return reminderInFlightMemberId.value === memberId
+}
+
+function resolveReminderLocale(value: string): 'pl' | 'en' {
+  return value.toLowerCase().startsWith('pl') ? 'pl' : 'en'
+}
+
+async function sendReminder(member: MembershipPaymentStatusMemberListItem) {
+  if (isSendingReminderForMember(member.id)) {
+    return
+  }
+
+  reminderErrorKey.value = null
+  reminderInFlightMemberId.value = member.id
+
+  try {
+    // What: trigger reminder composition through the shared application use case. Why: the view should not assemble sender identity or SMS copy directly, so message policy stays centralized and testable.
+    await useCases.sendMembershipPaymentReminder.handle({
+      memberId: member.id,
+      coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
+      locale: resolveReminderLocale(locale.value)
+    })
+  } catch (error) {
+    if (error instanceof MemberNotFoundError) {
+      reminderErrorKey.value = 'memberMissing'
+    } else if (error instanceof MemberPhoneNumberMissingError) {
+      reminderErrorKey.value = 'phoneMissing'
+    } else if (error instanceof PaymentReminderSenderMissingError) {
+      reminderErrorKey.value = 'senderMissing'
+    } else {
+      reminderErrorKey.value = 'submit'
+    }
+  } finally {
+    reminderInFlightMemberId.value = null
+  }
+}
+
 function handleWindowKeydown(event: KeyboardEvent) {
   if (event.key !== 'Escape' || selectedMemberForConfirmation.value === null) {
     return
@@ -329,6 +391,14 @@ onBeforeUnmount(() => {
       :title="t('feedback.title')"
       top-offset="shell"
       @dismiss="dismissPaymentFeedback"
+    />
+    <!-- What: surface reminder launch failures through the shared floating error card. Why: SMS side-effects can fail independently from payment writes, and coaches need one consistent top-level recovery surface across both flows. -->
+    <FloatingErrorAlert
+      v-if="reminderErrorMessage"
+      :message="reminderErrorMessage"
+      :title="t('reminder.errors.title')"
+      top-offset="shell"
+      @dismiss="dismissReminderError"
     />
 
     <!-- What: keep filters directly above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance instead of splitting search into a separate hero block. -->
@@ -436,19 +506,39 @@ onBeforeUnmount(() => {
               </p>
             </div>
 
-            <AppButton
-              :id="`payments-open-confirm-${member.id}`"
-              class="w-full sm:w-auto"
-              type="button"
-              @click="
-                openPaymentConfirmation(
-                  member,
-                  member.attendanceSessionIds.length
-                )
-              "
-            >
-              {{ t('actions.markAsPaid') }}
-            </AppButton>
+            <!-- What: keep remind and payment actions side by side per unpaid member. Why: coaches can send a payment prompt and then mark settlement from the same row without scanning for controls elsewhere on mobile. -->
+            <div class="payments-member-actions w-full sm:w-auto">
+              <AppButton
+                :id="`payments-remind-${member.id}`"
+                :disabled="
+                  !member.hasPhoneNumber ||
+                  isSendingReminderForMember(member.id)
+                "
+                class="w-full sm:w-auto"
+                variant="secondary"
+                type="button"
+                @click="sendReminder(member)"
+              >
+                {{
+                  isSendingReminderForMember(member.id)
+                    ? t('actions.reminding')
+                    : t('actions.remind')
+                }}
+              </AppButton>
+              <AppButton
+                :id="`payments-open-confirm-${member.id}`"
+                class="w-full sm:w-auto"
+                type="button"
+                @click="
+                  openPaymentConfirmation(
+                    member,
+                    member.attendanceSessionIds.length
+                  )
+                "
+              >
+                {{ t('actions.markAsPaid') }}
+              </AppButton>
+            </div>
           </article>
         </template>
       </section>
@@ -488,15 +578,34 @@ onBeforeUnmount(() => {
               </p>
             </div>
 
-            <AppButton
-              :id="`payments-open-confirm-${member.id}`"
-              class="w-full sm:w-auto"
-              variant="secondary"
-              type="button"
-              @click="openPaymentConfirmation(member)"
-            >
-              {{ t('actions.markAsPaid') }}
-            </AppButton>
+            <div class="payments-member-actions w-full sm:w-auto">
+              <AppButton
+                :id="`payments-remind-${member.id}`"
+                :disabled="
+                  !member.hasPhoneNumber ||
+                  isSendingReminderForMember(member.id)
+                "
+                class="w-full sm:w-auto"
+                variant="secondary"
+                type="button"
+                @click="sendReminder(member)"
+              >
+                {{
+                  isSendingReminderForMember(member.id)
+                    ? t('actions.reminding')
+                    : t('actions.remind')
+                }}
+              </AppButton>
+              <AppButton
+                :id="`payments-open-confirm-${member.id}`"
+                class="w-full sm:w-auto"
+                variant="secondary"
+                type="button"
+                @click="openPaymentConfirmation(member)"
+              >
+                {{ t('actions.markAsPaid') }}
+              </AppButton>
+            </div>
           </article>
         </template>
       </section>
@@ -723,6 +832,12 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid var(--color-outline-variant);
 }
 
+.payments-member-actions {
+  /* What: keep each unpaid row action cluster compact on narrow devices and horizontal on larger ones. Why: payment workflows are mobile-first, but two adjacent actions should not force full-row wrapping once desktop space is available. */
+  display: grid;
+  gap: 0.5rem;
+}
+
 .payments-member-row:last-child {
   border-bottom: 0;
 }
@@ -779,6 +894,10 @@ onBeforeUnmount(() => {
     align-items: center;
   }
 
+  .payments-member-actions {
+    grid-template-columns: repeat(2, minmax(0, auto));
+  }
+
   .payments-paid-indicator {
     justify-self: end;
   }
@@ -797,6 +916,8 @@ onBeforeUnmount(() => {
     },
     "actions": {
       "markAsPaid": "Oznacz jako opłacone",
+      "remind": "Przypomnij",
+      "reminding": "Otwieranie...",
       "confirmPayment": "Potwierdź płatność",
       "confirmingPayment": "Zapisywanie...",
       "cancel": "Anuluj"
@@ -834,6 +955,15 @@ onBeforeUnmount(() => {
       "title": "Status już zaktualizowany",
       "alreadyRecorded": "Płatność od {memberName} za {month} jest już zapisana."
     },
+    "reminder": {
+      "errors": {
+        "title": "Nie udało się otworzyć wiadomości SMS",
+        "memberMissing": "Nie znaleziono członka do przypomnienia o składce.",
+        "phoneMissing": "Ten członek nie ma zapisanego numeru telefonu.",
+        "senderMissing": "Uzupełnij dane klubu i trenera, aby wysyłać przypomnienia.",
+        "submit": "Spróbuj ponownie. Ten ekran nie otworzył jeszcze wiadomości SMS."
+      }
+    },
     "confirmation": {
       "eyebrow": "Potwierdzenie",
       "title": "Oznaczyć składkę jako opłaconą?",
@@ -859,6 +989,8 @@ onBeforeUnmount(() => {
     },
     "actions": {
       "markAsPaid": "Mark as paid",
+      "remind": "Remind",
+      "reminding": "Opening...",
       "confirmPayment": "Confirm payment",
       "confirmingPayment": "Saving...",
       "cancel": "Cancel"
@@ -895,6 +1027,15 @@ onBeforeUnmount(() => {
     "feedback": {
       "title": "Status already updated",
       "alreadyRecorded": "The payment from {memberName} for {month} is already saved."
+    },
+    "reminder": {
+      "errors": {
+        "title": "Could not open SMS message",
+        "memberMissing": "The member for this reminder could not be found.",
+        "phoneMissing": "This member does not have a phone number saved.",
+        "senderMissing": "Set up trainer and club details before sending reminders.",
+        "submit": "Try again. This screen has not opened the SMS composer yet."
+      }
     },
     "confirmation": {
       "eyebrow": "Confirmation",

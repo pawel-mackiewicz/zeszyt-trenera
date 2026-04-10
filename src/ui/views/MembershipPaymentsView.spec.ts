@@ -17,18 +17,21 @@ type MembershipPaymentsResult = {
     firstName: string
     lastName: string
     dateOfBirth?: Date
+    hasPhoneNumber: boolean
   }>
   unpaidAbsentMembers: Array<{
     id: string
     firstName: string
     lastName: string
     dateOfBirth?: Date
+    hasPhoneNumber: boolean
   }>
   unpaidAttendedMembers: Array<{
     id: string
     firstName: string
     lastName: string
     dateOfBirth?: Date
+    hasPhoneNumber: boolean
     attendanceSessionIds: string[]
   }>
 }
@@ -51,6 +54,7 @@ function createObservable(result: MembershipPaymentsResult) {
 describe('MembershipPaymentsView', () => {
   let mockObserveMembershipPaymentStatusByMonthHandle: Mock
   let mockRegisterMembershipPaymentHandle: Mock
+  let mockSendMembershipPaymentReminderHandle: Mock
   let currentResult: MembershipPaymentsResult
 
   beforeEach(() => {
@@ -63,7 +67,8 @@ describe('MembershipPaymentsView', () => {
           id: 'paid-1',
           firstName: 'Amanda',
           lastName: 'Nunes',
-          dateOfBirth: new Date('1988-05-30T00:00:00Z')
+          dateOfBirth: new Date('1988-05-30T00:00:00Z'),
+          hasPhoneNumber: true
         }
       ],
       unpaidAbsentMembers: [
@@ -71,12 +76,14 @@ describe('MembershipPaymentsView', () => {
           id: 'absent-1',
           firstName: 'Georges',
           lastName: 'St-Pierre',
-          dateOfBirth: new Date('1981-05-19T00:00:00Z')
+          dateOfBirth: new Date('1981-05-19T00:00:00Z'),
+          hasPhoneNumber: true
         },
         {
           id: 'unknown-age-1',
           firstName: 'Mystery',
-          lastName: 'Member'
+          lastName: 'Member',
+          hasPhoneNumber: false
         }
       ],
       unpaidAttendedMembers: [
@@ -85,6 +92,7 @@ describe('MembershipPaymentsView', () => {
           firstName: 'Royce',
           lastName: 'Gracie',
           dateOfBirth: new Date('1966-12-12T00:00:00Z'),
+          hasPhoneNumber: true,
           attendanceSessionIds: ['session-1', 'session-2']
         }
       ]
@@ -94,6 +102,9 @@ describe('MembershipPaymentsView', () => {
       createObservable(currentResult)
     )
     mockRegisterMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
+    mockSendMembershipPaymentReminderHandle = vi
+      .fn()
+      .mockResolvedValue(undefined)
 
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
@@ -110,6 +121,9 @@ describe('MembershipPaymentsView', () => {
         registerMember: { handle: vi.fn() },
         registerMembershipPayment: {
           handle: mockRegisterMembershipPaymentHandle
+        },
+        sendMembershipPaymentReminder: {
+          handle: mockSendMembershipPaymentReminderHandle
         },
         registerTrainer: { handle: vi.fn() }
       }
@@ -171,6 +185,35 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Georges St-Pierre')
     expect(wrapper.text()).toContain('Opłacili')
     expect(wrapper.text()).toContain('Amanda Nunes')
+  })
+
+  it('renders remind actions and disables reminder for members without a phone number', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(
+      wrapper.get('#payments-remind-attended-1').attributes('disabled')
+    ).toBeUndefined()
+    expect(
+      wrapper.get('#payments-remind-absent-1').attributes('disabled')
+    ).toBeUndefined()
+    expect(
+      wrapper.get('#payments-remind-unknown-age-1').attributes('disabled')
+    ).toBeDefined()
+  })
+
+  it('delegates SMS reminder composition to the application use case', async () => {
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.get('#payments-remind-attended-1').trigger('click')
+    await flushPromises()
+
+    expect(mockSendMembershipPaymentReminderHandle).toHaveBeenCalledWith({
+      memberId: 'attended-1',
+      coveredMonth: '2026-10',
+      locale: 'en'
+    })
   })
 
   it('applies search and age filtering in the UI only', async () => {

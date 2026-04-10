@@ -94,6 +94,9 @@ describe('appServices', () => {
     expect(services.useCases.resetApplicationData).toBe(
       services.useCases.resetApplicationData
     )
+    expect(services.useCases.sendMembershipPaymentReminder).toBe(
+      services.useCases.sendMembershipPaymentReminder
+    )
     expect(services.useCases.updateAttendanceList).toBe(
       services.useCases.updateAttendanceList
     )
@@ -391,7 +394,8 @@ describe('appServices', () => {
           id: amanda.id,
           firstName: 'amanda',
           lastName: 'nunes',
-          dateOfBirth: new Date('1990-05-30T00:00:00Z')
+          dateOfBirth: new Date('1990-05-30T00:00:00Z'),
+          hasPhoneNumber: true
         }
       ],
       unpaidAbsentMembers: [
@@ -399,7 +403,8 @@ describe('appServices', () => {
           id: georges.id,
           firstName: 'georges',
           lastName: 'st-pierre',
-          dateOfBirth: new Date('1981-05-19T00:00:00Z')
+          dateOfBirth: new Date('1981-05-19T00:00:00Z'),
+          hasPhoneNumber: true
         }
       ],
       unpaidAttendedMembers: [
@@ -408,6 +413,7 @@ describe('appServices', () => {
           firstName: 'royce',
           lastName: 'gracie',
           dateOfBirth: new Date('1966-12-12T00:00:00Z'),
+          hasPhoneNumber: true,
           attendanceSessionIds: expect.arrayContaining([expect.any(String)])
         }
       ]
@@ -455,7 +461,7 @@ describe('appServices', () => {
     })
     await expect(database.clubs.count()).resolves.toBe(1)
     await expect(database.trainers.count()).resolves.toBe(1)
-    await expect(database.members.count()).resolves.toBe(50)
+    await expect(database.members.count()).resolves.toBe(60)
 
     const currentMonthStatus = await waitForFirstEmission(
       services.queries.observeMembershipPaymentStatusByMonth.handle({

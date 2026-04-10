@@ -65,6 +65,9 @@ describe('uiAppServices', () => {
         resetApplicationData: {
           handle
         },
+        sendMembershipPaymentReminder: {
+          handle
+        },
         updateAttendanceList: {
           handle
         },

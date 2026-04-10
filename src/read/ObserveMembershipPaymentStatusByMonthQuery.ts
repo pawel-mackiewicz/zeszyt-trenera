@@ -8,6 +8,7 @@ export type MembershipPaymentStatusMemberListItem = {
   firstName: string
   lastName: string
   dateOfBirth?: Date
+  hasPhoneNumber: boolean
 }
 
 export type UnpaidAttendedMembershipPaymentStatusMemberListItem =
@@ -86,7 +87,11 @@ export class ObserveMembershipPaymentStatusByMonthQuery {
           id: member.id,
           firstName: member.firstName,
           lastName: member.lastName,
-          dateOfBirth: member.dateOfBirth
+          dateOfBirth: member.dateOfBirth,
+          // Why: payment reminder actions need a cheap eligibility flag in the same local-first read payload, so the view can disable SMS affordances without issuing extra reads.
+          hasPhoneNumber:
+            typeof member.phoneNumber === 'string' &&
+            member.phoneNumber.trim().length > 0
         }
 
         if (paidMemberIds.has(member.id)) {
