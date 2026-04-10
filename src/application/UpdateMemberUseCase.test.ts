@@ -23,10 +23,7 @@ class FakeMemberRepo implements MemberRepoPort {
   public readonly updates: Member[] = []
   public membersById = new Map<string, Member>()
 
-  async save(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake only satisfies the repository contract for a use case that does not call save.
-    _member: Member
-  ): Promise<void> {
+  async save(_member: Member): Promise<void> {
     throw new Error('Not implemented in this test')
   }
 
@@ -43,11 +40,10 @@ class FakeMemberRepo implements MemberRepoPort {
   }
 
   async existsByNameAndBirthDate(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
     _firstName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
+
     _lastName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- UpdateMemberUseCase no longer depends on duplicate checks.
+
     _dateOfBirth: Date
   ): Promise<boolean> {
     return false

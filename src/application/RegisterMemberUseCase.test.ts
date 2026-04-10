@@ -49,10 +49,7 @@ class FakeMemberRepo implements MemberRepoPort {
     this.savedMembers.push(member)
   }
 
-  async update(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake only satisfies the repository contract for tests that do not exercise updates.
-    _member: Member
-  ): Promise<void> {
+  async update(_member: Member): Promise<void> {
     throw new Error('Not implemented in this test')
   }
 

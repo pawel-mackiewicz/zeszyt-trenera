@@ -38,10 +38,7 @@ class FakeMemberRepo implements MemberRepoPort {
     this.savedMembers.push(member)
   }
 
-  async update(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while payment tests only rely on existsById.
-    _member: Member
-  ): Promise<void> {
+  async update(_member: Member): Promise<void> {
     throw new Error('Not implemented in this fake')
   }
 
@@ -59,11 +56,10 @@ class FakeMemberRepo implements MemberRepoPort {
   }
 
   async existsByNameAndBirthDate(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
     _firstName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
+
     _lastName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the production port signature because the use case depends on the contract, not on these test values.
+
     _dateOfBirth: Date
   ): Promise<boolean> {
     return false

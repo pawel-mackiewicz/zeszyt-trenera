@@ -25,17 +25,11 @@ class FakeMemberRepo implements MemberRepoPort {
   public readonly existsByIdChecks: string[] = []
   public existingMemberIds = new Set<string>()
 
-  async save(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance update tests only rely on existsById.
-    _member: Member
-  ): Promise<void> {
+  async save(_member: Member): Promise<void> {
     throw new Error('Not implemented in this fake')
   }
 
-  async update(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance update tests only rely on existsById.
-    _member: Member
-  ): Promise<void> {
+  async update(_member: Member): Promise<void> {
     throw new Error('Not implemented in this fake')
   }
 
@@ -49,11 +43,10 @@ class FakeMemberRepo implements MemberRepoPort {
   }
 
   async existsByNameAndBirthDate(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
     _firstName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
+
     _lastName: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Attendance updates do not depend on duplicate member identity checks.
+
     _dateOfBirth: Date
   ): Promise<boolean> {
     return false
@@ -72,10 +65,7 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
     return this.attendanceListsById.get(attendanceListId) ?? null
   }
 
-  async save(
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- This fake keeps the full repo contract while attendance update tests only rely on findById/update.
-    _attendanceList: AttendanceList
-  ): Promise<void> {
+  async save(_attendanceList: AttendanceList): Promise<void> {
     throw new Error('Not implemented in this fake')
   }
 
