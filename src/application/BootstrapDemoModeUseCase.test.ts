@@ -119,7 +119,7 @@ describe('BootstrapDemoModeUseCase', () => {
     expect(appResetRepo.clearAllData).toHaveBeenCalledTimes(1)
     expect(clubRepo.save).toHaveBeenCalledTimes(1)
     expect(trainerRepo.save).toHaveBeenCalledTimes(1)
-    expect(memberRepo.save).toHaveBeenCalledTimes(50)
+    expect(memberRepo.save).toHaveBeenCalledTimes(60)
     expect(membershipPaymentRepo.save).toHaveBeenCalledTimes(
       expectedDemoSeed.membershipPayments.length
     )
