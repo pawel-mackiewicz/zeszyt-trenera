@@ -4,6 +4,7 @@ import {
   BootstrapDemoModeUseCase,
   type BootstrapDemoModeResult
 } from '@/application/BootstrapDemoModeUseCase'
+import { ExportDatabaseBackupUseCase } from '@/application/ExportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/application/RegisterAttendanceListUseCase'
 import { RegisterClubUseCase } from '@/application/RegisterClubUseCase'
@@ -16,6 +17,7 @@ import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListU
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
 import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
+import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/application/requests/LeaveDemoModeCommand'
 import type { RegisterAttendanceListCommand } from '@/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/application/requests/RegisterClubCommand'
@@ -30,6 +32,7 @@ import type { TrainerNotebookDb } from '@/db'
 import { BrowserSmsComposer } from '@/infra/BrowserSmsComposer'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/infra/db/DexieAppResetRepo'
+import { DexieDatabaseBackupExporter } from '@/infra/db/DexieDatabaseBackupExporter'
 import { DexieClubRepo } from '@/infra/db/DexieClubRepo'
 import { DexieEventRepo } from '@/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/infra/db/DexieMemberRepo'
@@ -38,6 +41,7 @@ import { DexieNotebookBootstrapStateRepo } from '@/infra/db/DexieNotebookBootstr
 import { DexiePaymentReminderSender } from '@/infra/db/DexiePaymentReminderSender'
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
+import { BrowserBackupFileDelivery } from '@/infra/BrowserBackupFileDelivery'
 import { IdGenerator } from '@/infra/IdGenerator'
 import { LocalizedPaymentReminderMessageBuilder } from '@/infra/LocalizedPaymentReminderMessageBuilder'
 import { LocalStorageAppStateResetter } from '@/infra/LocalStorageAppStateResetter'
@@ -68,6 +72,7 @@ export type AppUseCases = {
     BootstrapDemoModeCommand,
     BootstrapDemoModeResult
   >
+  readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
@@ -134,6 +139,11 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
   const resolveIdGenerator = lazy(() => new IdGenerator())
   const resolveClock = lazy(() => new SystemClock())
+  // Backup export keeps snapshot generation and browser delivery as swappable adapters so the application workflow can stay policy-focused and testable.
+  const resolveDatabaseBackupExport = lazy(
+    () => new DexieDatabaseBackupExporter(database)
+  )
+  const resolveBackupFileDelivery = lazy(() => new BrowserBackupFileDelivery())
   const resolveDemoLifecycleStore = lazy(
     () => new LocalStorageDemoLifecycleStore()
   )
@@ -167,6 +177,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveAppResetRepo(),
         resolveDemoLifecycleStore()
+      )
+  )
+  const resolveExportDatabaseBackup = lazy(
+    () =>
+      new ExportDatabaseBackupUseCase(
+        resolveDatabaseBackupExport(),
+        resolveBackupFileDelivery(),
+        resolveClock()
       )
   )
   const resolveRegisterAttendanceList = lazy(
@@ -267,6 +285,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
     get bootstrapDemoMode() {
       return resolveBootstrapDemoMode()
+    },
+    get exportDatabaseBackup() {
+      return resolveExportDatabaseBackup()
     },
     get leaveDemoMode() {
       return resolveLeaveDemoMode()

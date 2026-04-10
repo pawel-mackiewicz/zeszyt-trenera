@@ -25,6 +25,12 @@ export default tseslint.config(
       }
     },
     rules: {
+      // Why: application/use-case contracts often require a request argument even when a specific handler does not use it yet.
+      // `_` keeps that intent explicit while still surfacing all other unused arguments as lint errors.
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' }
+      ],
       'vue/multi-word-component-names': 'off'
     }
   },

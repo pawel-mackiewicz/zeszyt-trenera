@@ -69,6 +69,7 @@ describe('AppShell', () => {
   let mockRoute: MockRoute
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
+  let mockExportDatabaseBackup: Mock
   let mockResetApplicationData: Mock
   let mockLeaveDemoMode: Mock
 
@@ -80,6 +81,7 @@ describe('AppShell', () => {
     mockNeedRefresh = ref(false)
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
+    mockExportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
     mockSetupStatusObservers = []
@@ -135,6 +137,9 @@ describe('AppShell', () => {
         }
       } as unknown,
       useCases: {
+        exportDatabaseBackup: {
+          handle: mockExportDatabaseBackup
+        },
         leaveDemoMode: {
           handle: mockLeaveDemoMode
         },
@@ -460,6 +465,64 @@ describe('AppShell', () => {
 
     expect(mockRefreshApplication).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
+  })
+
+  it('exports a local backup from the menu through the application layer', async () => {
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
+    await flushPromises()
+
+    expect(mockExportDatabaseBackup).toHaveBeenCalledWith({})
+  })
+
+  it('shows pending backup copy while export is in progress', async () => {
+    let resolveBackupExport:
+      | ((value?: void | PromiseLike<void>) => void)
+      | undefined
+
+    mockExportDatabaseBackup.mockImplementationOnce(
+      async () =>
+        await new Promise<void>((resolve) => {
+          resolveBackupExport = resolve
+        })
+    )
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
+    await wrapper.find('header button').trigger('click')
+    await nextTick()
+
+    expect(wrapper.text()).toContain('Eksportowanie kopii...')
+    expect(
+      wrapper.get('[data-testid="export-backup-button"]').attributes('disabled')
+    ).toBeDefined()
+
+    resolveBackupExport?.()
+    await flushPromises()
+  })
+
+  it('shows the floating backup error when backup export fails', async () => {
+    mockExportDatabaseBackup.mockRejectedValueOnce(new Error('backup failed'))
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Nie udało się wyeksportować kopii danych. Spróbuj ponownie.'
+    )
   })
 
   it('switches locale from the hamburger menu and persists the choice locally', async () => {

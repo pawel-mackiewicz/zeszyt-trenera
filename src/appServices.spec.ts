@@ -75,6 +75,9 @@ describe('appServices', () => {
     expect(services.useCases.bootstrapDemoMode).toBe(
       services.useCases.bootstrapDemoMode
     )
+    expect(services.useCases.exportDatabaseBackup).toBe(
+      services.useCases.exportDatabaseBackup
+    )
     expect(services.useCases.leaveDemoMode).toBe(
       services.useCases.leaveDemoMode
     )

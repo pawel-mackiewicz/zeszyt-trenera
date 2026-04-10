@@ -84,6 +84,8 @@ const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
 const isMenuOpen = ref(false)
+const backupExportInProgress = ref(false)
+const backupExportErrorVisible = ref(false)
 const resetModalVisible = ref(false)
 const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
@@ -375,6 +377,31 @@ function closeMenu() {
   appStore.hideInstallCoach()
 }
 
+function dismissBackupExportError() {
+  // What: let coaches dismiss backup export failures from the shell-level alert. Why: backup retries should not be blocked by stale error copy once the issue is understood.
+  backupExportErrorVisible.value = false
+}
+
+async function exportDatabaseBackup() {
+  if (backupExportInProgress.value) {
+    return
+  }
+
+  closeMenu()
+  backupExportErrorVisible.value = false
+  backupExportInProgress.value = true
+
+  try {
+    // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
+    await useCases.exportDatabaseBackup.handle({})
+  } catch (error) {
+    backupExportErrorVisible.value = true
+    console.error('Failed to export local database backup.', error)
+  } finally {
+    backupExportInProgress.value = false
+  }
+}
+
 function openResetModal() {
   closeMenu()
   resetErrorVisible.value = false
@@ -664,6 +691,21 @@ function bottomNavForegroundClasses(isActive: boolean) {
             >
               {{ updateActionLabel }}
             </AppButton>
+            <!-- What: expose local backup export from the shell menu. Why: coaches need a manual recovery path for their offline notebook data without opening developer-only screens. -->
+            <AppButton
+              class="mt-3 w-full"
+              type="button"
+              variant="secondary"
+              data-testid="export-backup-button"
+              :disabled="backupExportInProgress"
+              @click="exportDatabaseBackup"
+            >
+              {{
+                backupExportInProgress
+                  ? t('menu.exportBackup.pending')
+                  : t('menu.exportBackup.action')
+              }}
+            </AppButton>
             <!-- What: keep the hard reset action available in the shell menu even during demo mode. Why: a coach who is only testing the seeded notebook still needs the same one-tap recovery path back to clean setup without leaving demo first. -->
             <AppButton
               class="mt-3 w-full"
@@ -723,6 +765,14 @@ function bottomNavForegroundClasses(isActive: boolean) {
         stack-level="modal"
         top-offset="shell"
         @dismiss="dismissDemoExitError"
+      />
+
+      <!-- What: route backup-export failures through the shared floating alert. Why: backup issues should be visible in the same shell-level recovery surface as other recoverable errors. -->
+      <FloatingErrorAlert
+        v-if="backupExportErrorVisible"
+        :message="t('menu.exportBackup.error')"
+        top-offset="shell"
+        @dismiss="dismissBackupExportError"
       />
 
       <div
@@ -1225,6 +1275,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
     "menu": {
       "debugIndexedDb": "Debug IndexedDB",
       "languageLabel": "Język",
+      "exportBackup": {
+        "action": "Eksportuj kopię danych",
+        "pending": "Eksportowanie kopii...",
+        "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie."
+      },
       "resetData": {
         "action": "Reset aplikacji",
         "confirm": "Usuń wszystko",
@@ -1340,6 +1395,11 @@ function bottomNavForegroundClasses(isActive: boolean) {
     "menu": {
       "debugIndexedDb": "Debug IndexedDB",
       "languageLabel": "Language",
+      "exportBackup": {
+        "action": "Export backup",
+        "pending": "Exporting backup...",
+        "error": "Backup export failed. Try again."
+      },
       "resetData": {
         "action": "Reset app data",
         "confirm": "Delete everything",
