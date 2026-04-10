@@ -89,10 +89,12 @@ const backupImportInput = ref<HTMLInputElement | null>(null)
 const backupImportInProgress = ref(false)
 const backupImportErrorVisible = ref(false)
 const backupExportInProgress = ref(false)
+const backupExportProgressStage = ref<'prepare' | 'share' | null>(null)
 const backupExportErrorVisible = ref(false)
 const backupExportErrorMessage = ref<string | null>(null)
 const backupExportDiagnosticVisible = ref(false)
 const backupExportDiagnosticMessage = ref<string | null>(null)
+const preparedBackupFile = ref<File | null>(null)
 const resetModalVisible = ref(false)
 const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
@@ -215,6 +217,19 @@ const backupExportAlertMessage = computed(
 const backupExportDiagnosticAlertMessage = computed(
   () => backupExportDiagnosticMessage.value ?? t('menu.exportBackup.diagnostic')
 )
+const backupExportActionLabel = computed(() => {
+  if (backupExportProgressStage.value === 'prepare') {
+    return t('menu.exportBackup.preparing')
+  }
+
+  if (backupExportProgressStage.value === 'share') {
+    return t('menu.exportBackup.sharing')
+  }
+
+  return preparedBackupFile.value
+    ? t('menu.exportBackup.sharePreparedAction')
+    : t('menu.exportBackup.action')
+})
 const isResetConfirmationValid = computed(
   () =>
     normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
@@ -464,8 +479,20 @@ async function exportDatabaseBackup() {
   backupExportInProgress.value = true
 
   try {
-    // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
-    const backupDeliveryResult = await useCases.exportDatabaseBackup.handle({})
+    if (!preparedBackupFile.value) {
+      backupExportProgressStage.value = 'prepare'
+      // What: prepare the backup snapshot before opening the share sheet. Why: generating a Dexie export is asynchronous and can consume the browser gesture window required by `navigator.share` on mobile.
+      preparedBackupFile.value = await useCases.exportDatabaseBackup.handle({})
+      backupExportDiagnosticMessage.value = t('menu.exportBackup.prepared')
+      backupExportDiagnosticVisible.value = true
+      return
+    }
+
+    backupExportProgressStage.value = 'share'
+    // What: run file delivery from the second tap only. Why: this keeps the `navigator.share` call inside a fresh user gesture after export preparation has already finished.
+    const backupDeliveryResult = await useCases.deliverDatabaseBackup.handle({
+      backupFile: preparedBackupFile.value
+    })
 
     if (backupDeliveryResult.method === 'download') {
       // What: surface the download-fallback reason directly in the shell. Why: Android and other mobile browsers can skip native share UI for capability reasons that need immediate, on-device diagnostics.
@@ -475,12 +502,16 @@ async function exportDatabaseBackup() {
       )
       backupExportDiagnosticVisible.value = true
     }
+
+    // What: clear the prepared snapshot once delivery completes. Why: a later export should always regenerate from the newest local-first data instead of reusing stale in-memory file content.
+    preparedBackupFile.value = null
   } catch (error) {
     // What: attach technical browser error details to the shared export alert. Why: Android share/download failures are often browser-specific and impossible to diagnose from generic copy.
     backupExportErrorMessage.value = buildBackupExportErrorMessage(t, error)
     backupExportErrorVisible.value = true
     console.error('Failed to export local database backup.', error)
   } finally {
+    backupExportProgressStage.value = null
     backupExportInProgress.value = false
   }
 }
@@ -861,11 +892,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
               :disabled="backupExportInProgress"
               @click="exportDatabaseBackup"
             >
-              {{
-                backupExportInProgress
-                  ? t('menu.exportBackup.pending')
-                  : t('menu.exportBackup.action')
-              }}
+              {{ backupExportActionLabel }}
             </AppButton>
             <!-- What: expose local backup restore from the shell menu. Why: coaches need a direct recovery path that can overwrite stale on-device rows with a trusted backup. -->
             <AppButton
@@ -1469,7 +1496,10 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "languageLabel": "Język",
       "exportBackup": {
         "action": "Eksportuj kopię danych",
-        "pending": "Eksportowanie kopii...",
+        "preparing": "Przygotowywanie kopii...",
+        "sharePreparedAction": "Udostępnij przygotowaną kopię",
+        "sharing": "Udostępnianie kopii...",
+        "prepared": "Kopia danych jest gotowa. Otwórz menu i kliknij eksport ponownie, aby udostępnić plik.",
         "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie.",
         "errorDetails": "Szczegóły techniczne: {details}",
         "diagnostic": "Kopia danych została wyeksportowana przez standardowe pobieranie pliku (bez okna udostępniania).",
@@ -1604,7 +1634,10 @@ function bottomNavForegroundClasses(isActive: boolean) {
       "languageLabel": "Language",
       "exportBackup": {
         "action": "Export backup",
-        "pending": "Exporting backup...",
+        "preparing": "Preparing backup...",
+        "sharePreparedAction": "Share prepared backup",
+        "sharing": "Sharing backup...",
+        "prepared": "Backup is ready. Open the menu and tap export again to share the file.",
         "error": "Backup export failed. Try again.",
         "errorDetails": "Technical details: {details}",
         "diagnostic": "Backup was exported through standard file download (share sheet was skipped).",

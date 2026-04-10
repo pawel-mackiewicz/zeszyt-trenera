@@ -4,6 +4,7 @@ import {
   BootstrapDemoModeUseCase,
   type BootstrapDemoModeResult
 } from '@/application/BootstrapDemoModeUseCase'
+import { DeliverDatabaseBackupUseCase } from '@/application/DeliverDatabaseBackupUseCase'
 import { ExportDatabaseBackupUseCase } from '@/application/ExportDatabaseBackupUseCase'
 import { ImportDatabaseBackupUseCase } from '@/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/application/LeaveDemoModeUseCase'
@@ -19,6 +20,7 @@ import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
 import type { BackupFileDeliveryResult } from '@/application/ports/BackupFileDeliveryPort'
 import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
+import type { DeliverDatabaseBackupCommand } from '@/application/requests/DeliverDatabaseBackupCommand'
 import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
 import type { ImportDatabaseBackupCommand } from '@/application/requests/ImportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/application/requests/LeaveDemoModeCommand'
@@ -76,10 +78,11 @@ export type AppUseCases = {
     BootstrapDemoModeCommand,
     BootstrapDemoModeResult
   >
-  readonly exportDatabaseBackup: UseCase<
-    ExportDatabaseBackupCommand,
+  readonly deliverDatabaseBackup: UseCase<
+    DeliverDatabaseBackupCommand,
     BackupFileDeliveryResult
   >
+  readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand, File>
   readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
@@ -195,9 +198,11 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () =>
       new ExportDatabaseBackupUseCase(
         resolveDatabaseBackupExport(),
-        resolveBackupFileDelivery(),
         resolveClock()
       )
+  )
+  const resolveDeliverDatabaseBackup = lazy(
+    () => new DeliverDatabaseBackupUseCase(resolveBackupFileDelivery())
   )
   const resolveImportDatabaseBackup = lazy(
     () => new ImportDatabaseBackupUseCase(resolveDatabaseBackupImport())
@@ -300,6 +305,10 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
     get bootstrapDemoMode() {
       return resolveBootstrapDemoMode()
+    },
+    // Splitting backup preparation from delivery preserves user-gesture share requirements on mobile browsers while keeping both steps behind application ports.
+    get deliverDatabaseBackup() {
+      return resolveDeliverDatabaseBackup()
     },
     get exportDatabaseBackup() {
       return resolveExportDatabaseBackup()
