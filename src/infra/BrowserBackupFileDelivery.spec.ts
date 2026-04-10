@@ -45,7 +45,9 @@ describe('BrowserBackupFileDelivery', () => {
       type: 'application/json'
     })
 
-    await delivery.deliver(file)
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'share'
+    })
 
     expect(canShare).toHaveBeenCalledWith({ files: [file] })
     expect(share).toHaveBeenCalledWith({ files: [file] })
@@ -64,13 +66,43 @@ describe('BrowserBackupFileDelivery', () => {
       type: 'application/json'
     })
 
-    await delivery.deliver(file)
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'download',
+      reasonCode: 'share-api-unavailable',
+      reasonDetails: 'navigator.share is unavailable'
+    })
 
     expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)
     expect(environment.browserUrl.revokeObjectURL).toHaveBeenCalledWith(
       'blob:backup-url'
     )
     expect(clickSpy).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to object-url download when canShare rejects file payload support', async () => {
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => undefined)
+    const environment = createEnvironment({
+      browserNavigator: {
+        canShare: vi.fn().mockReturnValue(false),
+        share: vi.fn()
+      }
+    })
+    const delivery = new BrowserBackupFileDelivery(environment)
+    const file = new File(['{}'], 'backup.json', {
+      type: 'application/json'
+    })
+
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'download',
+      reasonCode: 'share-capability-returned-false',
+      reasonDetails: 'navigator.canShare({ files }) returned false'
+    })
+
+    expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)
+    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(environment.browserNavigator.share).not.toHaveBeenCalled()
   })
 
   it('falls back to object-url download when canShare throws on files payload', async () => {
@@ -90,7 +122,11 @@ describe('BrowserBackupFileDelivery', () => {
       type: 'application/json'
     })
 
-    await expect(delivery.deliver(file)).resolves.toBeUndefined()
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'download',
+      reasonCode: 'share-capability-check-failed',
+      reasonDetails: 'TypeError: files are not shareable'
+    })
 
     expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)
     expect(clickSpy).toHaveBeenCalledTimes(1)
@@ -112,7 +148,9 @@ describe('BrowserBackupFileDelivery', () => {
       type: 'application/json'
     })
 
-    await expect(delivery.deliver(file)).resolves.toBeUndefined()
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'share'
+    })
   })
 
   it('falls back to download when share rejects with capability errors', async () => {
@@ -135,7 +173,11 @@ describe('BrowserBackupFileDelivery', () => {
       type: 'application/json'
     })
 
-    await expect(delivery.deliver(file)).resolves.toBeUndefined()
+    await expect(delivery.deliver(file)).resolves.toEqual({
+      method: 'download',
+      reasonCode: 'share-rejected-capability-error',
+      reasonDetails: 'NotAllowedError: Gesture required'
+    })
 
     expect(share).toHaveBeenCalledWith({ files: [file] })
     expect(environment.browserUrl.createObjectURL).toHaveBeenCalledWith(file)

@@ -1,5 +1,8 @@
 import type { UseCase } from '@/application/UseCase'
-import type { BackupFileDeliveryPort } from '@/application/ports/BackupFileDeliveryPort'
+import type {
+  BackupFileDeliveryPort,
+  BackupFileDeliveryResult
+} from '@/application/ports/BackupFileDeliveryPort'
 import type { ClockPort } from '@/application/ports/ClockPort'
 import type { DatabaseBackupExportPort } from '@/application/ports/DatabaseBackupExportPort'
 import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
@@ -24,14 +27,19 @@ function buildBackupFileName(now: Date): string {
   return `${BACKUP_FILE_NAME_PREFIX}-backup-${backupDateToken(now)}${BACKUP_FILE_EXTENSION}`
 }
 
-export class ExportDatabaseBackupUseCase implements UseCase<ExportDatabaseBackupCommand> {
+export class ExportDatabaseBackupUseCase implements UseCase<
+  ExportDatabaseBackupCommand,
+  BackupFileDeliveryResult
+> {
   public constructor(
     private readonly backupExport: DatabaseBackupExportPort,
     private readonly backupDelivery: BackupFileDeliveryPort,
     private readonly clock: ClockPort
   ) {}
 
-  public async handle(_: ExportDatabaseBackupCommand): Promise<void> {
+  public async handle(
+    _: ExportDatabaseBackupCommand
+  ): Promise<BackupFileDeliveryResult> {
     const backupBlob = await this.backupExport.exportBackupBlob()
     const backupFile = new File(
       [backupBlob],
@@ -43,6 +51,6 @@ export class ExportDatabaseBackupUseCase implements UseCase<ExportDatabaseBackup
     )
 
     // Why: dispatching through a delivery port keeps browser API quirks (share support and download fallback) outside application orchestration.
-    await this.backupDelivery.deliver(backupFile)
+    return await this.backupDelivery.deliver(backupFile)
   }
 }

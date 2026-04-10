@@ -83,7 +83,9 @@ describe('AppShell', () => {
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
     mockImportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
-    mockExportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
+    mockExportDatabaseBackup = vi.fn().mockResolvedValue({
+      method: 'share'
+    })
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
     mockSetupStatusObservers = []
@@ -527,6 +529,32 @@ describe('AppShell', () => {
 
     expect(wrapper.text()).toContain(
       'Nie udało się wyeksportować kopii danych. Spróbuj ponownie.'
+    )
+  })
+
+  it('shows backup-export diagnostic reason when the workflow falls back to downloader', async () => {
+    mockExportDatabaseBackup.mockResolvedValueOnce({
+      method: 'download',
+      reasonCode: 'share-capability-returned-false',
+      reasonDetails: 'navigator.canShare({ files }) returned false'
+    })
+
+    const { wrapper } = mountShell((appStore) => {
+      appStore.setAppReady()
+    })
+
+    await wrapper.find('header button').trigger('click')
+    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Kopia danych została wyeksportowana przez standardowe pobieranie pliku (bez okna udostępniania).'
+    )
+    expect(wrapper.text()).toContain(
+      'Powód: przeglądarka odrzuciła udostępnianie plików. Kod: share-capability-returned-false.'
+    )
+    expect(wrapper.text()).toContain(
+      'Szczegóły techniczne: navigator.canShare({ files }) returned false'
     )
   })
 

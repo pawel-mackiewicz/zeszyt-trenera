@@ -8,6 +8,7 @@ import {
   normalizeResetConfirmationPhrase,
   RESET_APPLICATION_CONFIRMATION_PHRASE
 } from '@/application/requests/ResetApplicationDataCommand'
+import type { BackupFileDeliveryResult } from '@/application/ports/BackupFileDeliveryPort'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
@@ -90,6 +91,8 @@ const backupImportErrorVisible = ref(false)
 const backupExportInProgress = ref(false)
 const backupExportErrorVisible = ref(false)
 const backupExportErrorMessage = ref<string | null>(null)
+const backupExportDiagnosticVisible = ref(false)
+const backupExportDiagnosticMessage = ref<string | null>(null)
 const resetModalVisible = ref(false)
 const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
@@ -208,6 +211,9 @@ const updateErrorMessage = computed(() => {
 })
 const backupExportAlertMessage = computed(
   () => backupExportErrorMessage.value ?? t('menu.exportBackup.error')
+)
+const backupExportDiagnosticAlertMessage = computed(
+  () => backupExportDiagnosticMessage.value ?? t('menu.exportBackup.diagnostic')
 )
 const isResetConfirmationValid = computed(
   () =>
@@ -390,6 +396,12 @@ function dismissBackupExportError() {
   backupExportErrorMessage.value = null
 }
 
+function dismissBackupExportDiagnostic() {
+  // What: let coaches dismiss export-path diagnostics from the shared floating alert. Why: the shell should expose technical fallback reasons without keeping a stale banner after the reason is understood.
+  backupExportDiagnosticVisible.value = false
+  backupExportDiagnosticMessage.value = null
+}
+
 function dismissBackupImportError() {
   // What: let coaches dismiss backup import failures from the shell-level alert. Why: restore retries should not stay blocked by stale error copy once the issue is understood.
   backupImportErrorVisible.value = false
@@ -447,11 +459,22 @@ async function exportDatabaseBackup() {
   closeMenu()
   backupExportErrorVisible.value = false
   backupExportErrorMessage.value = null
+  backupExportDiagnosticVisible.value = false
+  backupExportDiagnosticMessage.value = null
   backupExportInProgress.value = true
 
   try {
     // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
-    await useCases.exportDatabaseBackup.handle({})
+    const backupDeliveryResult = await useCases.exportDatabaseBackup.handle({})
+
+    if (backupDeliveryResult.method === 'download') {
+      // What: surface the download-fallback reason directly in the shell. Why: Android and other mobile browsers can skip native share UI for capability reasons that need immediate, on-device diagnostics.
+      backupExportDiagnosticMessage.value = buildBackupExportDiagnosticMessage(
+        t,
+        backupDeliveryResult
+      )
+      backupExportDiagnosticVisible.value = true
+    }
   } catch (error) {
     // What: attach technical browser error details to the shared export alert. Why: Android share/download failures are often browser-specific and impossible to diagnose from generic copy.
     backupExportErrorMessage.value = buildBackupExportErrorMessage(t, error)
@@ -460,6 +483,37 @@ async function exportDatabaseBackup() {
   } finally {
     backupExportInProgress.value = false
   }
+}
+
+function buildBackupExportDiagnosticMessage(
+  translate: (key: string, values?: Record<string, unknown>) => string,
+  backupDeliveryResult: Extract<
+    BackupFileDeliveryResult,
+    { method: 'download' }
+  >
+): string {
+  const reasonCode = backupDeliveryResult.reasonCode
+  const reasonLabel = translate(`menu.exportBackup.reasonLabels.${reasonCode}`)
+  const reasonDetails = backupDeliveryResult.reasonDetails
+
+  if (!reasonDetails) {
+    return `${translate('menu.exportBackup.diagnostic')} ${translate(
+      'menu.exportBackup.diagnosticReason',
+      {
+        reasonCode,
+        reasonLabel
+      }
+    )}`
+  }
+
+  return `${translate('menu.exportBackup.diagnostic')} ${translate(
+    'menu.exportBackup.diagnosticReasonWithDetails',
+    {
+      reasonCode,
+      reasonLabel,
+      details: reasonDetails
+    }
+  )}`
 }
 
 function buildBackupExportErrorMessage(
@@ -895,6 +949,14 @@ function bottomNavForegroundClasses(isActive: boolean) {
         :message="backupExportAlertMessage"
         top-offset="shell"
         @dismiss="dismissBackupExportError"
+      />
+
+      <!-- What: surface successful export-path diagnostics in the same floating lane as other shell notices. Why: mobile fallback reasons must stay visible to coaches without opening developer tools. -->
+      <FloatingErrorAlert
+        v-if="backupExportDiagnosticVisible"
+        :message="backupExportDiagnosticAlertMessage"
+        top-offset="shell"
+        @dismiss="dismissBackupExportDiagnostic"
       />
 
       <!-- What: route backup-import failures through the shared floating alert. Why: corrupted or incompatible restore files should surface in the same shell-level recovery lane as export/reset errors. -->
@@ -1409,7 +1471,16 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "action": "Eksportuj kopię danych",
         "pending": "Eksportowanie kopii...",
         "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie.",
-        "errorDetails": "Szczegóły techniczne: {details}"
+        "errorDetails": "Szczegóły techniczne: {details}",
+        "diagnostic": "Kopia danych została wyeksportowana przez standardowe pobieranie pliku (bez okna udostępniania).",
+        "diagnosticReason": "Powód: {reasonLabel}. Kod: {reasonCode}.",
+        "diagnosticReasonWithDetails": "Powód: {reasonLabel}. Kod: {reasonCode}. Szczegóły techniczne: {details}",
+        "reasonLabels": {
+          "share-api-unavailable": "API udostępniania plików nie jest dostępne",
+          "share-capability-returned-false": "przeglądarka odrzuciła udostępnianie plików",
+          "share-capability-check-failed": "sprawdzenie możliwości udostępniania plików zakończyło się błędem",
+          "share-rejected-capability-error": "wywołanie udostępniania pliku zostało odrzucone przez przeglądarkę"
+        }
       },
       "importBackup": {
         "action": "Przywróć z kopii danych",
@@ -1535,7 +1606,16 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "action": "Export backup",
         "pending": "Exporting backup...",
         "error": "Backup export failed. Try again.",
-        "errorDetails": "Technical details: {details}"
+        "errorDetails": "Technical details: {details}",
+        "diagnostic": "Backup was exported through standard file download (share sheet was skipped).",
+        "diagnosticReason": "Reason: {reasonLabel}. Code: {reasonCode}.",
+        "diagnosticReasonWithDetails": "Reason: {reasonLabel}. Code: {reasonCode}. Technical details: {details}",
+        "reasonLabels": {
+          "share-api-unavailable": "file sharing API is unavailable",
+          "share-capability-returned-false": "browser rejected file-sharing support",
+          "share-capability-check-failed": "file-sharing capability check failed",
+          "share-rejected-capability-error": "browser rejected the file share call"
+        }
       },
       "importBackup": {
         "action": "Restore from backup",
