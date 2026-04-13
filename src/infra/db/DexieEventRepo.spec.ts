@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { DomainEvent } from '@/domain/events/DomainEvent'
-import { Club, type ClubSnapshot } from '@/domain/model/club'
+import { Club, type ClubSnapshot } from '@/domain/model/Club'
 import {
   MembershipPayment,
   type MembershipPaymentSnapshot

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { Club, type ClubSnapshot } from '@/domain/model/club'
+import { Club, type ClubSnapshot } from '@/domain/model/Club'
 import type { PersistedClub, PersistedDomainEvent } from '@/infra'
 import { DexieUnitOfWork } from '@/infra/db/DexieUnitOfWork'
 import { TrainerNotebookDb as DexieDatabase } from '@/db'

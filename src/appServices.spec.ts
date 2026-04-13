@@ -13,7 +13,7 @@ import {
   AttendanceListAlreadyExistsError,
   type AttendanceListSnapshot
 } from '@/domain/model/AttendanceList'
-import { ClubAlreadyExistsError, type ClubSnapshot } from '@/domain/model/club'
+import { ClubAlreadyExistsError, type ClubSnapshot } from '@/domain/model/Club'
 import {
   MembershipPaymentAlreadyExistsError,
   type MembershipPaymentSnapshot

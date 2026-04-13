@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { ClubAlreadyExistsError } from '@/domain/model/club'
+import { ClubAlreadyExistsError } from '@/domain/model/Club'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'

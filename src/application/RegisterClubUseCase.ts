@@ -1,4 +1,4 @@
-import { Club, ClubAlreadyExistsError } from '@/domain/model/club'
+import { Club, ClubAlreadyExistsError } from '@/domain/model/Club'
 import type { UseCase } from '@/application/UseCase'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'

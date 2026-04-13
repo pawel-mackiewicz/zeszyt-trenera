@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Club } from '@/domain/model/club'
+import { Club } from '@/domain/model/Club'
 
 describe('Club Model', () => {
   it('should create a club with all required properties', () => {

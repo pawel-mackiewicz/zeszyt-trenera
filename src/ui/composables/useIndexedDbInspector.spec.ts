@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Club } from '@/domain/model/club'
+import { Club } from '@/domain/model/Club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
 import { Trainer } from '@/domain/model/Trainer'
 import { TrainerNotebookDb } from '@/db'

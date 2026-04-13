@@ -5,7 +5,7 @@ import {
   Club,
   ClubAlreadyExistsError,
   ClubCreatedDomainEvent
-} from '@/domain/model/club'
+} from '@/domain/model/Club'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'

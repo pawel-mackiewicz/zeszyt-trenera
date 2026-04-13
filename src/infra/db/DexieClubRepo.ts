@@ -1,5 +1,5 @@
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
-import type { Club } from '@/domain/model/club'
+import type { Club } from '@/domain/model/Club'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedClub } from '@/infra'
 

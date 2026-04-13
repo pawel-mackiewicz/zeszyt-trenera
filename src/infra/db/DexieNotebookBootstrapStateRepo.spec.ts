@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { NOTEBOOK_BOOTSTRAP_STATES } from '@/application/ports/NotebookBootstrapStatePort'
 import { TrainerNotebookDb } from '@/db'
-import { Club } from '@/domain/model/club'
+import { Club } from '@/domain/model/Club'
 import { Member } from '@/domain/model/Member'
 import { Trainer } from '@/domain/model/Trainer'
 import { DexieNotebookBootstrapStateRepo } from '@/infra/db/DexieNotebookBootstrapStateRepo'
