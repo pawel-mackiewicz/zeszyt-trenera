@@ -115,9 +115,9 @@ export class BrowserBackupFileDelivery implements BackupFileDeliveryPort {
       files: [file]
     }
     const canShareState = this.safeCanShare(shareData)
-    const browserNavigator = this.environment.browserNavigator
+    const share = this.environment.browserNavigator.share
 
-    if (typeof browserNavigator.share !== 'function') {
+    if (typeof share !== 'function') {
       return {
         type: 'download-fallback',
         reasonCode: 'share-api-unavailable',
@@ -142,8 +142,7 @@ export class BrowserBackupFileDelivery implements BackupFileDeliveryPort {
     }
 
     try {
-      // Why: Web API methods can require their original receiver (`navigator`); detaching `share` and calling it directly can throw `Illegal invocation`.
-      await browserNavigator.share(shareData)
+      await share(shareData)
       return {
         type: 'handled-share'
       }

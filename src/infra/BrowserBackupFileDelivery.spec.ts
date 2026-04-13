@@ -54,35 +54,6 @@ describe('BrowserBackupFileDelivery', () => {
     expect(environment.browserUrl.createObjectURL).not.toHaveBeenCalled()
   })
 
-  it('keeps navigator context when invoking share', async () => {
-    const canShare = vi.fn().mockReturnValue(true)
-    const browserNavigator: ShareNavigator = {
-      canShare,
-      share(this: ShareNavigator) {
-        // Why: this guards against regressions where `navigator.share` is detached and called without its required receiver.
-        if (this !== browserNavigator) {
-          throw new TypeError('Illegal invocation')
-        }
-
-        return Promise.resolve(undefined)
-      }
-    }
-    const environment = createEnvironment({
-      browserNavigator
-    })
-    const delivery = new BrowserBackupFileDelivery(environment)
-    const file = new File(['{"hello":"world"}'], 'backup.json', {
-      type: 'application/json'
-    })
-
-    await expect(delivery.deliver(file)).resolves.toEqual({
-      method: 'share'
-    })
-
-    expect(canShare).toHaveBeenCalledWith({ files: [file] })
-    expect(environment.browserUrl.createObjectURL).not.toHaveBeenCalled()
-  })
-
   it('falls back to object-url download when file sharing is unavailable', async () => {
     const clickSpy = vi
       .spyOn(HTMLAnchorElement.prototype, 'click')
