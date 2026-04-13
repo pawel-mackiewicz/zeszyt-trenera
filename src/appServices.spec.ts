@@ -28,7 +28,7 @@ import {
   type TrainerSnapshot
 } from '@/domain/model/trainer'
 import { createAppServices } from '@/appServices'
-import { createDemoSeed } from '@/application/demo/createDemoSeed'
+import { createDemoSeed } from '@/infra/createDemoSeed'
 import type { PersistedDomainEvent } from '@/infra'
 import { TrainerNotebookDb } from '@/db'
 

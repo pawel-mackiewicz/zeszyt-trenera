@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDemoSeed } from '@/application/demo/createDemoSeed'
+import { createDemoSeed } from '@/infra/createDemoSeed'
 import { calculateAge } from '@/ui/utils/age'
 
 describe('createDemoSeed', () => {

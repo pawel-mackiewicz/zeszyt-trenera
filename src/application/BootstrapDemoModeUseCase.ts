@@ -3,6 +3,10 @@ import type { AppResetRepoPort } from '@/application/ports/AppResetRepoPort'
 import type { AttendanceListRepoPort } from '@/application/ports/AttendanceListRepoPort'
 import type { ClockPort } from '@/application/ports/ClockPort'
 import type {
+  DemoSeed,
+  DemoSeedFactoryPort
+} from '@/application/ports/DemoSeedFactoryPort'
+import type {
   DemoLifecycleState,
   DemoLifecycleStorePort
 } from '@/application/ports/DemoLifecycleStorePort'
@@ -19,7 +23,6 @@ import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
-import { createDemoSeed } from '@/application/demo/createDemoSeed'
 import { AttendanceList } from '@/domain/model/AttendanceList'
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
@@ -38,8 +41,6 @@ type DemoBootstrapContext = {
   notebookBootstrapState: NotebookBootstrapState
 }
 
-type DemoSeed = ReturnType<typeof createDemoSeed>
-
 export class BootstrapDemoModeUseCase implements UseCase<
   BootstrapDemoModeCommand,
   BootstrapDemoModeResult
@@ -55,6 +56,8 @@ export class BootstrapDemoModeUseCase implements UseCase<
     private readonly attendanceListRepo: AttendanceListRepoPort,
     private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort,
+    // Why: demo data shape generation belongs to an injected policy so the use case stays independent from infra module locations.
+    private readonly demoSeedFactory: DemoSeedFactoryPort,
     private readonly clock: ClockPort,
     private readonly demoLifecycleStore: DemoLifecycleStorePort
   ) {}
@@ -144,7 +147,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
   // Why: the write path stays in one place so a future change to the demo notebook payload cannot accidentally bypass the transactional bootstrap flow.
   private async seedDemoNotebook(demoModeActive: boolean): Promise<boolean> {
-    const demoSeed = createDemoSeed(this.clock.now())
+    const demoSeed = this.demoSeedFactory.createSeed(this.clock.now())
 
     return await this.unitOfWork.execute(async () => {
       if (await this.shouldKeepExistingNotebook(demoModeActive)) {

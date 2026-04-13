@@ -32,6 +32,7 @@ import type { UpdateAttendanceListCommand } from '@/application/requests/UpdateA
 import type { UpdateMemberCommand } from '@/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
 import { BrowserSmsComposer } from '@/infra/BrowserSmsComposer'
+import { DemoSeedFactory } from '@/infra/DemoSeedFactory'
 import { DexieAttendanceListRepo } from '@/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/infra/db/DexieAppResetRepo'
 import { DexieDatabaseBackupExporter } from '@/infra/db/DexieDatabaseBackupExporter'
@@ -142,6 +143,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
   const resolveIdGenerator = lazy(() => new IdGenerator())
+  const resolveDemoSeedFactory = lazy(() => new DemoSeedFactory())
   const resolveClock = lazy(() => new SystemClock())
   // Backup export keeps snapshot generation and browser delivery as swappable adapters so the application workflow can stay policy-focused and testable.
   const resolveDatabaseBackupExport = lazy(
@@ -175,6 +177,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveAttendanceListRepo(),
         resolveEventRepo(),
         resolveIdGenerator(),
+        resolveDemoSeedFactory(),
         resolveClock(),
         resolveDemoLifecycleStore()
       )

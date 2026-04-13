@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BootstrapDemoModeUseCase } from '@/application/BootstrapDemoModeUseCase'
-import { createDemoSeed } from '@/application/demo/createDemoSeed'
+import type { DemoSeedFactoryPort } from '@/application/ports/DemoSeedFactoryPort'
 import type { DemoLifecycleStorePort } from '@/application/ports/DemoLifecycleStorePort'
 import type { EventRepoPort } from '@/application/ports/EventRepoPort'
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
@@ -18,6 +18,7 @@ import type { AttendanceListRepoPort } from '@/application/ports/AttendanceListR
 import type { ClockPort } from '@/application/ports/ClockPort'
 import type { ClubRepoPort } from '@/application/ports/ClubRepoPort'
 import type { IdGeneratorPort } from '@/application/ports/IdGeneratorPort'
+import { createDemoSeed } from '@/infra/createDemoSeed'
 
 describe('BootstrapDemoModeUseCase', () => {
   let unitOfWork: UnitOfWork
@@ -30,6 +31,7 @@ describe('BootstrapDemoModeUseCase', () => {
   let eventRepo: EventRepoPort
   let notebookBootstrapStateRepo: NotebookBootstrapStatePort
   let idGenerator: IdGeneratorPort
+  let demoSeedFactory: DemoSeedFactoryPort
   let clock: ClockPort
   let demoLifecycleStore: DemoLifecycleStorePort
 
@@ -84,6 +86,10 @@ describe('BootstrapDemoModeUseCase', () => {
     idGenerator = {
       generate: vi.fn(() => `generated-id-${generatedIdIndex++}`)
     }
+    demoSeedFactory = {
+      // Why: unit tests still exercise the production seed behavior while the use case consumes it through the injected application port.
+      createSeed: vi.fn((now: Date) => createDemoSeed(now))
+    }
     clock = {
       now: vi.fn(() => new Date(2026, 3, 9, 12, 0, 0))
     }
@@ -108,6 +114,7 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       eventRepo,
       idGenerator,
+      demoSeedFactory,
       clock,
       demoLifecycleStore
     )
@@ -149,6 +156,7 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       eventRepo,
       idGenerator,
+      demoSeedFactory,
       clock,
       demoLifecycleStore
     )
@@ -181,6 +189,7 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       eventRepo,
       idGenerator,
+      demoSeedFactory,
       clock,
       demoLifecycleStore
     )
@@ -212,6 +221,7 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       eventRepo,
       idGenerator,
+      demoSeedFactory,
       clock,
       demoLifecycleStore
     )
@@ -239,6 +249,7 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       eventRepo,
       idGenerator,
+      demoSeedFactory,
       clock,
       demoLifecycleStore
     )

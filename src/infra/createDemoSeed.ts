@@ -1,51 +1,15 @@
+import type {
+  DemoAttendanceListSeed,
+  DemoMemberSeed,
+  DemoSeed
+} from '@/application/ports/DemoSeedFactoryPort'
 import { toMembershipPaymentCoveredMonth } from '@/domain/model/MembershipPayment'
 
-//todo: move to infra probably
+// Why: infra owns the concrete seeding algorithm, but the payload contract stays in the application layer to keep bootstrap orchestration dependency-safe.
 
 type DemoName = {
   firstName: string
   lastName: string
-}
-
-export type DemoMemberSeed = DemoName & {
-  dateOfBirth: Date
-  joinedAt: Date
-  phoneNumber: string
-}
-
-export type DemoMembershipPaymentSeed = {
-  coveredMonth: string
-  memberIndex: number
-}
-
-export type DemoAttendanceListSeed = {
-  memberIndexes: number[]
-  start: Date
-}
-
-export type DemoSeed = {
-  club: {
-    name: string
-    foundingDate: Date
-  }
-  trainer: {
-    name: string
-  }
-  members: DemoMemberSeed[]
-  membershipPayments: DemoMembershipPaymentSeed[]
-  attendanceLists: DemoAttendanceListSeed[]
-  summary: {
-    currentCoveredMonth: string
-    previousCoveredMonth: string
-    currentMonthSessionCount: number
-    previousMonthSessionCount: number
-    currentPaidMemberIndexes: number[]
-    currentUnpaidAbsentMemberIndexes: number[]
-    currentUnpaidAttendedMemberIndexes: number[]
-    previousPaidMemberIndexes: number[]
-    previousUnpaidAbsentMemberIndexes: number[]
-    previousUnpaidAttendedMemberIndexes: number[]
-  }
 }
 
 const DEMO_MEMBER_NAMES: DemoName[] = [
