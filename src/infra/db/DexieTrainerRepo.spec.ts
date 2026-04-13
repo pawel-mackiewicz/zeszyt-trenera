@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { Trainer } from '@/domain/model/trainer'
+import { Trainer } from '@/domain/model/Trainer'
 import { TrainerNotebookDb } from '@/db'
 import { DexieTrainerRepo } from '@/infra/db/DexieTrainerRepo'
 

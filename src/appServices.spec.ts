@@ -26,7 +26,7 @@ import {
 import {
   TrainerAlreadyExistsError,
   type TrainerSnapshot
-} from '@/domain/model/trainer'
+} from '@/domain/model/Trainer'
 import { createAppServices } from '@/appServices'
 import { createDemoSeed } from '@/infra/createDemoSeed'
 import type { PersistedDomainEvent } from '@/infra'

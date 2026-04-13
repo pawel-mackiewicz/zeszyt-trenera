@@ -4,7 +4,7 @@ import { NOTEBOOK_BOOTSTRAP_STATES } from '@/application/ports/NotebookBootstrap
 import { TrainerNotebookDb } from '@/db'
 import { Club } from '@/domain/model/club'
 import { Member } from '@/domain/model/member'
-import { Trainer } from '@/domain/model/trainer'
+import { Trainer } from '@/domain/model/Trainer'
 import { DexieNotebookBootstrapStateRepo } from '@/infra/db/DexieNotebookBootstrapStateRepo'
 
 function createTestDbName(prefix: string) {

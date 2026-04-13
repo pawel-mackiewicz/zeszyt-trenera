@@ -27,7 +27,7 @@ import { AttendanceList } from '@/domain/model/AttendanceList'
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
 import { Member } from '@/domain/model/member'
-import { Trainer } from '@/domain/model/trainer'
+import { Trainer } from '@/domain/model/Trainer'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 
 export type BootstrapDemoModeResult = {

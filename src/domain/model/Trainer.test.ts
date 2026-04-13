@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Trainer, TrainerCreatedDomainEvent } from '@/domain/model/trainer'
+import { Trainer, TrainerCreatedDomainEvent } from '@/domain/model/Trainer'
 
 describe('Trainer Model', () => {
   it('should create a trainer with all required properties', () => {

@@ -4,7 +4,7 @@ import type { IdGeneratorPort } from '@/application/ports/IdGeneratorPort'
 import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterTrainerCommand } from '@/application/requests/RegisterTrainerCommand'
-import { Trainer, TrainerAlreadyExistsError } from '@/domain/model/trainer'
+import { Trainer, TrainerAlreadyExistsError } from '@/domain/model/Trainer'
 
 export class RegisterTrainerUseCase implements UseCase<RegisterTrainerCommand> {
   constructor(

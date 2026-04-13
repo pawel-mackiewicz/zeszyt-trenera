@@ -11,7 +11,7 @@ import {
   Trainer,
   TrainerAlreadyExistsError,
   TrainerCreatedDomainEvent
-} from '@/domain/model/trainer'
+} from '@/domain/model/Trainer'
 
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {

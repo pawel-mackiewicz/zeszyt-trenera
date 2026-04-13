@@ -7,7 +7,7 @@ import {
   type MembershipPaymentSnapshot
 } from '@/domain/model/MembershipPayment'
 import { Member, type MemberSnapshot } from '@/domain/model/member'
-import { Trainer, type TrainerSnapshot } from '@/domain/model/trainer'
+import { Trainer, type TrainerSnapshot } from '@/domain/model/Trainer'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { TrainerNotebookDb } from '@/db'
 import type { PersistedDomainEvent } from '@/infra'

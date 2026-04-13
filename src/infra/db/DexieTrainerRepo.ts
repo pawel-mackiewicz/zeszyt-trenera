@@ -1,5 +1,5 @@
 import type { TrainerRepoPort } from '@/application/ports/TrainerRepoPort'
-import type { Trainer } from '@/domain/model/trainer'
+import type { Trainer } from '@/domain/model/Trainer'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedTrainer } from '@/infra'
 

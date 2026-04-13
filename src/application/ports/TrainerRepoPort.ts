@@ -1,4 +1,4 @@
-import type { Trainer } from '@/domain/model/trainer'
+import type { Trainer } from '@/domain/model/Trainer'
 
 export interface TrainerRepoPort {
   save(trainer: Trainer): Promise<void>
