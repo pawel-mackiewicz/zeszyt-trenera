@@ -13,9 +13,7 @@ describe('ExportDatabaseBackupUseCase', () => {
         .mockResolvedValue(new Blob(['{"club":"Tiger Club"}']))
     }
     const backupDelivery: BackupFileDeliveryPort = {
-      deliver: vi.fn().mockResolvedValue({
-        method: 'share'
-      })
+      deliver: vi.fn().mockResolvedValue(undefined)
     }
     const clock: ClockPort = {
       now: vi.fn(() => new Date('2026-04-10T14:20:00+02:00'))
@@ -26,7 +24,7 @@ describe('ExportDatabaseBackupUseCase', () => {
       clock
     )
 
-    const deliveryResult = await useCase.handle({})
+    await useCase.handle({})
 
     expect(backupExport.exportBackupBlob).toHaveBeenCalledTimes(1)
     expect(backupDelivery.deliver).toHaveBeenCalledTimes(1)
@@ -36,8 +34,5 @@ describe('ExportDatabaseBackupUseCase', () => {
     expect(deliveredFile.name).toBe('zeszyt-trenera-backup-2026-04-10.json')
     expect(deliveredFile.type).toBe('application/json')
     await expect(deliveredFile.text()).resolves.toContain('"club":"Tiger Club"')
-    expect(deliveryResult).toEqual({
-      method: 'share'
-    })
   })
 })

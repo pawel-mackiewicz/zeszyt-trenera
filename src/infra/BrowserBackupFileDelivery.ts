@@ -1,8 +1,4 @@
-import type {
-  BackupFileDeliveryPort,
-  BackupFileDeliveryResult,
-  BackupFileDownloadReasonCode
-} from '@/application/ports/BackupFileDeliveryPort'
+import type { BackupFileDeliveryPort } from '@/application/ports/BackupFileDeliveryPort'
 
 type BackupShareNavigator = {
   canShare?: Navigator['canShare']
@@ -14,16 +10,6 @@ type BackupDeliveryEnvironment = {
   browserNavigator: BackupShareNavigator
   browserUrl: Pick<typeof URL, 'createObjectURL' | 'revokeObjectURL'>
 }
-
-type ShareAttemptResult =
-  | {
-      type: 'handled-share'
-    }
-  | {
-      type: 'download-fallback'
-      reasonCode: BackupFileDownloadReasonCode
-      reasonDetails: string | null
-    }
 
 function isAbortError(error: unknown): boolean {
   if (error instanceof DOMException) {
@@ -53,25 +39,6 @@ function readErrorName(error: unknown): string | null {
   return null
 }
 
-function formatErrorDetails(error: unknown): string | null {
-  if (error instanceof DOMException || error instanceof Error) {
-    const message = error.message.trim()
-
-    if (message.length === 0) {
-      return error.name
-    }
-
-    return `${error.name}: ${message}`
-  }
-
-  if (typeof error === 'string') {
-    const message = error.trim()
-    return message.length > 0 ? message : null
-  }
-
-  return null
-}
-
 function isShareCapabilityError(error: unknown): boolean {
   const errorName = readErrorName(error)
 
@@ -92,111 +59,57 @@ export class BrowserBackupFileDelivery implements BackupFileDeliveryPort {
     }
   ) {}
 
-  public async deliver(file: File): Promise<BackupFileDeliveryResult> {
-    const shareAttempt = await this.tryNativeShare(file)
-
-    if (shareAttempt.type === 'handled-share') {
-      return {
-        method: 'share'
-      }
+  public async deliver(file: File): Promise<void> {
+    if (await this.tryNativeShare(file)) {
+      return
     }
 
     this.downloadWithObjectUrl(file)
-
-    return {
-      method: 'download',
-      reasonCode: shareAttempt.reasonCode,
-      reasonDetails: shareAttempt.reasonDetails
-    }
   }
 
-  private async tryNativeShare(file: File): Promise<ShareAttemptResult> {
+  private async tryNativeShare(file: File): Promise<boolean> {
     const shareData: ShareData = {
       files: [file]
     }
-    const canShareState = this.safeCanShare(shareData)
-    const share = this.environment.browserNavigator.share
+    const canShareFile = this.safeCanShare(shareData)
+    const canShareFn = this.environment.browserNavigator.canShare
 
-    if (typeof share !== 'function') {
-      return {
-        type: 'download-fallback',
-        reasonCode: 'share-api-unavailable',
-        reasonDetails: 'navigator.share is unavailable'
+    if (typeof this.environment.browserNavigator.share === 'function') {
+      if (typeof canShareFn === 'function' && !canShareFile) {
+        return false
       }
-    }
 
-    if (!canShareState.supported) {
-      return {
-        type: 'download-fallback',
-        reasonCode: canShareState.reasonCode,
-        reasonDetails: canShareState.reasonDetails
-      }
-    }
-
-    if (canShareState.canShareFile === false) {
-      return {
-        type: 'download-fallback',
-        reasonCode: 'share-capability-returned-false',
-        reasonDetails: 'navigator.canShare({ files }) returned false'
-      }
-    }
-
-    try {
-      await share(shareData)
-      return {
-        type: 'handled-share'
-      }
-    } catch (error) {
-      // Why: closing a native share sheet is a user cancellation path, not a backup failure that should surface in the UI.
-      if (isAbortError(error)) {
-        return {
-          type: 'handled-share'
+      try {
+        await this.environment.browserNavigator.share(shareData)
+        return true
+      } catch (error) {
+        // Why: closing a native share sheet is a user cancellation path, not a backup failure that should surface in the UI.
+        if (isAbortError(error)) {
+          return true
         }
-      }
 
-      // Why: Android browsers can reject file-share calls after async export work drops transient user activation; falling back to object-url download keeps export usable.
-      if (isShareCapabilityError(error)) {
-        return {
-          type: 'download-fallback',
-          reasonCode: 'share-rejected-capability-error',
-          reasonDetails: formatErrorDetails(error)
+        // Why: Android browsers can reject file-share calls after async export work drops transient user activation; falling back to object-url download keeps export usable.
+        if (isShareCapabilityError(error)) {
+          return false
         }
-      }
 
-      throw error
+        throw error
+      }
     }
+
+    return false
   }
 
-  private safeCanShare(shareData: ShareData):
-    | {
-        supported: true
-        canShareFile: boolean
-      }
-    | {
-        supported: false
-        reasonCode: BackupFileDownloadReasonCode
-        reasonDetails: string | null
-      } {
+  private safeCanShare(shareData: ShareData): boolean {
     if (typeof this.environment.browserNavigator.canShare !== 'function') {
-      return {
-        supported: true,
-        // What: treat missing `canShare` as unknown support and still try `share`. Why: some browsers omit the probe but can still open a share sheet.
-        canShareFile: true
-      }
+      return false
     }
 
     try {
-      return {
-        supported: true,
-        canShareFile: this.environment.browserNavigator.canShare(shareData)
-      }
-    } catch (error) {
+      return this.environment.browserNavigator.canShare(shareData)
+    } catch {
       // Why: some browser builds throw for the `files` payload even though the download fallback still works; this should not crash export.
-      return {
-        supported: false,
-        reasonCode: 'share-capability-check-failed',
-        reasonDetails: formatErrorDetails(error)
-      }
+      return false
     }
   }
 

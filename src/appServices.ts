@@ -17,7 +17,6 @@ import { SendMembershipPaymentReminderUseCase } from '@/application/SendMembersh
 import { UpdateAttendanceListUseCase } from '@/application/UpdateAttendanceListUseCase'
 import { UpdateMemberUseCase } from '@/application/UpdateMemberUseCase'
 import type { UseCase } from '@/application/UseCase'
-import type { BackupFileDeliveryResult } from '@/application/ports/BackupFileDeliveryPort'
 import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapDemoModeCommand'
 import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
 import type { ImportDatabaseBackupCommand } from '@/application/requests/ImportDatabaseBackupCommand'
@@ -76,10 +75,7 @@ export type AppUseCases = {
     BootstrapDemoModeCommand,
     BootstrapDemoModeResult
   >
-  readonly exportDatabaseBackup: UseCase<
-    ExportDatabaseBackupCommand,
-    BackupFileDeliveryResult
-  >
+  readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
   readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
