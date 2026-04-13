@@ -175,35 +175,47 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
   // Why: grouping the seed persistence behind one helper keeps the application service focused on the bootstrap lifecycle instead of the shape of every demo aggregate.
   private async persistDemoSeed(demoSeed: DemoSeed): Promise<void> {
-    await this.persistDemoFoundation(demoSeed)
-    const memberIds = await this.persistDemoMembers(demoSeed)
+    await this.persistDemoClub(demoSeed.club)
+    await this.persistDemoTrainer(demoSeed.trainer)
+    const memberIds = await this.persistDemoMembers(demoSeed.members)
 
-    await this.persistDemoMembershipPayments(demoSeed, memberIds)
-    await this.persistDemoAttendanceLists(demoSeed, memberIds)
+    await this.persistDemoMembershipPayments(
+      demoSeed.membershipPayments,
+      memberIds
+    )
+    await this.persistDemoAttendanceLists(demoSeed.attendanceLists, memberIds)
   }
 
-  private async persistDemoFoundation(demoSeed: DemoSeed): Promise<void> {
+  private async persistDemoClub(clubSeed: DemoSeed['club']): Promise<void> {
     const [club, clubEvent] = Club.register(
-      demoSeed.club.name,
-      demoSeed.club.foundingDate,
-      this.idGenerator.generate()
-    )
-    const [trainer, trainerEvent] = Trainer.register(
-      demoSeed.trainer.name,
+      clubSeed.name,
+      clubSeed.foundingDate,
       this.idGenerator.generate()
     )
 
     await this.clubRepo.save(club)
     await this.eventRepo.save(clubEvent)
+  }
+
+  private async persistDemoTrainer(
+    trainerSeed: DemoSeed['trainer']
+  ): Promise<void> {
+    const [trainer, trainerEvent] = Trainer.register(
+      trainerSeed.name,
+      this.idGenerator.generate()
+    )
+
     await this.trainerRepo.save(trainer)
     await this.eventRepo.save(trainerEvent)
   }
 
   // Why: later demo records refer to members by index, so collecting the generated IDs in one place preserves that mapping instead of leaking it across the bootstrap flow.
-  private async persistDemoMembers(demoSeed: DemoSeed): Promise<string[]> {
+  private async persistDemoMembers(
+    memberSeeds: DemoSeed['members']
+  ): Promise<string[]> {
     const memberIds: string[] = []
 
-    for (const memberSeed of demoSeed.members) {
+    for (const memberSeed of memberSeeds) {
       const [member, memberEvent] = Member.register(
         {
           firstName: memberSeed.firstName,
@@ -224,10 +236,10 @@ export class BootstrapDemoModeUseCase implements UseCase<
   }
 
   private async persistDemoMembershipPayments(
-    demoSeed: DemoSeed,
+    paymentSeeds: DemoSeed['membershipPayments'],
     memberIds: string[]
   ): Promise<void> {
-    for (const paymentSeed of demoSeed.membershipPayments) {
+    for (const paymentSeed of paymentSeeds) {
       const [payment, paymentEvent] = MembershipPayment.record(
         {
           memberId: memberIds[paymentSeed.memberIndex] as string,
@@ -242,10 +254,10 @@ export class BootstrapDemoModeUseCase implements UseCase<
   }
 
   private async persistDemoAttendanceLists(
-    demoSeed: DemoSeed,
+    attendanceSeeds: DemoSeed['attendanceLists'],
     memberIds: string[]
   ): Promise<void> {
-    for (const attendanceSeed of demoSeed.attendanceLists) {
+    for (const attendanceSeed of attendanceSeeds) {
       const [attendanceList, attendanceEvent] = AttendanceList.record(
         {
           memberIds: attendanceSeed.memberIndexes.map(
