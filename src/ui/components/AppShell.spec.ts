@@ -70,7 +70,6 @@ describe('AppShell', () => {
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
   let mockImportDatabaseBackup: Mock
-  let mockDeliverDatabaseBackup: Mock
   let mockExportDatabaseBackup: Mock
   let mockResetApplicationData: Mock
   let mockLeaveDemoMode: Mock
@@ -84,14 +83,9 @@ describe('AppShell', () => {
     mockUpdatePending = ref(false)
     mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
     mockImportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
-    mockDeliverDatabaseBackup = vi.fn().mockResolvedValue({
+    mockExportDatabaseBackup = vi.fn().mockResolvedValue({
       method: 'share'
     })
-    mockExportDatabaseBackup = vi.fn().mockResolvedValue(
-      new File(['{"formatName":"dexie"}'], 'backup.json', {
-        type: 'application/json'
-      })
-    )
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
     mockSetupStatusObservers = []
@@ -147,9 +141,6 @@ describe('AppShell', () => {
         }
       } as unknown,
       useCases: {
-        deliverDatabaseBackup: {
-          handle: mockDeliverDatabaseBackup
-        },
         importDatabaseBackup: {
           handle: mockImportDatabaseBackup
         },
@@ -483,7 +474,7 @@ describe('AppShell', () => {
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
   })
 
-  it('prepares a local backup from the menu through the application layer', async () => {
+  it('exports a local backup from the menu through the application layer', async () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
     })
@@ -493,17 +484,16 @@ describe('AppShell', () => {
     await flushPromises()
 
     expect(mockExportDatabaseBackup).toHaveBeenCalledWith({})
-    expect(mockDeliverDatabaseBackup).not.toHaveBeenCalled()
   })
 
-  it('shows pending backup copy while backup preparation is in progress', async () => {
+  it('shows pending backup copy while export is in progress', async () => {
     let resolveBackupExport:
-      | ((value: File | PromiseLike<File>) => void)
+      | ((value?: void | PromiseLike<void>) => void)
       | undefined
 
     mockExportDatabaseBackup.mockImplementationOnce(
       async () =>
-        await new Promise<File>((resolve) => {
+        await new Promise<void>((resolve) => {
           resolveBackupExport = resolve
         })
     )
@@ -517,49 +507,13 @@ describe('AppShell', () => {
     await wrapper.find('header button').trigger('click')
     await nextTick()
 
-    expect(wrapper.text()).toContain('Przygotowywanie kopii...')
+    expect(wrapper.text()).toContain('Eksportowanie kopii...')
     expect(
       wrapper.get('[data-testid="export-backup-button"]').attributes('disabled')
     ).toBeDefined()
 
-    resolveBackupExport?.(
-      new File(['{"formatName":"dexie"}'], 'backup.json', {
-        type: 'application/json'
-      })
-    )
+    resolveBackupExport?.()
     await flushPromises()
-  })
-
-  it('delivers the prepared backup from a second tap to preserve share gesture requirements', async () => {
-    const preparedBackupFile = new File(
-      ['{"formatName":"dexie"}'],
-      'backup.json',
-      {
-        type: 'application/json'
-      }
-    )
-    mockExportDatabaseBackup.mockResolvedValueOnce(preparedBackupFile)
-
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await wrapper.find('header button').trigger('click')
-    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
-    await flushPromises()
-
-    expect(wrapper.text()).toContain(
-      'Kopia danych jest gotowa. Otwórz menu i kliknij eksport ponownie, aby udostępnić plik.'
-    )
-    expect(mockDeliverDatabaseBackup).not.toHaveBeenCalled()
-
-    await wrapper.find('header button').trigger('click')
-    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
-    await flushPromises()
-
-    expect(mockDeliverDatabaseBackup).toHaveBeenCalledWith({
-      backupFile: preparedBackupFile
-    })
   })
 
   it('shows the floating backup error when backup export fails', async () => {
@@ -579,12 +533,7 @@ describe('AppShell', () => {
   })
 
   it('shows backup-export diagnostic reason when the workflow falls back to downloader', async () => {
-    mockExportDatabaseBackup.mockResolvedValueOnce(
-      new File(['{"formatName":"dexie"}'], 'backup.json', {
-        type: 'application/json'
-      })
-    )
-    mockDeliverDatabaseBackup.mockResolvedValueOnce({
+    mockExportDatabaseBackup.mockResolvedValueOnce({
       method: 'download',
       reasonCode: 'share-capability-returned-false',
       reasonDetails: 'navigator.canShare({ files }) returned false'
@@ -594,9 +543,6 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
-    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
-    await flushPromises()
     await wrapper.find('header button').trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
     await flushPromises()
@@ -613,12 +559,7 @@ describe('AppShell', () => {
   })
 
   it('shows technical backup-export details when the workflow throws a browser error', async () => {
-    mockExportDatabaseBackup.mockResolvedValueOnce(
-      new File(['{"formatName":"dexie"}'], 'backup.json', {
-        type: 'application/json'
-      })
-    )
-    mockDeliverDatabaseBackup.mockRejectedValueOnce(
+    mockExportDatabaseBackup.mockRejectedValueOnce(
       new DOMException('Gesture required', 'NotAllowedError')
     )
 
@@ -626,9 +567,6 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
-    await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
-    await flushPromises()
     await wrapper.find('header button').trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
     await flushPromises()

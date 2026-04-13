@@ -44,9 +44,6 @@ describe('uiAppServices', () => {
         bootstrapDemoMode: {
           handle
         },
-        deliverDatabaseBackup: {
-          handle
-        },
         exportDatabaseBackup: {
           handle
         },

@@ -1,4 +1,8 @@
 import type { UseCase } from '@/application/UseCase'
+import type {
+  BackupFileDeliveryPort,
+  BackupFileDeliveryResult
+} from '@/application/ports/BackupFileDeliveryPort'
 import type { ClockPort } from '@/application/ports/ClockPort'
 import type { DatabaseBackupExportPort } from '@/application/ports/DatabaseBackupExportPort'
 import type { ExportDatabaseBackupCommand } from '@/application/requests/ExportDatabaseBackupCommand'
@@ -25,19 +29,28 @@ function buildBackupFileName(now: Date): string {
 
 export class ExportDatabaseBackupUseCase implements UseCase<
   ExportDatabaseBackupCommand,
-  File
+  BackupFileDeliveryResult
 > {
   public constructor(
     private readonly backupExport: DatabaseBackupExportPort,
+    private readonly backupDelivery: BackupFileDeliveryPort,
     private readonly clock: ClockPort
   ) {}
 
-  public async handle(_: ExportDatabaseBackupCommand): Promise<File> {
+  public async handle(
+    _: ExportDatabaseBackupCommand
+  ): Promise<BackupFileDeliveryResult> {
     const backupBlob = await this.backupExport.exportBackupBlob()
-    // Why: this workflow now only prepares the file so the UI can trigger delivery from a second, fresh user gesture that mobile share APIs accept.
-    return new File([backupBlob], buildBackupFileName(this.clock.now()), {
-      // Why: a stable JSON media type keeps native share sheets and download targets from guessing the payload format.
-      type: BACKUP_FILE_MIME_TYPE
-    })
+    const backupFile = new File(
+      [backupBlob],
+      buildBackupFileName(this.clock.now()),
+      {
+        // Why: a stable JSON media type keeps native share sheets and download targets from guessing the payload format.
+        type: BACKUP_FILE_MIME_TYPE
+      }
+    )
+
+    // Why: dispatching through a delivery port keeps browser API quirks (share support and download fallback) outside application orchestration.
+    return await this.backupDelivery.deliver(backupFile)
   }
 }
