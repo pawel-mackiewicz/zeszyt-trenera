@@ -6,7 +6,7 @@ import {
   MembershipPayment,
   type MembershipPaymentSnapshot
 } from '@/domain/model/MembershipPayment'
-import { Member, type MemberSnapshot } from '@/domain/model/member'
+import { Member, type MemberSnapshot } from '@/domain/model/Member'
 import { Trainer, type TrainerSnapshot } from '@/domain/model/Trainer'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { TrainerNotebookDb } from '@/db'

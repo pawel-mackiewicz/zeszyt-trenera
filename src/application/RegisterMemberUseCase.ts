@@ -5,7 +5,7 @@ import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/application/ports/UnitOfWork'
 import type { RegisterMemberCommand } from '@/application/requests/RegisterMemberCommand'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
-import { Member, MemberAlreadyExistsError } from '@/domain/model/member'
+import { Member, MemberAlreadyExistsError } from '@/domain/model/Member'
 
 export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
   constructor(

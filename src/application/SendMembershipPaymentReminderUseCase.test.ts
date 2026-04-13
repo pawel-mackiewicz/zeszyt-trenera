@@ -18,7 +18,7 @@ import {
   PaymentReminderSenderMissingError,
   SendMembershipPaymentReminderUseCase
 } from '@/application/SendMembershipPaymentReminderUseCase'
-import { Member, MemberNotFoundError } from '@/domain/model/member'
+import { Member, MemberNotFoundError } from '@/domain/model/Member'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 
 class FakeMemberRepo implements MemberRepoPort {

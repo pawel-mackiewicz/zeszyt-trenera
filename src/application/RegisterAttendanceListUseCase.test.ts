@@ -13,8 +13,8 @@ import {
   AttendanceListAlreadyExistsError,
   AttendanceListRecordedDomainEvent
 } from '@/domain/model/AttendanceList'
-import { MemberNotFoundError } from '@/domain/model/member'
-import type { Member } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
+import type { Member } from '@/domain/model/Member'
 
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()

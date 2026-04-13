@@ -9,7 +9,7 @@ import {
   MembershipPayment,
   MembershipPaymentAlreadyExistsError
 } from '@/domain/model/MembershipPayment'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 
 export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembershipPaymentCommand> {
   constructor(

@@ -1,5 +1,5 @@
 import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
-import { Member, type MemberSnapshot } from '@/domain/model/member'
+import { Member, type MemberSnapshot } from '@/domain/model/Member'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedMember } from '@/infra'
 

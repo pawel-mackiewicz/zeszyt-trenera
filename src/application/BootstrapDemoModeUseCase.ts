@@ -26,7 +26,7 @@ import type { BootstrapDemoModeCommand } from '@/application/requests/BootstrapD
 import { AttendanceList } from '@/domain/model/AttendanceList'
 import { Club } from '@/domain/model/club'
 import { MembershipPayment } from '@/domain/model/MembershipPayment'
-import { Member } from '@/domain/model/member'
+import { Member } from '@/domain/model/Member'
 import { Trainer } from '@/domain/model/Trainer'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 

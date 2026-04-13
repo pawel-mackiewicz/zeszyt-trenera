@@ -22,7 +22,7 @@ import {
   type MemberSnapshot,
   MemberAlreadyExistsError,
   MemberNotFoundError
-} from '@/domain/model/member'
+} from '@/domain/model/Member'
 import {
   TrainerAlreadyExistsError,
   type TrainerSnapshot

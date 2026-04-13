@@ -13,8 +13,8 @@ import {
   AttendanceListNotFoundError,
   AttendanceListUpdatedDomainEvent
 } from '@/domain/model/AttendanceList'
-import type { Member } from '@/domain/model/member'
-import { MemberNotFoundError } from '@/domain/model/member'
+import type { Member } from '@/domain/model/Member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()

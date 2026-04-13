@@ -9,7 +9,7 @@ import {
   AttendanceList,
   AttendanceListAlreadyExistsError
 } from '@/domain/model/AttendanceList'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 
 export class RegisterAttendanceListUseCase implements UseCase<RegisterAttendanceListCommand> {
   constructor(

@@ -4,7 +4,7 @@ import type { MemberRepoPort } from '@/application/ports/MemberRepoPort'
 import type { PaymentReminderSenderPort } from '@/application/ports/PaymentReminderSenderPort'
 import type { SmsComposerPort } from '@/application/ports/SmsComposerPort'
 import type { SendMembershipPaymentReminderCommand } from '@/application/requests/SendMembershipPaymentReminderCommand'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 
 export class MemberPhoneNumberMissingError extends Error {
   public constructor(memberId: string) {

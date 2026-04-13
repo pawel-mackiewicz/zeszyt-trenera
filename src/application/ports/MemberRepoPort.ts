@@ -1,4 +1,4 @@
-import type { Member } from '@/domain/model/member'
+import type { Member } from '@/domain/model/Member'
 
 export interface MemberRepoPort {
   save(member: Member): Promise<void>

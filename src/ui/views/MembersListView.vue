@@ -9,7 +9,7 @@ import {
   InvalidMemberNameError,
   MemberAlreadyExistsError,
   MemberNotFoundError
-} from '@/domain/model/member'
+} from '@/domain/model/Member'
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import type { PersistedMember } from '@/infra'
 import { useAppServices } from '@/ui/appServices'

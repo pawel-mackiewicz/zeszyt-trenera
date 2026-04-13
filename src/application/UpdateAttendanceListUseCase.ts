@@ -9,7 +9,7 @@ import {
   AttendanceListAlreadyExistsError,
   AttendanceListNotFoundError
 } from '@/domain/model/AttendanceList'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 
 export class UpdateAttendanceListUseCase implements UseCase<UpdateAttendanceListCommand> {
   public constructor(

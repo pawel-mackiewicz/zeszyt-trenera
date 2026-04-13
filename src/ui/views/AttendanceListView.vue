@@ -7,7 +7,7 @@ import {
   AttendanceListAlreadyExistsError,
   InvalidAttendanceListStartError
 } from '@/domain/model/AttendanceList'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceSessionEditor from '@/ui/components/AttendanceSessionEditor.vue'
 import {

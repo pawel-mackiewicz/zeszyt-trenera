@@ -9,8 +9,8 @@ import type { DomainEvent } from '@/domain/events/DomainEvent'
 import {
   MemberNotFoundError,
   MemberUpdatedDomainEvent
-} from '@/domain/model/member'
-import { Member, type MemberSnapshot } from '@/domain/model/member'
+} from '@/domain/model/Member'
+import { Member, type MemberSnapshot } from '@/domain/model/Member'
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 
 class FakeUnitOfWork implements UnitOfWork {

@@ -13,7 +13,7 @@ import {
   MembershipPaymentAlreadyExistsError,
   MembershipPaymentRecordedDomainEvent
 } from '@/domain/model/MembershipPayment'
-import { Member, MemberNotFoundError } from '@/domain/model/member'
+import { Member, MemberNotFoundError } from '@/domain/model/Member'
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()
 

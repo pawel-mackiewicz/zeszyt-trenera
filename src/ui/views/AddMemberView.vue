@@ -7,7 +7,7 @@ import {
   InvalidMemberJoinDateError,
   InvalidMemberNameError,
   MemberAlreadyExistsError
-} from '@/domain/model/member'
+} from '@/domain/model/Member'
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'

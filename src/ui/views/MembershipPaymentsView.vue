@@ -10,7 +10,7 @@ import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
 } from '@/domain/model/MembershipPayment'
-import { MemberNotFoundError } from '@/domain/model/member'
+import { MemberNotFoundError } from '@/domain/model/Member'
 import type {
   MembershipPaymentStatusByMonthResult,
   MembershipPaymentStatusMemberListItem,

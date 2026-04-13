@@ -13,7 +13,7 @@ import {
   Member,
   MemberAlreadyExistsError,
   MemberCreatedDomainEvent
-} from '@/domain/model/member'
+} from '@/domain/model/Member'
 
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()

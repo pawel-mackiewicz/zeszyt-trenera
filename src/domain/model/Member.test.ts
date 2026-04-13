@@ -8,7 +8,7 @@ import {
   InvalidMemberJoinDateError,
   InvalidMemberNameError,
   MemberIdMismatchError
-} from '@/domain/model/member'
+} from '@/domain/model/Member'
 
 function createPhoneNumber(rawPhoneNumber = '+48 123 456 789') {
   return PhoneNumber.create(rawPhoneNumber)
