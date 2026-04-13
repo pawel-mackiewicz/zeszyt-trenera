@@ -3,10 +3,10 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "baseUrl": ".",
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
     "paths": {
+      // Why: explicit alias mapping keeps module resolution stable without deprecated baseUrl.
       "@/*": ["./src/*"]
     },
     "types": ["vite/client", "vitest/globals"]
