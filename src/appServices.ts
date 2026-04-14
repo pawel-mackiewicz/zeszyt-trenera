@@ -62,6 +62,14 @@ import {
   type ListAttendanceSessionsByMonthQueryInput
 } from '@/read/ListAttendanceSessionsByMonthQuery'
 import {
+  ListMembersForAttendanceEditorQuery,
+  type AttendanceEditorMemberListItem
+} from '@/read/ListMembersForAttendanceEditorQuery'
+import {
+  ListMembersForRosterQuery,
+  type MemberRosterListItem
+} from '@/read/ListMembersForRosterQuery'
+import {
   ObserveMembershipPaymentStatusByMonthQuery,
   type MembershipPaymentStatusByMonthResult,
   type ObserveMembershipPaymentStatusByMonthQueryInput
@@ -100,6 +108,12 @@ export type AppQueries = {
     handle(
       input: ListAttendanceSessionsByMonthQueryInput
     ): Promise<AttendanceSessionListItem[]>
+  }
+  readonly listMembersForAttendanceEditor: {
+    handle(): Promise<AttendanceEditorMemberListItem[]>
+  }
+  readonly listMembersForRoster: {
+    handle(): Promise<MemberRosterListItem[]>
   }
   readonly observeMembershipPaymentStatusByMonth: {
     handle(
@@ -226,6 +240,12 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
   )
+  const resolveListMembersForAttendanceEditor = lazy(
+    () => new ListMembersForAttendanceEditorQuery(database)
+  )
+  const resolveListMembersForRoster = lazy(
+    () => new ListMembersForRosterQuery(database)
+  )
   const resolveObserveMembershipPaymentStatusByMonth = lazy(
     () => new ObserveMembershipPaymentStatusByMonthQuery(database)
   )
@@ -347,6 +367,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()
+    },
+    // What: expose one attendance-specific member read contract. Why: create and edit attendance flows should not read Dexie directly or receive full roster details they never use.
+    get listMembersForAttendanceEditor() {
+      return resolveListMembersForAttendanceEditor()
+    },
+    // What: expose one roster-specific member read contract. Why: the members screen needs profile fields for details and edits while staying behind the shared read boundary.
+    get listMembersForRoster() {
+      return resolveListMembersForRoster()
     },
     // Keeping the reactive payments read on the shared service bag prepares the upcoming screen to subscribe through the application boundary instead of opening its own Dexie watcher.
     get observeMembershipPaymentStatusByMonth() {

@@ -29,7 +29,7 @@ type AttendanceDraft = {
 }
 
 const router = useRouter()
-const { useCases } = useAppServices()
+const { queries, useCases } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
 const {
   activeSessionField,
@@ -48,7 +48,10 @@ const {
   sessionTime,
   toggleMember,
   toggleSessionField
-} = useAttendanceEditor(locale)
+  // What: resolve attendance roster rows through the read layer. Why: this create flow should never open Dexie tables directly from UI code.
+} = useAttendanceEditor(locale, () =>
+  queries.listMembersForAttendanceEditor.handle()
+)
 
 const isSubmitting = ref(false)
 const submitErrorKey = ref<SubmitErrorKey | null>(null)

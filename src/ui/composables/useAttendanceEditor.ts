@@ -1,7 +1,6 @@
 import { computed, ref, type Ref } from 'vue'
 
-import { db } from '@/db'
-import type { PersistedMember } from '@/infra'
+import type { AttendanceEditorMemberListItem } from '@/read/ListMembersForAttendanceEditorQuery'
 import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
 
 export type SessionField = 'date' | 'time'
@@ -71,8 +70,14 @@ export function buildSessionStart(
   return Number.isNaN(start.getTime()) ? null : start
 }
 
-export function useAttendanceEditor(locale: Ref<string>) {
-  const savedMembers = ref<PersistedMember[]>([])
+type AttendanceMembersLoader = () => Promise<AttendanceEditorMemberListItem[]>
+
+export function useAttendanceEditor(
+  locale: Ref<string>,
+  loadAttendanceMembers: AttendanceMembersLoader
+) {
+  // What: inject attendance member reads instead of importing Dexie here. Why: this shared editor composable should stay UI-focused while the read layer owns persistence access.
+  const savedMembers = ref<AttendanceEditorMemberListItem[]>([])
   const isLoading = ref(true)
   const loadFailed = ref(false)
   const searchQuery = ref('')
@@ -91,8 +96,7 @@ export function useAttendanceEditor(locale: Ref<string>) {
     loadFailed.value = false
 
     try {
-      await db.open()
-      const members = await db.members.toArray()
+      const members = await loadAttendanceMembers()
 
       // What: sort the attendance roster alphabetically before either create or edit renders. Why: both flows are phone-first find-and-toggle screens, so they need one stable scanning order.
       savedMembers.value = members.sort((left, right) =>

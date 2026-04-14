@@ -1,5 +1,3 @@
-import type { PersistedMember } from '@/infra'
-
 export type MemberSortField =
   | 'lastName'
   | 'firstName'
@@ -8,6 +6,13 @@ export type MemberSortField =
 export type MemberSortDirection = 'asc' | 'desc'
 
 type SortableDate = Date | string | undefined
+type SortableMember = {
+  id: string
+  firstName: string
+  lastName: string
+  dateOfBirth?: Date | string
+  joinedAt?: Date | string
+}
 
 function compareText(
   left: string,
@@ -63,8 +68,8 @@ function compareNullableDate(
 }
 
 function compareMemberIdentity(
-  left: PersistedMember,
-  right: PersistedMember,
+  left: SortableMember,
+  right: SortableMember,
   locale: string
 ): number {
   return (
@@ -74,14 +79,14 @@ function compareMemberIdentity(
   )
 }
 
-export function sortMembers(
-  members: PersistedMember[],
+export function sortMembers<TMember extends SortableMember>(
+  members: TMember[],
   options: {
     field: MemberSortField
     direction: MemberSortDirection
     locale: string
   }
-): PersistedMember[] {
+): TMember[] {
   // What: keep member ordering decisions in one pure utility instead of a single screen. Why: mobile-first roster views need identical sorting for names and dates wherever the shared sort tool is reused.
   const { field, direction, locale } = options
 

@@ -33,6 +33,12 @@ describe('uiAppServices', () => {
         listAttendanceSessionsByMonth: {
           handle
         },
+        listMembersForAttendanceEditor: {
+          handle
+        },
+        listMembersForRoster: {
+          handle
+        },
         observeMembershipPaymentStatusByMonth: {
           handle: observeHandle
         },

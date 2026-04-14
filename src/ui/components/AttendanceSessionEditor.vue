@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { PersistedMember } from '@/infra'
+import type { AttendanceEditorMemberListItem } from '@/read/ListMembersForAttendanceEditorQuery'
 import {
   SESSION_TIME_STEP_SECONDS,
   buildSessionStart,
@@ -12,11 +12,10 @@ import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
-import { calculateAge } from '@/ui/utils/age'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
-  matchesAgeRange
+  matchesAgeValueRange
 } from '@/ui/utils/ageRange'
 
 type AttendanceEditorMode = 'create' | 'edit'
@@ -32,7 +31,7 @@ const props = withDefaults(
     minAgeFilter: number
     mode: AttendanceEditorMode
     recoveryPromptVisible?: boolean
-    savedMembers: PersistedMember[]
+    savedMembers: AttendanceEditorMemberListItem[]
     searchQuery: string
     selectedMemberIds: string[]
     sessionDate: string
@@ -97,8 +96,9 @@ const filteredMembers = computed(() => {
     .filter((member) => {
       const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
       const matchesSearch = fullName.includes(props.searchQuery.toLowerCase())
-      const matchesAge = matchesAgeRange(
-        member.dateOfBirth,
+      // What: filter attendance rows by precomputed age from the read model. Why: this screen now consumes a least-privilege roster payload that omits raw birth dates.
+      const matchesAge = matchesAgeValueRange(
+        member.age,
         props.minAgeFilter,
         props.maxAgeFilter
       )
@@ -155,10 +155,10 @@ function formatSessionTime(value: Date | null): string {
   }).format(value)
 }
 
-function formatMemberAge(member: PersistedMember) {
-  const age = calculateAge(member.dateOfBirth)
-
-  return age === null ? t('table.ageUnknown') : t('table.age', { age })
+function formatMemberAge(member: AttendanceEditorMemberListItem) {
+  return member.age === null
+    ? t('table.ageUnknown')
+    : t('table.age', { age: member.age })
 }
 </script>
 

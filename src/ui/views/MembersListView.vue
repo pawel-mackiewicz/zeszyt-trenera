@@ -2,7 +2,6 @@
 import { onMounted, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { db } from '@/db'
 import {
   InvalidMemberBirthDateError,
   InvalidMemberJoinDateError,
@@ -11,7 +10,7 @@ import {
   MemberNotFoundError
 } from '@/domain/model/Member'
 import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
-import type { PersistedMember } from '@/infra'
+import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
@@ -30,9 +29,9 @@ import {
   type MemberSortField
 } from '@/ui/utils/memberSort'
 
-const { useCases } = useAppServices()
+const { queries, useCases } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
-const savedMembers = ref<PersistedMember[]>([])
+const savedMembers = ref<MemberRosterListItem[]>([])
 const isLoading = ref(true)
 const searchQuery = ref('')
 const maxAgeFilter = ref(AGE_FILTER_MAX)
@@ -64,15 +63,15 @@ const membersCountLabel = computed(() =>
   t('summary.memberCount', { count: savedMembers.value.length })
 )
 
-function formatMemberName(member: PersistedMember): string {
+function formatMemberName(member: MemberRosterListItem): string {
   return `${member.firstName} ${member.lastName}`
 }
 
 async function loadSavedMembers() {
   isLoading.value = true
   try {
-    await db.open()
-    savedMembers.value = await db.members.toArray()
+    // What: load roster rows through the read query bag. Why: this members screen should consume application read contracts instead of opening Dexie directly in UI code.
+    savedMembers.value = await queries.listMembersForRoster.handle()
   } catch (error) {
     console.error('Failed to load members', error)
   } finally {
@@ -126,7 +125,7 @@ function toPhoneMessageHref(phoneNumber: string): string {
   return `sms:${phoneNumber.replace(/\s+/g, '')}`
 }
 
-function startEditing(member: PersistedMember) {
+function startEditing(member: MemberRosterListItem) {
   editErrorKey.value = null
   editingMemberId.value = member.id
   editFirstName.value = member.firstName

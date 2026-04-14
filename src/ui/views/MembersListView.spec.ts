@@ -1,28 +1,20 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { createAppServicesProvides } from '@/ui/appServices'
 import MembersListView from '@/ui/views/MembersListView.vue'
 
-vi.mock('@/db', () => ({
-  db: {
-    open: vi.fn(),
-    members: {
-      toArray: vi.fn()
-    }
-  }
-}))
-
 describe('MembersListView', () => {
   const mockUpdateMemberHandle = vi.fn()
+  const mockListMembersForRosterHandle = vi.fn()
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
-    vi.mocked(db.open).mockResolvedValue({} as never)
     mockUpdateMemberHandle.mockReset()
+    mockListMembersForRosterHandle.mockReset()
+    mockListMembersForRosterHandle.mockResolvedValue([])
   })
 
   afterEach(() => {
@@ -40,7 +32,11 @@ describe('MembersListView', () => {
           }
         },
         provide: createAppServicesProvides({
-          queries: {} as never,
+          queries: {
+            listMembersForRoster: {
+              handle: mockListMembersForRosterHandle
+            }
+          } as never,
           useCases: {
             updateMember: { handle: mockUpdateMemberHandle }
           } as never
@@ -50,7 +46,7 @@ describe('MembersListView', () => {
   }
 
   it('renders loading copy from the local English dictionary', async () => {
-    vi.mocked(db.members.toArray).mockImplementation(
+    mockListMembersForRosterHandle.mockImplementation(
       () => new Promise(() => undefined) as never
     )
 
@@ -64,7 +60,7 @@ describe('MembersListView', () => {
   })
 
   it('renders the empty state from the local Polish dictionary', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForRosterHandle.mockResolvedValue([])
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -74,7 +70,7 @@ describe('MembersListView', () => {
   })
 
   it('renders the add-member action as the shared route link', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForRosterHandle.mockResolvedValue([])
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -85,7 +81,7 @@ describe('MembersListView', () => {
   })
 
   it('sorts members alphabetically by the visible full name', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Zane',
@@ -117,7 +113,7 @@ describe('MembersListView', () => {
   })
 
   it('renders dedicated sort field choices and one direction toggle', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForRosterHandle.mockResolvedValue([])
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -144,7 +140,7 @@ describe('MembersListView', () => {
   })
 
   it('changes roster ordering when the selected sort field or direction changes', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Zane',
@@ -216,7 +212,7 @@ describe('MembersListView', () => {
   })
 
   it('keeps unknown ages at the default range and normalizes crossed handles', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
@@ -258,7 +254,7 @@ describe('MembersListView', () => {
   })
 
   it('submits member updates through the application layer use case', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
@@ -297,7 +293,7 @@ describe('MembersListView', () => {
   })
 
   it('keeps edit labels plain while letting the edit form clear phone', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
@@ -357,7 +353,7 @@ describe('MembersListView', () => {
   })
 
   it('renders call and msg actions for saved phone numbers', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
@@ -380,7 +376,7 @@ describe('MembersListView', () => {
   })
 
   it('localizes call and msg actions in Polish', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
@@ -403,7 +399,7 @@ describe('MembersListView', () => {
   })
 
   it('renders missing phone with the same typography as missing date details', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',

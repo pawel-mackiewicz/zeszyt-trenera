@@ -44,7 +44,10 @@ const {
   sessionTime,
   toggleMember,
   toggleSessionField
-} = useAttendanceEditor(locale)
+  // What: resolve attendance roster rows through the read layer. Why: edit hydration should stay on application read contracts instead of touching Dexie in UI code.
+} = useAttendanceEditor(locale, () =>
+  queries.listMembersForAttendanceEditor.handle()
+)
 
 const isSessionLoading = ref(true)
 const sessionLoadFailed = ref(false)

@@ -3,20 +3,10 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
 import { AttendanceListAlreadyExistsError } from '@/domain/model/AttendanceList'
-import { db } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import { useRouter } from '@/ui/router/runtime'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
-
-vi.mock('@/db', () => ({
-  db: {
-    open: vi.fn(),
-    members: {
-      toArray: vi.fn()
-    }
-  }
-}))
 
 vi.mock('@/ui/router/runtime', () => ({
   useRouter: vi.fn()
@@ -28,12 +18,13 @@ vi.mock('@/ui/appServices', () => ({
 
 describe('AttendanceListView', () => {
   let mockRegisterAttendanceListHandle: Mock
+  let mockListMembersForAttendanceEditorHandle: Mock
   let mockRouterPush: Mock
 
   beforeEach(() => {
     vi.useRealTimers()
     window.localStorage.clear()
-    vi.mocked(db.open).mockResolvedValue({} as never)
+    mockListMembersForAttendanceEditorHandle = vi.fn().mockResolvedValue([])
     mockRouterPush = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useRouter).mockReturnValue({
       push: mockRouterPush,
@@ -45,6 +36,11 @@ describe('AttendanceListView', () => {
     } as unknown as ReturnType<typeof useRouter>)
     mockRegisterAttendanceListHandle = vi.fn().mockResolvedValue(undefined)
     vi.mocked(useAppServices).mockReturnValue({
+      queries: {
+        listMembersForAttendanceEditor: {
+          handle: mockListMembersForAttendanceEditorHandle
+        } as unknown
+      },
       useCases: {
         registerAttendanceList: {
           handle: mockRegisterAttendanceListHandle
@@ -131,7 +127,7 @@ describe('AttendanceListView', () => {
   }
 
   it('renders loading copy from the local English dictionary', () => {
-    vi.mocked(db.members.toArray).mockImplementation(
+    mockListMembersForAttendanceEditorHandle.mockImplementation(
       () => new Promise(() => undefined) as never
     )
 
@@ -147,7 +143,7 @@ describe('AttendanceListView', () => {
   })
 
   it('disables save while members are still loading and ignores submit attempts', async () => {
-    vi.mocked(db.members.toArray).mockImplementation(
+    mockListMembersForAttendanceEditorHandle.mockImplementation(
       () => new Promise(() => undefined) as never
     )
 
@@ -167,7 +163,7 @@ describe('AttendanceListView', () => {
       .spyOn(console, 'error')
       .mockImplementation(() => undefined)
 
-    vi.mocked(db.members.toArray).mockRejectedValue(loadError)
+    mockListMembersForAttendanceEditorHandle.mockRejectedValue(loadError)
 
     const wrapper = mountView()
     await flushPromises()
@@ -186,29 +182,24 @@ describe('AttendanceListView', () => {
   it('filters members by search query and shared age range rules', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       },
       {
         id: 'member-2',
         firstName: 'Royce',
         lastName: 'Gracie',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1970-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
+        age: 56
       },
       {
         id: 'member-3',
         firstName: 'Mystery',
         lastName: 'Member',
-        phoneNumber: '+48 333 333 333',
-        createdAt: new Date('2026-03-22T10:00:00Z')
+        age: null
       }
     ])
 
@@ -237,7 +228,7 @@ describe('AttendanceListView', () => {
   })
 
   it('edits the training date and time from the session header', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
 
     const wrapper = mountView()
     await flushPromises()
@@ -258,7 +249,7 @@ describe('AttendanceListView', () => {
   })
 
   it('keeps the session time editor on a 15-minute grid', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
 
     const wrapper = mountView()
     await flushPromises()
@@ -285,7 +276,7 @@ describe('AttendanceListView', () => {
         selectedMemberIds: ['member-1']
       })
     )
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
 
     const wrapper = mountView()
     await flushPromises()
@@ -308,7 +299,7 @@ describe('AttendanceListView', () => {
         selectedMemberIds: []
       })
     )
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
 
     const wrapper = mountView()
     await flushPromises()
@@ -331,22 +322,18 @@ describe('AttendanceListView', () => {
         selectedMemberIds: ['member-1', 'member-missing']
       })
     )
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       },
       {
         id: 'member-2',
         firstName: 'Amanda',
         lastName: 'Nunes',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1988-05-30T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
+        age: 37
       }
     ])
 
@@ -387,14 +374,12 @@ describe('AttendanceListView', () => {
         selectedMemberIds: ['member-1']
       })
     )
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       }
     ])
 
@@ -418,22 +403,18 @@ describe('AttendanceListView', () => {
   })
 
   it('moves marked members to the top of the list', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Amanda',
         lastName: 'Nunes',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1988-05-30T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 37
       },
       {
         id: 'member-2',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
+        age: 36
       }
     ])
 
@@ -454,22 +435,18 @@ describe('AttendanceListView', () => {
   })
 
   it('submits the selected members with the local session start', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       },
       {
         id: 'member-2',
         firstName: 'Amanda',
         lastName: 'Nunes',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1988-05-30T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
+        age: 37
       }
     ])
 
@@ -491,22 +468,18 @@ describe('AttendanceListView', () => {
   it('persists the unsaved draft while the coach edits the attendance list', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 2, 28, 7, 15, 0))
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       },
       {
         id: 'member-2',
         firstName: 'Amanda',
         lastName: 'Nunes',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1988-05-30T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
+        age: 37
       }
     ])
 
@@ -531,7 +504,7 @@ describe('AttendanceListView', () => {
   })
 
   it('shows friendly duplicate-session copy instead of the raw domain error', async () => {
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
     mockRegisterAttendanceListHandle.mockRejectedValue(
       new AttendanceListAlreadyExistsError(new Date('2026-03-27T17:00:00Z'))
     )
@@ -552,14 +525,12 @@ describe('AttendanceListView', () => {
   it('resets the draft after a successful save onto the quarter-hour grid, replaces the stored draft, and keeps the success banner on screen', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 2, 28, 7, 8, 0))
-    vi.mocked(db.members.toArray).mockResolvedValue([
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        age: 36
       }
     ])
 
@@ -596,7 +567,7 @@ describe('AttendanceListView', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date(2026, 2, 28, 7, 15, 0))
     window.localStorage.setItem(ATTENDANCE_DRAFT_STORAGE_KEY, '{bad json')
-    vi.mocked(db.members.toArray).mockResolvedValue([])
+    mockListMembersForAttendanceEditorHandle.mockResolvedValue([])
 
     const wrapper = mountView()
     await flushPromises()

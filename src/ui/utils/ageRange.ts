@@ -36,10 +36,25 @@ export function matchesAgeRange(
   minBound = AGE_FILTER_MIN,
   maxBound = AGE_FILTER_MAX
 ): boolean {
-  const age = calculateAge(value)
+  return matchesAgeValueRange(
+    calculateAge(value),
+    minValue,
+    maxValue,
+    minBound,
+    maxBound
+  )
+}
 
-  if (age === null) {
-    // What: keep members with unknown ages visible only at the untouched full range. Why: a narrowed age band must stay truthful, but the default roster should not hide people just because their birth date is missing locally.
+export function matchesAgeValueRange(
+  age: number | null | undefined,
+  minValue: number,
+  maxValue: number,
+  minBound = AGE_FILTER_MIN,
+  maxBound = AGE_FILTER_MAX
+): boolean {
+  if (age === null || age === undefined || Number.isNaN(age)) {
+    // What: keep unknown-age members visible only at the untouched full range. Why: a narrowed age band must stay truthful, but the default roster should not hide people just because age is unavailable in the read model.
+    //todo: delete after making birthDate !optional
     return isDefaultAgeRange(minValue, maxValue, minBound, maxBound)
   }
 
