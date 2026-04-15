@@ -1,6 +1,6 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.5.46",
+  "version": "0.5.48",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.0",
@@ -15,6 +15,7 @@
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "format": "sh scripts/run-prettier.sh",
     "test": "vitest run",
+    "test:storybook": "vitest run --project storybook",
     "deploy": "pnpm run build && wrangler deploy",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

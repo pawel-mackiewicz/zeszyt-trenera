@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import { useI18n, type MessageFunction, type VueMessageType } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
 
 type InstallSurface = 'hidden' | 'manual' | 'native'
 type ManualInstallVariant = 'iosSafari' | null
+type ManualInstallStepMessage = VueMessageType | MessageFunction<VueMessageType>
 
 // What: keep the install modal as a presentational surface with event outputs only. Why: install workflow mutations stay in AppShell so store/composable side effects remain centralized in one orchestration layer.
 const props = defineProps<{
@@ -20,7 +21,7 @@ const emit = defineEmits<{
   later: []
 }>()
 
-const { t, tm } = useI18n({ useScope: 'local' })
+const { t, tm, rt } = useI18n({ useScope: 'local' })
 const manualInstallTranslationKey = 'install.manual.iosSafari' as const
 
 const eyebrow = computed(() =>
@@ -48,11 +49,14 @@ const primaryLabel = computed(() =>
 const laterLabel = computed(() => t('actions.later'))
 const manualInstallSteps = computed(() => {
   if (props.surface !== 'manual' || props.manualInstallVariant === null) {
-    return [] as string[]
+    return [] as ManualInstallStepMessage[]
   }
 
   // What: render only the supported manual-install recipe for the active browser flow. Why: iOS Safari is the only manual branch in the current PWA install strategy.
-  return tm(`${manualInstallTranslationKey}.steps`) as string[]
+  // What: keep locale messages as i18n message values instead of forcing plain strings. Why: Storybook interaction tests can expose message nodes from tm(), and rendering with rt() guarantees human-readable copy in every runtime.
+  return tm(
+    `${manualInstallTranslationKey}.steps`
+  ) as ManualInstallStepMessage[]
 })
 
 function emitPrimary() {
@@ -84,11 +88,12 @@ function emitLater() {
           class="install-modal-card__steps"
         >
           <li
-            v-for="step in manualInstallSteps"
-            :key="step"
+            v-for="(step, index) in manualInstallSteps"
+            :key="index"
             class="install-modal-card__step"
           >
-            {{ step }}
+            <!-- What: resolve i18n message values to text at render time. Why: manual install guidance must stay readable even when tm() returns message-node structures in Storybook/browser tests. -->
+            {{ rt(step) }}
           </li>
         </ol>
         <div class="install-modal-card__actions">
