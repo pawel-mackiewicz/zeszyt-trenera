@@ -1,28 +1,17 @@
-// What: centralize shared age derivation and age-entry conversion helpers in one place. Why: these rules are reused by multiple views and utilities and are not specific to age-range filtering.
+// What: centralize shared age derivation and age-entry conversion helpers in one place with Date-only contracts.
+// Why: age utilities should not parse UI strings internally, so invalid or unparsed inputs are handled at caller boundaries.
 export const AGE_ENTRY_MIN = 1
 export const AGE_ENTRY_MAX = 120
 
-export function calculateAge(
-  value: Date | string | undefined,
-  now = new Date()
-): number | null {
-  if (!value) {
+export function calculateAge(value: Date, now = new Date()): number | null {
+  if (Number.isNaN(value.getTime())) {
     return null
   }
 
-  const birthDate = value instanceof Date ? value : new Date(value)
+  let age = now.getFullYear() - value.getFullYear()
+  const monthDelta = now.getMonth() - value.getMonth()
 
-  if (Number.isNaN(birthDate.getTime())) {
-    return null
-  }
-
-  let age = now.getFullYear() - birthDate.getFullYear()
-  const monthDelta = now.getMonth() - birthDate.getMonth()
-
-  if (
-    monthDelta < 0 ||
-    (monthDelta === 0 && now.getDate() < birthDate.getDate())
-  ) {
+  if (monthDelta < 0 || (monthDelta === 0 && now.getDate() < value.getDate())) {
     age -= 1
   }
 
@@ -42,7 +31,7 @@ export function birthDateInputValueFromAge(
 }
 
 export function resolveAgeFromBirthDate(
-  value: Date | string | undefined,
+  value: Date,
   now = new Date()
 ): number | null {
   const age = calculateAge(value, now)

@@ -19,7 +19,7 @@ export function normalizeAgeRange(
 }
 
 export function matchesAgeRange(
-  value: Date | string,
+  value: Date,
   minValue: number,
   maxValue: number
 ): boolean {
