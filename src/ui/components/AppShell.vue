@@ -11,6 +11,7 @@ import {
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import InstallModal from '@/ui/components/InstallModal.vue'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -36,7 +37,7 @@ const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
 const { queries, useCases } = useAppServices()
-const { t, tm } = useI18n({ useScope: 'local' })
+const { t } = useI18n({ useScope: 'local' })
 const { locale } = useI18n({ useScope: 'global' })
 
 useNetworkStatus()
@@ -154,47 +155,16 @@ const isShellReady = computed(
   () => appReadiness.value === 'ready' && setupStatus.value === 'ready'
 )
 const isBlockingApplication = computed(() => appReadiness.value === 'blocked')
-const manualInstallTranslationKey = 'install.manual.iosSafari' as const
-const installModalEyebrow = computed(() =>
-  installSurface.value === 'manual'
-    ? t('install.manual.eyebrow')
-    : t('install.native.eyebrow')
-)
-const installModalTitle = computed(() =>
-  installSurface.value === 'manual'
-    ? t(`${manualInstallTranslationKey}.title`)
-    : t('install.native.title')
-)
-const installModalBody = computed(() =>
-  installSurface.value === 'manual'
-    ? t(`${manualInstallTranslationKey}.body`)
-    : t('install.native.body')
-)
 const installEntryLabel = computed(() =>
   installSurface.value === 'manual'
     ? t('install.entry.manual')
     : t('install.entry.native')
-)
-const installPrimaryLabel = computed(() =>
-  installSurface.value === 'manual'
-    ? t('common.understand')
-    : installPending.value
-      ? t('install.native.pending')
-      : t('install.native.primary')
 )
 const installCoachCopy = computed(() =>
   installSurface.value === 'manual'
     ? t('install.coach.manual')
     : t('install.coach.native')
 )
-const manualInstallSteps = computed(() => {
-  if (manualInstallVariant.value === null) {
-    return [] as string[]
-  }
-
-  // What: the shell renders the Safari-specific fallback instructions here. Why: iOS Safari is the only browser family that reaches the manual-install path in the current flow.
-  return tm(`${manualInstallTranslationKey}.steps`) as string[]
-})
 const updateActionLabel = computed(() =>
   updatePending.value ? t('update.action.pending') : t('update.action.ready')
 )
@@ -1079,47 +1049,15 @@ function bottomNavForegroundClasses(isActive: boolean) {
       </div>
     </section>
 
-    <Transition name="overlay-pop">
-      <div
-        v-if="isInstallModalActive"
-        class="fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4"
-      >
-        <div
-          class="absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
-          @click="handleInstallLater()"
-        ></div>
-        <section class="shell-modal relative w-full max-w-lg">
-          <p class="shell-modal__eyebrow">{{ installModalEyebrow }}</p>
-          <h2 class="shell-modal__title">{{ installModalTitle }}</h2>
-          <p class="shell-modal__copy">{{ installModalBody }}</p>
-          <ol v-if="manualInstallSteps.length > 0" class="shell-modal__steps">
-            <li
-              v-for="step in manualInstallSteps"
-              :key="step"
-              class="shell-modal__step"
-            >
-              {{ step }}
-            </li>
-          </ol>
-          <div class="shell-modal__actions">
-            <AppButton
-              type="button"
-              :disabled="installPending"
-              @click="handleInstallPrimaryAction"
-            >
-              {{ installPrimaryLabel }}
-            </AppButton>
-            <AppButton
-              variant="secondary"
-              type="button"
-              @click="handleInstallLater()"
-            >
-              {{ t('common.later') }}
-            </AppButton>
-          </div>
-        </section>
-      </div>
-    </Transition>
+    <!-- What: keep install actions in the shell while moving modal rendering to a dedicated component. Why: install mutations must stay in one orchestration layer that already owns store and PWA prompt side effects. -->
+    <InstallModal
+      :active="isInstallModalActive"
+      :surface="installSurface"
+      :pending="installPending"
+      :manual-install-variant="manualInstallVariant"
+      @primary="handleInstallPrimaryAction"
+      @later="handleInstallLater"
+    />
   </div>
 </template>
 
@@ -1273,40 +1211,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
   line-height: 1.5;
 }
 
-.shell-modal__steps {
-  display: grid;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: install-step;
-}
-
-.shell-modal__step {
-  display: flex;
-  gap: 0.75rem;
-  align-items: flex-start;
-  color: var(--ink);
-  line-height: 1.5;
-}
-
-.shell-modal__step::before {
-  counter-increment: install-step;
-  content: counter(install-step);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  flex: 0 0 1.65rem;
-  border: 1px solid var(--color-on-surface);
-  background: var(--color-surface-container-low);
-  color: var(--color-on-surface);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-}
-
 .shell-modal__actions {
   display: flex;
   flex-direction: column;
@@ -1396,7 +1300,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
     "common": {
       "cancel": "Anuluj",
       "hide": "Ukryj",
-      "later": "Później",
       "understand": "Rozumiem"
     },
     "network": {
@@ -1464,24 +1367,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "eyebrow": "Na później",
         "manual": "Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.",
         "native": "Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później."
-      },
-      "manual": {
-        "eyebrow": "Instalacja ręczna",
-        "iosSafari": {
-          "title": "Dodaj do ekranu głównego",
-          "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Na tej przeglądarce zrobisz to ręcznie, a poniżej masz krótkie kroki.",
-          "steps": [
-            "Stuknij przycisk Udostępnij w Safari.",
-            "Wybierz Do ekranu głównego i potwierdź dodanie aplikacji."
-          ]
-        }
-      },
-      "native": {
-        "eyebrow": "Instalacja PWA",
-        "title": "Zainstaluj Zeszyt Trenera",
-        "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Dzięki temu otworzysz go jak lokalną aplikację i wygodniej wrócisz do niego offline.",
-        "primary": "Zainstaluj Zeszyt Trenera",
-        "pending": "Instalowanie..."
       }
     },
     "update": {
@@ -1522,7 +1407,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
     "common": {
       "cancel": "Cancel",
       "hide": "Hide",
-      "later": "Later",
       "understand": "Understood"
     },
     "network": {
@@ -1590,24 +1474,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
         "eyebrow": "Later",
         "manual": "Return here when you need the short guide for adding the app to the home screen.",
         "native": "Return here when you want to install the app later."
-      },
-      "manual": {
-        "eyebrow": "Manual install",
-        "iosSafari": {
-          "title": "Add to Home Screen",
-          "body": "Install Coach Notebook for the best experience. This browser needs the manual flow, and the short steps are below.",
-          "steps": [
-            "Tap the Share button in Safari.",
-            "Choose Add to Home Screen and confirm the app."
-          ]
-        }
-      },
-      "native": {
-        "eyebrow": "PWA install",
-        "title": "Install Coach Notebook",
-        "body": "Install Coach Notebook for the best experience. It will open like a local app and will be easier to return to offline.",
-        "primary": "Install Coach Notebook",
-        "pending": "Installing..."
       }
     },
     "update": {
