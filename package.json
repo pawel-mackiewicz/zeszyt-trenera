@@ -1,6 +1,6 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.5.45",
+  "version": "0.5.46",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.0",
@@ -15,7 +15,9 @@
     "hooks:install": "sh scripts/install-git-hooks.sh",
     "format": "sh scripts/run-prettier.sh",
     "test": "vitest run",
-    "deploy": "pnpm run build && wrangler deploy"
+    "deploy": "pnpm run build && wrangler deploy",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "dexie": "^4.3.0",
@@ -55,6 +57,16 @@
     "vite-plugin-pwa": "^1.2.0",
     "vitest": "^4.1.0",
     "vue-tsc": "^3.2.5",
-    "wrangler": "^4.80.0"
+    "wrangler": "^4.80.0",
+    "storybook": "^10.3.5",
+    "@storybook/vue3-vite": "^10.3.5",
+    "@chromatic-com/storybook": "^5.1.2",
+    "@storybook/addon-vitest": "^10.3.5",
+    "@storybook/addon-a11y": "^10.3.5",
+    "@storybook/addon-docs": "^10.3.5",
+    "@storybook/addon-onboarding": "^10.3.5",
+    "eslint-plugin-storybook": "^10.3.5",
+    "playwright": "^1.59.1",
+    "@vitest/browser-playwright": "4.1.0"
   }
 }

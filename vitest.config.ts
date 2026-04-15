@@ -1,16 +1,22 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
-
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
+import path from 'node:path'
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
+import { playwright } from '@vitest/browser-playwright'
+const dirname =
+  typeof __dirname !== 'undefined'
+    ? __dirname
+    : path.dirname(fileURLToPath(import.meta.url))
 
+// More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
 ) as {
   version: string
 }
-
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version)
@@ -29,10 +35,40 @@ export default defineConfig({
     }
   },
   test: {
-    environment: 'happy-dom',
-    setupFiles: ['./vitest.setup.ts'],
     coverage: {
       provider: 'v8'
-    }
+    },
+    projects: [
+      {
+        extends: true,
+        test: {
+          environment: 'happy-dom',
+          setupFiles: ['./vitest.setup.ts']
+        }
+      },
+      {
+        extends: true,
+        plugins: [
+          // The plugin will run tests for the stories defined in your Storybook config
+          // See options at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon#storybooktest
+          storybookTest({
+            configDir: path.join(dirname, '.storybook')
+          })
+        ],
+        test: {
+          name: 'storybook',
+          browser: {
+            enabled: true,
+            headless: true,
+            provider: playwright({}),
+            instances: [
+              {
+                browser: 'chromium'
+              }
+            ]
+          }
+        }
+      }
+    ]
   }
 })
