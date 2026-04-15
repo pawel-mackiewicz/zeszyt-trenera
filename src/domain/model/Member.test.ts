@@ -210,7 +210,8 @@ describe('Member Model', () => {
         memberId: 'member-2',
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: createPhoneNumber()
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
       })
     ).toThrow(MemberIdMismatchError)
   })
@@ -221,6 +222,7 @@ describe('Member Model', () => {
       id: 'member-1',
       firstName: 'jane',
       lastName: 'doe',
+      dateOfBirth: createBirthDate(),
       createdAt
     })
 
@@ -229,6 +231,7 @@ describe('Member Model', () => {
       id: 'member-1',
       firstName: 'jane',
       lastName: 'doe',
+      dateOfBirth: createBirthDate(),
       createdAt
     })
   })
@@ -247,14 +250,16 @@ describe('Member Model', () => {
     const [updatedMember, updateEvent] = Member.update(member, {
       memberId: 'member-1',
       firstName: 'Jane',
-      lastName: 'Doe'
+      lastName: 'Doe',
+      dateOfBirth: createBirthDate()
     })
 
     expect(updatedMember.phoneNumber).toBeUndefined()
     expect(updateEvent.payload).toEqual({
       memberId: 'member-1',
       firstName: 'jane',
-      lastName: 'doe'
+      lastName: 'doe',
+      dateOfBirth: createBirthDate()
     })
   })
 

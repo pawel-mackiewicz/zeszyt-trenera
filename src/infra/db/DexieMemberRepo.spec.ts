@@ -203,7 +203,8 @@ describe('DexieMemberRepo', () => {
       memberId: member.id,
       firstName: 'Janet',
       lastName: 'Doe',
-      phoneNumber: PhoneNumber.create('+48111222333')
+      phoneNumber: PhoneNumber.create('+48111222333'),
+      dateOfBirth: member.dateOfBirth
     })
 
     await repository.update(updatedMember)
@@ -243,6 +244,7 @@ describe('DexieMemberRepo', () => {
       id: 'member-1',
       firstName: 'jane',
       lastName: 'doe',
+      dateOfBirth: createBirthDate(),
       createdAt: new Date('2026-03-01T00:00:00Z')
     })
 

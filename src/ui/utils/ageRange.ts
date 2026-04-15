@@ -18,44 +18,22 @@ export function normalizeAgeRange(
   }
 }
 
-export function isDefaultAgeRange(
-  minValue: number,
-  maxValue: number,
-  minBound = AGE_FILTER_MIN,
-  maxBound = AGE_FILTER_MAX
-): boolean {
-  const range = normalizeAgeRange(minValue, maxValue)
-
-  return range.min === minBound && range.max === maxBound
-}
-
 export function matchesAgeRange(
-  value: Date | string | undefined,
+  value: Date | string,
   minValue: number,
-  maxValue: number,
-  minBound = AGE_FILTER_MIN,
-  maxBound = AGE_FILTER_MAX
+  maxValue: number
 ): boolean {
-  return matchesAgeValueRange(
-    calculateAge(value),
-    minValue,
-    maxValue,
-    minBound,
-    maxBound
-  )
+  return matchesAgeValueRange(calculateAge(value), minValue, maxValue)
 }
 
 export function matchesAgeValueRange(
-  age: number | null | undefined,
+  age: number | null,
   minValue: number,
-  maxValue: number,
-  minBound = AGE_FILTER_MIN,
-  maxBound = AGE_FILTER_MAX
+  maxValue: number
 ): boolean {
-  if (age === null || age === undefined || Number.isNaN(age)) {
-    // What: keep unknown-age members visible only at the untouched full range. Why: a narrowed age band must stay truthful, but the default roster should not hide people just because age is unavailable in the read model.
-    //todo: delete after making birthDate !optional
-    return isDefaultAgeRange(minValue, maxValue, minBound, maxBound)
+  if (age === null || Number.isNaN(age)) {
+    // What: reject rows with invalid derived age values during filtering. Why: birth date is now mandatory, so age-range filters should only operate on valid numeric ages.
+    return false
   }
 
   const range = normalizeAgeRange(minValue, maxValue)

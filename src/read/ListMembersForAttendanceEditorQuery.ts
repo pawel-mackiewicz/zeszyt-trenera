@@ -4,7 +4,7 @@ export type AttendanceEditorMemberListItem = {
   id: string
   firstName: string
   lastName: string
-  age: number | null
+  age: number
 }
 
 export class ListMembersForAttendanceEditorQuery {
@@ -27,13 +27,9 @@ export class ListMembersForAttendanceEditorQuery {
   }
 }
 
-function toAge(value: Date | undefined, now: Date): number | null {
-  if (!value) {
-    return null
-  }
-
+function toAge(value: Date, now: Date): number {
   if (Number.isNaN(value.getTime())) {
-    return null
+    return 0
   }
 
   let age = now.getFullYear() - value.getFullYear()

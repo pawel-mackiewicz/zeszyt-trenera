@@ -170,6 +170,7 @@ describe('inspectIndexedDb', () => {
       firstName: 'jan',
       lastName: 'kowalski',
       phoneNumber: '+48111222333',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       createdAt: new Date('2026-03-01T00:00:00Z')
     }
     const [membershipPayment] = MembershipPayment.record(
@@ -197,6 +198,7 @@ describe('inspectIndexedDb', () => {
       firstName: member.firstName,
       lastName: member.lastName,
       phoneNumber: member.phoneNumber,
+      dateOfBirth: member.dateOfBirth,
       createdAt: member.createdAt
     })
     await database.membershipPayments.add({

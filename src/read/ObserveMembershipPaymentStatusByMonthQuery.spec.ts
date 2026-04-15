@@ -56,6 +56,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         id: 'member-other-month-payment',
         firstName: 'Rickson',
         lastName: 'Gracie',
+        dateOfBirth: new Date('1958-11-20T00:00:00Z'),
         createdAt: new Date('2026-01-04T00:00:00Z')
       }
     ])
@@ -132,7 +133,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
           id: 'member-other-month-payment',
           firstName: 'Rickson',
           lastName: 'Gracie',
-          dateOfBirth: undefined,
+          dateOfBirth: new Date('1958-11-20T00:00:00Z'),
           hasPhoneNumber: false,
           attendanceSessionIds: ['attendance-2']
         }

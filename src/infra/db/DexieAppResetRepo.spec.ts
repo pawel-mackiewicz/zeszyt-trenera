@@ -38,6 +38,7 @@ describe('DexieAppResetRepo', () => {
       firstName: 'Jane',
       lastName: 'Doe',
       phoneNumber: '+48 222 111 333',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       createdAt: new Date('2026-01-01T00:00:00Z')
     })
     await database.membershipPayments.add({

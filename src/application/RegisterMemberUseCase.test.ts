@@ -81,7 +81,7 @@ class FakeMemberRepo implements MemberRepoPort {
         (member) =>
           member.firstName === firstName &&
           member.lastName === lastName &&
-          member.dateOfBirth?.getTime() === dateOfBirth.getTime()
+          member.dateOfBirth.getTime() === dateOfBirth.getTime()
       )
     )
   }

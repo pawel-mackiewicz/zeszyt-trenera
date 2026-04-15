@@ -199,7 +199,7 @@ describe('AttendanceListView', () => {
         id: 'member-3',
         firstName: 'Mystery',
         lastName: 'Member',
-        age: null
+        age: 18
       }
     ])
 
@@ -207,7 +207,7 @@ describe('AttendanceListView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Mystery Member')
-    expect(wrapper.text()).toContain('Wiek nieznany')
+    expect(wrapper.text()).toContain('Wiek 18')
 
     await wrapper.find('#attendance-search').setValue('Anderson')
 

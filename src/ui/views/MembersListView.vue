@@ -100,19 +100,28 @@ const filteredMembers = computed(() => {
   })
 })
 
-function formatDisplayDate(val: Date | string | undefined): string {
-  if (!val) return t('details.missing')
+function formatDisplayDate(val: Date | string): string {
   const date = val instanceof Date ? val : new Date(val)
+  if (Number.isNaN(date.getTime())) return t('details.missing')
   return date.toISOString().split('T')[0]
+}
+
+function formatOptionalDisplayDate(val: Date | string | undefined): string {
+  if (!val) return t('details.missing')
+  return formatDisplayDate(val)
 }
 
 function toggleDetails(id: string) {
   openMemberId.value = openMemberId.value === id ? null : id
 }
 
-function formatDateForInput(value: Date | undefined): string {
-  if (!value) return ''
+function formatDateForInput(value: Date): string {
   return value.toISOString().split('T')[0]
+}
+
+function formatOptionalDateForInput(value: Date | undefined): string {
+  if (!value) return ''
+  return formatDateForInput(value)
 }
 
 function toPhoneDialHref(phoneNumber: string): string {
@@ -133,7 +142,7 @@ function startEditing(member: MemberRosterListItem) {
   // What: hydrate the inline edit field with a real empty string when the stored member has no phone. Why: the mobile edit form still expects text input state even though persistence now allows the field to be missing entirely.
   editPhoneNumber.value = member.phoneNumber ?? ''
   editDateOfBirth.value = formatDateForInput(member.dateOfBirth)
-  editJoinedAt.value = formatDateForInput(member.joinedAt)
+  editJoinedAt.value = formatOptionalDateForInput(member.joinedAt)
 }
 
 function cancelEditing() {
@@ -166,14 +175,19 @@ async function saveMemberEdit(memberId: string) {
   isSavingEdit.value = true
 
   try {
+    const updatedDateOfBirth = toUtcDate(editDateOfBirth.value)
+    if (!updatedDateOfBirth) {
+      // What: block member edits that clear the birth date before crossing into the application layer. Why: date of birth is now part of mandatory member identity and must always be included in update commands.
+      editErrorKey.value = 'invalidBirthDate'
+      return
+    }
+
     await useCases.updateMember.handle({
       memberId,
       firstName: editFirstName.value.trim(),
       lastName: editLastName.value.trim(),
       phoneNumber: editPhoneNumber.value.trim(),
-      ...(editDateOfBirth.value
-        ? { dateOfBirth: toUtcDate(editDateOfBirth.value) }
-        : {}),
+      dateOfBirth: updatedDateOfBirth,
       ...(editJoinedAt.value ? { joinedAt: toUtcDate(editJoinedAt.value) } : {})
     })
 
@@ -188,7 +202,7 @@ async function saveMemberEdit(memberId: string) {
             ...(editPhoneNumber.value.trim()
               ? { phoneNumber: editPhoneNumber.value.trim() }
               : { phoneNumber: undefined }),
-            dateOfBirth: toUtcDate(editDateOfBirth.value),
+            dateOfBirth: updatedDateOfBirth,
             joinedAt: toUtcDate(editJoinedAt.value)
           }
         : member
@@ -348,7 +362,7 @@ onMounted(() => {
                 >{{ t('details.joinedAt') }}</span
               >
               <span class="font-mono text-sm">{{
-                formatDisplayDate(member.joinedAt)
+                formatOptionalDisplayDate(member.joinedAt)
               }}</span>
             </div>
             <div
@@ -417,6 +431,7 @@ onMounted(() => {
                   v-model="editDateOfBirth"
                   type="date"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
+                  required
                 />
               </div>
               <div class="flex flex-col">

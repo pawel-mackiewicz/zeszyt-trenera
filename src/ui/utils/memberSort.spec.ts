@@ -19,18 +19,21 @@ describe('memberSort', () => {
         id: 'member-1',
         firstName: 'zane',
         lastName: 'beta',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       },
       {
         id: 'member-2',
         firstName: 'adam',
         lastName: 'zulu',
+        dateOfBirth: new Date('1991-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       },
       {
         id: 'member-3',
         firstName: 'adam',
         lastName: 'alpha',
+        dateOfBirth: new Date('1992-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       }
     ]
@@ -54,7 +57,7 @@ describe('memberSort', () => {
     ).toEqual(['zane beta', 'adam alpha', 'adam zulu'])
   })
 
-  it('sorts by birth date and keeps members without date data at the end', () => {
+  it('sorts by birth date with deterministic order in both directions', () => {
     const members: PersistedMember[] = [
       {
         id: 'member-1',
@@ -81,6 +84,7 @@ describe('memberSort', () => {
         id: 'member-4',
         firstName: 'no',
         lastName: 'birthdate',
+        dateOfBirth: new Date('2000-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       }
     ]
@@ -103,10 +107,10 @@ describe('memberSort', () => {
       'member-4'
     ])
     expect(desc.map((member) => member.id)).toEqual([
+      'member-4',
       'member-1',
       'member-2',
-      'member-3',
-      'member-4'
+      'member-3'
     ])
   })
 
@@ -116,18 +120,21 @@ describe('memberSort', () => {
         id: 'member-1',
         firstName: 'zoe',
         lastName: 'zulu',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       },
       {
         id: 'member-2',
         firstName: 'adam',
         lastName: 'zulu',
+        dateOfBirth: new Date('1991-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       },
       {
         id: 'member-3',
         firstName: 'mike',
         lastName: 'alpha',
+        dateOfBirth: new Date('1992-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-01T00:00:00Z')
       }
     ]

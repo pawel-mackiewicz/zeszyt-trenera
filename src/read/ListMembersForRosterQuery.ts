@@ -1,11 +1,12 @@
 import type { TrainerNotebookDb } from '@/db'
+import { copyDate, copyOptionalDate } from '@/domain/model/DateUtils'
 
 export type MemberRosterListItem = {
   id: string
   firstName: string
   lastName: string
   phoneNumber?: string
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
@@ -22,11 +23,7 @@ export class ListMembersForRosterQuery {
       lastName: member.lastName,
       phoneNumber: member.phoneNumber,
       dateOfBirth: copyDate(member.dateOfBirth),
-      joinedAt: copyDate(member.joinedAt)
+      joinedAt: copyOptionalDate(member.joinedAt)
     }))
   }
-}
-
-function copyDate(value: Date | undefined): Date | undefined {
-  return value === undefined ? undefined : new Date(value.getTime())
 }

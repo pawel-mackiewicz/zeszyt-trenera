@@ -80,7 +80,8 @@ describe('UpdateMemberUseCase', () => {
       memberId: 'member-1',
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '+48 123 456 789'
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     }
 
     await useCase.handle(input)
@@ -103,7 +104,8 @@ describe('UpdateMemberUseCase', () => {
         memberId: 'missing',
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48 123 456 789'
+        phoneNumber: '+48 123 456 789',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       })
     ).rejects.toThrow(MemberNotFoundError)
 
@@ -119,7 +121,8 @@ describe('UpdateMemberUseCase', () => {
         memberId: 'member-1',
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '+48 111 111 111'
+        phoneNumber: '+48 111 111 111',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       })
     ).resolves.toBeUndefined()
     expect(memberRepo.updates).toHaveLength(1)
@@ -132,7 +135,8 @@ describe('UpdateMemberUseCase', () => {
       memberId: 'member-1',
       firstName: 'Jane',
       lastName: 'Doe',
-      phoneNumber: '   '
+      phoneNumber: '   ',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     })
 
     expect(memberRepo.updates).toHaveLength(1)
@@ -143,7 +147,8 @@ describe('UpdateMemberUseCase', () => {
     ).toEqual({
       memberId: 'member-1',
       firstName: 'jane',
-      lastName: 'doe'
+      lastName: 'doe',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z')
     })
   })
 
@@ -155,7 +160,8 @@ describe('UpdateMemberUseCase', () => {
         memberId: 'member-1',
         firstName: 'Jane',
         lastName: 'Doe',
-        phoneNumber: '123456789'
+        phoneNumber: '123456789',
+        dateOfBirth: new Date('2010-01-01T00:00:00Z')
       })
     ).rejects.toThrow(InvalidPhoneNumberError)
 
@@ -170,6 +176,7 @@ function memberSnapshot(): MemberSnapshot {
     firstName: 'jane',
     lastName: 'doe',
     phoneNumber: '+48111111111',
+    dateOfBirth: new Date('2010-01-01T00:00:00Z'),
     createdAt: new Date('2026-03-01T00:00:00Z')
   }
 }
