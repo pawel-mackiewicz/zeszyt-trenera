@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import { MembershipPaymentAlreadyExistsError } from '@/domain/model/MembershipPayment'
+import { MembershipPaymentAlreadyExistsError } from '@/write/domain/model/MembershipPayment'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'

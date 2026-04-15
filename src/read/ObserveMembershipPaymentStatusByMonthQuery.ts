@@ -1,7 +1,7 @@
 import { liveQuery, type Observable } from 'dexie'
 
 import type { TrainerNotebookDb } from '@/db'
-import { toMembershipPaymentCoveredMonth } from '@/domain/model/MembershipPayment'
+import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
 
 export type MembershipPaymentStatusMemberListItem = {
   id: string

@@ -12,24 +12,27 @@ import {
 import {
   AttendanceListAlreadyExistsError,
   type AttendanceListSnapshot
-} from '@/domain/model/AttendanceList'
-import { ClubAlreadyExistsError, type ClubSnapshot } from '@/domain/model/Club'
+} from '@/write/domain/model/AttendanceList'
+import {
+  ClubAlreadyExistsError,
+  type ClubSnapshot
+} from '@/write/domain/model/Club'
 import {
   MembershipPaymentAlreadyExistsError,
   type MembershipPaymentSnapshot
-} from '@/domain/model/MembershipPayment'
+} from '@/write/domain/model/MembershipPayment'
 import {
   type MemberSnapshot,
   MemberAlreadyExistsError,
   MemberNotFoundError
-} from '@/domain/model/Member'
+} from '@/write/domain/model/Member'
 import {
   TrainerAlreadyExistsError,
   type TrainerSnapshot
-} from '@/domain/model/Trainer'
+} from '@/write/domain/model/Trainer'
 import { createAppServices } from '@/appServices'
-import { createDemoSeed } from '@/infra/createDemoSeed'
-import type { PersistedDomainEvent } from '@/infra'
+import { createDemoSeed } from '@/write/infra/createDemoSeed'
+import type { PersistedDomainEvent } from '@/write/infra'
 import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {

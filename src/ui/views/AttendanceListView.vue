@@ -6,8 +6,8 @@ import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
 import {
   AttendanceListAlreadyExistsError,
   InvalidAttendanceListStartError
-} from '@/domain/model/AttendanceList'
-import { MemberNotFoundError } from '@/domain/model/Member'
+} from '@/write/domain/model/AttendanceList'
+import { MemberNotFoundError } from '@/write/domain/model/Member'
 import { useAppServices } from '@/ui/appServices'
 import AttendanceSessionEditor from '@/ui/components/AttendanceSessionEditor.vue'
 import {

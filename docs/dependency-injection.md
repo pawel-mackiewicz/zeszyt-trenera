@@ -14,8 +14,8 @@ All app workflows should be exposed through `appServices.useCases`.
 
 ## Current DI entry points
 
-- `src/application/UseCase.ts`
-- `src/infra/appServices.ts`
+- `src/write/application/UseCase.ts`
+- `src/appServices.ts`
 - `src/ui/appServices.ts`
 - `src/ui/main.ts`
 
@@ -23,7 +23,7 @@ All app workflows should be exposed through `appServices.useCases`.
 
 ### 1. Add the request DTO
 
-Create the command or request type under `src/application/requests`.
+Create the command or request type under `src/write/application/requests`.
 
 Example:
 
@@ -38,7 +38,7 @@ Why: request DTOs make the workflow contract explicit and keep the UI from passi
 
 ### 2. Add or reuse application ports
 
-If the use case needs persistence or transactional behavior, add ports under `src/application/ports`.
+If the use case needs persistence or transactional behavior, add ports under `src/write/application/ports`.
 
 Example:
 
@@ -52,13 +52,13 @@ Why: the application layer should depend on behavior, not Dexie classes.
 
 ### 3. Implement the use case
 
-Create the use case in `src/application` and implement the generic `UseCase<TRequest, TResult>` contract.
+Create the use case in `src/write/application` and implement the generic `UseCase<TRequest, TResult>` contract.
 
 Example:
 
 ```ts
-import type { UseCase } from '@/application/UseCase'
-import type { CreateTrainerCommand } from '@/application/requests/CreateTrainerCommand'
+import type { UseCase } from '@/write/application/UseCase'
+import type { CreateTrainerCommand } from '@/write/application/requests/CreateTrainerCommand'
 
 export class CreateTrainerUseCase implements UseCase<CreateTrainerCommand> {
   constructor(private readonly trainerRepo: TrainerRepoPort) {}
@@ -73,7 +73,7 @@ Why: every workflow follows the same shape, so adding more use cases does not cr
 
 ### 4. Add infra adapters if needed
 
-If the use case needs new persistence behavior, implement the matching Dexie adapters in `src/infra/db`.
+If the use case needs new persistence behavior, implement the matching Dexie adapters in `src/write/infra/db`.
 
 Examples:
 
@@ -84,7 +84,7 @@ Why: infra owns concrete storage details. The use case should still depend only 
 
 ### 5. Register the use case in `appServices`
 
-Open `src/infra/appServices.ts` and wire the new use case into the shared service bag.
+Open `src/appServices.ts` and wire the new use case into the shared service bag.
 
 Typical changes:
 
@@ -190,11 +190,11 @@ Why: UI tests should verify component behavior, not infra construction.
 
 ## Checklist for adding a new use case
 
-1. Add request DTO in `src/application/requests`.
-2. Add or reuse application ports in `src/application/ports`.
-3. Implement the use case in `src/application` with `UseCase<TRequest, TResult>`.
-4. Add infra adapters in `src/infra/db` if needed.
-5. Register the workflow in `src/infra/appServices.ts`.
+1. Add request DTO in `src/write/application/requests`.
+2. Add or reuse application ports in `src/write/application/ports`.
+3. Implement the use case in `src/write/application` with `UseCase<TRequest, TResult>`.
+4. Add infra adapters in `src/write/infra/db` if needed.
+5. Register the workflow in `src/appServices.ts`.
 6. Use `useAppServices().useCases.someWorkflow` in the view.
 7. Stub `UiAppServices` in component tests.
 
