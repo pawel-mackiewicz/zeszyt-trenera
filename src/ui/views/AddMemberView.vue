@@ -81,7 +81,16 @@ function toUtcDate(value: string) {
 }
 
 function syncSelectedAgeFromBirthDate() {
-  const resolvedAge = resolveAgeFromBirthDate(dateOfBirth.value)
+  // What: bridge the date input string into a Date object before deriving age.
+  // Why: age helpers are Date-only so parsing stays at the UI boundary where raw form values enter the flow.
+  const parsedBirthDate = toUtcDate(dateOfBirth.value)
+
+  if (!parsedBirthDate) {
+    selectedAge.value = ''
+    return
+  }
+
+  const resolvedAge = resolveAgeFromBirthDate(parsedBirthDate)
 
   selectedAge.value = resolvedAge === null ? '' : String(resolvedAge)
 }
