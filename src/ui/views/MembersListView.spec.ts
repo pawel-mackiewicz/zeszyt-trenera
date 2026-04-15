@@ -86,18 +86,21 @@ describe('MembersListView', () => {
         id: 'member-1',
         firstName: 'Zane',
         lastName: 'Beta',
+        dateOfBirth: new Date('1994-06-01T00:00:00Z'),
         createdAt: new Date('2026-03-22T10:00:00Z')
       },
       {
         id: 'member-2',
         firstName: 'Adam',
         lastName: 'Zulu',
+        dateOfBirth: new Date('1986-03-01T00:00:00Z'),
         createdAt: new Date('2026-03-23T10:00:00Z')
       },
       {
         id: 'member-3',
         firstName: 'Adam',
         lastName: 'Alpha',
+        dateOfBirth: new Date('2003-08-01T00:00:00Z'),
         createdAt: new Date('2026-03-24T10:00:00Z')
       }
     ])
@@ -211,7 +214,7 @@ describe('MembersListView', () => {
     ])
   })
 
-  it('keeps unknown ages at the default range and normalizes crossed handles', async () => {
+  it('applies normalized age-range filtering when slider handles cross', async () => {
     mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
@@ -234,6 +237,7 @@ describe('MembersListView', () => {
         firstName: 'Mystery',
         lastName: 'Member',
         phoneNumber: '+48 333 333 333',
+        dateOfBirth: new Date('2018-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-22T10:00:00Z')
       }
     ])
@@ -333,9 +337,7 @@ describe('MembersListView', () => {
     expect(textInputs[0]?.attributes('required')).toBe('')
     expect(textInputs[1]?.attributes('required')).toBe('')
     expect(form.get('input[type="tel"]').attributes('required')).toBeUndefined()
-    expect(
-      form.get('input[type="date"]').attributes('required')
-    ).toBeUndefined()
+    expect(form.get('input[type="date"]').attributes('required')).toBe('')
 
     await form.get('input[type="tel"]').setValue('')
     await form.trigger('submit.prevent')
@@ -359,6 +361,7 @@ describe('MembersListView', () => {
         firstName: 'Anderson',
         lastName: 'Silva',
         phoneNumber: '+48 111 111 111',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-20T10:00:00Z')
       }
     ])
@@ -382,6 +385,7 @@ describe('MembersListView', () => {
         firstName: 'Anderson',
         lastName: 'Silva',
         phoneNumber: '+48 111 111 111',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-20T10:00:00Z')
       }
     ])
@@ -398,12 +402,13 @@ describe('MembersListView', () => {
     expect(msgAction.text()).toBe('sms')
   })
 
-  it('renders missing phone with the same typography as missing date details', async () => {
+  it('renders missing phone with the same typography as missing joined date details', async () => {
     mockListMembersForRosterHandle.mockResolvedValue([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
+        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-20T10:00:00Z')
       }
     ])
@@ -417,7 +422,7 @@ describe('MembersListView', () => {
       .findAll('span')
       .filter((span) => span.text() === 'Missing')
 
-    expect(missingValueSpans).toHaveLength(3)
+    expect(missingValueSpans).toHaveLength(2)
     expect(wrapper.find('a[href^="tel:"]').exists()).toBe(false)
     expect(wrapper.find('a[href^="sms:"]').exists()).toBe(false)
     expect(missingValueSpans[0]?.classes().sort()).toStrictEqual(

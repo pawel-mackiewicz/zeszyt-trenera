@@ -139,9 +139,8 @@ function formatMemberName(
 }
 
 function formatAge(member: MembershipPaymentStatusMemberListItem): string {
-  const age = calculateAge(member.dateOfBirth)
-
-  return age === null ? t('table.ageUnknown') : t('table.age', { age })
+  // What: render the payment-age label from required birth-date data.
+  return t('table.age', { age: calculateRequiredAge(member.dateOfBirth) })
 }
 
 function matchesMemberFilters(
@@ -180,6 +179,16 @@ function filterAndSortUnpaidAttendedMembers(
   members: UnpaidAttendedMembershipPaymentStatusMemberListItem[]
 ) {
   return filterAndSortMembers(members)
+}
+
+function calculateRequiredAge(dateOfBirth: Date, now = new Date()): number {
+  const age = calculateAge(dateOfBirth, now)
+  if (age === null) {
+    // Why: when persisted data is malformed, falling back to zero keeps rendering stable while still making the issue obvious in the UI.
+    return 0
+  }
+
+  return age
 }
 
 function clearConfirmationDialog() {

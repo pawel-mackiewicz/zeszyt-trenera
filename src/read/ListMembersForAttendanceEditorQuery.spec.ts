@@ -39,6 +39,7 @@ describe('ListMembersForAttendanceEditorQuery', () => {
         id: 'member-2',
         firstName: 'mystery',
         lastName: 'member',
+        dateOfBirth: new Date('2000-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-21T10:00:00Z')
       }
     ])
@@ -54,7 +55,7 @@ describe('ListMembersForAttendanceEditorQuery', () => {
         id: 'member-2',
         firstName: 'mystery',
         lastName: 'member',
-        age: null
+        age: 26
       }
     ])
   })

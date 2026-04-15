@@ -16,21 +16,21 @@ type MembershipPaymentsResult = {
     id: string
     firstName: string
     lastName: string
-    dateOfBirth?: Date
+    dateOfBirth: Date
     hasPhoneNumber: boolean
   }>
   unpaidAbsentMembers: Array<{
     id: string
     firstName: string
     lastName: string
-    dateOfBirth?: Date
+    dateOfBirth: Date
     hasPhoneNumber: boolean
   }>
   unpaidAttendedMembers: Array<{
     id: string
     firstName: string
     lastName: string
-    dateOfBirth?: Date
+    dateOfBirth: Date
     hasPhoneNumber: boolean
     attendanceSessionIds: string[]
   }>
@@ -83,6 +83,7 @@ describe('MembershipPaymentsView', () => {
           id: 'unknown-age-1',
           firstName: 'Mystery',
           lastName: 'Member',
+          dateOfBirth: new Date('2018-01-01T00:00:00Z'),
           hasPhoneNumber: false
         }
       ],
@@ -226,7 +227,7 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-search').setValue('')
     const sliders = wrapper.findAll('input[type="range"]')
-    await sliders[1].setValue('20')
+    await sliders[1].setValue('7')
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('Georges St-Pierre')
@@ -234,7 +235,7 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Brak wyników dla tego filtra')
   })
 
-  it('keeps unknown ages at the default range and normalizes crossed handles', async () => {
+  it('applies normalized age-range filtering when slider handles cross', async () => {
     const wrapper = mountView()
     await flushPromises()
 

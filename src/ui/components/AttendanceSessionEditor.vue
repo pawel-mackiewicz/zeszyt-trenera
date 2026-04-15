@@ -156,9 +156,8 @@ function formatSessionTime(value: Date | null): string {
 }
 
 function formatMemberAge(member: AttendanceEditorMemberListItem) {
-  return member.age === null
-    ? t('table.ageUnknown')
-    : t('table.age', { age: member.age })
+  // What: always format attendance rows with numeric ages. Why: attendance members now derive age from required birth dates, so this list no longer needs an unknown-age branch.
+  return t('table.age', { age: member.age })
 }
 </script>
 

@@ -2,18 +2,10 @@ import { DomainEvent } from '@/domain/events/DomainEvent'
 import { PhoneNumber } from '@/domain/model/vo/PhoneNumber'
 import { copyDate, copyOptionalDate } from './DateUtils'
 
-const assertValidBirthDate = (
-  dateOfBirth: Date | undefined,
-  now: Date,
-  isRequired = false
-): void => {
-  if (!dateOfBirth) {
-    // Why: member registration now depends on a canonical birth date for identity and downstream age-based reads, so the domain must reject missing values when the workflow says they are mandatory.
-    if (isRequired) {
-      throw new InvalidMemberBirthDateError()
-    }
-
-    return
+const assertValidBirthDate = (dateOfBirth: Date, now: Date): void => {
+  if (!(dateOfBirth instanceof Date) || Number.isNaN(dateOfBirth.getTime())) {
+    // Why: domain validation still runs as a runtime boundary, so it must reject malformed birth-date payloads even when callers bypass TypeScript contracts.
+    throw new InvalidMemberBirthDateError()
   }
 
   if (dateOfBirth >= now) {
@@ -30,7 +22,7 @@ const assertValidBirthDate = (
 
 const assertValidJoinDate = (
   joinedAt: Date | undefined,
-  dateOfBirth: Date | undefined,
+  dateOfBirth: Date,
   now: Date
 ): void => {
   if (!joinedAt) return
@@ -38,7 +30,7 @@ const assertValidJoinDate = (
   if (joinedAt > now) {
     throw new InvalidMemberJoinDateError()
   }
-  if (dateOfBirth && dateOfBirth >= joinedAt) {
+  if (dateOfBirth >= joinedAt) {
     throw new InvalidMemberJoinDateError()
   }
 }
@@ -56,16 +48,13 @@ const normalizeMemberName = (name: string): string => {
 type ValidateMemberProfileInput = {
   firstName: string
   lastName: string
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
-function validateMemberProfile(
-  input: ValidateMemberProfileInput,
-  requireBirthDate = false
-): void {
+function validateMemberProfile(input: ValidateMemberProfileInput): void {
   const now = new Date()
-  assertValidBirthDate(input.dateOfBirth, now, requireBirthDate)
+  assertValidBirthDate(input.dateOfBirth, now)
   assertValidJoinDate(input.joinedAt, input.dateOfBirth, now)
   assertValidName(input.firstName)
   assertValidName(input.lastName)
@@ -84,7 +73,7 @@ export type UpdateMemberInput = {
   firstName: string
   lastName: string
   phoneNumber?: PhoneNumber
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
@@ -92,7 +81,7 @@ type MemberStateInput = {
   firstName: string
   lastName: string
   phoneNumber?: PhoneNumber
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
@@ -101,7 +90,7 @@ export type MemberSnapshot = {
   firstName: string
   lastName: string
   phoneNumber?: string
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
   createdAt: Date
 }
@@ -111,7 +100,7 @@ export type MemberUpdatedSnapshot = {
   firstName: string
   lastName: string
   phoneNumber?: string
-  dateOfBirth?: Date
+  dateOfBirth: Date
   joinedAt?: Date
 }
 
@@ -121,7 +110,7 @@ export class Member {
   private _firstName: string
   private _lastName: string
   private _phoneNumber?: PhoneNumber
-  private _dateOfBirth?: Date
+  private _dateOfBirth: Date
   private _joinedAt?: Date
   private _createdAt: Date
 
@@ -130,7 +119,7 @@ export class Member {
     this._firstName = input.firstName
     this._lastName = input.lastName
     this._phoneNumber = input.phoneNumber
-    this._dateOfBirth = copyOptionalDate(input.dateOfBirth)
+    this._dateOfBirth = copyDate(input.dateOfBirth)
     this._joinedAt = copyOptionalDate(input.joinedAt)
     this._createdAt = copyDate(createdAt ?? new Date())
   }
@@ -138,7 +127,7 @@ export class Member {
     input: RegisterMemberInput,
     id: string
   ): [Member, MemberCreatedDomainEvent] {
-    validateMemberProfile(input, true)
+    validateMemberProfile(input)
     const firstName = normalizeMemberName(input.firstName)
     const lastName = normalizeMemberName(input.lastName)
     //
@@ -198,9 +187,7 @@ export class Member {
       ...(updatedMember.phoneNumber === undefined
         ? {}
         : { phoneNumber: updatedMember.phoneNumber.value }),
-      ...(updatedMember.dateOfBirth === undefined
-        ? {}
-        : { dateOfBirth: updatedMember.dateOfBirth }),
+      dateOfBirth: updatedMember.dateOfBirth,
       ...(updatedMember.joinedAt === undefined
         ? {}
         : { joinedAt: updatedMember.joinedAt })
@@ -219,9 +206,7 @@ export class Member {
       ...(this.phoneNumber === undefined
         ? {}
         : { phoneNumber: this.phoneNumber.value }),
-      ...(this.dateOfBirth === undefined
-        ? {}
-        : { dateOfBirth: this.dateOfBirth }),
+      dateOfBirth: this.dateOfBirth,
       ...(this.joinedAt === undefined ? {} : { joinedAt: this.joinedAt }),
       createdAt: this.createdAt
     }
@@ -241,7 +226,7 @@ export class Member {
   }
 
   public get dateOfBirth() {
-    return copyOptionalDate(this._dateOfBirth)
+    return copyDate(this._dateOfBirth)
   }
 
   public get joinedAt() {

@@ -10,7 +10,7 @@ type SortableMember = {
   id: string
   firstName: string
   lastName: string
-  dateOfBirth?: Date | string
+  dateOfBirth: Date | string
   joinedAt?: Date | string
 }
 

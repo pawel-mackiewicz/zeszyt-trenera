@@ -7,7 +7,7 @@ export type MembershipPaymentStatusMemberListItem = {
   id: string
   firstName: string
   lastName: string
-  dateOfBirth?: Date
+  dateOfBirth: Date
   hasPhoneNumber: boolean
 }
 
