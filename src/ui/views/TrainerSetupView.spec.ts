@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import { TrainerAlreadyExistsError } from '@/domain/model/Trainer'
+import { TrainerAlreadyExistsError } from '@/write/domain/model/Trainer'
 import { useAppServices } from '@/ui/appServices'
 import { createAppI18n } from '@/ui/i18n'
 import TrainerSetupView from '@/ui/views/TrainerSetupView.vue'

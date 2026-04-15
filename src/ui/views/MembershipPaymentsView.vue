@@ -5,12 +5,12 @@ import { useI18n } from 'vue-i18n'
 import {
   MemberPhoneNumberMissingError,
   PaymentReminderSenderMissingError
-} from '@/application/SendMembershipPaymentReminderUseCase'
+} from '@/write/application/SendMembershipPaymentReminderUseCase'
 import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
-} from '@/domain/model/MembershipPayment'
-import { MemberNotFoundError } from '@/domain/model/Member'
+} from '@/write/domain/model/MembershipPayment'
+import { MemberNotFoundError } from '@/write/domain/model/Member'
 import type {
   MembershipPaymentStatusByMonthResult,
   MembershipPaymentStatusMemberListItem,

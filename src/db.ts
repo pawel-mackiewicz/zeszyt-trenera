@@ -7,7 +7,7 @@ import type {
   PersistedMember,
   PersistedMembershipPayment,
   PersistedTrainer
-} from '@/infra'
+} from '@/write/infra'
 
 // The root module keeps the Dexie table wiring in one place so the app gets one concrete database instance while the row contracts stay under infra.
 export class TrainerNotebookDb extends Dexie {

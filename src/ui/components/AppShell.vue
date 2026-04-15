@@ -7,7 +7,7 @@ import { useAppServices } from '@/ui/appServices'
 import {
   normalizeResetConfirmationPhrase,
   RESET_APPLICATION_CONFIRMATION_PHRASE
-} from '@/application/requests/ResetApplicationDataCommand'
+} from '@/write/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'

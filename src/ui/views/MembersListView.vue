@@ -8,8 +8,8 @@ import {
   InvalidMemberNameError,
   MemberAlreadyExistsError,
   MemberNotFoundError
-} from '@/domain/model/Member'
-import { InvalidPhoneNumberError } from '@/domain/model/vo/PhoneNumber'
+} from '@/write/domain/model/Member'
+import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
 import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'

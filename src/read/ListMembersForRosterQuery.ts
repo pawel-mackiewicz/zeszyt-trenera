@@ -1,5 +1,5 @@
 import type { TrainerNotebookDb } from '@/db'
-import { copyDate, copyOptionalDate } from '@/domain/model/DateUtils'
+import { copyDate, copyOptionalDate } from '@/write/domain/model/DateUtils'
 
 export type MemberRosterListItem = {
   id: string

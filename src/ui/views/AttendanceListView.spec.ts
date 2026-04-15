@@ -2,7 +2,7 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
-import { AttendanceListAlreadyExistsError } from '@/domain/model/AttendanceList'
+import { AttendanceListAlreadyExistsError } from '@/write/domain/model/AttendanceList'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import { useRouter } from '@/ui/router/runtime'
