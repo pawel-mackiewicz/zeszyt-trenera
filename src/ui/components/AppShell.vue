@@ -9,9 +9,14 @@ import {
   RESET_APPLICATION_CONFIRMATION_PHRASE
 } from '@/write/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
+import DemoIntroModal from '@/ui/components/DemoIntroModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/components/InstallModal.vue'
+import {
+  DemoIntroModalStatus,
+  type DemoIntroModalStatusValue
+} from '@/ui/components/DemoIntroModal.contract'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -62,6 +67,14 @@ const {
   updateError
 } = storeToRefs(appStore)
 
+// What: define shell-only demo-exit states as a const object plus inferred union type. Why: this follows the repo-wide `as const` status-contract pattern and avoids mixing enum semantics with the rest of the modal state model.
+const DemoExitStatus = {
+  Idle: 'idle',
+  Pending: 'pending',
+  Error: 'error'
+} as const
+type DemoExitStatusValue = (typeof DemoExitStatus)[keyof typeof DemoExitStatus]
+
 const appVersion = __APP_VERSION__
 const localeOptions = [
   { value: 'pl', label: 'PL' },
@@ -96,8 +109,8 @@ const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
 const resetErrorVisible = ref(false)
 const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
-const demoExitInProgress = ref(false)
-const demoExitErrorVisible = ref(false)
+// What: model demo-exit feedback as one explicit status value. Why: the modal and floating error should never drift into impossible boolean combinations while an async exit request is in flight on mobile.
+const demoExitStatus = ref<DemoExitStatusValue>(DemoExitStatus.Idle)
 let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
@@ -160,6 +173,12 @@ const installEntryLabel = computed(() =>
     ? t('install.entry.manual')
     : t('install.entry.native')
 )
+const demoExitInProgress = computed(
+  () => demoExitStatus.value === DemoExitStatus.Pending
+)
+const demoExitErrorVisible = computed(
+  () => demoExitStatus.value === DemoExitStatus.Error
+)
 const installCoachCopy = computed(() =>
   installSurface.value === 'manual'
     ? t('install.coach.manual')
@@ -215,16 +234,18 @@ const isInstallModalActive = computed(() => {
   // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
   return isShellReady.value && installModalVisible.value
 })
-const isDemoIntroModalActive = computed(
-  () => isShellReady.value && demoIntroModalVisible.value
-)
-// What: keep the demo entry and exit labels sourced from one local dictionary. Why: the shorter trial-focused wording needs to stay aligned across the header CTA and modal actions in every locale.
+// What: expose one enum-style modal status for the demo intro surface. Why: the shell should pass one mutually exclusive state contract to modal components instead of syncing multiple boolean props.
+const demoIntroModalStatus = computed<DemoIntroModalStatusValue>(() => {
+  if (!isShellReady.value || !demoIntroModalVisible.value) {
+    return DemoIntroModalStatus.Hidden
+  }
+
+  return demoExitInProgress.value
+    ? DemoIntroModalStatus.Pending
+    : DemoIntroModalStatus.Ready
+})
+// What: keep the demo entry label sourced from the shell dictionary. Why: the header CTA copy should stay aligned with the shell locale while the modal body/actions now live in a dedicated modal component dictionary.
 const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
-const demoExitActionLabel = computed(() =>
-  demoExitInProgress.value
-    ? t('demo.actions.pending')
-    : t('demo.actions.confirm')
-)
 
 function unsubscribeSetupStatus() {
   setupStatusSubscription?.unsubscribe()
@@ -488,7 +509,7 @@ function dismissResetError() {
 }
 
 function openDemoIntroModal() {
-  demoExitErrorVisible.value = false
+  demoExitStatus.value = DemoExitStatus.Idle
   appStore.showDemoIntroModal()
 }
 
@@ -497,13 +518,13 @@ function closeDemoIntroModal() {
     return
   }
 
-  demoExitErrorVisible.value = false
+  demoExitStatus.value = DemoExitStatus.Idle
   appStore.dismissDemoIntroModal()
 }
 
 function dismissDemoExitError() {
   // What: let the demo exit flow clear the shared floating error card while the modal stays open. Why: coaches may need to retry the transition into real setup without a stale warning blocking the shell.
-  demoExitErrorVisible.value = false
+  demoExitStatus.value = DemoExitStatus.Idle
 }
 
 function handleBack() {
@@ -565,23 +586,21 @@ async function confirmResetApplicationData() {
 }
 
 async function leaveDemoMode() {
-  if (demoExitInProgress.value) {
+  if (demoExitStatus.value === DemoExitStatus.Pending) {
     return
   }
 
-  demoExitInProgress.value = true
-  demoExitErrorVisible.value = false
+  demoExitStatus.value = DemoExitStatus.Pending
 
   try {
     // What: route demo exit through one dedicated application workflow. Why: leaving seeded data behind must stay inside the application boundary so Dexie never gets cleared directly from the shell.
     await useCases.leaveDemoMode.handle({})
     appStore.setDemoModeActive(false)
     appStore.dismissDemoIntroModal()
+    demoExitStatus.value = DemoExitStatus.Idle
   } catch (error) {
-    demoExitErrorVisible.value = true
+    demoExitStatus.value = DemoExitStatus.Error
     console.error('Failed to leave demo mode.', error)
-  } finally {
-    demoExitInProgress.value = false
   }
 }
 
@@ -812,43 +831,13 @@ function bottomNavForegroundClasses(isActive: boolean) {
         </div>
       </div>
 
-      <Transition name="overlay-pop">
-        <div
-          v-if="isDemoIntroModalActive"
-          class="fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4"
-        >
-          <div
-            class="absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
-            @click="closeDemoIntroModal"
-          ></div>
-          <section class="shell-modal relative w-full max-w-lg">
-            <p class="shell-modal__eyebrow">{{ t('demo.eyebrow') }}</p>
-            <h2 class="shell-modal__title">{{ t('demo.title') }}</h2>
-            <!-- What: keep the demo welcome copy to one compact paragraph. Why: the first-run mobile modal should explain the seeded notebook without forcing coaches to read through a second block before they can explore it. -->
-            <p class="shell-modal__copy">{{ t('demo.copy') }}</p>
-            <div class="shell-modal__actions">
-              <!-- What: make staying in demo the primary CTA. Why: the landing modal should default to exploration so coaches can inspect the seeded local notebook before committing to setup. -->
-              <AppButton
-                type="button"
-                data-testid="continue-demo-button"
-                :disabled="demoExitInProgress"
-                @click="closeDemoIntroModal"
-              >
-                {{ t('demo.actions.stay') }}
-              </AppButton>
-              <AppButton
-                type="button"
-                variant="secondary"
-                :disabled="demoExitInProgress"
-                data-testid="confirm-leave-demo-button"
-                @click="leaveDemoMode"
-              >
-                {{ demoExitActionLabel }}
-              </AppButton>
-            </div>
-          </section>
-        </div>
-      </Transition>
+      <!-- What: render the demo intro as a dedicated child component. Why: the shell keeps ownership of demo side effects while the modal UI stays reusable and testable in isolation. -->
+      <DemoIntroModal
+        :status="demoIntroModalStatus"
+        @stay="closeDemoIntroModal"
+        @confirm="leaveDemoMode"
+        @close="closeDemoIntroModal"
+      />
 
       <!-- What: keep demo-exit failures on the shared floating surface while the modal stays mounted. Why: the coach should understand that leaving demo mode failed without losing the current explanation or CTA context. -->
       <FloatingErrorAlert
@@ -1186,16 +1175,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
   box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
 }
 
-.shell-modal__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
-}
-
 .shell-modal__title {
   margin: 0;
   font-family: var(--font-headline);
@@ -1331,15 +1310,9 @@ function bottomNavForegroundClasses(isActive: boolean) {
       }
     },
     "demo": {
-      "eyebrow": "Tryb demo",
-      "title": "Sprawdź apkę",
-      "copy": "Sprawdź zeszyt-trenera na testowych danych :)",
       "error": "Nie udało się wyjść z trybu demo. Spróbuj ponownie.",
       "actions": {
-        "open": "Wyjdź z demo",
-        "confirm": "Już testowałem :)",
-        "pending": "Przechodzę do konfiguracji...",
-        "stay": "Sprawdzam!"
+        "open": "Wyjdź z demo"
       }
     },
     "routes": {
@@ -1438,15 +1411,9 @@ function bottomNavForegroundClasses(isActive: boolean) {
       }
     },
     "demo": {
-      "eyebrow": "Demo mode",
-      "title": "Check out the app",
-      "copy": "Check out Coach Notebook on sample data :)",
       "error": "Demo mode could not be cleared. Try again.",
       "actions": {
-        "open": "Leave demo",
-        "confirm": "I've tested it :)",
-        "pending": "Opening setup...",
-        "stay": "Checking it out!"
+        "open": "Leave demo"
       }
     },
     "routes": {

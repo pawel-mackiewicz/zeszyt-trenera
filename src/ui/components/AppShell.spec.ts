@@ -307,7 +307,7 @@ describe('AppShell', () => {
     await wrapper.get('[data-testid="open-demo-modal"]').trigger('click')
 
     // What: assert against the modal controls instead of the demo copy. Why: the CTA contract should stay covered even when product wording changes between releases.
-    expect(wrapper.find('.shell-modal__title').exists()).toBe(true)
+    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
     expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
       ''
     )
@@ -366,7 +366,7 @@ describe('AppShell', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(wrapper.find('.shell-modal__title').exists()).toBe(true)
+    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
