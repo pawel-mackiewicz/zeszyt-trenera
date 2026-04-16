@@ -355,7 +355,7 @@ describe('AppShell', () => {
   it('keeps demo-exit failures visible above the modal', async () => {
     mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
 
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, store } = mountShell((appStore) => {
       appStore.setAppReady()
       appStore.setDemoModeActive(true)
       appStore.showDemoIntroModal()
@@ -370,6 +370,8 @@ describe('AppShell', () => {
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
+    expect(store.demoModeActive).toBe(true)
+    expect(store.demoIntroModalVisible).toBe(true)
   })
 
   it('disables the menu update action while the new shell is activating', async () => {

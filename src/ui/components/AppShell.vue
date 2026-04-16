@@ -13,10 +13,7 @@ import DemoIntroModal from '@/ui/components/DemoIntroModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/components/InstallModal.vue'
-import {
-  DemoIntroModalStatus,
-  type DemoIntroModalStatusValue
-} from '@/ui/components/DemoIntroModal.contract'
+import { useDemoIntroModal } from '@/ui/composables/useDemoIntroModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -67,14 +64,6 @@ const {
   updateError
 } = storeToRefs(appStore)
 
-// What: define shell-only demo-exit states as a const object plus inferred union type. Why: this follows the repo-wide `as const` status-contract pattern and avoids mixing enum semantics with the rest of the modal state model.
-const DemoExitStatus = {
-  Idle: 'idle',
-  Pending: 'pending',
-  Error: 'error'
-} as const
-type DemoExitStatusValue = (typeof DemoExitStatus)[keyof typeof DemoExitStatus]
-
 const appVersion = __APP_VERSION__
 const localeOptions = [
   { value: 'pl', label: 'PL' },
@@ -109,8 +98,6 @@ const resetConfirmationInput = ref('')
 const resetInProgress = ref(false)
 const resetErrorVisible = ref(false)
 const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
-// What: model demo-exit feedback as one explicit status value. Why: the modal and floating error should never drift into impossible boolean combinations while an async exit request is in flight on mobile.
-const demoExitStatus = ref<DemoExitStatusValue>(DemoExitStatus.Idle)
 let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
@@ -173,12 +160,6 @@ const installEntryLabel = computed(() =>
     ? t('install.entry.manual')
     : t('install.entry.native')
 )
-const demoExitInProgress = computed(
-  () => demoExitStatus.value === DemoExitStatus.Pending
-)
-const demoExitErrorVisible = computed(
-  () => demoExitStatus.value === DemoExitStatus.Error
-)
 const installCoachCopy = computed(() =>
   installSurface.value === 'manual'
     ? t('install.coach.manual')
@@ -234,15 +215,25 @@ const isInstallModalActive = computed(() => {
   // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
   return isShellReady.value && installModalVisible.value
 })
-// What: expose one enum-style modal status for the demo intro surface. Why: the shell should pass one mutually exclusive state contract to modal components instead of syncing multiple boolean props.
-const demoIntroModalStatus = computed<DemoIntroModalStatusValue>(() => {
-  if (!isShellReady.value || !demoIntroModalVisible.value) {
-    return DemoIntroModalStatus.Hidden
+// What: delegate demo-intro modal orchestration to one dedicated composable. Why: the shell should remain focused on layout and wiring while the demo status machine stays reusable and unit-testable.
+const {
+  demoIntroModalStatus,
+  demoExitErrorVisible,
+  openDemoIntroModal,
+  closeDemoIntroModal,
+  dismissDemoExitError,
+  leaveDemoMode
+} = useDemoIntroModal({
+  isShellReady,
+  demoIntroModalVisible,
+  showDemoIntroModal: () => appStore.showDemoIntroModal(),
+  dismissDemoIntroModal: () => appStore.dismissDemoIntroModal(),
+  onLeaveDemoMode: async () => {
+    // What: run demo-exit through the application use case first, then update shell flags. Why: local-first data writes must stay behind the application layer, and store transitions should happen only after that workflow succeeds.
+    await useCases.leaveDemoMode.handle({})
+    appStore.dismissDemoIntroModal()
+    appStore.setDemoModeActive(false)
   }
-
-  return demoExitInProgress.value
-    ? DemoIntroModalStatus.Pending
-    : DemoIntroModalStatus.Ready
 })
 // What: keep the demo entry label sourced from the shell dictionary. Why: the header CTA copy should stay aligned with the shell locale while the modal body/actions now live in a dedicated modal component dictionary.
 const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
@@ -508,25 +499,6 @@ function dismissResetError() {
   resetErrorVisible.value = false
 }
 
-function openDemoIntroModal() {
-  demoExitStatus.value = DemoExitStatus.Idle
-  appStore.showDemoIntroModal()
-}
-
-function closeDemoIntroModal() {
-  if (demoExitInProgress.value) {
-    return
-  }
-
-  demoExitStatus.value = DemoExitStatus.Idle
-  appStore.dismissDemoIntroModal()
-}
-
-function dismissDemoExitError() {
-  // What: let the demo exit flow clear the shared floating error card while the modal stays open. Why: coaches may need to retry the transition into real setup without a stale warning blocking the shell.
-  demoExitStatus.value = DemoExitStatus.Idle
-}
-
 function handleBack() {
   if (route.meta.backTo) {
     router.push(route.meta.backTo as string)
@@ -582,25 +554,6 @@ async function confirmResetApplicationData() {
     console.error('Failed to reset all local application data.', error)
   } finally {
     resetInProgress.value = false
-  }
-}
-
-async function leaveDemoMode() {
-  if (demoExitStatus.value === DemoExitStatus.Pending) {
-    return
-  }
-
-  demoExitStatus.value = DemoExitStatus.Pending
-
-  try {
-    // What: route demo exit through one dedicated application workflow. Why: leaving seeded data behind must stay inside the application boundary so Dexie never gets cleared directly from the shell.
-    await useCases.leaveDemoMode.handle({})
-    appStore.setDemoModeActive(false)
-    appStore.dismissDemoIntroModal()
-    demoExitStatus.value = DemoExitStatus.Idle
-  } catch (error) {
-    demoExitStatus.value = DemoExitStatus.Error
-    console.error('Failed to leave demo mode.', error)
   }
 }
 
