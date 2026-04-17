@@ -28,6 +28,25 @@ function mountDemoIntroModal(
 }
 
 describe('DemoIntroModal', () => {
+  it('renders modal structure and action variants in the ready state', () => {
+    const wrapper = mountDemoIntroModal()
+
+    // What: keep modal markup and CTA-variant assertions in the modal component spec. Why: AppShell should only validate event wiring and application-layer side effects.
+    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
+    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
+      ''
+    )
+    expect(
+      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
+    ).not.toBe('')
+    expect(
+      wrapper.get('[data-testid="continue-demo-button"]').classes()
+    ).toContain('app-button--primary')
+    expect(
+      wrapper.get('[data-testid="confirm-leave-demo-button"]').classes()
+    ).toContain('app-button--secondary')
+  })
+
   it('emits a stay event when the primary action is clicked', async () => {
     const wrapper = mountDemoIntroModal()
 
