@@ -6,8 +6,8 @@ import AppButton from '@/ui/components/AppButton.vue'
 import {
   DemoIntroModalStatus,
   type DemoIntroModalStatusValue
-} from '@/ui/components/DemoIntroModal.contract'
-import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/components/DemoIntroModal.messages'
+} from '@/ui/components/modals/demo/DemoIntroModal.contract'
+import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/components/modals/demo/DemoIntroModal.messages'
 
 // What: keep the demo intro modal as a presentational shell surface with event outputs only. Why: demo-exit state mutations and use-case orchestration stay in AppShell so side effects remain centralized.
 const props = defineProps<{

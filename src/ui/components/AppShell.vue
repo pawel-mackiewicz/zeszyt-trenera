@@ -9,11 +9,11 @@ import {
   RESET_APPLICATION_CONFIRMATION_PHRASE
 } from '@/write/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
-import DemoIntroModal from '@/ui/components/DemoIntroModal.vue'
+import DemoIntroModal from '@/ui/components/modals/demo/DemoIntroModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/components/InstallModal.vue'
-import { useDemoIntroModal } from '@/ui/composables/useDemoIntroModal'
+import { useDemoIntroModal } from '@/ui/components/modals/demo/useDemoIntroModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'

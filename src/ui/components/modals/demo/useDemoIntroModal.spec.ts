@@ -2,8 +2,8 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, nextTick, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-import { DemoIntroModalStatus } from '@/ui/components/DemoIntroModal.contract'
-import { useDemoIntroModal } from '@/ui/composables/useDemoIntroModal'
+import { DemoIntroModalStatus } from '@/ui/components/modals/demo/DemoIntroModal.contract'
+import { useDemoIntroModal } from '@/ui/components/modals/demo/useDemoIntroModal'
 
 function createDeferredPromise() {
   let resolve!: () => void
