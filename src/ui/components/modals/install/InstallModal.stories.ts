@@ -3,23 +3,38 @@ import { computed } from 'vue'
 import { expect, fn, userEvent, within } from 'storybook/test'
 
 import InstallModal from './InstallModal.vue'
+import {
+  InstallModalStatus,
+  type InstallModalStatusValue
+} from './InstallModal.contract'
+import {
+  INSTALL_MODAL_MESSAGES,
+  type InstallModalLocale
+} from './InstallModal.messages'
 
 type InstallModalStoryArgs = {
-  active: boolean
-  surface: 'manual' | 'native'
-  pending: boolean
+  status: InstallModalStatusValue
   manualInstallVariant: 'iosSafari' | null
   onPrimary: ReturnType<typeof fn>
   onLater: ReturnType<typeof fn>
 }
 
+function resolveStoryLocale(value: unknown): InstallModalLocale {
+  // What: coerce Storybook global locale to known app locales used in this story. Why: interaction checks must remain deterministic even when toolbar globals are missing or malformed.
+  return value === 'en' ? 'en' : 'pl'
+}
+
 const meta: Meta<InstallModalStoryArgs> = {
   title: 'UI/InstallModal',
   component: InstallModal,
+  argTypes: {
+    status: {
+      control: { type: 'select' },
+      options: Object.values(InstallModalStatus)
+    }
+  },
   args: {
-    active: true,
-    surface: 'native',
-    pending: false,
+    status: InstallModalStatus.NativeReady,
     manualInstallVariant: null,
     onPrimary: fn(),
     onLater: fn()
@@ -31,9 +46,7 @@ const meta: Meta<InstallModalStoryArgs> = {
     components: { InstallModal },
     setup() {
       const componentProps = computed(() => ({
-        active: args.active,
-        surface: args.surface,
-        pending: args.pending,
+        status: args.status,
         manualInstallVariant: args.manualInstallVariant
       }))
 
@@ -48,7 +61,11 @@ const meta: Meta<InstallModalStoryArgs> = {
 export default meta
 type Story = StoryObj<typeof meta>
 
-export const NativeReady: Story = {}
+export const NativeReady: Story = {
+  args: {
+    status: InstallModalStatus.NativeReady
+  }
+}
 
 export const NativePrimaryAction: Story = {
   play: async ({ args, canvasElement }) => {
@@ -74,27 +91,30 @@ export const NativeLaterAction: Story = {
 
 export const NativePending: Story = {
   args: {
-    pending: true
+    status: InstallModalStatus.NativePending
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
     const canvas = within(canvasElement)
+    const locale = resolveStoryLocale(globals.locale)
+    const pendingLabel = INSTALL_MODAL_MESSAGES[locale].install.native.pending
 
-    await expect(canvas.getByText('Instalowanie...')).toBeInTheDocument()
+    await expect(canvas.getByText(pendingLabel)).toBeInTheDocument()
     await expect(canvas.getByTestId('install-modal-primary')).toBeDisabled()
   }
 }
 
 export const ManualIosSafari: Story = {
   args: {
-    surface: 'manual',
+    status: InstallModalStatus.ManualReady,
     manualInstallVariant: 'iosSafari'
   },
-  play: async ({ canvasElement }) => {
+  play: async ({ canvasElement, globals }) => {
     const canvas = within(canvasElement)
+    const locale = resolveStoryLocale(globals.locale)
+    const firstManualStep =
+      INSTALL_MODAL_MESSAGES[locale].install.manual.iosSafari.steps[0]
 
-    await expect(
-      canvas.getByText('Stuknij przycisk Udostępnij w Safari.')
-    ).toBeInTheDocument()
+    await expect(canvas.getByText(firstManualStep)).toBeInTheDocument()
     await expect(canvas.getAllByRole('listitem')).toHaveLength(2)
   }
 }

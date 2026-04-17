@@ -3,17 +3,19 @@ import { computed } from 'vue'
 import { useI18n, type MessageFunction, type VueMessageType } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
+import type { ManualInstallVariant } from '@/ui/composables/usePwaInstall'
+import {
+  InstallModalStatus,
+  type InstallModalStatusValue
+} from '@/ui/components/modals/install/InstallModal.contract'
+import { INSTALL_MODAL_MESSAGES } from '@/ui/components/modals/install/InstallModal.messages'
 
-type InstallSurface = 'hidden' | 'manual' | 'native'
-type ManualInstallVariant = 'iosSafari' | null
 type ManualInstallStepMessage = VueMessageType | MessageFunction<VueMessageType>
 
 // What: keep the install modal as a presentational surface with event outputs only. Why: install workflow mutations stay in AppShell so store/composable side effects remain centralized in one orchestration layer.
 const props = defineProps<{
-  active: boolean
-  surface: InstallSurface
-  pending: boolean
-  manualInstallVariant: ManualInstallVariant
+  status: InstallModalStatusValue
+  manualInstallVariant: ManualInstallVariant | null
 }>()
 
 const emit = defineEmits<{
@@ -21,34 +23,42 @@ const emit = defineEmits<{
   later: []
 }>()
 
-const { t, tm, rt } = useI18n({ useScope: 'local' })
+// What: inject install translations from a dedicated module instead of inline SFC JSON. Why: the same message source is reused by stories/specs so copy updates do not create duplicated brittle literals.
+const { t, tm, rt } = useI18n({
+  useScope: 'local',
+  messages: INSTALL_MODAL_MESSAGES
+})
 const manualInstallTranslationKey = 'install.manual.iosSafari' as const
 
+// What: derive UI behavior from one install status prop. Why: the modal should not infer visibility/manual/pending from separate booleans that can drift out of sync.
+const isVisible = computed(() => props.status !== InstallModalStatus.Hidden)
+const isManual = computed(() => props.status === InstallModalStatus.ManualReady)
+const isPending = computed(
+  () => props.status === InstallModalStatus.NativePending
+)
 const eyebrow = computed(() =>
-  props.surface === 'manual'
-    ? t('install.manual.eyebrow')
-    : t('install.native.eyebrow')
+  isManual.value ? t('install.manual.eyebrow') : t('install.native.eyebrow')
 )
 const title = computed(() =>
-  props.surface === 'manual'
+  isManual.value
     ? t(`${manualInstallTranslationKey}.title`)
     : t('install.native.title')
 )
 const body = computed(() =>
-  props.surface === 'manual'
+  isManual.value
     ? t(`${manualInstallTranslationKey}.body`)
     : t('install.native.body')
 )
 const primaryLabel = computed(() =>
-  props.surface === 'manual'
+  isManual.value
     ? t('actions.understand')
-    : props.pending
+    : isPending.value
       ? t('install.native.pending')
       : t('install.native.primary')
 )
 const laterLabel = computed(() => t('actions.later'))
 const manualInstallSteps = computed(() => {
-  if (props.surface !== 'manual' || props.manualInstallVariant === null) {
+  if (!isManual.value || props.manualInstallVariant === null) {
     return [] as ManualInstallStepMessage[]
   }
 
@@ -71,7 +81,7 @@ function emitLater() {
 <template>
   <Transition name="overlay-pop">
     <div
-      v-if="active"
+      v-if="isVisible"
       class="install-modal-layer fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4"
     >
       <div
@@ -100,7 +110,7 @@ function emitLater() {
           <AppButton
             type="button"
             data-testid="install-modal-primary"
-            :disabled="pending"
+            :disabled="isPending"
             @click="emitPrimary"
           >
             {{ primaryLabel }}
@@ -214,60 +224,3 @@ function emitLater() {
   }
 }
 </style>
-
-<i18n lang="json">
-{
-  "pl": {
-    "actions": {
-      "later": "Później",
-      "understand": "Rozumiem"
-    },
-    "install": {
-      "manual": {
-        "eyebrow": "Instalacja ręczna",
-        "iosSafari": {
-          "title": "Dodaj do ekranu głównego",
-          "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Na tej przeglądarce zrobisz to ręcznie, a poniżej masz krótkie kroki.",
-          "steps": [
-            "Stuknij przycisk Udostępnij w Safari.",
-            "Wybierz Do ekranu głównego i potwierdź dodanie aplikacji."
-          ]
-        }
-      },
-      "native": {
-        "eyebrow": "Instalacja PWA",
-        "title": "Zainstaluj Zeszyt Trenera",
-        "body": "Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Dzięki temu otworzysz go jak lokalną aplikację i wygodniej wrócisz do niego offline.",
-        "primary": "Zainstaluj Zeszyt Trenera",
-        "pending": "Instalowanie..."
-      }
-    }
-  },
-  "en": {
-    "actions": {
-      "later": "Later",
-      "understand": "Understood"
-    },
-    "install": {
-      "manual": {
-        "eyebrow": "Manual install",
-        "iosSafari": {
-          "title": "Add to Home Screen",
-          "body": "Install Coach Notebook for the best experience. This browser needs the manual flow, and the short steps are below.",
-          "steps": [
-            "Tap the Share button in Safari.",
-            "Choose Add to Home Screen and confirm the app."
-          ]
-        }
-      },
-      "native": {
-        "eyebrow": "PWA install",
-        "title": "Install Coach Notebook",
-        "body": "Install Coach Notebook for the best experience. It will open like a local app and will be easier to return to offline.",
-        "primary": "Install Coach Notebook",
-        "pending": "Installing..."
-      }
-    }
-  }
-}
-</i18n>
