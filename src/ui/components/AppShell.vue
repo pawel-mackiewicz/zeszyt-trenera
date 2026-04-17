@@ -4,17 +4,15 @@ import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
-import {
-  normalizeResetConfirmationPhrase,
-  RESET_APPLICATION_CONFIRMATION_PHRASE
-} from '@/write/application/requests/ResetApplicationDataCommand'
 import AppButton from '@/ui/components/AppButton.vue'
 import DemoIntroModal from '@/ui/components/modals/demo/DemoIntroModal.vue'
+import ResetDataModal from '@/ui/components/modals/reset/ResetDataModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/components/modals/install/InstallModal.vue'
 import { useDemoIntroModal } from '@/ui/components/modals/demo/useDemoIntroModal'
 import { useInstallModal } from '@/ui/components/modals/install/useInstallModal'
+import { useResetDataModal } from '@/ui/components/modals/reset/useResetDataModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -94,11 +92,6 @@ const backupImportErrorVisible = ref(false)
 const backupExportInProgress = ref(false)
 const backupExportErrorVisible = ref(false)
 const backupExportErrorMessage = ref<string | null>(null)
-const resetModalVisible = ref(false)
-const resetConfirmationInput = ref('')
-const resetInProgress = ref(false)
-const resetErrorVisible = ref(false)
-const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
 let setupStatusSubscription: ObservableSubscription | null = null
 
 const appName = computed(() => t('app.name'))
@@ -180,11 +173,6 @@ const updateErrorMessage = computed(() => {
 const backupExportAlertMessage = computed(
   () => backupExportErrorMessage.value ?? t('menu.exportBackup.error')
 )
-const isResetConfirmationValid = computed(
-  () =>
-    normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
-    resetConfirmationPhrase
-)
 const shellStateEyebrow = computed(() =>
   isBlockingApplication.value
     ? t('shellState.blocked.eyebrow')
@@ -246,6 +234,30 @@ const {
 })
 // What: keep the demo entry label sourced from the shell dictionary. Why: the header CTA copy should stay aligned with the shell locale while the modal body/actions now live in a dedicated modal component dictionary.
 const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
+// What: delegate reset-modal state and validation to one dedicated composable. Why: the shell should keep orchestration-only responsibility while reset UI state stays reusable and unit-testable.
+const {
+  resetModalStatus,
+  resetConfirmationPhrase,
+  resetConfirmationInput,
+  isResetConfirmationValid,
+  resetErrorVisible,
+  openResetModal,
+  closeResetModal,
+  setResetConfirmationInput,
+  confirmResetApplicationData,
+  dismissResetError
+} = useResetDataModal({
+  isShellReady,
+  onResetApplicationData: ({ confirmationPhrase }) => {
+    // What: route full-reset writes through the dedicated app workflow. Why: the shell must never mutate Dexie directly, so destructive data wipes stay behind the application boundary.
+    return useCases.resetApplicationData.handle({
+      confirmationPhrase
+    })
+  },
+  onReloadApplication: () => {
+    reloadApplication()
+  }
+})
 
 function unsubscribeSetupStatus() {
   setupStatusSubscription?.unsubscribe()
@@ -490,22 +502,9 @@ function formatErrorDetails(error: unknown): string | null {
   return null
 }
 
-function openResetModal() {
+function openResetModalFromMenu() {
   closeMenu()
-  resetErrorVisible.value = false
-  resetConfirmationInput.value = ''
-  resetModalVisible.value = true
-}
-
-function closeResetModal() {
-  resetModalVisible.value = false
-  resetErrorVisible.value = false
-  resetConfirmationInput.value = ''
-}
-
-function dismissResetError() {
-  // What: let the destructive reset flow clear the shared floating error card. Why: coaches may need to keep the modal open while removing a stale validation warning from the top of the screen.
-  resetErrorVisible.value = false
+  openResetModal()
 }
 
 function handleBack() {
@@ -523,29 +522,6 @@ function openInstallEntry() {
 
 async function handleUpdateAction() {
   await refreshApplication()
-}
-
-async function confirmResetApplicationData() {
-  if (!isResetConfirmationValid.value || resetInProgress.value) {
-    return
-  }
-
-  resetInProgress.value = true
-  resetErrorVisible.value = false
-
-  try {
-    // What: route full-reset writes through the dedicated app workflow. Why: the shell must never mutate Dexie directly, so destructive data wipes stay behind the application boundary.
-    await useCases.resetApplicationData.handle({
-      confirmationPhrase: resetConfirmationInput.value
-    })
-    closeResetModal()
-    reloadApplication()
-  } catch (error) {
-    resetErrorVisible.value = true
-    console.error('Failed to reset all local application data.', error)
-  } finally {
-    resetInProgress.value = false
-  }
 }
 
 function reloadApplication() {
@@ -767,7 +743,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
               type="button"
               variant="secondary"
               data-testid="open-reset-modal"
-              @click="openResetModal"
+              @click="openResetModalFromMenu"
             >
               {{ t('menu.resetData.action') }}
             </AppButton>
@@ -808,61 +784,16 @@ function bottomNavForegroundClasses(isActive: boolean) {
         @dismiss="dismissBackupImportError"
       />
 
-      <div
-        v-if="resetModalVisible"
-        class="fixed inset-0 z-[70] flex items-center justify-center px-6"
-      >
-        <div
-          class="absolute inset-0 bg-black/40"
-          @click="closeResetModal"
-        ></div>
-        <section class="shell-modal relative w-full max-w-xl">
-          <div class="shell-modal__content">
-            <!-- What: keep the destructive modal copy limited to the action, consequence, and phrase field. Why: mobile-first confirmation flows are easier to scan when duplicate helper lines do not push the required phrase below the fold. -->
-            <h2 class="shell-modal__title">{{ t('menu.resetData.title') }}</h2>
-            <p class="shell-modal__copy">{{ t('menu.resetData.copy') }}</p>
-            <!-- What: spell out the destructive consequence before the phrase. Why: destructive confirmations are safer when the coach reads the outcome and the required phrase in one sentence instead of seeing the token in isolation. -->
-            <p class="shell-modal__copy font-bold">
-              {{
-                t('menu.resetData.phraseLabel', {
-                  phrase: resetConfirmationPhrase
-                })
-              }}
-            </p>
-            <input
-              id="reset-confirmation"
-              v-model="resetConfirmationInput"
-              class="w-full rounded-none border border-on-surface/20 bg-surface px-3 py-3 font-mono text-xs text-on-surface"
-              type="text"
-              autocomplete="off"
-              :aria-label="t('menu.resetData.inputLabel')"
-              data-testid="reset-confirmation-input"
-            />
-          </div>
-          <div class="shell-modal__actions">
-            <AppButton
-              type="button"
-              variant="secondary"
-              :disabled="resetInProgress"
-              @click="closeResetModal"
-            >
-              {{ t('common.cancel') }}
-            </AppButton>
-            <AppButton
-              type="button"
-              :disabled="!isResetConfirmationValid || resetInProgress"
-              data-testid="confirm-reset-button"
-              @click="confirmResetApplicationData"
-            >
-              {{
-                resetInProgress
-                  ? t('menu.resetData.pending')
-                  : t('menu.resetData.confirm')
-              }}
-            </AppButton>
-          </div>
-        </section>
-      </div>
+      <!-- What: render reset confirmation in a dedicated modal component. Why: shell tests remain focused on orchestration while modal visuals and copy evolve independently with a stable contract. -->
+      <ResetDataModal
+        :status="resetModalStatus"
+        :confirmation-input="resetConfirmationInput"
+        :confirmation-phrase="resetConfirmationPhrase"
+        :can-confirm="isResetConfirmationValid"
+        @update:confirmation-input="setResetConfirmationInput"
+        @confirm="confirmResetApplicationData"
+        @close="closeResetModal"
+      />
 
       <!-- What: keep reset failures on the shared floating surface even while the confirmation dialog stays mounted. Why: destructive local-data wipes must still expose a recovery message when the application-layer reset rejects. -->
       <FloatingErrorAlert
@@ -1108,36 +1039,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
   animation: shell-loading 1.4s ease-in-out infinite;
 }
 
-.shell-modal {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 4vw, 1.75rem);
-  border: 1px solid var(--color-on-surface);
-  background: var(--color-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.shell-modal__title {
-  margin: 0;
-  font-family: var(--font-headline);
-  font-size: clamp(1.6rem, 6vw, 2.3rem);
-  line-height: 0.96;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-
-.shell-modal__copy {
-  margin: 0;
-  color: var(--color-on-surface);
-  line-height: 1.5;
-}
-
-.shell-modal__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
 .install-coach-card {
   display: grid;
   gap: 0.55rem;
@@ -1203,13 +1104,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
     transform: translateX(190%);
   }
 }
-
-@media (min-width: 640px) {
-  .shell-modal__actions {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-}
 </style>
 
 <i18n lang="json">
@@ -1242,13 +1136,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
       },
       "resetData": {
         "action": "Reset aplikacji",
-        "confirm": "Usuń wszystko",
-        "copy": "To usunie wszystkich członków, treningi, płatności, konfigurację klubu i trenera oraz lokalne ustawienia aplikacji zapisane na tym urządzeniu.",
-        "error": "Nie udało się wyczyścić danych. Spróbuj ponownie.",
-        "inputLabel": "Wpisz frazę potwierdzającą",
-        "pending": "Usuwanie...",
-        "phraseLabel": "Aby usunąć wszystkie dane, wpisz: {phrase}",
-        "title": "Usuń wszystkie dane aplikacji"
+        "error": "Nie udało się wyczyścić danych. Spróbuj ponownie."
       }
     },
     "demo": {
@@ -1343,13 +1231,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
       },
       "resetData": {
         "action": "Reset app data",
-        "confirm": "Delete everything",
-        "copy": "This removes all members, trainings, payments, club/trainer setup, and app-owned local state stored on this device.",
-        "error": "Data reset failed. Try again.",
-        "inputLabel": "Type the confirmation phrase",
-        "pending": "Deleting...",
-        "phraseLabel": "To delete all data, type: {phrase}",
-        "title": "Delete all app data"
+        "error": "Data reset failed. Try again."
       }
     },
     "demo": {

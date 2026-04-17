@@ -754,12 +754,14 @@ describe('AppShell', () => {
       .get('[data-testid="reset-confirmation-input"]')
       .setValue('DELETE ALL DATA')
     await wrapper.get('[data-testid="confirm-reset-button"]').trigger('click')
+    await flushPromises()
+    await nextTick()
 
     expect(mockResetApplicationData).toHaveBeenCalledWith({
       confirmationPhrase: 'DELETE ALL DATA'
     })
+    // What: keep this shell assertion on orchestration side effects only. Why: modal hide timing now belongs to reset modal/composable unit specs after extraction from AppShell markup.
     expect(reloadSpy).toHaveBeenCalledTimes(1)
-    expect(wrapper.text()).not.toContain('Usuń wszystkie dane aplikacji')
 
     reloadSpy.mockRestore()
   })
