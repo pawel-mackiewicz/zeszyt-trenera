@@ -1,12 +1,12 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
-import DemoIntroModal from '@/ui/components/DemoIntroModal.vue'
+import DemoIntroModal from '@/ui/components/modals/demo/DemoIntroModal.vue'
 import {
   DemoIntroModalStatus,
   type DemoIntroModalStatusValue
-} from '@/ui/components/DemoIntroModal.contract'
-import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/components/DemoIntroModal.messages'
+} from '@/ui/components/modals/demo/DemoIntroModal.contract'
+import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/components/modals/demo/DemoIntroModal.messages'
 import { createAppI18n } from '@/ui/i18n'
 
 function mountDemoIntroModal(

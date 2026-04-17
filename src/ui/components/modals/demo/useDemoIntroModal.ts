@@ -3,7 +3,7 @@ import { computed, ref, type Ref } from 'vue'
 import {
   DemoIntroModalStatus,
   type DemoIntroModalStatusValue
-} from '@/ui/components/DemoIntroModal.contract'
+} from '@/ui/components/modals/demo/DemoIntroModal.contract'
 
 type UseDemoIntroModalOptions = {
   isShellReady: Readonly<Ref<boolean>>
