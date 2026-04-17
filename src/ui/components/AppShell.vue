@@ -12,8 +12,9 @@ import AppButton from '@/ui/components/AppButton.vue'
 import DemoIntroModal from '@/ui/components/modals/demo/DemoIntroModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import InstallModal from '@/ui/components/InstallModal.vue'
+import InstallModal from '@/ui/components/modals/install/InstallModal.vue'
 import { useDemoIntroModal } from '@/ui/components/modals/demo/useDemoIntroModal'
+import { useInstallModal } from '@/ui/components/modals/install/useInstallModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
@@ -211,10 +212,18 @@ const shellStateCopy = computed(() => {
     ? t('shellState.blocked.database')
     : t('shellState.blocked.unknown')
 })
-const isInstallModalActive = computed(() => {
-  // Bootstrap and blocking screens must stay visually dominant until the local-first shell is actually usable.
-  return isShellReady.value && installModalVisible.value
-})
+// What: delegate install-modal status and CTA flow to one dedicated composable. Why: the shell should stay focused on layout orchestration while install modal state mapping stays reusable and unit-testable.
+const { installModalStatus, handleInstallPrimaryAction, handleInstallLater } =
+  useInstallModal({
+    isShellReady,
+    installModalVisible,
+    installSurface,
+    installPending,
+    showInstallEntry,
+    promptInstall,
+    dismissInstallModal: () => appStore.dismissInstallModal(),
+    hideInstallCoach: () => appStore.hideInstallCoach()
+  })
 // What: delegate demo-intro modal orchestration to one dedicated composable. Why: the shell should remain focused on layout and wiring while the demo status machine stays reusable and unit-testable.
 const {
   demoIntroModalStatus,
@@ -510,24 +519,6 @@ function handleBack() {
 function openInstallEntry() {
   closeMenu()
   appStore.openInstallModal()
-}
-
-async function handleInstallPrimaryAction() {
-  if (installSurface.value === 'manual') {
-    appStore.dismissInstallModal()
-    return
-  }
-
-  const wasAccepted = await promptInstall()
-
-  if (wasAccepted || !showInstallEntry.value) {
-    appStore.dismissInstallModal()
-    appStore.hideInstallCoach()
-  }
-}
-
-function handleInstallLater() {
-  appStore.dismissInstallModal()
 }
 
 async function handleUpdateAction() {
@@ -993,9 +984,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
 
     <!-- What: keep install actions in the shell while moving modal rendering to a dedicated component. Why: install mutations must stay in one orchestration layer that already owns store and PWA prompt side effects. -->
     <InstallModal
-      :active="isInstallModalActive"
-      :surface="installSurface"
-      :pending="installPending"
+      :status="installModalStatus"
       :manual-install-variant="manualInstallVariant"
       @primary="handleInstallPrimaryAction"
       @later="handleInstallLater"
