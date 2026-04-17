@@ -295,7 +295,7 @@ describe('AppShell', () => {
   })
 
   it('shows the demo exit CTA in the header only while demo mode is active', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, store } = mountShell((appStore) => {
       appStore.setAppReady()
       appStore.setDemoModeActive(true)
     })
@@ -303,23 +303,12 @@ describe('AppShell', () => {
     expect(wrapper.get('[data-testid="open-demo-modal"]').text()).toContain(
       'Wyjdź z demo'
     )
+    expect(store.demoIntroModalVisible).toBe(false)
 
     await wrapper.get('[data-testid="open-demo-modal"]').trigger('click')
 
-    // What: assert against the modal controls instead of the demo copy. Why: the CTA contract should stay covered even when product wording changes between releases.
-    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
-      ''
-    )
-    expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
-    ).not.toBe('')
-    expect(
-      wrapper.get('[data-testid="continue-demo-button"]').classes()
-    ).toContain('app-button--primary')
-    expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').classes()
-    ).toContain('app-button--secondary')
+    // What: assert shell-level CTA wiring to modal visibility only. Why: modal markup and button variants are covered in DemoIntroModal.spec, so shell tests stay focused on orchestration.
+    expect(store.demoIntroModalVisible).toBe(true)
   })
 
   it('keeps demo exploration as the default modal action', async () => {
@@ -366,7 +355,6 @@ describe('AppShell', () => {
       .trigger('click')
     await flushPromises()
 
-    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
