@@ -58,6 +58,29 @@ describe('AppButton', () => {
     expect(wrapper.classes()).toContain('app-button--icon-only')
   })
 
+  it('renders the compact size modifier for shell-level actions', () => {
+    const wrapper = mountButton({
+      size: 'compact'
+    })
+
+    expect(wrapper.classes()).toContain('app-button--compact')
+  })
+
+  it('keeps compact icon-only triggers on the same shared primitive', () => {
+    const wrapper = mountButton(
+      {
+        iconOnly: true,
+        size: 'compact'
+      },
+      {
+        default: '<span aria-hidden="true">+</span>'
+      }
+    )
+
+    expect(wrapper.classes()).toContain('app-button--compact')
+    expect(wrapper.classes()).toContain('app-button--icon-only')
+  })
+
   it('prevents disabled router-link clicks from emitting navigation events', async () => {
     const wrapper = mountButton({
       as: 'router-link',

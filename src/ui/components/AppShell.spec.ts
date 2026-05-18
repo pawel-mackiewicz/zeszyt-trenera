@@ -14,6 +14,8 @@ import { createAppI18n } from '@/ui/i18n'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
+import { useDemoStore } from '@/ui/features/demo/demo.store'
+import { useShellStore } from '@/ui/stores/shell.store'
 
 type SetupStatusObserver = {
   next(value: SetupStatus): void
@@ -157,14 +159,20 @@ describe('AppShell', () => {
   })
 
   function mountShell(
-    configureStore?: (store: ReturnType<typeof useAppStore>) => void
+    configureStore?: (
+      appStore: ReturnType<typeof useAppStore>,
+      demoStore: ReturnType<typeof useDemoStore>,
+      shellStore: ReturnType<typeof useShellStore>
+    ) => void
   ) {
     const pinia = createPinia()
     const i18n = createAppI18n('pl')
     setActivePinia(pinia)
-    const store = useAppStore()
+    const appStore = useAppStore()
+    const demoStore = useDemoStore()
+    const shellStore = useShellStore()
 
-    configureStore?.(store)
+    configureStore?.(appStore, demoStore, shellStore)
 
     const wrapper = mount(AppShell, {
       global: {
@@ -172,13 +180,17 @@ describe('AppShell', () => {
       }
     })
 
-    return { wrapper, store }
+    return { wrapper, store: appStore, demoStore, shellStore }
   }
 
   function findButtonByText(wrapper: VueWrapper, text: string) {
     return wrapper
       .findAll('button')
       .find((buttonWrapper) => buttonWrapper.text().includes(text))
+  }
+
+  function getShellMenuButton(wrapper: VueWrapper) {
+    return wrapper.get('[data-testid="shell-menu-button"]')
   }
 
   // What: verify each tab's surface and foreground together. Why: the active-route checks should fail if the red navbar tab ever loses its readable icon and label color again.
@@ -246,15 +258,15 @@ describe('AppShell', () => {
   })
 
   it('keeps the install modal hidden while demo mode is active', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper } = mountShell((appStore, demoStore) => {
       appStore.setInstallSurface('native')
-      appStore.setDemoModeActive(true)
+      demoStore.setDemoModeActive(true)
       appStore.setAppReady()
     })
 
     expect(wrapper.text()).not.toContain('Zainstaluj Zeszyt Trenera')
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
 
     // What: assert the menu action disappears together with the modal trigger path. Why: hiding only the modal would leave a dead-end install CTA inside the demo shell.
     expect(wrapper.text()).not.toContain('Zainstaluj aplikację')
@@ -280,7 +292,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
 
     // The shell should show the current build version without forcing this spec to change on every release bump.
     expect(wrapper.text()).toMatch(/v\d+\.\d+\.\d+/)
@@ -295,40 +307,40 @@ describe('AppShell', () => {
   })
 
   it('shows the demo exit CTA in the header only while demo mode is active', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
+    const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
-      appStore.setDemoModeActive(true)
+      nextDemoStore.setDemoModeActive(true)
     })
 
     expect(wrapper.get('[data-testid="open-demo-modal"]').text()).toContain(
       'Wyjdź z demo'
     )
-    expect(store.demoIntroModalVisible).toBe(false)
+    expect(demoStore.demoIntroModalVisible).toBe(false)
 
     await wrapper.get('[data-testid="open-demo-modal"]').trigger('click')
 
-    // What: assert shell-level CTA wiring to modal visibility only. Why: modal markup and button variants are covered in DemoIntroModal.spec, so shell tests stay focused on orchestration.
-    expect(store.demoIntroModalVisible).toBe(true)
+    // What: assert Header opens the manager-owned demo modal through shared shell state. Why: modal markup and button variants are covered elsewhere, so this integration spec stays focused on the shell-level integration boundary.
+    expect(demoStore.demoIntroModalVisible).toBe(true)
   })
 
   it('keeps demo exploration as the default modal action', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
+    const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
-      appStore.setDemoModeActive(true)
-      appStore.showDemoIntroModal()
+      nextDemoStore.setDemoModeActive(true)
+      nextDemoStore.showDemoIntroModal()
     })
 
     await wrapper.get('[data-testid="continue-demo-button"]').trigger('click')
 
     expect(mockLeaveDemoMode).not.toHaveBeenCalled()
-    expect(store.demoIntroModalVisible).toBe(false)
+    expect(demoStore.demoIntroModalVisible).toBe(false)
   })
 
   it('leaves demo mode through the application layer and closes the modal', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
+    const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
-      appStore.setDemoModeActive(true)
-      appStore.showDemoIntroModal()
+      nextDemoStore.setDemoModeActive(true)
+      nextDemoStore.showDemoIntroModal()
     })
 
     await wrapper
@@ -337,17 +349,17 @@ describe('AppShell', () => {
     await flushPromises()
 
     expect(mockLeaveDemoMode).toHaveBeenCalledWith({})
-    expect(store.demoModeActive).toBe(false)
-    expect(store.demoIntroModalVisible).toBe(false)
+    expect(demoStore.demoModeActive).toBe(false)
+    expect(demoStore.demoIntroModalVisible).toBe(false)
   })
 
   it('keeps demo-exit failures visible above the modal', async () => {
     mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
 
-    const { wrapper, store } = mountShell((appStore) => {
+    const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
-      appStore.setDemoModeActive(true)
-      appStore.showDemoIntroModal()
+      nextDemoStore.setDemoModeActive(true)
+      nextDemoStore.showDemoIntroModal()
     })
 
     await wrapper
@@ -358,8 +370,8 @@ describe('AppShell', () => {
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
-    expect(store.demoModeActive).toBe(true)
-    expect(store.demoIntroModalVisible).toBe(true)
+    expect(demoStore.demoModeActive).toBe(true)
+    expect(demoStore.demoIntroModalVisible).toBe(true)
   })
 
   it('disables the menu update action while the new shell is activating', async () => {
@@ -370,7 +382,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
 
     const updateButton = findButtonByText(wrapper, 'Odświeżanie...')
 
@@ -451,27 +463,57 @@ describe('AppShell', () => {
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
     mockNeedRefresh.value = true
 
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await findButtonByText(wrapper, 'Aktualizuj aplikację')?.trigger('click')
 
     expect(mockRefreshApplication).toHaveBeenCalledTimes(1)
+    expect(shellStore.drawerOpen).toBe(false)
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
   })
 
+  it('renders the drawer from the shared shell store state', () => {
+    const { wrapper } = mountShell((appStore, _demoStore, shellStore) => {
+      appStore.setAppReady()
+      shellStore.openDrawer()
+    })
+
+    expect(wrapper.find('[data-testid="export-backup-button"]').exists()).toBe(
+      true
+    )
+    expect(wrapper.text()).toMatch(/v\d+\.\d+\.\d+/)
+  })
+
+  it('closes the shared drawer after route changes', async () => {
+    const { shellStore } = mountShell(
+      (appStore, _demoStore, nextShellStore) => {
+        appStore.setAppReady()
+        nextShellStore.openDrawer()
+      }
+    )
+
+    expect(shellStore.drawerOpen).toBe(true)
+
+    mockRoute.fullPath = '/payments'
+    await nextTick()
+
+    expect(shellStore.drawerOpen).toBe(false)
+  })
+
   it('exports a local backup from the menu through the application layer', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
     await flushPromises()
 
     expect(mockExportDatabaseBackup).toHaveBeenCalledWith({})
+    expect(shellStore.drawerOpen).toBe(false)
   })
 
   it('shows pending backup copy while export is in progress', async () => {
@@ -490,9 +532,9 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await nextTick()
 
     expect(wrapper.text()).toContain('Eksportowanie kopii...')
@@ -511,7 +553,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
     await flushPromises()
 
@@ -529,7 +571,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="export-backup-button"]').trigger('click')
     await flushPromises()
 
@@ -539,11 +581,11 @@ describe('AppShell', () => {
   })
 
   it('opens the native file picker from the backup import menu action', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
 
     const importInput = wrapper.get('[data-testid="import-backup-input"]')
       .element as HTMLInputElement
@@ -555,6 +597,7 @@ describe('AppShell', () => {
 
     // What: verify the menu action delegates to the hidden native input click. Why: restore should rely on the browser picker instead of a custom upload surface.
     expect(inputClickSpy).toHaveBeenCalledTimes(1)
+    expect(shellStore.drawerOpen).toBe(false)
   })
 
   it('imports a selected backup file through the application layer and reloads on success', async () => {
@@ -623,7 +666,7 @@ describe('AppShell', () => {
 
     expect(document.title).toBe('Członkowie • Zeszyt Trenera')
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="locale-en"]').trigger('click')
     await nextTick()
 
@@ -710,16 +753,17 @@ describe('AppShell', () => {
   })
 
   it('enables full reset for case-insensitive confirmation phrase', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
 
     const confirmButton = wrapper.get('[data-testid="confirm-reset-button"]')
 
     expect(confirmButton.attributes('disabled')).toBeDefined()
+    expect(shellStore.drawerOpen).toBe(false)
 
     await wrapper
       .get('[data-testid="reset-confirmation-input"]')
@@ -730,12 +774,12 @@ describe('AppShell', () => {
   })
 
   it('keeps the generic reset action visible while demo mode is active', async () => {
-    const { wrapper } = mountShell((appStore) => {
+    const { wrapper } = mountShell((appStore, demoStore) => {
       appStore.setAppReady()
-      appStore.setDemoModeActive(true)
+      demoStore.setDemoModeActive(true)
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
 
     expect(wrapper.find('[data-testid="open-reset-modal"]').exists()).toBe(true)
   })
@@ -748,7 +792,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
     await wrapper
       .get('[data-testid="reset-confirmation-input"]')
@@ -776,7 +820,7 @@ describe('AppShell', () => {
       appStore.setAppReady()
     })
 
-    await wrapper.find('header button').trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
     await wrapper
       .get('[data-testid="reset-confirmation-input"]')

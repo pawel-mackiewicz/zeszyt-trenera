@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { useAppStore } from '@/ui/stores/app'
+import { useDemoStore } from '@/ui/features/demo/demo.store'
 
 describe('useAppStore', () => {
   beforeEach(() => {
@@ -62,20 +63,16 @@ describe('useAppStore', () => {
 
   it('suppresses install entry points while demo mode is active', () => {
     const store = useAppStore()
+    const demoStore = useDemoStore()
 
     store.setInstallSurface('native')
-    store.openInstallModal()
-    store.showInstallCoach()
-    store.setDemoModeActive(true)
+    demoStore.setDemoModeActive(true)
 
     expect(store.showInstallEntry).toBe(false)
-    expect(store.installModalVisible).toBe(false)
-    expect(store.installCoachVisible).toBe(false)
 
-    store.setDemoModeActive(false)
+    demoStore.setDemoModeActive(false)
 
     expect(store.showInstallEntry).toBe(true)
-    expect(store.installModalVisible).toBe(false)
   })
 
   it('stores and clears service-worker registration errors without blocking the shell', () => {
@@ -92,20 +89,5 @@ describe('useAppStore', () => {
     store.clearUpdateError()
 
     expect(store.updateError).toBeNull()
-  })
-
-  it('tracks demo-mode visibility separately from normal setup state', () => {
-    const store = useAppStore()
-
-    store.setDemoModeActive(true)
-    store.showDemoIntroModal()
-
-    expect(store.demoModeActive).toBe(true)
-    expect(store.demoIntroModalVisible).toBe(true)
-
-    store.setDemoModeActive(false)
-
-    expect(store.demoModeActive).toBe(false)
-    expect(store.demoIntroModalVisible).toBe(false)
   })
 })

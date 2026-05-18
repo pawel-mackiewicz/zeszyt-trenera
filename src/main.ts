@@ -7,6 +7,7 @@ import { provideAppServices } from './ui/appServices'
 import App from './ui/App.vue'
 import router from './ui/router'
 import { useAppStore } from './ui/stores/app'
+import { useDemoStore } from './ui/features/demo/demo.store'
 // This root entrypoint keeps the PWA bootstrap easy to find while Vite serves the shell from /src/main.ts.
 import './ui/fonts.css'
 import './ui/style.css'
@@ -28,6 +29,7 @@ function bootstrap() {
   app.mount('#app')
 
   const appStore = useAppStore(pinia)
+  const demoStore = useDemoStore(pinia)
 
   void database
     .open()
@@ -37,11 +39,11 @@ function bootstrap() {
       const demoMode = await services.useCases.bootstrapDemoMode.handle({})
 
       // What: consume the application result as a direct boolean flag. Why: the UI shell only needs to know whether demo mode is active, so bootstrap should not leak mode-string parsing into the entrypoint.
-      appStore.setDemoModeActive(demoMode.demoModeActive)
+      demoStore.setDemoModeActive(demoMode.demoModeActive)
 
       if (demoMode.introModal) {
         // What: only surface the onboarding modal when this boot actually created demo data. Why: later launches should reopen straight into the notebook instead of re-explaining the same seeded state.
-        appStore.showDemoIntroModal()
+        demoStore.showDemoIntroModal()
       }
 
       appStore.setAppReady()

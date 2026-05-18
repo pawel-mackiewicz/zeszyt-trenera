@@ -7,9 +7,11 @@ export const DEMO_INTRO_MODAL_MESSAGES = {
       copy: 'Sprawdź zeszyt-trenera na testowych danych :)',
       actions: {
         confirm: 'Już testowałem :)',
+        open: 'Wyjdź z demo',
         pending: 'Przechodzę do konfiguracji...',
         stay: 'Sprawdzam!'
-      }
+      },
+      error: 'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     }
   },
   en: {
@@ -19,9 +21,11 @@ export const DEMO_INTRO_MODAL_MESSAGES = {
       copy: 'Check out Coach Notebook on sample data :)',
       actions: {
         confirm: "I've tested it :)",
+        open: 'Leave demo',
         pending: 'Opening setup...',
         stay: 'Checking it out!'
-      }
+      },
+      error: 'Demo mode could not be cleared. Try again.'
     }
   }
 } as const

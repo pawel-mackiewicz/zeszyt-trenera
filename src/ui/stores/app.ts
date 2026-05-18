@@ -1,8 +1,9 @@
 import { computed, ref } from 'vue'
-import { defineStore } from 'pinia'
+import { defineStore, storeToRefs } from 'pinia'
 
 import { INSTALL_MODAL_SHOWN_STORAGE_KEY } from '@/appStorageKeys'
 import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
+import { useDemoStore } from '@/ui/features/demo/demo.store'
 
 export type AppReadiness = 'checking' | 'ready' | 'blocked'
 export type BlockingIssue = 'database' | 'bootstrap' | null
@@ -38,6 +39,10 @@ function writeStoredFlag(key: string, value: boolean) {
 }
 
 export const useAppStore = defineStore('app', () => {
+  //todo why is it here? demoStore inside appStore?
+  const demoStore = useDemoStore()
+  const { demoModeActive } = storeToRefs(demoStore)
+  //
   const isOnline = ref(window.navigator.onLine)
   const canInstall = ref(false)
   const installPending = ref(false)
@@ -54,11 +59,8 @@ export const useAppStore = defineStore('app', () => {
   const dbConnected = ref(false)
   // What: keep setup completeness separate from database readiness. Why: the shell must distinguish between "cannot boot" and "booted, but still missing required local identity data".
   const setupStatus = ref<SetupStatus>('checking')
-  // What: keep demo-mode bootstrap state in Pinia instead of deriving it from routes. Why: the shell has to react immediately after startup seeding and after leaving demo mode, before any navigation settles.
-  const demoModeActive = ref(false)
-  const demoIntroModalVisible = ref(false)
 
-  // What: treat demo mode as a no-install-prompt state for the shell. Why: the seeded notebook should stay focused on product exploration instead of interrupting trial sessions with install CTAs.
+  // What: keep install CTA gating in the app shell store even after demo state moved out. Why: install surfaces should stay derivable from one shell-facing source instead of forcing every consumer to merge app and demo stores manually.
   const showInstallEntry = computed(
     () =>
       !demoModeActive.value &&
@@ -169,28 +171,6 @@ export const useAppStore = defineStore('app', () => {
     setupStatus.value = value
   }
 
-  function setDemoModeActive(value: boolean) {
-    demoModeActive.value = value
-
-    if (value) {
-      // What: close install-only surfaces as soon as demo mode takes over the shell. Why: a coach browsing seeded data should not see stale install chrome that was prepared for the regular notebook flow.
-      installModalVisible.value = false
-      installCoachVisible.value = false
-    }
-
-    if (!value) {
-      demoIntroModalVisible.value = false
-    }
-  }
-
-  function showDemoIntroModal() {
-    demoIntroModalVisible.value = true
-  }
-
-  function dismissDemoIntroModal() {
-    demoIntroModalVisible.value = false
-  }
-
   return {
     isOnline,
     canInstall,
@@ -207,8 +187,6 @@ export const useAppStore = defineStore('app', () => {
     blockingIssue,
     dbConnected,
     setupStatus,
-    demoModeActive,
-    demoIntroModalVisible,
     setOnlineStatus,
     setInstallAvailability,
     setInstallSurface,
@@ -224,9 +202,6 @@ export const useAppStore = defineStore('app', () => {
     setUpdateError,
     clearUpdateError,
     setDbConnected,
-    setSetupStatus,
-    setDemoModeActive,
-    showDemoIntroModal,
-    dismissDemoIntroModal
+    setSetupStatus
   }
 })
