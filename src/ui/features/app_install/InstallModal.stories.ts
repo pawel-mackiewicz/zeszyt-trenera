@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { computed } from 'vue'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { createPinia, setActivePinia } from 'pinia'
+import { expect, userEvent, waitFor, within } from 'storybook/test'
+
+import { useAppStore } from '@/ui/stores/app'
 
 import InstallModal from './InstallModal.vue'
 import {
@@ -13,10 +15,8 @@ import {
 } from './InstallModal.messages'
 
 type InstallModalStoryArgs = {
+  shellReady: boolean
   status: InstallModalStatusValue
-  manualInstallVariant: 'iosSafari' | null
-  onPrimary: ReturnType<typeof fn>
-  onLater: ReturnType<typeof fn>
 }
 
 function resolveStoryLocale(value: unknown): InstallModalLocale {
@@ -24,20 +24,46 @@ function resolveStoryLocale(value: unknown): InstallModalLocale {
   return value === 'en' ? 'en' : 'pl'
 }
 
+function configureInstallStoryState(args: InstallModalStoryArgs) {
+  const appStore = useAppStore()
+
+  if (args.shellReady) {
+    appStore.setAppReady()
+    appStore.setSetupStatus('ready')
+  }
+
+  if (args.status === InstallModalStatus.Hidden) {
+    appStore.setInstallSurface('hidden')
+    return
+  }
+
+  appStore.setInstallSurface(
+    args.status === InstallModalStatus.ManualReady ? 'manual' : 'native'
+  )
+
+  if (args.status === InstallModalStatus.NativePending) {
+    appStore.setInstallPending(true)
+  }
+
+  appStore.openInstallModal()
+}
+
 const meta: Meta<InstallModalStoryArgs> = {
   title: 'UI/InstallModal',
   component: InstallModal,
+  // What: expose store-shaped state instead of removed props. Why: Storybook should exercise the smart install feature boundary the same way AppShell mounts it.
   argTypes: {
+    shellReady: {
+      control: 'boolean'
+    },
     status: {
       control: { type: 'select' },
       options: Object.values(InstallModalStatus)
     }
   },
   args: {
-    status: InstallModalStatus.NativeReady,
-    manualInstallVariant: null,
-    onPrimary: fn(),
-    onLater: fn()
+    shellReady: true,
+    status: InstallModalStatus.NativeReady
   },
   parameters: {
     layout: 'centered'
@@ -45,16 +71,11 @@ const meta: Meta<InstallModalStoryArgs> = {
   render: (args) => ({
     components: { InstallModal },
     setup() {
-      const componentProps = computed(() => ({
-        status: args.status,
-        manualInstallVariant: args.manualInstallVariant
-      }))
-
-      // What: split component props from test-only story handlers. Why: the real component API exposes emits, so stories need explicit event wiring to assert install CTA interactions.
-      return { args, componentProps }
+      const pinia = createPinia()
+      setActivePinia(pinia)
+      configureInstallStoryState(args)
     },
-    template:
-      '<InstallModal v-bind="componentProps" @primary="args.onPrimary" @later="args.onLater" />'
+    template: '<InstallModal />'
   })
 }
 
@@ -67,25 +88,34 @@ export const NativeReady: Story = {
   }
 }
 
-export const NativePrimaryAction: Story = {
-  play: async ({ args, canvasElement }) => {
+export const ManualPrimaryAction: Story = {
+  args: {
+    status: InstallModalStatus.ManualReady
+  },
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
-    // What: keep the primary CTA assertion isolated in its own story. Why: one interaction per story makes failures point directly to the broken button path.
+    // What: assert the smart manual CTA closes through feature state. Why: the component no longer emits events, so the visible overlay is the user-facing contract.
     await userEvent.click(canvas.getByTestId('install-modal-primary'))
-    await expect(args.onPrimary).toHaveBeenCalledTimes(1)
-    await expect(args.onLater).toHaveBeenCalledTimes(0)
+    await waitFor(() =>
+      expect(
+        canvas.queryByTestId('install-modal-primary')
+      ).not.toBeInTheDocument()
+    )
   }
 }
 
 export const NativeLaterAction: Story = {
-  play: async ({ args, canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
-    // What: keep the secondary CTA assertion isolated in its own story. Why: explicit separation prevents cross-button side effects from hiding regressions.
+    // What: keep the secondary CTA assertion isolated in its own story. Why: mobile users need a reliable defer path even after install logic moved into the feature.
     await userEvent.click(canvas.getByTestId('install-modal-later'))
-    await expect(args.onLater).toHaveBeenCalledTimes(1)
-    await expect(args.onPrimary).toHaveBeenCalledTimes(0)
+    await waitFor(() =>
+      expect(
+        canvas.queryByTestId('install-modal-later')
+      ).not.toBeInTheDocument()
+    )
   }
 }
 
@@ -105,8 +135,7 @@ export const NativePending: Story = {
 
 export const ManualIosSafari: Story = {
   args: {
-    status: InstallModalStatus.ManualReady,
-    manualInstallVariant: 'iosSafari'
+    status: InstallModalStatus.ManualReady
   },
   play: async ({ canvasElement, globals }) => {
     const canvas = within(canvasElement)

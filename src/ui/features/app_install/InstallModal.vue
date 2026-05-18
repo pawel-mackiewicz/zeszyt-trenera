@@ -3,25 +3,10 @@ import { computed } from 'vue'
 import { useI18n, type MessageFunction, type VueMessageType } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
-import type { ManualInstallVariant } from '@/ui/composables/usePwaInstall'
-import {
-  InstallModalStatus,
-  type InstallModalStatusValue
-} from '@/ui/components/modals/install/InstallModal.contract'
-import { INSTALL_MODAL_MESSAGES } from '@/ui/components/modals/install/InstallModal.messages'
+import { INSTALL_MODAL_MESSAGES } from '@/ui/features/app_install/InstallModal.messages'
+import { useInstallModal } from '@/ui/features/app_install/useInstallModal'
 
 type ManualInstallStepMessage = VueMessageType | MessageFunction<VueMessageType>
-
-// What: keep the install modal as a presentational surface with event outputs only. Why: install workflow mutations stay in AppShell so store/composable side effects remain centralized in one orchestration layer.
-const props = defineProps<{
-  status: InstallModalStatusValue
-  manualInstallVariant: ManualInstallVariant | null
-}>()
-
-const emit = defineEmits<{
-  primary: []
-  later: []
-}>()
 
 // What: inject install translations from a dedicated module instead of inline SFC JSON. Why: the same message source is reused by stories/specs so copy updates do not create duplicated brittle literals.
 const { t, tm, rt } = useI18n({
@@ -30,35 +15,41 @@ const { t, tm, rt } = useI18n({
 })
 const manualInstallTranslationKey = 'install.manual.iosSafari' as const
 
-// What: derive UI behavior from one install status prop. Why: the modal should not infer visibility/manual/pending from separate booleans that can drift out of sync.
-const isVisible = computed(() => props.status !== InstallModalStatus.Hidden)
-const isManual = computed(() => props.status === InstallModalStatus.ManualReady)
-const isPending = computed(
-  () => props.status === InstallModalStatus.NativePending
-)
+const {
+  isInstallModalManual,
+  isInstallModalPending,
+  isInstallModalVisible,
+  manualInstallVariant,
+  handleInstallPrimaryAction,
+  handleInstallLater
+} = useInstallModal()
+
+// What: derive copy from composable-level modal flags. Why: InstallModal should stay aligned with DemoIntroModal and keep state interpretation inside the feature controller.
 const eyebrow = computed(() =>
-  isManual.value ? t('install.manual.eyebrow') : t('install.native.eyebrow')
+  isInstallModalManual.value
+    ? t('install.manual.eyebrow')
+    : t('install.native.eyebrow')
 )
 const title = computed(() =>
-  isManual.value
+  isInstallModalManual.value
     ? t(`${manualInstallTranslationKey}.title`)
     : t('install.native.title')
 )
 const body = computed(() =>
-  isManual.value
+  isInstallModalManual.value
     ? t(`${manualInstallTranslationKey}.body`)
     : t('install.native.body')
 )
 const primaryLabel = computed(() =>
-  isManual.value
+  isInstallModalManual.value
     ? t('actions.understand')
-    : isPending.value
+    : isInstallModalPending.value
       ? t('install.native.pending')
       : t('install.native.primary')
 )
 const laterLabel = computed(() => t('actions.later'))
 const manualInstallSteps = computed(() => {
-  if (!isManual.value || props.manualInstallVariant === null) {
+  if (!isInstallModalManual.value || manualInstallVariant.value === null) {
     return [] as ManualInstallStepMessage[]
   }
 
@@ -68,26 +59,18 @@ const manualInstallSteps = computed(() => {
     `${manualInstallTranslationKey}.steps`
   ) as ManualInstallStepMessage[]
 })
-
-function emitPrimary() {
-  emit('primary')
-}
-
-function emitLater() {
-  emit('later')
-}
 </script>
 
 <template>
   <Transition name="overlay-pop">
     <div
-      v-if="isVisible"
+      v-if="isInstallModalVisible"
       class="install-modal-layer fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4"
     >
       <div
         class="install-modal-layer__backdrop absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
         data-testid="install-modal-backdrop"
-        @click="emitLater"
+        @click="handleInstallLater"
       ></div>
       <section class="install-modal-card relative w-full max-w-lg">
         <p class="install-modal-card__eyebrow">{{ eyebrow }}</p>
@@ -110,8 +93,8 @@ function emitLater() {
           <AppButton
             type="button"
             data-testid="install-modal-primary"
-            :disabled="isPending"
-            @click="emitPrimary"
+            :disabled="isInstallModalPending"
+            @click="handleInstallPrimaryAction"
           >
             {{ primaryLabel }}
           </AppButton>
@@ -119,7 +102,7 @@ function emitLater() {
             variant="secondary"
             type="button"
             data-testid="install-modal-later"
-            @click="emitLater"
+            @click="handleInstallLater"
           >
             {{ laterLabel }}
           </AppButton>

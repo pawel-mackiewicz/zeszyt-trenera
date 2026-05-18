@@ -16,12 +16,10 @@ import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
 import ResetDataModal from '@/ui/components/modals/reset/ResetDataModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import InstallModal from '@/ui/components/modals/install/InstallModal.vue'
-import { useInstallModal } from '@/ui/components/modals/install/useInstallModal'
+import InstallModal from '@/ui/features/app_install/InstallModal.vue'
 import { useResetDataModal } from '@/ui/components/modals/reset/useResetDataModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
-import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { persistLocale, type AppLocale } from '@/ui/i18n'
 import {
   createNavigationItems,
@@ -35,7 +33,6 @@ import {
   useRouter
 } from '@/ui/router/runtime'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
-import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
 import { useShellStore } from '@/ui/stores/shell.store'
 
@@ -46,7 +43,6 @@ type ObservableSubscription = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
-const demoStore = useDemoStore()
 const shellStore = useShellStore()
 const { queries, useCases } = useAppServices()
 const { t } = useI18n({
@@ -56,7 +52,6 @@ const { t } = useI18n({
 const { locale } = useI18n({ useScope: 'global' })
 
 useNetworkStatus()
-const { promptInstall, manualInstallVariant } = usePwaInstall()
 // Registering the worker here keeps background update checks tied to the shell lifecycle while leaving the actual activation behind an explicit menu action.
 const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
 
@@ -65,15 +60,11 @@ const {
   blockingIssue,
   installCoachVisible,
   installed,
-  installModalVisible,
-  installPending,
   installSurface,
   setupStatus,
   showInstallEntry,
-  shouldAutoOpenInstallModal,
   updateError
 } = storeToRefs(appStore)
-const { demoIntroModalVisible, demoModeActive } = storeToRefs(demoStore)
 const { drawerOpen } = storeToRefs(shellStore)
 
 const appVersion = __APP_VERSION__
@@ -197,18 +188,6 @@ const shellStateCopy = computed(() => {
     ? t('shellState.blocked.database')
     : t('shellState.blocked.unknown')
 })
-// What: delegate install-modal status and CTA flow to one dedicated composable. Why: the shell should stay focused on layout orchestration while install modal state mapping stays reusable and unit-testable.
-const { installModalStatus, handleInstallPrimaryAction, handleInstallLater } =
-  useInstallModal({
-    isShellReady,
-    installModalVisible,
-    installSurface,
-    installPending,
-    showInstallEntry,
-    promptInstall,
-    dismissInstallModal: () => appStore.dismissInstallModal(),
-    hideInstallCoach: () => appStore.hideInstallCoach()
-  })
 // What: delegate reset-modal state and validation to one dedicated composable. Why: the shell should keep orchestration-only responsibility while reset UI state stays reusable and unit-testable.
 const {
   resetModalStatus,
@@ -248,10 +227,6 @@ function subscribeToSetupStatus() {
   setupStatusSubscription = queries.observeSetupStatus.handle().subscribe({
     next(nextStatus) {
       appStore.setSetupStatus(nextStatus)
-
-      if (nextStatus === 'ready' && shouldAutoOpenInstallModal.value) {
-        appStore.openInstallModal('automatic')
-      }
     },
     error(error) {
       appStore.blockApplication('bootstrap')
@@ -259,18 +234,6 @@ function subscribeToSetupStatus() {
     }
   })
 }
-
-// The auto-open install modal is intentionally one-time so the shell nudges once without becoming repetitive on every launch.
-// todo these watchers have to go xD
-watch(
-  [shouldAutoOpenInstallModal, isShellReady, demoIntroModalVisible],
-  ([value, shellReady, demoModalVisible]) => {
-    if (value && shellReady && !demoModalVisible) {
-      appStore.openInstallModal('automatic')
-    }
-  },
-  { immediate: true }
-)
 
 watch(installed, (value) => {
   if (value) {
@@ -281,26 +244,6 @@ watch(installed, (value) => {
 watch(drawerOpen, (value) => {
   if (!value) {
     // What: collapse drawer-only helper copy whenever the shared drawer store closes. Why: Header can now close the drawer through its composable, so AppShell still owns cleaning up install-coach UI that lives inside the drawer.
-    appStore.hideInstallCoach()
-  }
-})
-
-watch(
-  demoModeActive,
-  (value) => {
-    if (!value) {
-      return
-    }
-
-    // What: collapse install-only surfaces from the shell when demo mode is active. Why: after splitting demo state into its own store, this cross-store cleanup belongs in shell orchestration instead of either store owning the other's UI state.
-    appStore.dismissInstallModal()
-    appStore.hideInstallCoach()
-  },
-  { immediate: true }
-)
-
-watch(showInstallEntry, (value) => {
-  if (!value) {
     appStore.hideInstallCoach()
   }
 })
@@ -840,13 +783,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
       </div>
     </section>
 
-    <!-- What: keep install actions in the shell while moving modal rendering to a dedicated component. Why: install mutations must stay in one orchestration layer that already owns store and PWA prompt side effects. -->
-    <InstallModal
-      :status="installModalStatus"
-      :manual-install-variant="manualInstallVariant"
-      @primary="handleInstallPrimaryAction"
-      @later="handleInstallLater"
-    />
+    <!-- What: mount the smart install overlay from the feature folder. Why: PWA prompt state, demo-mode suppression, and one-time install nudging now belong to the app-install feature boundary. -->
+    <InstallModal />
   </div>
 </template>
 
