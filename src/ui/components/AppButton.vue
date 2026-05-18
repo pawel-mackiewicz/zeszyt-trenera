@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+type AppButtonSize = 'default' | 'compact'
 type AppButtonVariant = 'primary' | 'secondary'
 type AppButtonTag = 'button' | 'router-link'
 
@@ -9,6 +10,7 @@ const props = withDefaults(
     as?: AppButtonTag
     disabled?: boolean
     iconOnly?: boolean
+    size?: AppButtonSize
     to?: string
     type?: 'button' | 'submit' | 'reset'
     variant?: AppButtonVariant
@@ -17,6 +19,7 @@ const props = withDefaults(
     as: 'button',
     disabled: false,
     iconOnly: false,
+    size: 'default',
     to: '',
     type: 'button',
     variant: 'primary'
@@ -62,6 +65,7 @@ function handleClick(event: MouseEvent) {
     :is="componentTag"
     class="app-button"
     :class="[
+      `app-button--${size}`,
       `app-button--${variant}`,
       {
         'app-button--icon-only': iconOnly
@@ -106,9 +110,22 @@ function handleClick(event: MouseEvent) {
   color: var(--color-on-surface);
 }
 
-/* What: let icon-triggered CTAs reuse the same shared primitive without inheriting text-button padding. Why: the roster add action should stay visually aligned with other CTA states instead of shipping its own square-button clone. */
-.app-button--icon-only {
+/* What: offer a smaller shell-ready button footprint on the shared primitive. Why: header-level actions should inherit the same tactile recipe as full CTAs instead of carrying a second bespoke button implementation. */
+.app-button--compact {
+  min-height: 2.25rem;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+}
+
+/* What: let icon-triggered CTAs reuse the same shared primitive without inheriting text-button padding. Why: the roster add action and shell icon triggers should stay visually aligned with other CTA states instead of shipping their own square-button clones. */
+.app-button--default.app-button--icon-only {
   width: 3rem;
+  padding-inline: 0;
+}
+
+.app-button--compact.app-button--icon-only {
+  width: 2.25rem;
   padding-inline: 0;
 }
 

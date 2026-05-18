@@ -34,6 +34,10 @@ export default defineConfig({
       )
     }
   },
+  // What: pre-bundle the Pinia dependency used by smart Storybook stories. Why: browser story tests can reload when Vite discovers it mid-run, which breaks dynamic imports in the local test server.
+  optimizeDeps: {
+    include: ['pinia']
+  },
   test: {
     coverage: {
       provider: 'v8'

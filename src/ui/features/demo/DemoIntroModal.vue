@@ -3,60 +3,42 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
-import {
-  DemoIntroModalStatus,
-  type DemoIntroModalStatusValue
-} from '@/ui/components/modals/demo/DemoIntroModal.contract'
-import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/components/modals/demo/DemoIntroModal.messages'
+import DemoFloatingErrorAlert from '@/ui/features/demo/DemoFloatingErrorAlert.vue'
+import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/features/demo/DemoIntroModal.messages'
+import { useDemoIntroModal } from '@/ui/features/demo/useDemoIntroModal'
 
-// What: keep the demo intro modal as a presentational shell surface with event outputs only. Why: demo-exit state mutations and use-case orchestration stay in AppShell so side effects remain centralized.
-const props = defineProps<{
-  status: DemoIntroModalStatusValue
-}>()
-
-const emit = defineEmits<{
-  stay: []
-  confirm: []
-  close: []
-}>()
-
-// What: inject modal translations from a dedicated module instead of inline SFC JSON. Why: the same message source is reused by stories/specs so copy changes do not create duplicated brittle literals.
+// What: inject feature translations from a dedicated module instead of inline SFC JSON. Why: modal, alert, header CTA, stories, and specs need one demo copy source as the feature moves together.
 const { t } = useI18n({
   useScope: 'local',
   messages: DEMO_INTRO_MODAL_MESSAGES
 })
 
-// What: derive UI flags from one modal status prop. Why: one explicit state value avoids invalid active/pending combinations while keeping modal rendering logic declarative.
-const isVisible = computed(() => props.status !== DemoIntroModalStatus.Hidden)
-const isPending = computed(() => props.status === DemoIntroModalStatus.Pending)
+const {
+  demoExitErrorVisible,
+  isDemoIntroModalPending,
+  isDemoIntroModalVisible,
+  closeDemoIntroModal,
+  dismissDemoExitError,
+  leaveDemoMode
+} = useDemoIntroModal()
 
 const confirmLabel = computed(() =>
-  isPending.value ? t('demo.actions.pending') : t('demo.actions.confirm')
+  isDemoIntroModalPending.value
+    ? t('demo.actions.pending')
+    : t('demo.actions.confirm')
 )
-
-function emitStay() {
-  emit('stay')
-}
-
-function emitConfirm() {
-  emit('confirm')
-}
-
-function emitClose() {
-  emit('close')
-}
 </script>
 
 <template>
   <Transition name="overlay-pop">
     <div
-      v-if="isVisible"
+      v-if="isDemoIntroModalVisible"
       class="demo-intro-modal-layer fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4"
     >
       <div
         class="demo-intro-modal-layer__backdrop absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
         data-testid="demo-intro-modal-backdrop"
-        @click="emitClose"
+        @click="closeDemoIntroModal"
       ></div>
       <section class="demo-intro-modal-card relative w-full max-w-lg">
         <p class="demo-intro-modal-card__eyebrow">{{ t('demo.eyebrow') }}</p>
@@ -68,17 +50,17 @@ function emitClose() {
           <AppButton
             type="button"
             data-testid="continue-demo-button"
-            :disabled="isPending"
-            @click="emitStay"
+            :disabled="isDemoIntroModalPending"
+            @click="closeDemoIntroModal"
           >
             {{ t('demo.actions.stay') }}
           </AppButton>
           <AppButton
             type="button"
             variant="secondary"
-            :disabled="isPending"
+            :disabled="isDemoIntroModalPending"
             data-testid="confirm-leave-demo-button"
-            @click="emitConfirm"
+            @click="leaveDemoMode"
           >
             {{ confirmLabel }}
           </AppButton>
@@ -86,6 +68,13 @@ function emitClose() {
       </section>
     </div>
   </Transition>
+
+  <!-- What: render demo-exit failures from the feature modal itself. Why: retry feedback has to stay colocated with the smart overlay that owns the application workflow. -->
+  <DemoFloatingErrorAlert
+    v-if="demoExitErrorVisible"
+    :message="t('demo.error')"
+    @dismiss="dismissDemoExitError"
+  />
 </template>
 
 <style scoped>

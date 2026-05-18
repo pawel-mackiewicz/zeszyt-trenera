@@ -5,12 +5,18 @@ import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
-import DemoIntroModal from '@/ui/components/modals/demo/DemoIntroModal.vue'
+import {
+  resolveShellRouteTitle,
+  SHELL_LOCALE_OPTIONS,
+  SHELL_NAVIGATION_LABEL_KEYS,
+  SHELL_ROUTE_TITLE_KEYS
+} from '@/ui/components/app-shell/AppShell.config'
+import Header from '@/ui/components/app-shell/Header.vue'
+import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
 import ResetDataModal from '@/ui/components/modals/reset/ResetDataModal.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/components/modals/install/InstallModal.vue'
-import { useDemoIntroModal } from '@/ui/components/modals/demo/useDemoIntroModal'
 import { useInstallModal } from '@/ui/components/modals/install/useInstallModal'
 import { useResetDataModal } from '@/ui/components/modals/reset/useResetDataModal'
 import { useAppUpdate } from '@/ui/composables/useAppUpdate'
@@ -28,7 +34,10 @@ import {
   useRoute,
   useRouter
 } from '@/ui/router/runtime'
+import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
+import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
+import { useShellStore } from '@/ui/stores/shell.store'
 
 type ObservableSubscription = {
   unsubscribe(): void
@@ -37,8 +46,13 @@ type ObservableSubscription = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const demoStore = useDemoStore()
+const shellStore = useShellStore()
 const { queries, useCases } = useAppServices()
-const { t } = useI18n({ useScope: 'local' })
+const { t } = useI18n({
+  useScope: 'local',
+  messages: APP_SHELL_MESSAGES
+})
 const { locale } = useI18n({ useScope: 'global' })
 
 useNetworkStatus()
@@ -49,43 +63,23 @@ const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
 const {
   appReadiness,
   blockingIssue,
-  demoIntroModalVisible,
-  demoModeActive,
   installCoachVisible,
   installed,
   installModalVisible,
   installPending,
   installSurface,
-  isOnline,
   setupStatus,
   showInstallEntry,
   shouldAutoOpenInstallModal,
   updateError
 } = storeToRefs(appStore)
+const { demoIntroModalVisible, demoModeActive } = storeToRefs(demoStore)
+const { drawerOpen } = storeToRefs(shellStore)
 
 const appVersion = __APP_VERSION__
-const localeOptions = [
-  { value: 'pl', label: 'PL' },
-  { value: 'en', label: 'EN' }
-] as const satisfies ReadonlyArray<{ value: AppLocale; label: string }>
-// The shell owns route chrome labels so document titles can react to locale changes without leaking translated strings into router metadata.
-const routeTitleKeys = {
-  'members-list': 'routes.membersList',
-  'membership-payments': 'routes.membershipPayments',
-  'add-member': 'routes.addMember',
-  'attendance-history': 'routes.attendanceHistory',
-  'attendance-record': 'routes.attendanceRecord',
-  'attendance-edit': 'routes.attendanceEdit',
-  'setup-club': 'routes.setupClub',
-  'setup-trainer': 'routes.setupTrainer',
-  'debug-indexeddb': 'routes.debugIndexedDb'
-} as const satisfies Record<AppRouteName, string>
-const navigationLabelKeys: Partial<Record<AppRouteName, string>> = {
-  'debug-indexeddb': 'menu.debugIndexedDb'
-}
+const localeOptions = SHELL_LOCALE_OPTIONS
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
-const isMenuOpen = ref(false)
 const backupImportInput = ref<HTMLInputElement | null>(null)
 const backupImportInProgress = ref(false)
 const backupImportErrorVisible = ref(false)
@@ -131,11 +125,14 @@ const activeBottomNavStateClasses = 'bg-primary text-white'
 const inactiveBottomNavStateClasses =
   'text-on-surface hover:bg-surface-container-low'
 const activeBottomNavForegroundClasses = 'text-white'
-const title = computed(() => {
-  const routeName = currentRouteName.value
-
-  return routeName ? t(routeTitleKeys[routeName]) : appName.value
-})
+// What: resolve the browser title with the shared shell title helper. Why: AppShell owns document metadata, while the header composable should stay scoped to visible chrome only.
+const title = computed(() =>
+  resolveShellRouteTitle({
+    routeName: currentRouteName.value,
+    fallbackTitle: appName.value,
+    translate: t
+  })
+)
 const isSetupChecking = computed(
   () => appReadiness.value === 'ready' && setupStatus.value === 'checking'
 )
@@ -212,28 +209,6 @@ const { installModalStatus, handleInstallPrimaryAction, handleInstallLater } =
     dismissInstallModal: () => appStore.dismissInstallModal(),
     hideInstallCoach: () => appStore.hideInstallCoach()
   })
-// What: delegate demo-intro modal orchestration to one dedicated composable. Why: the shell should remain focused on layout and wiring while the demo status machine stays reusable and unit-testable.
-const {
-  demoIntroModalStatus,
-  demoExitErrorVisible,
-  openDemoIntroModal,
-  closeDemoIntroModal,
-  dismissDemoExitError,
-  leaveDemoMode
-} = useDemoIntroModal({
-  isShellReady,
-  demoIntroModalVisible,
-  showDemoIntroModal: () => appStore.showDemoIntroModal(),
-  dismissDemoIntroModal: () => appStore.dismissDemoIntroModal(),
-  onLeaveDemoMode: async () => {
-    // What: run demo-exit through the application use case first, then update shell flags. Why: local-first data writes must stay behind the application layer, and store transitions should happen only after that workflow succeeds.
-    await useCases.leaveDemoMode.handle({})
-    appStore.dismissDemoIntroModal()
-    appStore.setDemoModeActive(false)
-  }
-})
-// What: keep the demo entry label sourced from the shell dictionary. Why: the header CTA copy should stay aligned with the shell locale while the modal body/actions now live in a dedicated modal component dictionary.
-const demoHeaderActionLabel = computed(() => t('demo.actions.open'))
 // What: delegate reset-modal state and validation to one dedicated composable. Why: the shell should keep orchestration-only responsibility while reset UI state stays reusable and unit-testable.
 const {
   resetModalStatus,
@@ -286,6 +261,7 @@ function subscribeToSetupStatus() {
 }
 
 // The auto-open install modal is intentionally one-time so the shell nudges once without becoming repetitive on every launch.
+// todo these watchers have to go xD
 watch(
   [shouldAutoOpenInstallModal, isShellReady, demoIntroModalVisible],
   ([value, shellReady, demoModalVisible]) => {
@@ -298,10 +274,30 @@ watch(
 
 watch(installed, (value) => {
   if (value) {
-    isMenuOpen.value = false
+    closeDrawer()
+  }
+})
+
+watch(drawerOpen, (value) => {
+  if (!value) {
+    // What: collapse drawer-only helper copy whenever the shared drawer store closes. Why: Header can now close the drawer through its composable, so AppShell still owns cleaning up install-coach UI that lives inside the drawer.
     appStore.hideInstallCoach()
   }
 })
+
+watch(
+  demoModeActive,
+  (value) => {
+    if (!value) {
+      return
+    }
+
+    // What: collapse install-only surfaces from the shell when demo mode is active. Why: after splitting demo state into its own store, this cross-store cleanup belongs in shell orchestration instead of either store owning the other's UI state.
+    appStore.dismissInstallModal()
+    appStore.hideInstallCoach()
+  },
+  { immediate: true }
+)
 
 watch(showInstallEntry, (value) => {
   if (!value) {
@@ -355,8 +351,7 @@ watch(
   () => route.fullPath,
   () => {
     // What: collapse transient navigation overlays after every route change. Why: the hamburger menu and install coach should never linger over the next screen after navigation completes.
-    isMenuOpen.value = false
-    appStore.hideInstallCoach()
+    closeDrawer()
   }
 )
 
@@ -374,16 +369,9 @@ onBeforeUnmount(() => {
   unsubscribeSetupStatus()
 })
 
-function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value
-
-  if (!isMenuOpen.value) {
-    appStore.hideInstallCoach()
-  }
-}
-
-function closeMenu() {
-  isMenuOpen.value = false
+function closeDrawer() {
+  // What: route every drawer dismissal through one shell helper. Why: Header now toggles Pinia state directly, so the shell needs one place to pair drawer closing with its related coach cleanup.
+  shellStore.closeDrawer()
   appStore.hideInstallCoach()
 }
 
@@ -403,7 +391,7 @@ function openBackupImportPicker() {
     return
   }
 
-  closeMenu()
+  closeDrawer()
   backupImportErrorVisible.value = false
   // What: trigger restore through a hidden native file input. Why: OS pickers keep JSON selection consistent across mobile and desktop without custom upload UI.
   backupImportInput.value?.click()
@@ -447,7 +435,7 @@ async function exportDatabaseBackup() {
     return
   }
 
-  closeMenu()
+  closeDrawer()
   backupExportErrorVisible.value = false
   backupExportErrorMessage.value = null
   backupExportInProgress.value = true
@@ -503,24 +491,17 @@ function formatErrorDetails(error: unknown): string | null {
 }
 
 function openResetModalFromMenu() {
-  closeMenu()
+  closeDrawer()
   openResetModal()
 }
 
-function handleBack() {
-  if (route.meta.backTo) {
-    router.push(route.meta.backTo as string)
-  } else {
-    router.back()
-  }
-}
-
 function openInstallEntry() {
-  closeMenu()
+  closeDrawer()
   appStore.openInstallModal()
 }
 
 async function handleUpdateAction() {
+  closeDrawer()
   await refreshApplication()
 }
 
@@ -540,7 +521,7 @@ function changeLocale(nextLocale: AppLocale) {
 
 function navigationLabel(item: NavigationItem) {
   const translationKey =
-    navigationLabelKeys[item.name] ?? routeTitleKeys[item.name]
+    SHELL_NAVIGATION_LABEL_KEYS[item.name] ?? SHELL_ROUTE_TITLE_KEYS[item.name]
 
   return t(translationKey)
 }
@@ -569,53 +550,13 @@ function bottomNavForegroundClasses(isActive: boolean) {
         @change="handleBackupImportSelection"
       />
 
-      <header
-        class="fixed top-0 w-full z-40 flex justify-between items-center px-6 h-16 bg-surface/90 backdrop-blur-md border-b border-on-surface/10 transition-colors"
-      >
-        <div class="flex items-center gap-4">
-          <button
-            v-if="route.meta.showBack"
-            class="active:scale-95 transition-transform duration-75 text-on-surface hover:bg-surface-container-low p-2 rounded-full flex items-center justify-center"
-            @click="handleBack"
-          >
-            <AppIcon name="arrow_back" />
-          </button>
-          <button
-            v-else
-            class="active:scale-95 transition-transform duration-75 text-on-surface relative"
-            @click="toggleMenu"
-          >
-            <AppIcon name="menu" />
-          </button>
-          <h1
-            class="font-headline uppercase tracking-tight font-bold text-primary"
-          >
-            {{ title }}
-          </h1>
-        </div>
-        <div class="relative flex items-center gap-2">
-          <!-- What: keep the demo exit CTA inside the shell header. Why: demo mode should remain escapable from anywhere in the notebook without introducing a second navigation pattern. -->
-          <button
-            v-if="demoModeActive"
-            class="demo-header-action"
-            data-testid="open-demo-modal"
-            type="button"
-            @click="openDemoIntroModal"
-          >
-            {{ demoHeaderActionLabel }}
-          </button>
-          <span
-            v-if="!isOnline"
-            class="inline-flex items-center rounded-full border border-danger/25 bg-danger/10 px-2.5 py-1 font-mono text-[10px] text-danger font-bold uppercase"
-            >{{ t('network.offline') }}</span
-          >
-        </div>
-      </header>
+      <!-- What: mount the merged shell header above the drawer. Why: the shell keeps layout ownership while Header owns the visible route chrome and its composable-owned controls. -->
+      <Header />
 
-      <div v-if="isMenuOpen" class="fixed inset-0 z-50 flex">
+      <div v-if="drawerOpen" class="fixed inset-0 z-50 flex">
         <div
           class="absolute inset-0 bg-black/25 backdrop-blur-sm"
-          @click="closeMenu"
+          @click="closeDrawer"
         ></div>
         <div
           class="relative w-72 max-w-[85vw] h-full bg-surface border-r border-on-surface/10 shadow-[0_24px_60px_rgba(17,41,39,0.2)] flex flex-col pt-16"
@@ -639,7 +580,7 @@ function bottomNavForegroundClasses(isActive: boolean) {
               :key="item.name"
               :to="item.to"
               class="block px-6 py-4 font-mono text-sm uppercase font-bold text-on-surface hover:bg-surface-container-low transition-colors"
-              @click="closeMenu"
+              @click="closeDrawer"
             >
               {{ navigationLabel(item) }}
             </RouterLink>
@@ -751,22 +692,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
         </div>
       </div>
 
-      <!-- What: render the demo intro as a dedicated child component. Why: the shell keeps ownership of demo side effects while the modal UI stays reusable and testable in isolation. -->
-      <DemoIntroModal
-        :status="demoIntroModalStatus"
-        @stay="closeDemoIntroModal"
-        @confirm="leaveDemoMode"
-        @close="closeDemoIntroModal"
-      />
-
-      <!-- What: keep demo-exit failures on the shared floating surface while the modal stays mounted. Why: the coach should understand that leaving demo mode failed without losing the current explanation or CTA context. -->
-      <FloatingErrorAlert
-        v-if="demoExitErrorVisible"
-        :message="t('demo.error')"
-        stack-level="modal"
-        top-offset="shell"
-        @dismiss="dismissDemoExitError"
-      />
+      <!-- What: mount the smart demo overlay from the feature folder. Why: AppShell should provide shell placement while demo exit state and application workflow wiring stay inside the demo feature. -->
+      <DemoIntroModal />
 
       <!-- What: route backup-export failures through the shared floating alert. Why: backup issues should be visible in the same shell-level recovery surface as other recoverable errors. -->
       <FloatingErrorAlert
@@ -952,40 +879,6 @@ function bottomNavForegroundClasses(isActive: boolean) {
   color: white;
 }
 
-.demo-header-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 2.25rem;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid var(--color-on-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  background: var(--color-surface);
-  color: var(--color-on-surface);
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  line-height: 1;
-  text-transform: uppercase;
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 75ms ease;
-}
-
-.demo-header-action:hover,
-.demo-header-action:focus-visible {
-  transform: translate(2px, 2px);
-  box-shadow: none;
-  background: var(--color-surface-container-low);
-}
-
-.demo-header-action:focus-visible {
-  outline: 2px solid var(--color-on-surface);
-  outline-offset: 3px;
-}
-
 .shell-state-card {
   width: min(100%, 34rem);
   display: grid;
@@ -1105,198 +998,3 @@ function bottomNavForegroundClasses(isActive: boolean) {
   }
 }
 </style>
-
-<i18n lang="json">
-{
-  "pl": {
-    "app": {
-      "name": "Zeszyt Trenera"
-    },
-    "common": {
-      "cancel": "Anuluj",
-      "hide": "Ukryj",
-      "understand": "Rozumiem"
-    },
-    "network": {
-      "offline": "Offline"
-    },
-    "menu": {
-      "debugIndexedDb": "Debug IndexedDB",
-      "languageLabel": "Język",
-      "exportBackup": {
-        "action": "Eksportuj kopię danych",
-        "pending": "Eksportowanie kopii...",
-        "error": "Nie udało się wyeksportować kopii danych. Spróbuj ponownie.",
-        "errorDetails": "Szczegóły techniczne: {details}"
-      },
-      "importBackup": {
-        "action": "Przywróć z kopii danych",
-        "pending": "Przywracanie kopii...",
-        "error": "Nie udało się przywrócić kopii danych. Sprawdź plik i spróbuj ponownie."
-      },
-      "resetData": {
-        "action": "Reset aplikacji",
-        "error": "Nie udało się wyczyścić danych. Spróbuj ponownie."
-      }
-    },
-    "demo": {
-      "error": "Nie udało się wyjść z trybu demo. Spróbuj ponownie.",
-      "actions": {
-        "open": "Wyjdź z demo"
-      }
-    },
-    "routes": {
-      "membersList": "Członkowie",
-      "membershipPayments": "Płatności",
-      "addMember": "Dodaj członka",
-      "attendanceHistory": "Historia treningów",
-      "attendanceRecord": "Nowy trening",
-      "attendanceEdit": "Edycja treningu",
-      "setupClub": "Konfiguracja klubu",
-      "setupTrainer": "Konfiguracja trenera",
-      "debugIndexedDb": "Podgląd IndexedDB"
-    },
-    "bottomNav": {
-      "members": "Członkowie",
-      "payments": "Płatności",
-      "attendance": "Obecności"
-    },
-    "install": {
-      "entry": {
-        "manual": "Jak zainstalować",
-        "native": "Zainstaluj aplikację"
-      },
-      "coach": {
-        "eyebrow": "Na później",
-        "manual": "Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.",
-        "native": "Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później."
-      }
-    },
-    "update": {
-      "action": {
-        "ready": "Aktualizuj aplikację",
-        "pending": "Odświeżanie..."
-      },
-      "bannerTitle": "Tryb offline wymaga uwagi",
-      "error": {
-        "registration": "Nie udało się przygotować trybu offline.",
-        "activation": "Nie udało się włączyć najnowszej wersji aplikacji. Zamknij ją i otwórz ponownie."
-      }
-    },
-    "shellState": {
-      "retry": "Spróbuj ponownie",
-      "checking": {
-        "eyebrow": "Uruchamianie",
-        "title": "Przygotowuję lokalny zeszyt",
-        "body": "Przygotowuję Twoje dane, żeby zeszyt mógł otworzyć się bezpiecznie i działać offline."
-      },
-      "setupChecking": {
-        "eyebrow": "Konfiguracja startowa",
-        "title": "Sprawdzam dane startowe",
-        "body": "Sprawdzam, czy ten zeszyt ma już przypisany klub i trenera."
-      },
-      "blocked": {
-        "eyebrow": "Stan aplikacji",
-        "title": "Nie udało się uruchomić Zeszytu Trenera",
-        "database": "Nie udało się otworzyć zeszytu na tym urządzeniu.",
-        "unknown": "Aplikacja nie może się teraz uruchomić. Spróbuj ponownie."
-      }
-    }
-  },
-  "en": {
-    "app": {
-      "name": "Coach Notebook"
-    },
-    "common": {
-      "cancel": "Cancel",
-      "hide": "Hide",
-      "understand": "Understood"
-    },
-    "network": {
-      "offline": "Offline"
-    },
-    "menu": {
-      "debugIndexedDb": "Debug IndexedDB",
-      "languageLabel": "Language",
-      "exportBackup": {
-        "action": "Export backup",
-        "pending": "Exporting backup...",
-        "error": "Backup export failed. Try again.",
-        "errorDetails": "Technical details: {details}"
-      },
-      "importBackup": {
-        "action": "Restore from backup",
-        "pending": "Restoring backup...",
-        "error": "Backup restore failed. Check the file and try again."
-      },
-      "resetData": {
-        "action": "Reset app data",
-        "error": "Data reset failed. Try again."
-      }
-    },
-    "demo": {
-      "error": "Demo mode could not be cleared. Try again.",
-      "actions": {
-        "open": "Leave demo"
-      }
-    },
-    "routes": {
-      "membersList": "Members",
-      "membershipPayments": "Payments",
-      "addMember": "Add member",
-      "attendanceHistory": "Training history",
-      "attendanceRecord": "New training",
-      "attendanceEdit": "Edit training",
-      "setupClub": "Club setup",
-      "setupTrainer": "Trainer setup",
-      "debugIndexedDb": "IndexedDB Inspector"
-    },
-    "bottomNav": {
-      "members": "Members",
-      "payments": "Payments",
-      "attendance": "Attendance"
-    },
-    "install": {
-      "entry": {
-        "manual": "How to install",
-        "native": "Install app"
-      },
-      "coach": {
-        "eyebrow": "Later",
-        "manual": "Return here when you need the short guide for adding the app to the home screen.",
-        "native": "Return here when you want to install the app later."
-      }
-    },
-    "update": {
-      "action": {
-        "ready": "Update app",
-        "pending": "Refreshing..."
-      },
-      "bannerTitle": "Offline mode needs attention",
-      "error": {
-        "registration": "Offline mode could not be prepared.",
-        "activation": "The latest app version could not be applied. Close and reopen the app."
-      }
-    },
-    "shellState": {
-      "retry": "Try again",
-      "checking": {
-        "eyebrow": "Starting",
-        "title": "Preparing the local notebook",
-        "body": "Preparing your data so the notebook can open safely and stay available offline."
-      },
-      "setupChecking": {
-        "eyebrow": "Startup setup",
-        "title": "Checking required setup data",
-        "body": "Checking whether this notebook already has a club and trainer assigned."
-      },
-      "blocked": {
-        "eyebrow": "App state",
-        "title": "Coach Notebook could not start",
-        "database": "The notebook could not be opened on this device.",
-        "unknown": "The app cannot start right now. Try again."
-      }
-    }
-  }
-}
-</i18n>
