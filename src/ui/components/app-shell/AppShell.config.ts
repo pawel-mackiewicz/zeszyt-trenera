@@ -2,6 +2,15 @@ import type { AppLocale } from '@/ui/i18n'
 import type { AppRouteName } from '@/ui/router'
 
 type ShellTitleTranslator = (key: string) => string
+type ShellBottomNavigationIconName = 'calendar_today' | 'group' | 'payments'
+
+export type ShellBottomNavigationItem = {
+  id: 'attendance' | 'members' | 'payments'
+  to: string
+  icon: ShellBottomNavigationIconName
+  labelKey: string
+  activeRouteNames: ReadonlyArray<AppRouteName>
+}
 
 // What: centralize shell chrome route and locale metadata in one module. Why: the header, browser title, and drawer navigation should share one offline-safe dictionary contract instead of drifting through parallel maps.
 export const SHELL_LOCALE_OPTIONS = [
@@ -26,6 +35,36 @@ export const SHELL_NAVIGATION_LABEL_KEYS: Partial<
 > = {
   'debug-indexeddb': 'menu.debugIndexedDb'
 }
+
+// What: keep persistent mobile shell destinations in one typed config. Why: Header and BottomNavigation should both stay smart while AppShell keeps only layout and orchestration responsibility.
+export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationItem> =
+  [
+    {
+      id: 'members',
+      to: '/member',
+      icon: 'group',
+      labelKey: 'bottomNav.members',
+      activeRouteNames: ['members-list']
+    },
+    {
+      id: 'payments',
+      to: '/payments',
+      icon: 'payments',
+      labelKey: 'bottomNav.payments',
+      activeRouteNames: ['membership-payments']
+    },
+    {
+      id: 'attendance',
+      to: '/attendance',
+      icon: 'calendar_today',
+      labelKey: 'bottomNav.attendance',
+      activeRouteNames: [
+        'attendance-history',
+        'attendance-record',
+        'attendance-edit'
+      ]
+    }
+  ]
 
 export function resolveShellRouteTitle({
   routeName,

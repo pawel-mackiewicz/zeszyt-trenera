@@ -193,34 +193,6 @@ describe('AppShell', () => {
     return wrapper.get('[data-testid="shell-menu-button"]')
   }
 
-  // What: verify each tab's surface and foreground together. Why: the active-route checks should fail if the red navbar tab ever loses its readable icon and label color again.
-  function expectBottomNavTabState(
-    wrapper: VueWrapper,
-    path: string,
-    active: boolean
-  ) {
-    const link = wrapper.get(`a[href="${path}"]`)
-    const classes = link.classes()
-    const iconClasses = link.get('svg').classes()
-    const labelClasses = link.get('span').classes()
-
-    if (active) {
-      expect(classes).toContain('bg-primary')
-      expect(classes).toContain('text-white')
-      expect(classes).not.toContain('text-on-surface')
-      expect(iconClasses).toContain('text-white')
-      expect(labelClasses).toContain('text-white')
-
-      return
-    }
-
-    expect(classes).toContain('text-on-surface')
-    expect(classes).not.toContain('bg-primary')
-    expect(classes).not.toContain('text-white')
-    expect(iconClasses).not.toContain('text-white')
-    expect(labelClasses).not.toContain('text-white')
-  }
-
   async function emitSetupStatus(value: SetupStatus) {
     mockSetupStatus = value
     mockSetupStatusObservers.forEach((observer) => observer.next(value))
@@ -681,9 +653,10 @@ describe('AppShell', () => {
     })
 
     expect(document.title).toBe('Członkowie • Zeszyt Trenera')
-    expectBottomNavTabState(wrapper, '/member', true)
-    expectBottomNavTabState(wrapper, '/payments', false)
-    expectBottomNavTabState(wrapper, '/attendance', false)
+    // What: keep AppShell coverage at the shell composition boundary. Why: BottomNavigation owns detailed route-active tab behavior after extraction.
+    expect(wrapper.find('[data-testid="bottom-navigation"]').exists()).toBe(
+      true
+    )
   })
 
   it('activates the attendance route title on the history screen', () => {
@@ -691,29 +664,23 @@ describe('AppShell', () => {
     mockRoute.path = '/attendance'
     mockRoute.fullPath = '/attendance'
 
-    const { wrapper } = mountShell((appStore) => {
+    mountShell((appStore) => {
       appStore.setAppReady()
     })
 
     expect(document.title).toBe('Historia treningów • Zeszyt Trenera')
-    expectBottomNavTabState(wrapper, '/attendance', true)
-    expectBottomNavTabState(wrapper, '/member', false)
-    expectBottomNavTabState(wrapper, '/payments', false)
   })
 
-  it('keeps the attendance tab active on the attendance edit screen', () => {
+  it('activates the attendance edit route title', () => {
     mockRoute.name = 'attendance-edit'
     mockRoute.path = '/attendance/attendance-list-1/edit'
     mockRoute.fullPath = '/attendance/attendance-list-1/edit'
 
-    const { wrapper } = mountShell((appStore) => {
+    mountShell((appStore) => {
       appStore.setAppReady()
     })
 
     expect(document.title).toBe('Edycja treningu • Zeszyt Trenera')
-    expectBottomNavTabState(wrapper, '/attendance', true)
-    expectBottomNavTabState(wrapper, '/member', false)
-    expectBottomNavTabState(wrapper, '/payments', false)
   })
 
   it('activates the payments route title on the monthly ledger screen', () => {
@@ -721,35 +688,11 @@ describe('AppShell', () => {
     mockRoute.path = '/payments'
     mockRoute.fullPath = '/payments'
 
-    const { wrapper } = mountShell((appStore) => {
+    mountShell((appStore) => {
       appStore.setAppReady()
     })
 
     expect(document.title).toBe('Płatności • Zeszyt Trenera')
-    expectBottomNavTabState(wrapper, '/payments', true)
-    expectBottomNavTabState(wrapper, '/member', false)
-    expectBottomNavTabState(wrapper, '/attendance', false)
-  })
-
-  it('routes the bottom attendance tab straight to training history', () => {
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    expect(wrapper.get('nav').classes()).not.toContain('md:hidden')
-    expect(
-      wrapper.find('button[aria-label="Przełącz widok obecności"]').exists()
-    ).toBe(false)
-    expect(
-      wrapper.find('button[aria-label="Zamknij menu obecności"]').exists()
-    ).toBe(false)
-    expect(wrapper.find('a[href="/attendance/new"]').exists()).toBe(false)
-    expect(wrapper.get('a[href="/payments"]').text().toUpperCase()).toContain(
-      'PŁATNOŚCI'
-    )
-    expect(wrapper.get('a[href="/attendance"]').text().toUpperCase()).toContain(
-      'OBECNOŚCI'
-    )
   })
 
   it('enables full reset for case-insensitive confirmation phrase', async () => {
