@@ -69,6 +69,8 @@
 html {
   font-size: 16px;
   min-height: 100%;
+  /* What: reserve the desktop scrollbar gutter for the whole PWA shell. Why: route fade transitions can briefly shorten content, and fixed bottom chrome should not resize when the scrollbar appears or disappears. */
+  scrollbar-gutter: stable;
   /* The browser chrome should match the installed shell instead of introducing a second page background. */
   background-color: var(--color-surface);
 }

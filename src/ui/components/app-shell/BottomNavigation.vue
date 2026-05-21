@@ -14,11 +14,12 @@ const { items, visible } = useBottomNavigation()
     class="fixed bottom-0 left-0 z-40 flex h-20 w-full items-stretch justify-around border-t border-on-surface/10 bg-surface/90 pb-safe backdrop-blur-md"
     data-testid="bottom-navigation"
   >
+    <!-- What: animate only paint-level tab feedback. Why: desktop scrollbar reflows during route switches should not animate link dimensions and make the fixed PWA nav look shaky. -->
     <RouterLink
       v-for="item in items"
       :key="item.id"
       :aria-current="item.active ? 'page' : undefined"
-      class="flex w-full flex-col items-center justify-center border-x border-on-surface/10 px-4 py-1 transition-all"
+      class="flex w-full flex-col items-center justify-center border-x border-on-surface/10 px-4 py-1 transition-colors"
       :class="item.stateClasses"
       :data-testid="`bottom-navigation-${item.id}`"
       :to="item.to"
