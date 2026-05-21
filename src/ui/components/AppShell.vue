@@ -11,10 +11,10 @@ import {
   SHELL_NAVIGATION_LABEL_KEYS,
   SHELL_ROUTE_TITLE_KEYS
 } from '@/ui/components/app-shell/AppShell.config'
+import BottomNavigation from '@/ui/components/app-shell/BottomNavigation.vue'
 import Header from '@/ui/components/app-shell/Header.vue'
 import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
 import ResetDataModal from '@/ui/components/modals/reset/ResetDataModal.vue'
-import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/features/app_install/InstallModal.vue'
 import { useResetDataModal } from '@/ui/components/modals/reset/useResetDataModal'
@@ -90,32 +90,6 @@ const isSetupTrainerRoute = computed(
 const isSetupRoute = computed(
   () => isSetupClubRoute.value || isSetupTrainerRoute.value
 )
-const isMembershipPaymentsRoute = computed(
-  () => currentRouteName.value === 'membership-payments'
-)
-// What: keep the members tab active for the canonical members screen and its legacy alias. Why: older installed launches can still resolve through `/`, but the shell should treat both URLs as the same destination while the route family settles on `/member`.
-const isMembersRoute = computed(() => currentRouteName.value === 'members-list')
-const isAttendanceHistoryRoute = computed(
-  () => currentRouteName.value === 'attendance-history'
-)
-const isAttendanceRecordRoute = computed(
-  () => currentRouteName.value === 'attendance-record'
-)
-const isAttendanceEditRoute = computed(
-  () => currentRouteName.value === 'attendance-edit'
-)
-// What: keep the history tab active for every attendance route. Why: the shell should read the archive, new-session flow, and edit flow as one destination instead of fragmenting the same mobile workflow across tabs.
-const isAttendanceSectionActive = computed(
-  () =>
-    isAttendanceHistoryRoute.value ||
-    isAttendanceRecordRoute.value ||
-    isAttendanceEditRoute.value
-)
-// What: force the selected bottom-nav tab to paint its own readable foreground. Why: relying on inherited text color made the selected-state contrast too fragile for the mobile shell.
-const activeBottomNavStateClasses = 'bg-primary text-white'
-const inactiveBottomNavStateClasses =
-  'text-on-surface hover:bg-surface-container-low'
-const activeBottomNavForegroundClasses = 'text-white'
 // What: resolve the browser title with the shared shell title helper. Why: AppShell owns document metadata, while the header composable should stay scoped to visible chrome only.
 const title = computed(() =>
   resolveShellRouteTitle({
@@ -468,14 +442,6 @@ function navigationLabel(item: NavigationItem) {
 
   return t(translationKey)
 }
-
-function bottomNavStateClasses(isActive: boolean) {
-  return isActive ? activeBottomNavStateClasses : inactiveBottomNavStateClasses
-}
-
-function bottomNavForegroundClasses(isActive: boolean) {
-  return isActive ? activeBottomNavForegroundClasses : ''
-}
 </script>
 
 <template>
@@ -690,60 +656,8 @@ function bottomNavForegroundClasses(isActive: boolean) {
         </RouterView>
       </main>
 
-      <!-- What: render the bottom navigation on desktop and mobile. Why: the history tab has to stay pinned in the shell on every viewport so coaches can reach saved attendance without digging into menus. -->
-      <nav
-        v-if="!route.meta.hideBottomNav"
-        class="fixed bottom-0 left-0 w-full z-40 flex justify-around items-stretch h-20 pb-safe bg-surface/90 backdrop-blur-md border-t border-on-surface/10"
-      >
-        <RouterLink
-          to="/member"
-          class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
-          :class="bottomNavStateClasses(isMembersRoute)"
-        >
-          <AppIcon
-            name="group"
-            :class="bottomNavForegroundClasses(isMembersRoute)"
-          />
-          <span
-            class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            :class="bottomNavForegroundClasses(isMembersRoute)"
-            >{{ t('bottomNav.members') }}</span
-          >
-        </RouterLink>
-        <!-- What: make the payments area a first-class shell destination. Why: once the monthly ledger exists, coaches should reach it from the persistent PWA navigation instead of a dead tab. -->
-        <RouterLink
-          to="/payments"
-          class="flex flex-col items-center justify-center px-4 py-1 transition-all w-full border-x border-on-surface/10"
-          :class="bottomNavStateClasses(isMembershipPaymentsRoute)"
-        >
-          <AppIcon
-            name="payments"
-            :class="bottomNavForegroundClasses(isMembershipPaymentsRoute)"
-          />
-          <span
-            class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            :class="bottomNavForegroundClasses(isMembershipPaymentsRoute)"
-            >{{ t('bottomNav.payments') }}</span
-          >
-        </RouterLink>
-        <!-- What: send the attendance tab straight to the history route. Why: coaches should reach saved sessions in one tap on mobile, while the live recording flow stays anchored inside the history screen instead of a popover. -->
-        <RouterLink
-          to="/attendance"
-          class="relative w-full border-x border-on-surface/10 flex flex-col items-center justify-center px-4 py-1 transition-all"
-          :class="bottomNavStateClasses(isAttendanceSectionActive)"
-        >
-          <AppIcon
-            name="calendar_today"
-            :class="bottomNavForegroundClasses(isAttendanceSectionActive)"
-          />
-          <span
-            class="font-mono text-[10px] tracking-tighter font-bold uppercase mt-1"
-            :class="bottomNavForegroundClasses(isAttendanceSectionActive)"
-          >
-            {{ t('bottomNav.attendance') }}
-          </span>
-        </RouterLink>
-      </nav>
+      <!-- What: mount the smart bottom navigation as shell chrome. Why: AppShell should place persistent navigation without owning route-specific tab state. -->
+      <BottomNavigation />
     </template>
 
     <section
