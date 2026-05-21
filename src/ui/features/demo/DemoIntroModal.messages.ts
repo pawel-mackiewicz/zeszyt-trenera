@@ -2,7 +2,6 @@
 export const DEMO_INTRO_MODAL_MESSAGES = {
   pl: {
     demo: {
-      eyebrow: 'Tryb demo',
       title: 'Sprawdź apkę',
       copy: 'Sprawdź zeszyt-trenera na testowych danych :)',
       actions: {
@@ -16,7 +15,6 @@ export const DEMO_INTRO_MODAL_MESSAGES = {
   },
   en: {
     demo: {
-      eyebrow: 'Demo mode',
       title: 'Check out the app',
       copy: 'Check out Coach Notebook on sample data :)',
       actions: {

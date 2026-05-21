@@ -41,12 +41,9 @@ const confirmLabel = computed(() =>
         @click="closeDemoIntroModal"
       ></div>
       <section class="demo-intro-modal-card relative w-full max-w-lg">
-        <p class="demo-intro-modal-card__eyebrow">{{ t('demo.eyebrow') }}</p>
         <h2 class="demo-intro-modal-card__title">{{ t('demo.title') }}</h2>
-        <!-- What: keep the demo welcome copy to one compact paragraph. Why: the first-run mobile modal should explain the seeded notebook without forcing coaches to read through a second block before they can explore it. -->
         <p class="demo-intro-modal-card__copy">{{ t('demo.copy') }}</p>
         <div class="demo-intro-modal-card__actions">
-          <!-- What: make staying in demo the primary CTA. Why: the landing modal should default to exploration so coaches can inspect the seeded local notebook before committing to setup. -->
           <AppButton
             type="button"
             data-testid="continue-demo-button"
@@ -85,16 +82,6 @@ const confirmLabel = computed(() =>
   border: 1px solid var(--color-on-surface);
   background: var(--color-surface);
   box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.demo-intro-modal-card__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
 }
 
 .demo-intro-modal-card__title {

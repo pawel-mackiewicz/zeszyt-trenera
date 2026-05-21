@@ -7,7 +7,6 @@ export const INSTALL_MODAL_MESSAGES = {
     },
     install: {
       manual: {
-        eyebrow: 'Instalacja ręczna',
         iosSafari: {
           title: 'Dodaj do ekranu głównego',
           body: 'Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Na tej przeglądarce zrobisz to ręcznie, a poniżej masz krótkie kroki.',
@@ -18,7 +17,6 @@ export const INSTALL_MODAL_MESSAGES = {
         }
       },
       native: {
-        eyebrow: 'Instalacja PWA',
         title: 'Zainstaluj Zeszyt Trenera',
         body: 'Zainstaluj zeszyt-trenera dla najlepszych wrażeń. Dzięki temu otworzysz go jak lokalną aplikację i wygodniej wrócisz do niego offline.',
         primary: 'Zainstaluj Zeszyt Trenera',
@@ -33,7 +31,6 @@ export const INSTALL_MODAL_MESSAGES = {
     },
     install: {
       manual: {
-        eyebrow: 'Manual install',
         iosSafari: {
           title: 'Add to Home Screen',
           body: 'Install Coach Notebook for the best experience. This browser needs the manual flow, and the short steps are below.',
@@ -44,7 +41,6 @@ export const INSTALL_MODAL_MESSAGES = {
         }
       },
       native: {
-        eyebrow: 'PWA install',
         title: 'Install Coach Notebook',
         body: 'Install Coach Notebook for the best experience. It will open like a local app and will be easier to return to offline.',
         primary: 'Install Coach Notebook',
