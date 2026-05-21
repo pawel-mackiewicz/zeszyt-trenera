@@ -24,12 +24,6 @@ const {
   handleInstallLater
 } = useInstallModal()
 
-// What: derive copy from composable-level modal flags. Why: InstallModal should stay aligned with DemoIntroModal and keep state interpretation inside the feature controller.
-const eyebrow = computed(() =>
-  isInstallModalManual.value
-    ? t('install.manual.eyebrow')
-    : t('install.native.eyebrow')
-)
 const title = computed(() =>
   isInstallModalManual.value
     ? t(`${manualInstallTranslationKey}.title`)
@@ -73,7 +67,6 @@ const manualInstallSteps = computed(() => {
         @click="handleInstallLater"
       ></div>
       <section class="install-modal-card relative w-full max-w-lg">
-        <p class="install-modal-card__eyebrow">{{ eyebrow }}</p>
         <h2 class="install-modal-card__title">{{ title }}</h2>
         <p class="install-modal-card__copy">{{ body }}</p>
         <ol
@@ -120,16 +113,6 @@ const manualInstallSteps = computed(() => {
   border: 1px solid var(--color-on-surface);
   background: var(--color-surface);
   box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.install-modal-card__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
 }
 
 .install-modal-card__title {
