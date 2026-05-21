@@ -40,7 +40,7 @@ describe('ResetDataModal', () => {
     })
 
     // What: keep modal markup checks in the modal spec. Why: AppShell specs should stay focused on orchestration and application-layer wiring.
-    expect(wrapper.find('.reset-data-modal-card__title').exists()).toBe(true)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.text()).toContain(RESET_DATA_MODAL_MESSAGES.pl.reset.title)
     expect(wrapper.text()).toContain(RESET_DATA_MODAL_MESSAGES.pl.reset.copy)
     expect(

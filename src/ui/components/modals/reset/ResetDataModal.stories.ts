@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { computed } from 'vue'
-import { expect, fn, userEvent, within } from 'storybook/test'
+import { computed, ref, watch } from 'vue'
+import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import ResetDataModal from './ResetDataModal.vue'
 import {
@@ -51,18 +51,37 @@ const meta: Meta<ResetDataModalStoryArgs> = {
   render: (args) => ({
     components: { ResetDataModal },
     setup() {
+      const storyStatus = ref(args.status)
       const componentProps = computed(() => ({
-        status: args.status,
+        status: storyStatus.value,
         confirmationInput: args.confirmationInput,
         confirmationPhrase: args.confirmationPhrase,
         canConfirm: args.canConfirm
       }))
 
+      watch(
+        () => args.status,
+        (status) => {
+          storyStatus.value = status
+        }
+      )
+
+      function handleClose() {
+        args.onClose()
+
+        if (storyStatus.value === ResetDataModalStatus.Pending) {
+          return
+        }
+
+        storyStatus.value = ResetDataModalStatus.Hidden
+      }
+
       // What: split component props from story spies. Why: the component API is emit-based and stories need explicit handler wiring to validate event contracts.
-      return { args, componentProps }
+      // What: model the shell as the modal parent in Storybook. Why: ResetDataModal only emits close, so the story must hide it to make backdrop dismissal visible during manual QA.
+      return { args, componentProps, handleClose }
     },
     template:
-      '<ResetDataModal v-bind="componentProps" @confirm="args.onConfirm" @close="args.onClose" @update:confirmationInput="args.onUpdateConfirmationInput" />'
+      '<ResetDataModal v-bind="componentProps" @confirm="args.onConfirm" @close="handleClose" @update:confirmationInput="args.onUpdateConfirmationInput" />'
   })
 }
 
@@ -96,6 +115,11 @@ export const BackdropCloseAction: Story = {
     await userEvent.click(canvas.getByTestId('reset-data-modal-backdrop'))
     await expect(args.onClose).toHaveBeenCalledTimes(1)
     await expect(args.onConfirm).toHaveBeenCalledTimes(0)
+    await waitFor(() =>
+      expect(
+        canvas.queryByTestId('reset-data-modal-backdrop')
+      ).not.toBeInTheDocument()
+    )
   }
 }
 

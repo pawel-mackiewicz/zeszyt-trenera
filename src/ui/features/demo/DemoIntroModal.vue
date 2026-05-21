@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
+import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import DemoFloatingErrorAlert from '@/ui/features/demo/DemoFloatingErrorAlert.vue'
 import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/features/demo/DemoIntroModal.messages'
 import { useDemoIntroModal } from '@/ui/features/demo/useDemoIntroModal'
@@ -30,43 +31,35 @@ const confirmLabel = computed(() =>
 </script>
 
 <template>
-  <Transition name="overlay-pop">
-    <div
-      v-if="isDemoIntroModalVisible"
-      class="demo-intro-modal-layer fixed inset-0 z-[75] flex items-end sm:items-center justify-center p-4"
-    >
-      <div
-        class="demo-intro-modal-layer__backdrop absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
-        data-testid="demo-intro-modal-backdrop"
+  <BaseModal
+    :visible="isDemoIntroModalVisible"
+    :title="t('demo.title')"
+    backdrop-test-id="demo-intro-modal-backdrop"
+    stack="raised"
+    @close="closeDemoIntroModal"
+  >
+    <p class="base-modal__copy">{{ t('demo.copy') }}</p>
+
+    <template #actions>
+      <AppButton
+        variant="secondary"
+        type="button"
+        :disabled="isDemoIntroModalPending"
+        data-testid="confirm-leave-demo-button"
+        @click="leaveDemoMode"
+      >
+        {{ confirmLabel }}
+      </AppButton>
+      <AppButton
+        type="button"
+        data-testid="continue-demo-button"
+        :disabled="isDemoIntroModalPending"
         @click="closeDemoIntroModal"
-      ></div>
-      <section class="demo-intro-modal-card relative w-full max-w-lg">
-        <h2 class="demo-intro-modal-card__title">{{ t('demo.title') }}</h2>
-        <p class="demo-intro-modal-card__copy">{{ t('demo.copy') }}</p>
-        <div class="demo-intro-modal-card__actions">
-          <!-- What: place the leave-demo confirmation first in the DOM. Why: the modal should keep the more consequential action visually second in the mobile stack and rightmost on wider screens. -->
-          <!-- What: keep the stay action second so the reversed placement is explicit in both layouts. Why: the safer choice should remain the easier fallback to scan. -->
-          <AppButton
-            variant="secondary"
-            type="button"
-            :disabled="isDemoIntroModalPending"
-            data-testid="confirm-leave-demo-button"
-            @click="leaveDemoMode"
-          >
-            {{ confirmLabel }}
-          </AppButton>
-          <AppButton
-            type="button"
-            data-testid="continue-demo-button"
-            :disabled="isDemoIntroModalPending"
-            @click="closeDemoIntroModal"
-          >
-            {{ t('demo.actions.stay') }}
-          </AppButton>
-        </div>
-      </section>
-    </div>
-  </Transition>
+      >
+        {{ t('demo.actions.stay') }}
+      </AppButton>
+    </template>
+  </BaseModal>
 
   <!-- What: render demo-exit failures from the feature modal itself. Why: retry feedback has to stay colocated with the smart overlay that owns the application workflow. -->
   <DemoFloatingErrorAlert
@@ -75,55 +68,3 @@ const confirmLabel = computed(() =>
     @dismiss="dismissDemoExitError"
   />
 </template>
-
-<style scoped>
-.demo-intro-modal-card {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 4vw, 1.75rem);
-  border: 1px solid var(--color-on-surface);
-  background: var(--color-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.demo-intro-modal-card__title {
-  margin: 0;
-  font-family: var(--font-headline);
-  font-size: clamp(1.6rem, 6vw, 2.3rem);
-  line-height: 0.96;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-
-.demo-intro-modal-card__copy {
-  margin: 0;
-  color: var(--color-on-surface);
-  line-height: 1.5;
-}
-
-.demo-intro-modal-card__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.overlay-pop-enter-active,
-.overlay-pop-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.overlay-pop-enter-from,
-.overlay-pop-leave-to {
-  opacity: 0;
-  transform: translateY(0.5rem);
-}
-
-@media (min-width: 640px) {
-  .demo-intro-modal-card__actions {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
-}
-</style>

@@ -106,7 +106,7 @@ describe('InstallModal', () => {
       INSTALL_MODAL_MESSAGES.pl.install.manual.iosSafari.steps[0]
 
     expect(wrapper.text()).toContain(firstManualStep)
-    expect(wrapper.findAll('.install-modal-card__step')).toHaveLength(2)
+    expect(wrapper.findAll('li')).toHaveLength(2)
   })
 
   it('shows the native pending copy and disabled state while install is in progress', () => {
@@ -119,7 +119,7 @@ describe('InstallModal', () => {
 
     expect(primaryButton.text()).toContain(pendingLabel)
     expect(primaryButton.attributes('disabled')).toBeDefined()
-    expect(wrapper.find('.install-modal-card__step').exists()).toBe(false)
+    expect(wrapper.findAll('li')).toHaveLength(0)
   })
 
   it('does not render when the feature status is hidden', () => {
