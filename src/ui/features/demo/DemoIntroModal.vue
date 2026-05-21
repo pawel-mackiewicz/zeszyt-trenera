@@ -44,6 +44,17 @@ const confirmLabel = computed(() =>
         <h2 class="demo-intro-modal-card__title">{{ t('demo.title') }}</h2>
         <p class="demo-intro-modal-card__copy">{{ t('demo.copy') }}</p>
         <div class="demo-intro-modal-card__actions">
+          <!-- What: place the leave-demo confirmation first in the DOM. Why: the modal should keep the more consequential action visually second in the mobile stack and rightmost on wider screens. -->
+          <!-- What: keep the stay action second so the reversed placement is explicit in both layouts. Why: the safer choice should remain the easier fallback to scan. -->
+          <AppButton
+            variant="secondary"
+            type="button"
+            :disabled="isDemoIntroModalPending"
+            data-testid="confirm-leave-demo-button"
+            @click="leaveDemoMode"
+          >
+            {{ confirmLabel }}
+          </AppButton>
           <AppButton
             type="button"
             data-testid="continue-demo-button"
@@ -51,15 +62,6 @@ const confirmLabel = computed(() =>
             @click="closeDemoIntroModal"
           >
             {{ t('demo.actions.stay') }}
-          </AppButton>
-          <AppButton
-            type="button"
-            variant="secondary"
-            :disabled="isDemoIntroModalPending"
-            data-testid="confirm-leave-demo-button"
-            @click="leaveDemoMode"
-          >
-            {{ confirmLabel }}
           </AppButton>
         </div>
       </section>
