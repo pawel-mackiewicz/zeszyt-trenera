@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import AppIcon from '@/ui/components/AppIcon.vue'
 import LeaveDemoButton from '@/ui/features/demo/LeaveDemoButton.vue'
-import { useAppShellHeader } from '@/ui/components/app-shell/useAppShellHeader'
+import { useHeader } from './useHeader'
 
 const {
   backButtonLabel,
@@ -12,11 +12,11 @@ const {
   title,
   handleBack,
   handleToggleDrawer
-} = useAppShellHeader()
+} = useHeader()
 </script>
 
 <template>
-  <!-- What: keep the shell header as the visible mobile-first chrome. Why: route, network, and drawer decisions now live in useAppShellHeader after merging the manager into this component. -->
+  <!-- What: keep the shell header as the visible mobile-first chrome. Why: route, network, and drawer decisions now live in useHeader after merging the manager into this component. -->
   <header class="app-shell-header">
     <div class="app-shell-header__leading">
       <button

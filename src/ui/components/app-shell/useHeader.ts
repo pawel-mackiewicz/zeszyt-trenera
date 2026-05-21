@@ -9,7 +9,7 @@ import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
 import { useShellStore } from '@/ui/stores/shell.store'
 
-export function useAppShellHeader() {
+export function useHeader() {
   const route = useRoute()
   const router = useRouter()
   const appStore = useAppStore()
