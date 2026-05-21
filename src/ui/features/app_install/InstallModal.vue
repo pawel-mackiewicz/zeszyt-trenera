@@ -83,14 +83,8 @@ const manualInstallSteps = computed(() => {
           </li>
         </ol>
         <div class="install-modal-card__actions">
-          <AppButton
-            type="button"
-            data-testid="install-modal-primary"
-            :disabled="isInstallModalPending"
-            @click="handleInstallPrimaryAction"
-          >
-            {{ primaryLabel }}
-          </AppButton>
+          <!-- What: put the dismiss action first in the DOM. Why: on the mobile-first stacked layout, the safer "later" choice should read before the install action. -->
+          <!-- What: keep the install action second so the visual order matches the reversed placement request across both stacked and row layouts. Why: the modal should surface the low-risk escape route before the commitment action. -->
           <AppButton
             variant="secondary"
             type="button"
@@ -98,6 +92,14 @@ const manualInstallSteps = computed(() => {
             @click="handleInstallLater"
           >
             {{ laterLabel }}
+          </AppButton>
+          <AppButton
+            type="button"
+            data-testid="install-modal-primary"
+            :disabled="isInstallModalPending"
+            @click="handleInstallPrimaryAction"
+          >
+            {{ primaryLabel }}
           </AppButton>
         </div>
       </section>
