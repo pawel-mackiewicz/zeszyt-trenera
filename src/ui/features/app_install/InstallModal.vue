@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n, type MessageFunction, type VueMessageType } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
+import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import { INSTALL_MODAL_MESSAGES } from '@/ui/features/app_install/InstallModal.messages'
 import { useInstallModal } from '@/ui/features/app_install/useInstallModal'
 
@@ -56,83 +57,49 @@ const manualInstallSteps = computed(() => {
 </script>
 
 <template>
-  <Transition name="overlay-pop">
-    <div
-      v-if="isInstallModalVisible"
-      class="install-modal-layer fixed inset-0 z-[70] flex items-end sm:items-center justify-center p-4"
-    >
-      <div
-        class="install-modal-layer__backdrop absolute inset-0 bg-[rgba(17,41,39,0.45)] backdrop-blur-sm"
-        data-testid="install-modal-backdrop"
+  <BaseModal
+    :visible="isInstallModalVisible"
+    :title="title"
+    backdrop-test-id="install-modal-backdrop"
+    @close="handleInstallLater"
+  >
+    <p class="base-modal__copy">{{ body }}</p>
+    <ol v-if="manualInstallSteps.length > 0" class="install-modal__steps">
+      <li
+        v-for="(step, index) in manualInstallSteps"
+        :key="index"
+        class="install-modal__step"
+      >
+        <!-- What: resolve i18n message values to text at render time. Why: manual install guidance must stay readable even when tm() returns message-node structures in Storybook/browser tests. -->
+        {{ rt(step) }}
+      </li>
+    </ol>
+
+    <template #actions>
+      <!-- What: put the dismiss action first in the DOM. Why: on the mobile-first stacked layout, the safer "later" choice should read before the install action. -->
+      <!-- What: keep the install action second so the visual order matches the reversed placement request across both stacked and row layouts. Why: the modal should surface the low-risk escape route before the commitment action. -->
+      <AppButton
+        variant="secondary"
+        type="button"
+        data-testid="install-modal-later"
         @click="handleInstallLater"
-      ></div>
-      <section class="install-modal-card relative w-full max-w-lg">
-        <h2 class="install-modal-card__title">{{ title }}</h2>
-        <p class="install-modal-card__copy">{{ body }}</p>
-        <ol
-          v-if="manualInstallSteps.length > 0"
-          class="install-modal-card__steps"
-        >
-          <li
-            v-for="(step, index) in manualInstallSteps"
-            :key="index"
-            class="install-modal-card__step"
-          >
-            <!-- What: resolve i18n message values to text at render time. Why: manual install guidance must stay readable even when tm() returns message-node structures in Storybook/browser tests. -->
-            {{ rt(step) }}
-          </li>
-        </ol>
-        <div class="install-modal-card__actions">
-          <!-- What: put the dismiss action first in the DOM. Why: on the mobile-first stacked layout, the safer "later" choice should read before the install action. -->
-          <!-- What: keep the install action second so the visual order matches the reversed placement request across both stacked and row layouts. Why: the modal should surface the low-risk escape route before the commitment action. -->
-          <AppButton
-            variant="secondary"
-            type="button"
-            data-testid="install-modal-later"
-            @click="handleInstallLater"
-          >
-            {{ laterLabel }}
-          </AppButton>
-          <AppButton
-            type="button"
-            data-testid="install-modal-primary"
-            :disabled="isInstallModalPending"
-            @click="handleInstallPrimaryAction"
-          >
-            {{ primaryLabel }}
-          </AppButton>
-        </div>
-      </section>
-    </div>
-  </Transition>
+      >
+        {{ laterLabel }}
+      </AppButton>
+      <AppButton
+        type="button"
+        data-testid="install-modal-primary"
+        :disabled="isInstallModalPending"
+        @click="handleInstallPrimaryAction"
+      >
+        {{ primaryLabel }}
+      </AppButton>
+    </template>
+  </BaseModal>
 </template>
 
 <style scoped>
-.install-modal-card {
-  display: grid;
-  gap: 1rem;
-  padding: clamp(1.25rem, 4vw, 1.75rem);
-  border: 1px solid var(--color-on-surface);
-  background: var(--color-surface);
-  box-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-}
-
-.install-modal-card__title {
-  margin: 0;
-  font-family: var(--font-headline);
-  font-size: clamp(1.6rem, 6vw, 2.3rem);
-  line-height: 0.96;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-
-.install-modal-card__copy {
-  margin: 0;
-  color: var(--color-on-surface);
-  line-height: 1.5;
-}
-
-.install-modal-card__steps {
+.install-modal__steps {
   display: grid;
   gap: 0.75rem;
   margin: 0;
@@ -141,7 +108,7 @@ const manualInstallSteps = computed(() => {
   counter-reset: install-step;
 }
 
-.install-modal-card__step {
+.install-modal__step {
   display: flex;
   gap: 0.75rem;
   align-items: flex-start;
@@ -149,7 +116,7 @@ const manualInstallSteps = computed(() => {
   line-height: 1.5;
 }
 
-.install-modal-card__step::before {
+.install-modal__step::before {
   counter-increment: install-step;
   content: counter(install-step);
   display: inline-flex;
@@ -164,31 +131,5 @@ const manualInstallSteps = computed(() => {
   font-family: var(--font-mono);
   font-size: 0.75rem;
   font-weight: 700;
-}
-
-.install-modal-card__actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.overlay-pop-enter-active,
-.overlay-pop-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.overlay-pop-enter-from,
-.overlay-pop-leave-to {
-  opacity: 0;
-  transform: translateY(0.5rem);
-}
-
-@media (min-width: 640px) {
-  .install-modal-card__actions {
-    flex-direction: row;
-    justify-content: flex-end;
-  }
 }
 </style>

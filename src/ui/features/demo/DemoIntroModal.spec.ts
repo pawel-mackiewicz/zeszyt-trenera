@@ -103,7 +103,7 @@ describe('DemoIntroModal', () => {
     const { wrapper } = mountDemoIntroModal()
 
     // What: keep markup and CTA-variant assertions on the smart modal. Why: this component now owns both the visible overlay and the demo workflow boundary.
-    expect(wrapper.find('.demo-intro-modal-card__title').exists()).toBe(true)
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
     expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
       ''
     )
