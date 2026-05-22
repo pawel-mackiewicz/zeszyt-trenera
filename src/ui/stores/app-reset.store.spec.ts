@@ -2,10 +2,10 @@ import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import { ResetDataModalStatus } from '@/features/app_reset/ResetDataModal.contract'
+import { ResetDataModalStatus } from '@/ui/features/app_reset/ResetDataModal.contract'
 import { useAppServices } from '@/ui/appServices'
 import { useAppStore } from '@/ui/stores/app'
-import { useAppResetStore } from '@/ui/stores/app-reset.store'
+import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

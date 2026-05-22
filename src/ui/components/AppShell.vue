@@ -14,7 +14,7 @@ import {
 import BottomNavigation from '@/ui/components/app-shell/BottomNavigation.vue'
 import Header from '@/ui/components/app-shell/Header.vue'
 import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
-import ResetDataModal from '@/features/app_reset/ResetDataModal.vue'
+import ResetDataModal from '@/ui/features/app_reset/ResetDataModal.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/features/app_install/InstallModal.vue'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
@@ -32,7 +32,7 @@ import {
 } from '@/ui/router/runtime'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
 import { useAppStore } from '@/ui/stores/app'
-import { useAppResetStore } from '@/ui/stores/app-reset.store'
+import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useShellStore } from '@/ui/stores/shell.store'
 

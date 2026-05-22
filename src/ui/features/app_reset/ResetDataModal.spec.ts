@@ -2,12 +2,12 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { describe, expect, it } from 'vitest'
 
 import { createAppI18n } from '@/ui/i18n'
-import ResetDataModal from '@/features/app_reset/ResetDataModal.vue'
+import ResetDataModal from '@/ui/features/app_reset/ResetDataModal.vue'
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
-} from '@/features/app_reset/ResetDataModal.contract'
-import { RESET_DATA_MODAL_MESSAGES } from '@/features/app_reset/ResetDataModal.messages'
+} from '@/ui/features/app_reset/ResetDataModal.contract'
+import { RESET_DATA_MODAL_MESSAGES } from '@/ui/features/app_reset/ResetDataModal.messages'
 
 function mountResetDataModal(
   overrides: Partial<{

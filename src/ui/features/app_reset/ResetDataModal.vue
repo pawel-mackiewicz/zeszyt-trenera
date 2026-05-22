@@ -7,8 +7,8 @@ import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
-} from '@/features/app_reset/ResetDataModal.contract'
-import { RESET_DATA_MODAL_MESSAGES } from '@/features/app_reset/ResetDataModal.messages'
+} from '@/ui/features/app_reset/ResetDataModal.contract'
+import { RESET_DATA_MODAL_MESSAGES } from '@/ui/features/app_reset/ResetDataModal.messages'
 
 // What: keep the reset modal as a presentational surface with event outputs only. Why: destructive write orchestration must stay in AppShell and the application layer callbacks.
 const props = defineProps<{
