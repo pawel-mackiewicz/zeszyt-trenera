@@ -2,8 +2,8 @@ import { mount } from '@vue/test-utils'
 import { defineComponent, nextTick, ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
 
-import { ResetDataModalStatus } from '@/ui/components/modals/reset/ResetDataModal.contract'
-import { useResetDataModal } from '@/ui/components/modals/reset/useResetDataModal'
+import { ResetDataModalStatus } from '@/features/app_reset/ResetDataModal.contract'
+import { useResetDataModal } from '@/features/app_reset/useResetDataModal'
 
 function createDeferredPromise() {
   let resolve!: () => void
@@ -136,17 +136,27 @@ describe('useResetDataModal', () => {
   it('shows reset failures until dismissed', async () => {
     const { composable, onResetApplicationData } =
       mountResetDataModalController()
+    const resetError = new Error('reset failed')
+    // What: silence the intentionally exercised failure log. Why: this spec should verify reset recovery without making a passing test look like an unexpected stderr failure.
+    const consoleErrorSpy = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined)
 
-    onResetApplicationData.mockRejectedValueOnce(new Error('reset failed'))
+    onResetApplicationData.mockRejectedValueOnce(resetError)
     composable.openResetModal()
     composable.setResetConfirmationInput('DELETE ALL DATA')
 
     await composable.confirmResetApplicationData()
 
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to reset all local application data.',
+      resetError
+    )
     expect(composable.resetErrorVisible.value).toBe(true)
     expect(composable.resetModalStatus.value).toBe(ResetDataModalStatus.Ready)
 
     composable.dismissResetError()
     expect(composable.resetErrorVisible.value).toBe(false)
+    consoleErrorSpy.mockRestore()
   })
 })

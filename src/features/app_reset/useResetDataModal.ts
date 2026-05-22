@@ -8,7 +8,7 @@ import {
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
-} from '@/ui/components/modals/reset/ResetDataModal.contract'
+} from '@/features/app_reset/ResetDataModal.contract'
 
 type UseResetDataModalOptions = {
   isShellReady: Readonly<Ref<boolean>>
