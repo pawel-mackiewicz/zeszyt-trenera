@@ -1,6 +1,6 @@
 import { computed, onMounted, onUnmounted, shallowRef } from 'vue'
 
-import { useAppStore } from '@/ui/stores/app'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 
 type BeforeInstallPromptOutcome = {
   outcome: 'accepted' | 'dismissed'
@@ -36,30 +36,30 @@ function isManualInstallBrowser() {
 }
 
 export function usePwaInstall() {
-  const appStore = useAppStore()
+  const appInstallStore = useAppInstallStore()
   const deferredPrompt = shallowRef<BeforeInstallPromptEvent | null>(null)
 
   const onBeforeInstallPrompt = (event: Event) => {
     const promptEvent = event as BeforeInstallPromptEvent
     promptEvent.preventDefault()
     deferredPrompt.value = promptEvent
-    appStore.setInstallSurface('native')
+    appInstallStore.setInstallSurface('native')
   }
 
   const onAppInstalled = () => {
     deferredPrompt.value = null
-    appStore.setInstalled(true)
-    appStore.setInstallPending(false)
+    appInstallStore.setInstalled(true)
+    appInstallStore.setInstallPending(false)
   }
 
   onMounted(() => {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches
 
-    appStore.setInstalled(isStandalone)
+    appInstallStore.setInstalled(isStandalone)
 
     if (!isStandalone && isManualInstallBrowser()) {
       // Apple touch browsers that skip beforeinstallprompt still need an install affordance because the app is designed around mobile-first PWA use.
-      appStore.setInstallSurface('manual')
+      appInstallStore.setInstallSurface('manual')
     }
 
     window.addEventListener(
@@ -82,7 +82,7 @@ export function usePwaInstall() {
       return false
     }
 
-    appStore.setInstallPending(true)
+    appInstallStore.setInstallPending(true)
 
     try {
       await deferredPrompt.value.prompt()
@@ -90,22 +90,22 @@ export function usePwaInstall() {
       const wasAccepted = choice.outcome === 'accepted'
 
       if (wasAccepted) {
-        appStore.setInstalled(true)
+        appInstallStore.setInstalled(true)
       } else {
         // The browser prompt is single-use, so the shell should wait for a fresh event before showing a native install CTA again.
-        appStore.setInstallSurface('hidden')
+        appInstallStore.setInstallSurface('hidden')
       }
 
       deferredPrompt.value = null
       return wasAccepted
     } finally {
-      appStore.setInstallPending(false)
+      appInstallStore.setInstallPending(false)
     }
   }
 
   const manualInstallVariant = computed(() =>
     // What: expose the one manual-install recipe the shell can render today. Why: manual mode is only reachable on iOS Safari, so broader variants would only create dead UI branches.
-    appStore.installSurface === 'manual' ? 'iosSafari' : null
+    appInstallStore.installSurface === 'manual' ? 'iosSafari' : null
   )
 
   return { promptInstall, manualInstallVariant }

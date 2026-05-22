@@ -13,6 +13,7 @@ import { createAppI18n } from '@/ui/i18n'
 import { registerPwa } from '@/ui/pwa/register'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppStore } from '@/ui/stores/app'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
@@ -165,7 +166,8 @@ describe('AppShell', () => {
       demoStore: ReturnType<typeof useDemoStore>,
       shellStore: ReturnType<typeof useShellStore>,
       appUpdateStore: ReturnType<typeof useAppUpdateStore>,
-      appResetStore: ReturnType<typeof useAppResetStore>
+      appResetStore: ReturnType<typeof useAppResetStore>,
+      appInstallStore: ReturnType<typeof useAppInstallStore>
     ) => void
   ) {
     const pinia = createPinia()
@@ -176,13 +178,15 @@ describe('AppShell', () => {
     const shellStore = useShellStore()
     const appUpdateStore = useAppUpdateStore()
     const appResetStore = useAppResetStore()
+    const appInstallStore = useAppInstallStore()
 
     configureStore?.(
       appStore,
       demoStore,
       shellStore,
       appUpdateStore,
-      appResetStore
+      appResetStore,
+      appInstallStore
     )
 
     const wrapper = mount(AppShell, {
@@ -197,7 +201,8 @@ describe('AppShell', () => {
       demoStore,
       shellStore,
       appUpdateStore,
-      appResetStore
+      appResetStore,
+      appInstallStore
     }
   }
 
@@ -230,34 +235,61 @@ describe('AppShell', () => {
   })
 
   it('auto-opens the install modal once when the ready shell becomes installable', () => {
-    const { wrapper, store } = mountShell((appStore) => {
-      appStore.setInstallSurface('native')
-      appStore.setAppReady()
-    })
+    const { wrapper, appInstallStore } = mountShell(
+      (
+        appStore,
+        _demoStore,
+        _shellStore,
+        _appUpdateStore,
+        _appResetStore,
+        installStore
+      ) => {
+        installStore.setInstallSurface('native')
+        appStore.setAppReady()
+      }
+    )
 
     expect(wrapper.text()).toContain('Zainstaluj Zeszyt Trenera')
-    expect(store.installModalShown).toBe(true)
+    expect(appInstallStore.installModalShown).toBe(true)
   })
 
   it('dismisses the install modal when the user postpones installation', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
-      appStore.setInstallSurface('native')
-      appStore.setAppReady()
-    })
+    const { wrapper, appInstallStore } = mountShell(
+      (
+        appStore,
+        _demoStore,
+        _shellStore,
+        _appUpdateStore,
+        _appResetStore,
+        installStore
+      ) => {
+        installStore.setInstallSurface('native')
+        appStore.setAppReady()
+      }
+    )
 
     await findButtonByText(wrapper, 'Później')?.trigger('click')
     await nextTick()
 
-    expect(store.installModalVisible).toBe(false)
-    expect(store.showInstallEntry).toBe(true)
+    expect(appInstallStore.installModalVisible).toBe(false)
+    expect(appInstallStore.showInstallEntry).toBe(true)
   })
 
   it('keeps the install modal hidden while demo mode is active', async () => {
-    const { wrapper } = mountShell((appStore, demoStore) => {
-      appStore.setInstallSurface('native')
-      demoStore.setDemoModeActive(true)
-      appStore.setAppReady()
-    })
+    const { wrapper } = mountShell(
+      (
+        appStore,
+        demoStore,
+        _shellStore,
+        _appUpdateStore,
+        _appResetStore,
+        installStore
+      ) => {
+        installStore.setInstallSurface('native')
+        demoStore.setDemoModeActive(true)
+        appStore.setAppReady()
+      }
+    )
 
     expect(wrapper.text()).not.toContain('Zainstaluj Zeszyt Trenera')
 
@@ -273,10 +305,19 @@ describe('AppShell', () => {
       manualInstallVariant: computed(() => 'iosSafari')
     })
 
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setInstallSurface('manual')
-      appStore.setAppReady()
-    })
+    const { wrapper } = mountShell(
+      (
+        appStore,
+        _demoStore,
+        _shellStore,
+        _appUpdateStore,
+        _appResetStore,
+        installStore
+      ) => {
+        installStore.setInstallSurface('manual')
+        appStore.setAppReady()
+      }
+    )
 
     expect(wrapper.text()).toContain('Dodaj do ekranu głównego')
     expect(wrapper.text()).toContain('Stuknij przycisk Udostępnij w Safari.')

@@ -4,7 +4,7 @@ import { defineComponent } from 'vue'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
-import { useAppStore } from '@/ui/stores/app'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 
 describe('usePwaInstall', () => {
   const originalUserAgentDescriptor = Object.getOwnPropertyDescriptor(
@@ -69,7 +69,7 @@ describe('usePwaInstall', () => {
       }
     })
 
-    return { api, store: useAppStore() }
+    return { api, store: useAppInstallStore() }
   }
 
   it('promotes native prompt availability into the shared install state', async () => {

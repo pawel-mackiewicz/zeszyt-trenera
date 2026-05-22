@@ -32,6 +32,7 @@ import {
 } from '@/ui/router/runtime'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
 import { useAppStore } from '@/ui/stores/app'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useShellStore } from '@/ui/stores/shell.store'
@@ -43,6 +44,7 @@ type ObservableSubscription = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const appInstallStore = useAppInstallStore()
 const appResetStore = useAppResetStore()
 const appUpdateStore = useAppUpdateStore()
 const shellStore = useShellStore()
@@ -57,15 +59,9 @@ useNetworkStatus()
 // What: start PWA checks from the shell lifecycle. Why: the update store lets menu actions and banners share one registration without prop drilling or duplicate service-worker setup.
 appUpdateStore.registerUpdateChecks()
 
-const {
-  appReadiness,
-  blockingIssue,
-  installCoachVisible,
-  installed,
-  installSurface,
-  setupStatus,
-  showInstallEntry
-} = storeToRefs(appStore)
+const { appReadiness, blockingIssue, setupStatus } = storeToRefs(appStore)
+const { installCoachVisible, installed, installSurface, showInstallEntry } =
+  storeToRefs(appInstallStore)
 const { updateAvailable, updateError, updatePending } =
   storeToRefs(appUpdateStore)
 const { drawerOpen } = storeToRefs(shellStore)
@@ -196,7 +192,7 @@ watch(installed, (value) => {
 watch(drawerOpen, (value) => {
   if (!value) {
     // What: collapse drawer-only helper copy whenever the shared drawer store closes. Why: Header can now close the drawer through its composable, so AppShell still owns cleaning up install-coach UI that lives inside the drawer.
-    appStore.hideInstallCoach()
+    appInstallStore.hideInstallCoach()
   }
 })
 
@@ -267,7 +263,7 @@ onBeforeUnmount(() => {
 function closeDrawer() {
   // What: route every drawer dismissal through one shell helper. Why: Header now toggles Pinia state directly, so the shell needs one place to pair drawer closing with its related coach cleanup.
   shellStore.closeDrawer()
-  appStore.hideInstallCoach()
+  appInstallStore.hideInstallCoach()
 }
 
 function dismissBackupExportError() {
@@ -392,7 +388,7 @@ function openResetModalFromMenu() {
 
 function openInstallEntry() {
   closeDrawer()
-  appStore.openInstallModal()
+  appInstallStore.openInstallModal()
 }
 
 async function handleUpdateAction() {
@@ -510,7 +506,7 @@ function navigationLabel(item: NavigationItem) {
                 <button
                   class="install-coach-card__action"
                   type="button"
-                  @click="appStore.hideInstallCoach()"
+                  @click="appInstallStore.hideInstallCoach()"
                 >
                   {{ t('common.understand') }}
                 </button>
