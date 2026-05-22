@@ -8,7 +8,7 @@ import {
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
-} from '@/features/app_reset/ResetDataModal.contract'
+} from '@/ui/features/app_reset/ResetDataModal.contract'
 import { useAppServices } from '@/ui/appServices'
 import { useAppStore } from '@/ui/stores/app'
 
