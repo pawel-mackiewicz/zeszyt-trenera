@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { createPinia, setActivePinia } from 'pinia'
 import { expect, userEvent, waitFor, within } from 'storybook/test'
 
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppStore } from '@/ui/stores/app'
 
 import InstallModal from './InstallModal.vue'
@@ -26,6 +27,7 @@ function resolveStoryLocale(value: unknown): InstallModalLocale {
 
 function configureInstallStoryState(args: InstallModalStoryArgs) {
   const appStore = useAppStore()
+  const appInstallStore = useAppInstallStore()
 
   if (args.shellReady) {
     appStore.setAppReady()
@@ -33,19 +35,19 @@ function configureInstallStoryState(args: InstallModalStoryArgs) {
   }
 
   if (args.status === InstallModalStatus.Hidden) {
-    appStore.setInstallSurface('hidden')
+    appInstallStore.setInstallSurface('hidden')
     return
   }
 
-  appStore.setInstallSurface(
+  appInstallStore.setInstallSurface(
     args.status === InstallModalStatus.ManualReady ? 'manual' : 'native'
   )
 
   if (args.status === InstallModalStatus.NativePending) {
-    appStore.setInstallPending(true)
+    appInstallStore.setInstallPending(true)
   }
 
-  appStore.openInstallModal()
+  appInstallStore.openInstallModal()
 }
 
 const meta: Meta<InstallModalStoryArgs> = {

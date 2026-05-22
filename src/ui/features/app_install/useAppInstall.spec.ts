@@ -3,6 +3,7 @@ import { computed, nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
 import { InstallModalStatus } from '@/ui/features/app_install/InstallModal.contract'
@@ -28,6 +29,7 @@ describe('useAppInstall', () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const appStore = useAppStore()
+    const installStore = useAppInstallStore()
     const demoStore = useDemoStore()
 
     vi.mocked(usePwaInstall).mockReturnValue({
@@ -35,7 +37,7 @@ describe('useAppInstall', () => {
       manualInstallVariant: computed(
         () =>
           options.manualInstallVariant ??
-          (appStore.installSurface === 'manual' ? 'iosSafari' : null)
+          (installStore.installSurface === 'manual' ? 'iosSafari' : null)
       )
     })
 
@@ -45,6 +47,7 @@ describe('useAppInstall', () => {
       appStore,
       composable,
       demoStore,
+      installStore,
       promptInstall
     }
   }
@@ -55,10 +58,10 @@ describe('useAppInstall', () => {
   }
 
   it('keeps the modal hidden until shell readiness and modal visibility are true', () => {
-    const { appStore, composable } = mountInstallModalController()
+    const { appStore, composable, installStore } = mountInstallModalController()
 
-    appStore.setInstallSurface('native')
-    appStore.openInstallModal()
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal()
     expect(composable.installModalStatus.value).toBe(InstallModalStatus.Hidden)
     expect(composable.isInstallModalVisible.value).toBe(false)
 
@@ -71,19 +74,19 @@ describe('useAppInstall', () => {
   })
 
   it('maps manual and native pending statuses for the smart component', () => {
-    const { appStore, composable } = mountInstallModalController()
+    const { appStore, composable, installStore } = mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('manual')
-    appStore.openInstallModal()
+    installStore.setInstallSurface('manual')
+    installStore.openInstallModal()
     expect(composable.installModalStatus.value).toBe(
       InstallModalStatus.ManualReady
     )
     expect(composable.isInstallModalManual.value).toBe(true)
     expect(composable.isInstallModalPending.value).toBe(false)
 
-    appStore.setInstallSurface('native')
-    appStore.setInstallPending(true)
+    installStore.setInstallSurface('native')
+    installStore.setInstallPending(true)
     expect(composable.installModalStatus.value).toBe(
       InstallModalStatus.NativePending
     )
@@ -92,107 +95,107 @@ describe('useAppInstall', () => {
   })
 
   it('dismisses the manual modal on primary action without touching native prompt flow', async () => {
-    const { appStore, composable, promptInstall } =
+    const { appStore, composable, installStore, promptInstall } =
       mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('manual')
-    appStore.openInstallModal()
+    installStore.setInstallSurface('manual')
+    installStore.openInstallModal()
     await nextTick()
 
     await composable.handleInstallPrimaryAction()
 
     // What: keep manual mode on a single dismiss-only CTA. Why: iOS Safari does not expose a native install prompt, so the primary action should only close guidance.
     expect(promptInstall).not.toHaveBeenCalled()
-    expect(appStore.installModalVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
   })
 
   it('closes install surfaces after accepted native prompt', async () => {
-    const { appStore, composable, promptInstall } =
+    const { appStore, composable, installStore, promptInstall } =
       mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('native')
-    appStore.openInstallModal()
-    appStore.showInstallCoach()
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal()
+    installStore.showInstallCoach()
     promptInstall.mockResolvedValueOnce(true)
     await nextTick()
 
     await composable.handleInstallPrimaryAction()
 
     expect(promptInstall).toHaveBeenCalledTimes(1)
-    expect(appStore.installModalVisible).toBe(false)
-    expect(appStore.installCoachVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
+    expect(installStore.installCoachVisible).toBe(false)
   })
 
   it('keeps install surfaces open when native prompt is dismissed and entry is still available', async () => {
-    const { appStore, composable, promptInstall } =
+    const { appStore, composable, installStore, promptInstall } =
       mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('native')
-    appStore.openInstallModal()
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal()
     promptInstall.mockResolvedValueOnce(false)
     await nextTick()
 
     await composable.handleInstallPrimaryAction()
 
-    expect(appStore.installModalVisible).toBe(true)
-    expect(appStore.showInstallEntry).toBe(true)
+    expect(installStore.installModalVisible).toBe(true)
+    expect(installStore.showInstallEntry).toBe(true)
   })
 
   it('closes the modal from the later action', async () => {
-    const { appStore, composable } = mountInstallModalController()
+    const { appStore, composable, installStore } = mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('native')
-    appStore.openInstallModal()
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal()
     await nextTick()
     composable.handleInstallLater()
 
-    expect(appStore.installModalVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
   })
 
   it('auto-opens the install modal once when the ready shell becomes installable', async () => {
-    const { appStore } = mountInstallModalController()
+    const { appStore, installStore } = mountInstallModalController()
 
-    appStore.setInstallSurface('native')
+    installStore.setInstallSurface('native')
     makeShellReady(appStore)
     await nextTick()
 
     // What: keep the auto-open assertion at the feature boundary. Why: the install feature now owns first-run PWA nudging instead of AppShell watchers.
-    expect(appStore.installModalVisible).toBe(true)
-    expect(appStore.installModalShown).toBe(true)
+    expect(installStore.installModalVisible).toBe(true)
+    expect(installStore.installModalShown).toBe(true)
   })
 
   it('waits for the demo intro modal to close before auto-opening the install modal', async () => {
-    const { appStore, demoStore } = mountInstallModalController()
+    const { appStore, demoStore, installStore } = mountInstallModalController()
 
     demoStore.showDemoIntroModal()
-    appStore.setInstallSurface('native')
+    installStore.setInstallSurface('native')
     makeShellReady(appStore)
     await nextTick()
 
-    expect(appStore.installModalVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
 
     demoStore.dismissDemoIntroModal()
     await nextTick()
 
-    expect(appStore.installModalVisible).toBe(true)
+    expect(installStore.installModalVisible).toBe(true)
   })
 
   it('collapses install-only surfaces while demo mode is active', async () => {
-    const { appStore, demoStore } = mountInstallModalController()
+    const { appStore, demoStore, installStore } = mountInstallModalController()
 
     makeShellReady(appStore)
-    appStore.setInstallSurface('native')
-    appStore.openInstallModal()
-    appStore.showInstallCoach()
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal()
+    installStore.showInstallCoach()
 
     demoStore.setDemoModeActive(true)
     await nextTick()
 
-    expect(appStore.installModalVisible).toBe(false)
-    expect(appStore.installCoachVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
+    expect(installStore.installCoachVisible).toBe(false)
   })
 })

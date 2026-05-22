@@ -5,7 +5,11 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { createAppI18n } from '@/ui/i18n'
-import { useAppStore, type InstallSurface } from '@/ui/stores/app'
+import {
+  useAppInstallStore,
+  type InstallSurface
+} from '@/ui/features/app_install/app-install.store'
+import { useAppStore } from '@/ui/stores/app'
 import InstallModal from '@/ui/features/app_install/InstallModal.vue'
 import { INSTALL_MODAL_MESSAGES } from '@/ui/features/app_install/InstallModal.messages'
 
@@ -29,13 +33,14 @@ describe('InstallModal', () => {
       shellReady: boolean
     }> = {}
   ): {
-    appStore: ReturnType<typeof useAppStore>
+    installStore: ReturnType<typeof useAppInstallStore>
     wrapper: VueWrapper
   } {
     const pinia = createPinia()
     const i18n = createAppI18n('pl')
     setActivePinia(pinia)
     const appStore = useAppStore()
+    const installStore = useAppInstallStore()
     const installSurface = options.installSurface ?? 'native'
 
     vi.mocked(usePwaInstall).mockReturnValue({
@@ -43,11 +48,11 @@ describe('InstallModal', () => {
       manualInstallVariant: computed(
         () =>
           options.manualInstallVariant ??
-          (appStore.installSurface === 'manual' ? 'iosSafari' : null)
+          (installStore.installSurface === 'manual' ? 'iosSafari' : null)
       )
     })
 
-    appStore.setInstallSurface(installSurface)
+    installStore.setInstallSurface(installSurface)
 
     if (options.shellReady ?? true) {
       appStore.setAppReady()
@@ -55,11 +60,11 @@ describe('InstallModal', () => {
     }
 
     if (options.installPending) {
-      appStore.setInstallPending(true)
+      installStore.setInstallPending(true)
     }
 
     if (options.installModalVisible ?? true) {
-      appStore.openInstallModal()
+      installStore.openInstallModal()
     }
 
     const wrapper = mount(InstallModal, {
@@ -68,7 +73,7 @@ describe('InstallModal', () => {
       }
     })
 
-    return { appStore, wrapper }
+    return { installStore, wrapper }
   }
 
   it('routes the native primary action through the PWA prompt composable', async () => {
@@ -80,19 +85,19 @@ describe('InstallModal', () => {
   })
 
   it('dismisses the modal when the secondary action is clicked', async () => {
-    const { appStore, wrapper } = mountInstallModal()
+    const { installStore, wrapper } = mountInstallModal()
 
     await wrapper.get('[data-testid="install-modal-later"]').trigger('click')
 
-    expect(appStore.installModalVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
   })
 
   it('dismisses the modal when the backdrop is clicked', async () => {
-    const { appStore, wrapper } = mountInstallModal()
+    const { installStore, wrapper } = mountInstallModal()
 
     await wrapper.get('[data-testid="install-modal-backdrop"]').trigger('click')
 
-    expect(appStore.installModalVisible).toBe(false)
+    expect(installStore.installModalVisible).toBe(false)
   })
 
   it('renders manual install steps only for the supported manual variant', () => {

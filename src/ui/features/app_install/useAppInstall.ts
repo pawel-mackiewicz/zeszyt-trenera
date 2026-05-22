@@ -2,6 +2,7 @@ import { storeToRefs } from 'pinia'
 import { computed, watch } from 'vue'
 
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
+import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
 import {
@@ -11,17 +12,17 @@ import {
 
 export function useAppInstall() {
   const appStore = useAppStore()
+  const appInstallStore = useAppInstallStore()
   const demoStore = useDemoStore()
   const { promptInstall, manualInstallVariant } = usePwaInstall()
+  const { appReadiness, setupStatus } = storeToRefs(appStore)
   const {
-    appReadiness,
     installModalVisible,
     installPending,
     installSurface,
-    setupStatus,
     showInstallEntry,
     shouldAutoOpenInstallModal
-  } = storeToRefs(appStore)
+  } = storeToRefs(appInstallStore)
   const { demoIntroModalVisible, demoModeActive } = storeToRefs(demoStore)
 
   const isShellReady = computed(
@@ -61,7 +62,7 @@ export function useAppInstall() {
     ([shouldOpen, shellReady, demoModalVisible]) => {
       if (shouldOpen && shellReady && !demoModalVisible) {
         // What: keep the one-time install nudge inside the install feature. Why: AppShell should not need to know when this PWA-specific modal is allowed to interrupt the mobile workflow.
-        appStore.openInstallModal('automatic')
+        appInstallStore.openInstallModal('automatic')
       }
     },
     { immediate: true }
@@ -75,8 +76,8 @@ export function useAppInstall() {
       }
 
       // What: collapse install-only surfaces while demo mode is active. Why: demo exploration should not compete with the local-first install prompt for the same first-run attention.
-      appStore.dismissInstallModal()
-      appStore.hideInstallCoach()
+      appInstallStore.dismissInstallModal()
+      appInstallStore.hideInstallCoach()
     },
     { immediate: true }
   )
@@ -84,13 +85,13 @@ export function useAppInstall() {
   watch(showInstallEntry, (value) => {
     if (!value) {
       // What: hide drawer coaching when the install entry disappears. Why: the coach copy must not remain visible after native/manual install is no longer available.
-      appStore.hideInstallCoach()
+      appInstallStore.hideInstallCoach()
     }
   })
 
   async function handleInstallPrimaryAction() {
     if (installModalStatus.value === InstallModalStatus.ManualReady) {
-      appStore.dismissInstallModal()
+      appInstallStore.dismissInstallModal()
       return
     }
 
@@ -102,13 +103,13 @@ export function useAppInstall() {
 
     // What: close install surfaces only when the browser accepted install or the entry vanished after prompt resolution. Why: local-first shell coaching should stay available after a dismissed native prompt until install is no longer possible.
     if (wasAccepted || !showInstallEntry.value) {
-      appStore.dismissInstallModal()
-      appStore.hideInstallCoach()
+      appInstallStore.dismissInstallModal()
+      appInstallStore.hideInstallCoach()
     }
   }
 
   function handleInstallLater() {
-    appStore.dismissInstallModal()
+    appInstallStore.dismissInstallModal()
   }
 
   return {
