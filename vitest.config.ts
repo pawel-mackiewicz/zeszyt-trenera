@@ -17,6 +17,25 @@ const packageJson = JSON.parse(
 ) as {
   version: string
 }
+
+const EXPECTED_STORYBOOK_STDERR_PATTERNS = [
+  (log: string) =>
+    log.includes(
+      '[@vue/compiler-core] decodeEntities option is passed but will be ignored in non-browser builds.'
+    ),
+  (log: string) =>
+    log.includes('Failed to leave demo mode.') &&
+    log.includes('Storybook leave-demo failure')
+]
+
+function isExpectedStorybookStderr(log: string, type: 'stdout' | 'stderr') {
+  // What: suppress only known Storybook harness stderr. Why: expected browser-story warnings and intentional failure states should not hide real app/test failures in the suite output.
+  return (
+    type === 'stderr' &&
+    EXPECTED_STORYBOOK_STDERR_PATTERNS.some((matches) => matches(log))
+  )
+}
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version)
@@ -39,6 +58,11 @@ export default defineConfig({
     include: ['pinia']
   },
   test: {
+    onConsoleLog(log, type) {
+      if (isExpectedStorybookStderr(log, type)) {
+        return false
+      }
+    },
     coverage: {
       provider: 'v8'
     },

@@ -11,6 +11,8 @@
   "include": [
     "vite.config.ts",
     "vitest.config.ts",
+    // Why: Storybook 10 publishes its Vue/Vite config types through package exports, so main.ts needs the Node tooling project's Bundler resolution.
+    ".storybook/main.ts",
     "eslint.config.mjs",
     "prettier.config.mjs"
   ]
