@@ -1,87 +1,111 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
-import { computed, ref, watch } from 'vue'
+import { createPinia, setActivePinia } from 'pinia'
+import { provide } from 'vue'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
-import ResetDataModal from './ResetDataModal.vue'
-import {
-  ResetDataModalStatus,
-  type ResetDataModalStatusValue
-} from './ResetDataModal.contract'
+import { appServicesKey } from '@/ui/appServices'
+import { useAppStore } from '@/ui/stores/app'
+
 import {
   RESET_DATA_MODAL_MESSAGES,
   type ResetDataModalLocale
 } from './ResetDataModal.messages'
+import ResetDataModal from './ResetDataModal.vue'
+import { useAppResetStore } from './app-reset.store'
+
+type ResetStoryResult = 'success' | 'pending' | 'failure'
 
 type ResetDataModalStoryArgs = {
-  status: ResetDataModalStatusValue
   confirmationInput: string
-  confirmationPhrase: string
-  canConfirm: boolean
-  onConfirm: ReturnType<typeof fn>
-  onClose: ReturnType<typeof fn>
-  onUpdateConfirmationInput: ReturnType<typeof fn>
+  modalVisible: boolean
+  resetResult: ResetStoryResult
+  shellReady: boolean
+  onResetApplicationData: ReturnType<typeof fn>
 }
 
 function resolveStoryLocale(value: unknown): ResetDataModalLocale {
-  // What: coerce Storybook global locale to supported locales in this story. Why: interaction assertions must stay deterministic even when toolbar globals are missing or malformed.
+  // What: coerce Storybook global locale to supported reset locales. Why: interaction assertions must stay deterministic when toolbar globals are absent.
   return value === 'en' ? 'en' : 'pl'
+}
+
+function createResetHandler(args: ResetDataModalStoryArgs) {
+  return async (command: { confirmationPhrase: string }) => {
+    args.onResetApplicationData(command)
+
+    if (args.resetResult === 'failure') {
+      throw new Error('Storybook reset failure')
+    }
+
+    if (args.resetResult === 'pending') {
+      await new Promise<void>(() => undefined)
+    }
+  }
 }
 
 const meta: Meta<ResetDataModalStoryArgs> = {
   title: 'UI/ResetDataModal',
   component: ResetDataModal,
+  // What: expose only smart reset workflow controls. Why: the modal no longer accepts rendering props, so manual QA should exercise store readiness and application-layer outcomes.
   argTypes: {
-    status: {
+    resetResult: {
       control: { type: 'select' },
-      options: Object.values(ResetDataModalStatus)
+      options: ['success', 'pending', 'failure']
+    },
+    modalVisible: {
+      control: 'boolean'
+    },
+    shellReady: {
+      control: 'boolean'
     }
   },
   args: {
-    status: ResetDataModalStatus.Ready,
     confirmationInput: '',
-    confirmationPhrase: 'DELETE ALL DATA',
-    canConfirm: false,
-    onConfirm: fn(),
-    onClose: fn(),
-    onUpdateConfirmationInput: fn()
+    modalVisible: true,
+    resetResult: 'success',
+    shellReady: true,
+    onResetApplicationData: fn()
   },
   parameters: {
     layout: 'centered'
   },
   render: (args) => ({
-    components: { ResetDataModal },
-    setup() {
-      const storyStatus = ref(args.status)
-      const componentProps = computed(() => ({
-        status: storyStatus.value,
-        confirmationInput: args.confirmationInput,
-        confirmationPhrase: args.confirmationPhrase,
-        canConfirm: args.canConfirm
-      }))
+    components: {
+      ResetDataModalStory: {
+        components: { ResetDataModal },
+        setup() {
+          const pinia = createPinia()
+          setActivePinia(pinia)
+          const appStore = useAppStore()
+          const appResetStore = useAppResetStore()
 
-      watch(
-        () => args.status,
-        (status) => {
-          storyStatus.value = status
-        }
-      )
+          if (args.shellReady) {
+            appStore.setAppReady()
+            appStore.setSetupStatus('ready')
+          }
 
-      function handleClose() {
-        args.onClose()
+          if (args.modalVisible) {
+            appResetStore.openResetModal()
+          }
 
-        if (storyStatus.value === ResetDataModalStatus.Pending) {
-          return
-        }
-
-        storyStatus.value = ResetDataModalStatus.Hidden
+          if (args.confirmationInput) {
+            appResetStore.setResetConfirmationInput(args.confirmationInput)
+          }
+        },
+        template: '<ResetDataModal />'
       }
-
-      // What: split component props from story spies. Why: the component API is emit-based and stories need explicit handler wiring to validate event contracts.
-      // What: model the shell as the modal parent in Storybook. Why: ResetDataModal only emits close, so the story must hide it to make backdrop dismissal visible during manual QA.
-      return { args, componentProps, handleClose }
     },
-    template:
-      '<ResetDataModal v-bind="componentProps" @confirm="args.onConfirm" @close="handleClose" @update:confirmationInput="args.onUpdateConfirmationInput" />'
+    setup() {
+      // What: provide a story-local application service seam. Why: reset stories must never touch the real local-first database while exercising the smart modal.
+      provide(appServicesKey, {
+        queries: {} as never,
+        useCases: {
+          resetApplicationData: {
+            handle: createResetHandler(args)
+          }
+        } as never
+      })
+    },
+    template: '<ResetDataModalStory />'
   })
 }
 
@@ -90,31 +114,33 @@ type Story = StoryObj<typeof meta>
 
 export const Ready: Story = {
   args: {
-    canConfirm: true
+    confirmationInput: 'DELETE ALL DATA'
   }
 }
 
 export const ConfirmAction: Story = {
   args: {
-    canConfirm: true
+    confirmationInput: 'DELETE ALL DATA',
+    resetResult: 'pending'
   },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
 
-    // What: keep destructive CTA assertion isolated in its own story. Why: this interaction is safety-critical and should fail independently from other modal events.
+    // What: keep destructive CTA assertion isolated without resolving the story use case. Why: the production reset path reloads the PWA after success, which would tear down Storybook before the interaction can report its assertion.
     await userEvent.click(canvas.getByTestId('confirm-reset-button'))
-    await expect(args.onConfirm).toHaveBeenCalledTimes(1)
-    await expect(args.onClose).toHaveBeenCalledTimes(0)
+    await waitFor(() =>
+      expect(args.onResetApplicationData).toHaveBeenCalledWith({
+        confirmationPhrase: 'DELETE ALL DATA'
+      })
+    )
   }
 }
 
 export const BackdropCloseAction: Story = {
-  play: async ({ args, canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
     await userEvent.click(canvas.getByTestId('reset-data-modal-backdrop'))
-    await expect(args.onClose).toHaveBeenCalledTimes(1)
-    await expect(args.onConfirm).toHaveBeenCalledTimes(0)
     await waitFor(() =>
       expect(
         canvas.queryByTestId('reset-data-modal-backdrop')
@@ -125,21 +151,39 @@ export const BackdropCloseAction: Story = {
 
 export const Pending: Story = {
   args: {
-    status: ResetDataModalStatus.Pending,
-    canConfirm: true
+    confirmationInput: 'DELETE ALL DATA',
+    resetResult: 'pending'
   },
   play: async ({ canvasElement, globals }) => {
     const canvas = within(canvasElement)
     const locale = resolveStoryLocale(globals.locale)
     const pendingLabel = RESET_DATA_MODAL_MESSAGES[locale].reset.actions.pending
 
+    await userEvent.click(canvas.getByTestId('confirm-reset-button'))
     await expect(canvas.getByText(pendingLabel)).toBeInTheDocument()
     await expect(canvas.getByTestId('confirm-reset-button')).toBeDisabled()
   }
 }
 
+export const Failure: Story = {
+  args: {
+    confirmationInput: 'DELETE ALL DATA',
+    resetResult: 'failure'
+  },
+  play: async ({ canvasElement, globals }) => {
+    const canvas = within(canvasElement)
+    const locale = resolveStoryLocale(globals.locale)
+
+    // What: keep failed reset feedback visible in Storybook. Why: the modal-scoped alert is the main UI evidence that destructive reset errors rise above the overlay.
+    await userEvent.click(canvas.getByTestId('confirm-reset-button'))
+    await expect(
+      await canvas.findByText(RESET_DATA_MODAL_MESSAGES[locale].reset.error)
+    ).toBeInTheDocument()
+  }
+}
+
 export const InputUpdateAction: Story = {
-  play: async ({ args, canvasElement }) => {
+  play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
     await userEvent.type(
@@ -147,6 +191,6 @@ export const InputUpdateAction: Story = {
       'DELETE ALL DATA'
     )
 
-    await expect(args.onUpdateConfirmationInput).toHaveBeenCalled()
+    await expect(canvas.getByTestId('confirm-reset-button')).toBeEnabled()
   }
 }

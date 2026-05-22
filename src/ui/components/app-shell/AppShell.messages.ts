@@ -32,8 +32,7 @@ export const APP_SHELL_MESSAGES = {
           'Nie udało się przywrócić kopii danych. Sprawdź plik i spróbuj ponownie.'
       },
       resetData: {
-        action: 'Reset aplikacji',
-        error: 'Nie udało się wyczyścić danych. Spróbuj ponownie.'
+        action: 'Reset aplikacji'
       }
     },
     routes: {
@@ -128,8 +127,7 @@ export const APP_SHELL_MESSAGES = {
         error: 'Backup restore failed. Check the file and try again.'
       },
       resetData: {
-        action: 'Reset app data',
-        error: 'Data reset failed. Try again.'
+        action: 'Reset app data'
       }
     },
     routes: {

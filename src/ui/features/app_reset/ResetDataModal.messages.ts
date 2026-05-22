@@ -6,6 +6,7 @@ export const RESET_DATA_MODAL_MESSAGES = {
       copy: 'To usunie wszystkich członków, treningi, płatności, konfigurację klubu i trenera oraz lokalne ustawienia aplikacji zapisane na tym urządzeniu.',
       phraseLabel: 'Aby usunąć wszystkie dane, wpisz: {phrase}',
       inputLabel: 'Wpisz frazę potwierdzającą',
+      error: 'Nie udało się wyczyścić danych. Spróbuj ponownie.',
       actions: {
         cancel: 'Anuluj',
         confirm: 'Usuń wszystko',
@@ -19,6 +20,7 @@ export const RESET_DATA_MODAL_MESSAGES = {
       copy: 'This removes all members, trainings, payments, club/trainer setup, and app-owned local state stored on this device.',
       phraseLabel: 'To delete all data, type: {phrase}',
       inputLabel: 'Type the confirmation phrase',
+      error: 'Data reset failed. Try again.',
       actions: {
         cancel: 'Cancel',
         confirm: 'Delete everything',
