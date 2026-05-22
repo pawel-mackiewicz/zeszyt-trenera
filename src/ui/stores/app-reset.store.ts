@@ -1,24 +1,17 @@
-import { computed, ref, type Ref } from 'vue'
+import { computed, ref } from 'vue'
+import { defineStore } from 'pinia'
 
 import {
   normalizeResetConfirmationPhrase,
-  RESET_APPLICATION_CONFIRMATION_PHRASE,
-  type ResetApplicationDataCommand
+  RESET_APPLICATION_CONFIRMATION_PHRASE
 } from '@/write/application/requests/ResetApplicationDataCommand'
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
 } from '@/features/app_reset/ResetDataModal.contract'
+import { useAppServices } from '@/ui/appServices'
+import { useAppStore } from '@/ui/stores/app'
 
-type UseResetDataModalOptions = {
-  isShellReady: Readonly<Ref<boolean>>
-  onResetApplicationData: (
-    command: ResetApplicationDataCommand
-  ) => Promise<void> | void
-  onReloadApplication: () => Promise<void> | void
-}
-
-// What: define one internal status model for the reset workflow. Why: modal rendering and floating-error visibility must stay mutually consistent while async destructive writes are in flight.
 const ResetWorkflowStatus = {
   Idle: 'idle',
   Pending: 'pending',
@@ -28,13 +21,15 @@ const ResetWorkflowStatus = {
 type ResetWorkflowStatusValue =
   (typeof ResetWorkflowStatus)[keyof typeof ResetWorkflowStatus]
 
-export function useResetDataModal(options: UseResetDataModalOptions) {
+export const useAppResetStore = defineStore('appReset', () => {
+  const appStore = useAppStore()
+  const { useCases } = useAppServices()
   const resetModalVisible = ref(false)
   const resetWorkflowStatus = ref<ResetWorkflowStatusValue>(
     ResetWorkflowStatus.Idle
   )
   const resetConfirmationInput = ref('')
-  const resetConfirmationPhrase = RESET_APPLICATION_CONFIRMATION_PHRASE
+  const resetConfirmationPhrase = ref(RESET_APPLICATION_CONFIRMATION_PHRASE)
 
   const resetInProgress = computed(
     () => resetWorkflowStatus.value === ResetWorkflowStatus.Pending
@@ -45,11 +40,13 @@ export function useResetDataModal(options: UseResetDataModalOptions) {
   const isResetConfirmationValid = computed(
     () =>
       normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
-      resetConfirmationPhrase
+      resetConfirmationPhrase.value
   )
-  // What: expose one status value for the presentation component. Why: consolidating visibility and pending-state in one contract keeps the UI API deterministic and testable.
+  const isShellReady = computed(
+    () => appStore.appReadiness === 'ready' && appStore.setupStatus === 'ready'
+  )
   const resetModalStatus = computed<ResetDataModalStatusValue>(() => {
-    if (!options.isShellReady.value || !resetModalVisible.value) {
+    if (!isShellReady.value || !resetModalVisible.value) {
       return ResetDataModalStatus.Hidden
     }
 
@@ -65,7 +62,7 @@ export function useResetDataModal(options: UseResetDataModalOptions) {
   }
 
   function closeResetModal() {
-    // What: lock dismiss interactions while reset writes are in flight. Why: closing during a destructive pending action hides critical context and can trigger duplicate retries.
+    // What: keep the destructive reset context visible while the application use case is running. Why: hiding pending state invites duplicate taps and makes local-first recovery harder to reason about.
     if (resetInProgress.value) {
       return
     }
@@ -80,7 +77,6 @@ export function useResetDataModal(options: UseResetDataModalOptions) {
   }
 
   function dismissResetError() {
-    // What: allow dismissing stale reset failures without closing the modal. Why: the coach should be able to correct the phrase and retry immediately in the same context.
     resetWorkflowStatus.value = ResetWorkflowStatus.Idle
   }
 
@@ -96,15 +92,15 @@ export function useResetDataModal(options: UseResetDataModalOptions) {
     resetWorkflowStatus.value = ResetWorkflowStatus.Pending
 
     try {
-      // What: execute destructive writes through the injected shell callback. Why: this composable must stay UI-only and never bypass the application-layer boundary.
-      await options.onResetApplicationData({
+      // What: keep full-reset writes behind the application layer. Why: the shell must never bypass the reset use case when clearing local PWA data.
+      await useCases.resetApplicationData.handle({
         confirmationPhrase: resetConfirmationInput.value
       })
       resetWorkflowStatus.value = ResetWorkflowStatus.Idle
       resetModalVisible.value = false
       resetConfirmationInput.value = ''
-      // What: trigger reload after state cleanup without awaiting completion. Why: window reload is fire-and-forget, and awaiting it only delays UI updates in tests and runtime.
-      void options.onReloadApplication()
+      // What: cold-reload after a successful reset. Why: Pinia and i18n still hold in-memory state after local storage and IndexedDB are cleared.
+      window.location.reload()
     } catch (error) {
       resetWorkflowStatus.value = ResetWorkflowStatus.Error
       console.error('Failed to reset all local application data.', error)
@@ -123,4 +119,4 @@ export function useResetDataModal(options: UseResetDataModalOptions) {
     confirmResetApplicationData,
     dismissResetError
   }
-}
+})

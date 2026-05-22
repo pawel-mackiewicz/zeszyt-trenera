@@ -22,7 +22,6 @@ describe('useAppStore', () => {
     expect(store.isOnline).toBe(false)
     expect(store.dbConnected).toBe(true)
     expect(store.setupStatus).toBe('requires-club')
-    expect(store.updateError).toBeNull()
   })
 
   it('shows the install modal only once per device storage for automatic prompts', () => {
@@ -75,19 +74,5 @@ describe('useAppStore', () => {
     expect(store.showInstallEntry).toBe(true)
   })
 
-  it('stores and clears service-worker registration errors without blocking the shell', () => {
-    const store = useAppStore()
-
-    store.setUpdateError({
-      kind: 'registration'
-    })
-
-    expect(store.updateError).toEqual({
-      kind: 'registration'
-    })
-
-    store.clearUpdateError()
-
-    expect(store.updateError).toBeNull()
-  })
+  // What: keep this store focused on readiness and install state. Why: PWA update errors now live in the dedicated app-update store where registration and activation are guarded together.
 })

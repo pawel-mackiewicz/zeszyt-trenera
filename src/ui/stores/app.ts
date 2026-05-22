@@ -8,10 +8,6 @@ import { useDemoStore } from '@/ui/features/demo/demo.store'
 export type AppReadiness = 'checking' | 'ready' | 'blocked'
 export type BlockingIssue = 'database' | 'bootstrap' | null
 export type InstallSurface = 'hidden' | 'native' | 'manual'
-export type UpdateErrorKind = 'registration' | 'activation'
-export type UpdateErrorState = {
-  kind: UpdateErrorKind
-}
 
 function isStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches
@@ -51,8 +47,6 @@ export const useAppStore = defineStore('app', () => {
   const installModalVisible = ref(false)
   const installCoachVisible = ref(false)
   const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
-  // What: store only the update failure kind for the shell. Why: user-facing banners must stay localized and safe even when browser errors are highly technical.
-  const updateError = ref<UpdateErrorState | null>(null)
   const appReadiness = ref<AppReadiness>('checking')
   // Keeping only the issue code here lets the shell translate failure copy locally instead of storing hydrated text in shared state.
   const blockingIssue = ref<BlockingIssue>(null)
@@ -155,14 +149,6 @@ export const useAppStore = defineStore('app', () => {
     blockingIssue.value = issue
   }
 
-  function setUpdateError(value: UpdateErrorState | null) {
-    updateError.value = value
-  }
-
-  function clearUpdateError() {
-    updateError.value = null
-  }
-
   function setDbConnected(value: boolean) {
     dbConnected.value = value
   }
@@ -182,7 +168,6 @@ export const useAppStore = defineStore('app', () => {
     installModalShown,
     showInstallEntry,
     shouldAutoOpenInstallModal,
-    updateError,
     appReadiness,
     blockingIssue,
     dbConnected,
@@ -199,8 +184,6 @@ export const useAppStore = defineStore('app', () => {
     hideInstallCoach,
     setAppReady,
     blockApplication,
-    setUpdateError,
-    clearUpdateError,
     setDbConnected,
     setSetupStatus
   }
