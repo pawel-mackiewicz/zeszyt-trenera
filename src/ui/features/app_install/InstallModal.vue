@@ -5,7 +5,7 @@ import { useI18n, type MessageFunction, type VueMessageType } from 'vue-i18n'
 import AppButton from '@/ui/components/AppButton.vue'
 import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import { INSTALL_MODAL_MESSAGES } from '@/ui/features/app_install/InstallModal.messages'
-import { useInstallModal } from '@/ui/features/app_install/useInstallModal'
+import { useAppInstall } from '@/ui/features/app_install/useAppInstall'
 
 type ManualInstallStepMessage = VueMessageType | MessageFunction<VueMessageType>
 
@@ -23,7 +23,7 @@ const {
   manualInstallVariant,
   handleInstallPrimaryAction,
   handleInstallLater
-} = useInstallModal()
+} = useAppInstall()
 
 const title = computed(() =>
   isInstallModalManual.value
