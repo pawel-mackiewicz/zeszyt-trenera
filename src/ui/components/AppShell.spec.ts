@@ -7,13 +7,15 @@ import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
 import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppShell from '@/ui/components/AppShell.vue'
-import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { createAppI18n } from '@/ui/i18n'
+import { registerPwa } from '@/ui/pwa/register'
 import { createNavigationItems } from '@/ui/router'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'
+import { useAppResetStore } from '@/ui/stores/app-reset.store'
+import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useShellStore } from '@/ui/stores/shell.store'
 
@@ -53,21 +55,20 @@ vi.mock('@/ui/composables/usePwaInstall', () => ({
   usePwaInstall: vi.fn()
 }))
 
-vi.mock('@/ui/composables/useAppUpdate', () => ({
-  useAppUpdate: vi.fn()
-}))
-
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()
+}))
+
+vi.mock('@/ui/pwa/register', () => ({
+  registerPwa: vi.fn()
 }))
 
 describe('AppShell', () => {
   let mockRouterPush: Mock
   let mockRouterBack: Mock
   let mockRouterReplace: Mock
-  let mockNeedRefresh: Ref<boolean>
-  let mockUpdatePending: Ref<boolean>
-  let mockRefreshApplication: Mock
+  let mockUpdateAvailable: Ref<boolean>
+  let mockUpdateServiceWorker: Mock
   let mockRoute: MockRoute
   let mockSetupStatusObservers: SetupStatusObserver[]
   let mockSetupStatus: SetupStatus
@@ -81,9 +82,8 @@ describe('AppShell', () => {
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
     mockRouterReplace = vi.fn()
-    mockNeedRefresh = ref(false)
-    mockUpdatePending = ref(false)
-    mockRefreshApplication = vi.fn().mockResolvedValue(undefined)
+    mockUpdateAvailable = ref(false)
+    mockUpdateServiceWorker = vi.fn().mockResolvedValue(undefined)
     mockImportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockExportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
@@ -116,10 +116,11 @@ describe('AppShell', () => {
       promptInstall: vi.fn().mockResolvedValue(true),
       manualInstallVariant: computed(() => null)
     })
-    vi.mocked(useAppUpdate).mockReturnValue({
-      needRefresh: mockNeedRefresh,
-      updatePending: mockUpdatePending,
-      refreshApplication: mockRefreshApplication
+    vi.mocked(registerPwa).mockReset()
+    vi.mocked(registerPwa).mockReturnValue({
+      needRefresh: mockUpdateAvailable,
+      offlineReady: ref(false),
+      updateServiceWorker: mockUpdateServiceWorker
     })
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
@@ -162,7 +163,9 @@ describe('AppShell', () => {
     configureStore?: (
       appStore: ReturnType<typeof useAppStore>,
       demoStore: ReturnType<typeof useDemoStore>,
-      shellStore: ReturnType<typeof useShellStore>
+      shellStore: ReturnType<typeof useShellStore>,
+      appUpdateStore: ReturnType<typeof useAppUpdateStore>,
+      appResetStore: ReturnType<typeof useAppResetStore>
     ) => void
   ) {
     const pinia = createPinia()
@@ -171,8 +174,16 @@ describe('AppShell', () => {
     const appStore = useAppStore()
     const demoStore = useDemoStore()
     const shellStore = useShellStore()
+    const appUpdateStore = useAppUpdateStore()
+    const appResetStore = useAppResetStore()
 
-    configureStore?.(appStore, demoStore, shellStore)
+    configureStore?.(
+      appStore,
+      demoStore,
+      shellStore,
+      appUpdateStore,
+      appResetStore
+    )
 
     const wrapper = mount(AppShell, {
       global: {
@@ -180,7 +191,14 @@ describe('AppShell', () => {
       }
     })
 
-    return { wrapper, store: appStore, demoStore, shellStore }
+    return {
+      wrapper,
+      store: appStore,
+      demoStore,
+      shellStore,
+      appUpdateStore,
+      appResetStore
+    }
   }
 
   function findButtonByText(wrapper: VueWrapper, text: string) {
@@ -276,7 +294,7 @@ describe('AppShell', () => {
     expect(wrapper.text()).not.toContain('Aktualizuj aplikację')
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
 
-    mockNeedRefresh.value = true
+    mockUpdateAvailable.value = true
     await nextTick()
 
     expect(wrapper.text()).toContain('Aktualizuj aplikację')
@@ -360,28 +378,45 @@ describe('AppShell', () => {
   })
 
   it('disables the menu update action while the new shell is activating', async () => {
-    mockNeedRefresh.value = true
-    mockUpdatePending.value = true
+    let resolveUpdate: (() => void) | undefined
+    mockUpdateAvailable.value = true
+    mockUpdateServiceWorker.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveUpdate = resolve
+        })
+    )
 
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
     })
 
     await getShellMenuButton(wrapper).trigger('click')
+    const updateClick = findButtonByText(
+      wrapper,
+      'Aktualizuj aplikację'
+    )?.trigger('click')
+    await getShellMenuButton(wrapper).trigger('click')
+    await nextTick()
 
     const updateButton = findButtonByText(wrapper, 'Odświeżanie...')
 
     expect(updateButton?.attributes('disabled')).toBeDefined()
     expect(wrapper.text()).toContain('Odświeżanie...')
+
+    resolveUpdate?.()
+    await updateClick
   })
 
   it('renders the localized update error banner from the shell dictionary', async () => {
-    const { wrapper, store } = mountShell((appStore) => {
-      appStore.setAppReady()
-      appStore.setUpdateError({
-        kind: 'activation'
-      })
-    })
+    const { wrapper, appUpdateStore } = mountShell(
+      (appStore, _demoStore, _shellStore, nextAppUpdateStore) => {
+        appStore.setAppReady()
+        nextAppUpdateStore.updateError = {
+          kind: 'activation'
+        }
+      }
+    )
 
     await nextTick()
 
@@ -389,7 +424,7 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Nie udało się włączyć najnowszej wersji aplikacji. Zamknij ją i otwórz ponownie.'
     )
-    expect(store.updateError).toEqual({
+    expect(appUpdateStore.updateError).toEqual({
       kind: 'activation'
     })
   })
@@ -446,7 +481,7 @@ describe('AppShell', () => {
   })
 
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
-    mockNeedRefresh.value = true
+    mockUpdateAvailable.value = true
 
     const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
@@ -455,7 +490,7 @@ describe('AppShell', () => {
     await getShellMenuButton(wrapper).trigger('click')
     await findButtonByText(wrapper, 'Aktualizuj aplikację')?.trigger('click')
 
-    expect(mockRefreshApplication).toHaveBeenCalledTimes(1)
+    expect(mockUpdateServiceWorker).toHaveBeenCalledWith(true)
     expect(shellStore.drawerOpen).toBe(false)
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
   })

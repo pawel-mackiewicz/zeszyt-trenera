@@ -17,8 +17,6 @@ import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
 import ResetDataModal from '@/features/app_reset/ResetDataModal.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import InstallModal from '@/ui/features/app_install/InstallModal.vue'
-import { useResetDataModal } from '@/features/app_reset/useResetDataModal'
-import { useAppUpdate } from '@/ui/composables/useAppUpdate'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { persistLocale, type AppLocale } from '@/ui/i18n'
 import {
@@ -34,6 +32,8 @@ import {
 } from '@/ui/router/runtime'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
 import { useAppStore } from '@/ui/stores/app'
+import { useAppResetStore } from '@/ui/stores/app-reset.store'
+import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useShellStore } from '@/ui/stores/shell.store'
 
 type ObservableSubscription = {
@@ -43,6 +43,8 @@ type ObservableSubscription = {
 const route = useRoute()
 const router = useRouter()
 const appStore = useAppStore()
+const appResetStore = useAppResetStore()
+const appUpdateStore = useAppUpdateStore()
 const shellStore = useShellStore()
 const { queries, useCases } = useAppServices()
 const { t } = useI18n({
@@ -52,8 +54,8 @@ const { t } = useI18n({
 const { locale } = useI18n({ useScope: 'global' })
 
 useNetworkStatus()
-// Registering the worker here keeps background update checks tied to the shell lifecycle while leaving the actual activation behind an explicit menu action.
-const { needRefresh, refreshApplication, updatePending } = useAppUpdate()
+// What: start PWA checks from the shell lifecycle. Why: the update store lets menu actions and banners share one registration without prop drilling or duplicate service-worker setup.
+appUpdateStore.registerUpdateChecks()
 
 const {
   appReadiness,
@@ -62,9 +64,18 @@ const {
   installed,
   installSurface,
   setupStatus,
-  showInstallEntry,
-  updateError
+  showInstallEntry
 } = storeToRefs(appStore)
+const { updateAvailable, updateError, updatePending } =
+  storeToRefs(appUpdateStore)
+// What: keep reset modal bindings sourced from Pinia. Why: phase-one menu plumbing needs the inline menu and modal to share one workflow state before the sidebar becomes a smart component.
+const {
+  resetModalStatus,
+  resetConfirmationPhrase,
+  resetConfirmationInput,
+  isResetConfirmationValid,
+  resetErrorVisible
+} = storeToRefs(appResetStore)
 const { drawerOpen } = storeToRefs(shellStore)
 
 const appVersion = __APP_VERSION__
@@ -162,31 +173,6 @@ const shellStateCopy = computed(() => {
     ? t('shellState.blocked.database')
     : t('shellState.blocked.unknown')
 })
-// What: delegate reset-modal state and validation to one dedicated composable. Why: the shell should keep orchestration-only responsibility while reset UI state stays reusable and unit-testable.
-const {
-  resetModalStatus,
-  resetConfirmationPhrase,
-  resetConfirmationInput,
-  isResetConfirmationValid,
-  resetErrorVisible,
-  openResetModal,
-  closeResetModal,
-  setResetConfirmationInput,
-  confirmResetApplicationData,
-  dismissResetError
-} = useResetDataModal({
-  isShellReady,
-  onResetApplicationData: ({ confirmationPhrase }) => {
-    // What: route full-reset writes through the dedicated app workflow. Why: the shell must never mutate Dexie directly, so destructive data wipes stay behind the application boundary.
-    return useCases.resetApplicationData.handle({
-      confirmationPhrase
-    })
-  },
-  onReloadApplication: () => {
-    reloadApplication()
-  }
-})
-
 function unsubscribeSetupStatus() {
   setupStatusSubscription?.unsubscribe()
   setupStatusSubscription = null
@@ -409,7 +395,7 @@ function formatErrorDetails(error: unknown): string | null {
 
 function openResetModalFromMenu() {
   closeDrawer()
-  openResetModal()
+  appResetStore.openResetModal()
 }
 
 function openInstallEntry() {
@@ -419,7 +405,7 @@ function openInstallEntry() {
 
 async function handleUpdateAction() {
   closeDrawer()
-  await refreshApplication()
+  await appUpdateStore.activateWaitingUpdate()
 }
 
 function reloadApplication() {
@@ -548,7 +534,7 @@ function navigationLabel(item: NavigationItem) {
               {{ installEntryLabel }}
             </AppButton>
             <AppButton
-              v-if="needRefresh"
+              v-if="updateAvailable"
               class="mt-3 w-full"
               type="button"
               variant="secondary"
@@ -626,9 +612,9 @@ function navigationLabel(item: NavigationItem) {
         :confirmation-input="resetConfirmationInput"
         :confirmation-phrase="resetConfirmationPhrase"
         :can-confirm="isResetConfirmationValid"
-        @update:confirmation-input="setResetConfirmationInput"
-        @confirm="confirmResetApplicationData"
-        @close="closeResetModal"
+        @update:confirmation-input="appResetStore.setResetConfirmationInput"
+        @confirm="appResetStore.confirmResetApplicationData"
+        @close="appResetStore.closeResetModal"
       />
 
       <!-- What: keep reset failures on the shared floating surface even while the confirmation dialog stays mounted. Why: destructive local-data wipes must still expose a recovery message when the application-layer reset rejects. -->
@@ -637,7 +623,7 @@ function navigationLabel(item: NavigationItem) {
         :message="t('menu.resetData.error')"
         stack-level="modal"
         top-offset="shell"
-        @dismiss="dismissResetError"
+        @dismiss="appResetStore.dismissResetError"
       />
 
       <main class="pt-24 px-6 max-w-5xl mx-auto pb-32">
@@ -646,7 +632,7 @@ function navigationLabel(item: NavigationItem) {
           :message="updateErrorMessage"
           :title="t('update.bannerTitle')"
           top-offset="shell"
-          @dismiss="appStore.clearUpdateError()"
+          @dismiss="appUpdateStore.clearUpdateError()"
         />
 
         <RouterView v-slot="{ Component }">
