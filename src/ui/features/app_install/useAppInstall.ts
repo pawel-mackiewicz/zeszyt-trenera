@@ -9,7 +9,7 @@ import {
   type InstallModalStatusValue
 } from '@/ui/features/app_install/InstallModal.contract'
 
-export function useInstallModal() {
+export function useAppInstall() {
   const appStore = useAppStore()
   const demoStore = useDemoStore()
   const { promptInstall, manualInstallVariant } = usePwaInstall()

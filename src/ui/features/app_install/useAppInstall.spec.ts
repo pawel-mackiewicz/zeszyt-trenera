@@ -6,13 +6,13 @@ import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
 import { InstallModalStatus } from '@/ui/features/app_install/InstallModal.contract'
-import { useInstallModal } from '@/ui/features/app_install/useInstallModal'
+import { useAppInstall } from '@/ui/features/app_install/useAppInstall'
 
 vi.mock('@/ui/composables/usePwaInstall', () => ({
   usePwaInstall: vi.fn()
 }))
 
-describe('useInstallModal', () => {
+describe('useAppInstall', () => {
   let promptInstall: Mock<() => Promise<boolean>>
 
   beforeEach(() => {
@@ -39,7 +39,7 @@ describe('useInstallModal', () => {
       )
     })
 
-    const composable = useInstallModal()
+    const composable = useAppInstall()
 
     return {
       appStore,
