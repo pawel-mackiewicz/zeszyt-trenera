@@ -68,14 +68,6 @@ const {
 } = storeToRefs(appStore)
 const { updateAvailable, updateError, updatePending } =
   storeToRefs(appUpdateStore)
-// What: keep reset modal bindings sourced from Pinia. Why: phase-one menu plumbing needs the inline menu and modal to share one workflow state before the sidebar becomes a smart component.
-const {
-  resetModalStatus,
-  resetConfirmationPhrase,
-  resetConfirmationInput,
-  isResetConfirmationValid,
-  resetErrorVisible
-} = storeToRefs(appResetStore)
 const { drawerOpen } = storeToRefs(shellStore)
 
 const appVersion = __APP_VERSION__
@@ -606,25 +598,8 @@ function navigationLabel(item: NavigationItem) {
         @dismiss="dismissBackupImportError"
       />
 
-      <!-- What: render reset confirmation in a dedicated modal component. Why: shell tests remain focused on orchestration while modal visuals and copy evolve independently with a stable contract. -->
-      <ResetDataModal
-        :status="resetModalStatus"
-        :confirmation-input="resetConfirmationInput"
-        :confirmation-phrase="resetConfirmationPhrase"
-        :can-confirm="isResetConfirmationValid"
-        @update:confirmation-input="appResetStore.setResetConfirmationInput"
-        @confirm="appResetStore.confirmResetApplicationData"
-        @close="appResetStore.closeResetModal"
-      />
-
-      <!-- What: keep reset failures on the shared floating surface even while the confirmation dialog stays mounted. Why: destructive local-data wipes must still expose a recovery message when the application-layer reset rejects. -->
-      <FloatingErrorAlert
-        v-if="resetErrorVisible"
-        :message="t('menu.resetData.error')"
-        stack-level="modal"
-        top-offset="shell"
-        @dismiss="appResetStore.dismissResetError"
-      />
+      <!-- What: mount the smart reset overlay from the feature folder. Why: AppShell should own menu placement while reset confirmation, errors, and application-layer workflow stay behind the reset feature boundary. -->
+      <ResetDataModal />
 
       <main class="pt-24 px-6 max-w-5xl mx-auto pb-32">
         <FloatingErrorAlert

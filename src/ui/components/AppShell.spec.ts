@@ -764,7 +764,7 @@ describe('AppShell', () => {
     expect(document.title).toBe('Płatności • Zeszyt Trenera')
   })
 
-  it('enables full reset for case-insensitive confirmation phrase', async () => {
+  it('opens the smart reset modal from the shell menu', async () => {
     const { wrapper, shellStore } = mountShell((appStore) => {
       appStore.setAppReady()
     })
@@ -772,17 +772,11 @@ describe('AppShell', () => {
     await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
 
-    const confirmButton = wrapper.get('[data-testid="confirm-reset-button"]')
-
-    expect(confirmButton.attributes('disabled')).toBeDefined()
+    // What: keep AppShell reset coverage at the menu boundary. Why: confirmation input, errors, and application-layer reset execution now belong to the smart reset modal specs.
     expect(shellStore.drawerOpen).toBe(false)
-
-    await wrapper
-      .get('[data-testid="reset-confirmation-input"]')
-      .setValue('delete all data')
-    await nextTick()
-
-    expect(confirmButton.attributes('disabled')).toBeUndefined()
+    expect(
+      wrapper.find('[data-testid="reset-confirmation-input"]').exists()
+    ).toBe(true)
   })
 
   it('keeps the generic reset action visible while demo mode is active', async () => {
@@ -794,68 +788,5 @@ describe('AppShell', () => {
     await getShellMenuButton(wrapper).trigger('click')
 
     expect(wrapper.find('[data-testid="open-reset-modal"]').exists()).toBe(true)
-  })
-
-  it('resets app data after explicit confirmation phrase and confirm click', async () => {
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await getShellMenuButton(wrapper).trigger('click')
-    await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
-    await wrapper
-      .get('[data-testid="reset-confirmation-input"]')
-      .setValue('DELETE ALL DATA')
-    await wrapper.get('[data-testid="confirm-reset-button"]').trigger('click')
-    await flushPromises()
-    await nextTick()
-
-    expect(mockResetApplicationData).toHaveBeenCalledWith({
-      confirmationPhrase: 'DELETE ALL DATA'
-    })
-    // What: keep this shell assertion on orchestration side effects only. Why: modal hide timing now belongs to reset modal/composable unit specs after extraction from AppShell markup.
-    expect(reloadSpy).toHaveBeenCalledTimes(1)
-
-    reloadSpy.mockRestore()
-  })
-
-  it('keeps reset failures visible above the confirmation modal', async () => {
-    const resetError = new Error('reset failed')
-    const consoleErrorSpy = spyOnExpectedConsoleError()
-    mockResetApplicationData.mockRejectedValueOnce(resetError)
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
-
-    const { wrapper } = mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await getShellMenuButton(wrapper).trigger('click')
-    await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
-    await wrapper
-      .get('[data-testid="reset-confirmation-input"]')
-      .setValue('DELETE ALL DATA')
-    await wrapper.get('[data-testid="confirm-reset-button"]').trigger('click')
-    await flushPromises()
-
-    // What: assert the failed reset still renders the shared alert in the modal-safe layer. Why: the destructive confirmation dialog stays open on failure, so the recovery copy cannot hide behind the overlay.
-    const resetErrorAlert = wrapper.get('.floating-error-alert--modal')
-
-    expect(wrapper.text()).toContain('Usuń wszystkie dane aplikacji')
-    expect(resetErrorAlert.text()).toContain(
-      'Nie udało się wyczyścić danych. Spróbuj ponownie.'
-    )
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to reset all local application data.',
-      resetError
-    )
-    expect(reloadSpy).not.toHaveBeenCalled()
-
-    consoleErrorSpy.mockRestore()
-    reloadSpy.mockRestore()
   })
 })
