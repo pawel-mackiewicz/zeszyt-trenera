@@ -199,6 +199,11 @@ describe('AppShell', () => {
     await nextTick()
   }
 
+  function spyOnExpectedConsoleError() {
+    // What: silence intentionally exercised shell failure logs in component specs. Why: passing `pnpm test` output should reserve stderr for unexpected failures while still verifying diagnostics.
+    return vi.spyOn(console, 'error').mockImplementation(() => undefined)
+  }
+
   it('shows the startup gate until the app becomes ready', () => {
     const { wrapper } = mountShell()
 
@@ -326,7 +331,9 @@ describe('AppShell', () => {
   })
 
   it('keeps demo-exit failures visible above the modal', async () => {
-    mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
+    const leaveDemoError = new Error('leave demo failed')
+    const consoleErrorSpy = spyOnExpectedConsoleError()
+    mockLeaveDemoMode.mockRejectedValueOnce(leaveDemoError)
 
     const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
@@ -342,8 +349,14 @@ describe('AppShell', () => {
     expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
       'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
     )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to leave demo mode.',
+      leaveDemoError
+    )
     expect(demoStore.demoModeActive).toBe(true)
     expect(demoStore.demoIntroModalVisible).toBe(true)
+
+    consoleErrorSpy.mockRestore()
   })
 
   it('disables the menu update action while the new shell is activating', async () => {
@@ -519,7 +532,9 @@ describe('AppShell', () => {
   })
 
   it('shows the floating backup error when backup export fails', async () => {
-    mockExportDatabaseBackup.mockRejectedValueOnce(new Error('backup failed'))
+    const backupError = new Error('backup failed')
+    const consoleErrorSpy = spyOnExpectedConsoleError()
+    mockExportDatabaseBackup.mockRejectedValueOnce(backupError)
 
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
@@ -532,12 +547,18 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Nie udało się wyeksportować kopii danych. Spróbuj ponownie.'
     )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to export local database backup.',
+      backupError
+    )
+
+    consoleErrorSpy.mockRestore()
   })
 
   it('shows technical backup-export details when the workflow throws a browser error', async () => {
-    mockExportDatabaseBackup.mockRejectedValueOnce(
-      new DOMException('Gesture required', 'NotAllowedError')
-    )
+    const backupError = new DOMException('Gesture required', 'NotAllowedError')
+    const consoleErrorSpy = spyOnExpectedConsoleError()
+    mockExportDatabaseBackup.mockRejectedValueOnce(backupError)
 
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
@@ -550,6 +571,12 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Szczegóły techniczne: NotAllowedError: Gesture required'
     )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to export local database backup.',
+      backupError
+    )
+
+    consoleErrorSpy.mockRestore()
   })
 
   it('opens the native file picker from the backup import menu action', async () => {
@@ -602,7 +629,9 @@ describe('AppShell', () => {
   })
 
   it('shows the floating backup import error when restore fails', async () => {
-    mockImportDatabaseBackup.mockRejectedValueOnce(new Error('import failed'))
+    const importError = new Error('import failed')
+    const consoleErrorSpy = spyOnExpectedConsoleError()
+    mockImportDatabaseBackup.mockRejectedValueOnce(importError)
     const reloadSpy = vi
       .spyOn(window.location, 'reload')
       .mockImplementation(() => undefined)
@@ -626,8 +655,13 @@ describe('AppShell', () => {
     expect(wrapper.text()).toContain(
       'Nie udało się przywrócić kopii danych. Sprawdź plik i spróbuj ponownie.'
     )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to import local database backup.',
+      importError
+    )
     expect(reloadSpy).not.toHaveBeenCalled()
 
+    consoleErrorSpy.mockRestore()
     reloadSpy.mockRestore()
   })
 
@@ -754,7 +788,9 @@ describe('AppShell', () => {
   })
 
   it('keeps reset failures visible above the confirmation modal', async () => {
-    mockResetApplicationData.mockRejectedValueOnce(new Error('reset failed'))
+    const resetError = new Error('reset failed')
+    const consoleErrorSpy = spyOnExpectedConsoleError()
+    mockResetApplicationData.mockRejectedValueOnce(resetError)
     const reloadSpy = vi
       .spyOn(window.location, 'reload')
       .mockImplementation(() => undefined)
@@ -778,8 +814,13 @@ describe('AppShell', () => {
     expect(resetErrorAlert.text()).toContain(
       'Nie udało się wyczyścić danych. Spróbuj ponownie.'
     )
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Failed to reset all local application data.',
+      resetError
+    )
     expect(reloadSpy).not.toHaveBeenCalled()
 
+    consoleErrorSpy.mockRestore()
     reloadSpy.mockRestore()
   })
 })

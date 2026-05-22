@@ -58,6 +58,8 @@ export default defineConfig({
     include: ['pinia']
   },
   test: {
+    // What: hide console output produced by tests that pass. Why: expected failure-path coverage should not make a clean local-first PWA test run look broken.
+    silent: 'passed-only',
     onConsoleLog(log, type) {
       if (isExpectedStorybookStderr(log, type)) {
         return false
