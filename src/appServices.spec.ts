@@ -683,7 +683,7 @@ describe('appServices', () => {
       foundingDate: new Date('1946-01-01T00:00:00Z')
     })
 
-    expect(
+    await expect(
       useCase.handle({
         clubName: 'Falubaz Zielona Gora',
         foundingDate: new Date('1946-01-01T00:00:00Z')
@@ -728,7 +728,7 @@ describe('appServices', () => {
       trainerName: 'Jane Doe'
     })
 
-    expect(
+    await expect(
       useCase.handle({
         trainerName: 'John Smith'
       })
