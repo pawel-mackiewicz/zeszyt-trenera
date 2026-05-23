@@ -1,28 +1,9 @@
 import { createPinia, setActivePinia } from 'pinia'
-import { nextTick } from 'vue'
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ResetDataModalStatus } from '@/ui/features/app_reset/ResetDataModal.contract.ts'
-import { useAppServices } from '@/ui/appServices.ts'
 import { useAppStore } from '@/ui/stores/app.ts'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store.ts'
-
-vi.mock('@/ui/appServices', () => ({
-  useAppServices: vi.fn()
-}))
-
-function createDeferredPromise() {
-  let resolve!: () => void
-
-  const promise = new Promise<void>((resolvePromise) => {
-    resolve = resolvePromise
-  })
-
-  return {
-    promise,
-    resolve
-  }
-}
 
 function prepareReadyShell() {
   const appStore = useAppStore()
@@ -32,20 +13,8 @@ function prepareReadyShell() {
 }
 
 describe('useAppResetStore', () => {
-  let resetApplicationData: Mock
-
   beforeEach(() => {
     setActivePinia(createPinia())
-    resetApplicationData = vi.fn().mockResolvedValue(undefined)
-    vi.mocked(useAppServices).mockReset()
-    vi.mocked(useAppServices).mockReturnValue({
-      queries: {} as never,
-      useCases: {
-        resetApplicationData: {
-          handle: resetApplicationData
-        }
-      } as never
-    })
     prepareReadyShell()
   })
 
@@ -77,92 +46,61 @@ describe('useAppResetStore', () => {
     expect(store.isResetConfirmationValid).toBe(false)
   })
 
-  it('blocks close while reset is pending', async () => {
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
-    const deferredReset = createDeferredPromise()
-    resetApplicationData.mockReturnValueOnce(deferredReset.promise)
+  it('blocks close while reset is pending', () => {
     const store = useAppResetStore()
 
     store.openResetModal()
     store.setResetConfirmationInput('DELETE ALL DATA')
-    const confirmPromise = store.confirmResetApplicationData()
-    await nextTick()
+    store.beginResetApplicationData()
 
     store.closeResetModal()
 
-    // What: verify pending reset stays visible. Why: destructive application-layer writes should not be hidden while they are still settling.
+    // What: verify pending reset stays visible. Why: destructive application-layer writes are started by the composable, but the shared store still owns the modal lock.
     expect(store.resetModalStatus).toBe(ResetDataModalStatus.Pending)
-
-    deferredReset.resolve()
-    await confirmPromise
-
-    reloadSpy.mockRestore()
   })
 
-  it('calls resetApplicationData.handle through the application layer', async () => {
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
+  it('starts reset only when the modal is open and confirmation is valid', () => {
+    const store = useAppResetStore()
+
+    expect(store.beginResetApplicationData()).toBe(false)
+
+    store.openResetModal()
+    store.setResetConfirmationInput('delete everything')
+
+    expect(store.beginResetApplicationData()).toBe(false)
+
+    store.setResetConfirmationInput('DELETE ALL DATA')
+
+    expect(store.beginResetApplicationData()).toBe(true)
+    expect(store.resetModalStatus).toBe(ResetDataModalStatus.Pending)
+    expect(store.canConfirmReset).toBe(false)
+  })
+
+  it('clears modal state after successful reset completion', () => {
     const store = useAppResetStore()
 
     store.openResetModal()
     store.setResetConfirmationInput('DELETE ALL DATA')
-    await store.confirmResetApplicationData()
+    store.beginResetApplicationData()
+    store.completeResetApplicationData()
 
-    expect(resetApplicationData).toHaveBeenCalledWith({
-      confirmationPhrase: 'DELETE ALL DATA'
-    })
-
-    reloadSpy.mockRestore()
-  })
-
-  it('reloads after successful reset', async () => {
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
-    const store = useAppResetStore()
-
-    store.openResetModal()
-    store.setResetConfirmationInput('DELETE ALL DATA')
-    await store.confirmResetApplicationData()
-
-    expect(reloadSpy).toHaveBeenCalledTimes(1)
     expect(store.resetModalStatus).toBe(ResetDataModalStatus.Hidden)
     expect(store.resetConfirmationInput).toBe('')
     expect(store.resetErrorVisible).toBe(false)
-
-    reloadSpy.mockRestore()
   })
 
-  it('keeps error visible after failed reset', async () => {
-    const resetError = new Error('reset failed')
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined)
-    const reloadSpy = vi
-      .spyOn(window.location, 'reload')
-      .mockImplementation(() => undefined)
-    resetApplicationData.mockRejectedValueOnce(resetError)
+  it('keeps error visible after failed reset', () => {
     const store = useAppResetStore()
 
     store.openResetModal()
     store.setResetConfirmationInput('DELETE ALL DATA')
-    await store.confirmResetApplicationData()
+    store.beginResetApplicationData()
+    store.failResetApplicationData()
 
     expect(store.resetErrorVisible).toBe(true)
     expect(store.resetModalStatus).toBe(ResetDataModalStatus.Ready)
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      'Failed to reset all local application data.',
-      resetError
-    )
-    expect(reloadSpy).not.toHaveBeenCalled()
 
     store.dismissResetError()
     expect(store.resetErrorVisible).toBe(false)
-
-    consoleErrorSpy.mockRestore()
-    reloadSpy.mockRestore()
   })
 })

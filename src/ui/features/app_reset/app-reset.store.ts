@@ -9,22 +9,21 @@ import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue
 } from '@/ui/features/app_reset/ResetDataModal.contract'
-import { useAppServices } from '@/ui/appServices'
 import { useAppStore } from '@/ui/stores/app'
 
-const ResetWorkflowStatus = {
+export const ResetWorkflowStatus = {
   Idle: 'idle',
   Pending: 'pending',
   Error: 'error'
 } as const
 
-type ResetWorkflowStatusValue =
+export type ResetWorkflowStatusValue =
   (typeof ResetWorkflowStatus)[keyof typeof ResetWorkflowStatus]
 
 export const useAppResetStore = defineStore('appReset', () => {
   const appStore = useAppStore()
-  const { useCases } = useAppServices()
   const resetModalVisible = ref(false)
+  // What: keep destructive reset workflow status in Pinia. Why: modal placement and retry feedback need one shared state source while write calls stay outside the store.
   const resetWorkflowStatus = ref<ResetWorkflowStatusValue>(
     ResetWorkflowStatus.Idle
   )
@@ -41,6 +40,12 @@ export const useAppResetStore = defineStore('appReset', () => {
     () =>
       normalizeResetConfirmationPhrase(resetConfirmationInput.value) ===
       resetConfirmationPhrase.value
+  )
+  const canConfirmReset = computed(
+    () =>
+      isResetConfirmationValid.value &&
+      !resetInProgress.value &&
+      resetModalVisible.value
   )
   const isShellReady = computed(
     () => appStore.appReadiness === 'ready' && appStore.setupStatus === 'ready'
@@ -80,43 +85,42 @@ export const useAppResetStore = defineStore('appReset', () => {
     resetWorkflowStatus.value = ResetWorkflowStatus.Idle
   }
 
-  async function confirmResetApplicationData() {
-    if (
-      !isResetConfirmationValid.value ||
-      resetInProgress.value ||
-      !resetModalVisible.value
-    ) {
-      return
+  // What: expose guarded reset transitions without touching services. Why: useAppReset should own the write-layer call while every UI surface shares the same pending/error state.
+  function beginResetApplicationData() {
+    if (!canConfirmReset.value) {
+      return false
     }
 
     resetWorkflowStatus.value = ResetWorkflowStatus.Pending
+    return true
+  }
 
-    try {
-      // What: keep full-reset writes behind the application layer. Why: the shell must never bypass the reset use case when clearing local PWA data.
-      await useCases.resetApplicationData.handle({
-        confirmationPhrase: resetConfirmationInput.value
-      })
-      resetWorkflowStatus.value = ResetWorkflowStatus.Idle
-      resetModalVisible.value = false
-      resetConfirmationInput.value = ''
-      // What: cold-reload after a successful reset. Why: Pinia and i18n still hold in-memory state after local storage and IndexedDB are cleared.
-      window.location.reload()
-    } catch (error) {
-      resetWorkflowStatus.value = ResetWorkflowStatus.Error
-      console.error('Failed to reset all local application data.', error)
-    }
+  function completeResetApplicationData() {
+    resetWorkflowStatus.value = ResetWorkflowStatus.Idle
+    resetModalVisible.value = false
+    resetConfirmationInput.value = ''
+  }
+
+  function failResetApplicationData() {
+    resetWorkflowStatus.value = ResetWorkflowStatus.Error
   }
 
   return {
+    resetModalVisible,
+    resetWorkflowStatus,
     resetModalStatus,
     resetConfirmationPhrase,
     resetConfirmationInput,
+    canConfirmReset,
     isResetConfirmationValid,
+    resetInProgress,
     resetErrorVisible,
     openResetModal,
     closeResetModal,
     setResetConfirmationInput,
-    confirmResetApplicationData,
+    beginResetApplicationData,
+    completeResetApplicationData,
+    failResetApplicationData,
     dismissResetError
   }
 })

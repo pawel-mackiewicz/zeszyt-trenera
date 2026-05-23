@@ -80,6 +80,29 @@ describe('useAppReset', () => {
     expect(composable.isResetConfirmationValid.value).toBe(true)
   })
 
+  it('routes confirmed reset through the application layer and reloads after success', async () => {
+    const reloadSpy = vi
+      .spyOn(window.location, 'reload')
+      .mockImplementation(() => undefined)
+    makeShellReady()
+    const appResetStore = useAppResetStore()
+    const composable = useAppReset()
+
+    appResetStore.openResetModal()
+    composable.resetConfirmationInputModel.value = 'DELETE ALL DATA'
+    await composable.confirmResetApplicationData()
+
+    // What: assert the composable owns the write-layer handoff. Why: the reset store should stay a global workflow state holder without application-service access.
+    expect(resetApplicationData).toHaveBeenCalledWith({
+      confirmationPhrase: 'DELETE ALL DATA'
+    })
+    expect(reloadSpy).toHaveBeenCalledTimes(1)
+    expect(composable.isResetModalVisible.value).toBe(false)
+    expect(appResetStore.resetConfirmationInput).toBe('')
+
+    reloadSpy.mockRestore()
+  })
+
   it('keeps the modal locked while reset writes are pending', async () => {
     const reloadSpy = vi
       .spyOn(window.location, 'reload')
