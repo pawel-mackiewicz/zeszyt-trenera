@@ -42,7 +42,6 @@ export const useAppInstallStore = defineStore('appInstall', () => {
   const installed = ref(isStandaloneMode())
   const installSurface = ref<InstallSurface>('hidden')
   const installModalVisible = ref(false)
-  const installCoachVisible = ref(false)
   const installModalShown = ref(readStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY))
 
   // What: keep PWA install state in the app-install feature store. Why: install nudges depend on shell readiness and demo suppression, but should evolve outside the general bootstrap store.
@@ -84,7 +83,6 @@ export const useAppInstallStore = defineStore('appInstall', () => {
     if (value) {
       setInstallSurface('hidden')
       installModalVisible.value = false
-      installCoachVisible.value = false
       return
     }
 
@@ -106,24 +104,11 @@ export const useAppInstallStore = defineStore('appInstall', () => {
       markInstallModalShown()
     }
 
-    installCoachVisible.value = false
     installModalVisible.value = true
   }
 
   function dismissInstallModal() {
     installModalVisible.value = false
-  }
-
-  function showInstallCoach() {
-    if (!showInstallEntry.value) {
-      return
-    }
-
-    installCoachVisible.value = true
-  }
-
-  function hideInstallCoach() {
-    installCoachVisible.value = false
   }
 
   return {
@@ -132,7 +117,6 @@ export const useAppInstallStore = defineStore('appInstall', () => {
     installed,
     installSurface,
     installModalVisible,
-    installCoachVisible,
     installModalShown,
     showInstallEntry,
     shouldAutoOpenInstallModal,
@@ -142,8 +126,6 @@ export const useAppInstallStore = defineStore('appInstall', () => {
     setInstalled,
     markInstallModalShown,
     openInstallModal,
-    dismissInstallModal,
-    showInstallCoach,
-    hideInstallCoach
+    dismissInstallModal
   }
 })

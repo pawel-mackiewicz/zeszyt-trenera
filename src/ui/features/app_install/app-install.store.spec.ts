@@ -35,18 +35,16 @@ describe('useAppInstallStore', () => {
     expect(reloadedInstallStore.shouldAutoOpenInstallModal).toBe(false)
   })
 
-  it('marks the app installed and hides install-specific UI', () => {
+  it('marks the app installed and hides the install modal', () => {
     const installStore = useAppInstallStore()
 
     installStore.setInstallSurface('native')
     installStore.openInstallModal()
-    installStore.showInstallCoach()
     installStore.setInstalled(true)
 
     expect(installStore.installed).toBe(true)
     expect(installStore.showInstallEntry).toBe(false)
     expect(installStore.installModalVisible).toBe(false)
-    expect(installStore.installCoachVisible).toBe(false)
   })
 
   it('suppresses install entry points while demo mode is active', () => {
