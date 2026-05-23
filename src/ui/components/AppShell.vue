@@ -60,7 +60,7 @@ useNetworkStatus()
 appUpdateStore.registerUpdateChecks()
 
 const { appReadiness, blockingIssue, setupStatus } = storeToRefs(appStore)
-const { installCoachVisible, installed, installSurface, showInstallEntry } =
+const { installed, installSurface, showInstallEntry } =
   storeToRefs(appInstallStore)
 const { updateAvailable, updateError, updatePending } =
   storeToRefs(appUpdateStore)
@@ -114,11 +114,6 @@ const installEntryLabel = computed(() =>
   installSurface.value === 'manual'
     ? t('install.entry.manual')
     : t('install.entry.native')
-)
-const installCoachCopy = computed(() =>
-  installSurface.value === 'manual'
-    ? t('install.coach.manual')
-    : t('install.coach.native')
 )
 const updateActionLabel = computed(() =>
   updatePending.value ? t('update.action.pending') : t('update.action.ready')
@@ -189,13 +184,6 @@ watch(installed, (value) => {
   }
 })
 
-watch(drawerOpen, (value) => {
-  if (!value) {
-    // What: collapse drawer-only helper copy whenever the shared drawer store closes. Why: Header can now close the drawer through its composable, so AppShell still owns cleaning up install-coach UI that lives inside the drawer.
-    appInstallStore.hideInstallCoach()
-  }
-})
-
 watch(
   appReadiness,
   (value) => {
@@ -241,7 +229,7 @@ watch(
 watch(
   () => route.fullPath,
   () => {
-    // What: collapse transient navigation overlays after every route change. Why: the hamburger menu and install coach should never linger over the next screen after navigation completes.
+    // What: collapse transient navigation overlays after every route change. Why: the hamburger menu should never linger over the next screen after navigation completes.
     closeDrawer()
   }
 )
@@ -261,9 +249,8 @@ onBeforeUnmount(() => {
 })
 
 function closeDrawer() {
-  // What: route every drawer dismissal through one shell helper. Why: Header now toggles Pinia state directly, so the shell needs one place to pair drawer closing with its related coach cleanup.
+  // What: route every drawer dismissal through one shell helper. Why: menu actions and route changes should share the same drawer state transition.
   shellStore.closeDrawer()
-  appInstallStore.hideInstallCoach()
 }
 
 function dismissBackupExportError() {
@@ -492,26 +479,6 @@ function navigationLabel(item: NavigationItem) {
                 </button>
               </div>
             </div>
-            <Transition name="overlay-pop">
-              <div
-                v-if="installCoachVisible && showInstallEntry"
-                class="install-coach-card mb-4"
-              >
-                <p class="install-coach-card__eyebrow">
-                  {{ t('install.coach.eyebrow') }}
-                </p>
-                <p class="install-coach-card__copy">
-                  {{ installCoachCopy }}
-                </p>
-                <button
-                  class="install-coach-card__action"
-                  type="button"
-                  @click="appInstallStore.hideInstallCoach()"
-                >
-                  {{ t('common.understand') }}
-                </button>
-              </div>
-            </Transition>
             <!-- What: keep menu-level install and update actions on the shared button primitive. Why: the shell should preserve its own stacking and width rules while inheriting the same CTA states as the rest of the app. -->
             <AppButton
               v-if="showInstallEntry"
@@ -741,44 +708,8 @@ function navigationLabel(item: NavigationItem) {
   animation: shell-loading 1.4s ease-in-out infinite;
 }
 
-.install-coach-card {
-  display: grid;
-  gap: 0.55rem;
-  padding: 0.95rem 1rem;
-  border-radius: 1.15rem;
-  border: 1px solid rgba(16, 59, 55, 0.1);
-  background: rgba(255, 255, 255, 0.82);
-  box-shadow: 0 14px 28px rgba(17, 41, 39, 0.08);
-}
-
-.install-coach-card__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--accent-hot);
-}
-
-.install-coach-card__copy {
-  margin: 0;
-  color: var(--ink-soft);
-  line-height: 1.5;
-}
-
-.install-coach-card__action {
-  justify-self: flex-start;
-  background: transparent;
-  color: var(--accent-strong);
-  font-weight: 700;
-  padding: 0;
-}
-
 .fade-enter-active,
-.fade-leave-active,
-.overlay-pop-enter-active,
-.overlay-pop-leave-active {
+.fade-leave-active {
   transition:
     opacity 0.18s ease,
     transform 0.18s ease;
@@ -788,12 +719,6 @@ function navigationLabel(item: NavigationItem) {
 .fade-leave-to {
   /* What: keep route transitions on opacity only. Why: applying transform to the routed view root turns it into the containing block for nested fixed-position FABs, which makes mobile actions render inline for a frame on reload before snapping back to the viewport. */
   opacity: 0;
-}
-
-.overlay-pop-enter-from,
-.overlay-pop-leave-to {
-  opacity: 0;
-  transform: translateY(0.5rem);
 }
 
 @keyframes shell-loading {

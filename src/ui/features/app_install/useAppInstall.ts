@@ -77,17 +77,9 @@ export function useAppInstall() {
 
       // What: collapse install-only surfaces while demo mode is active. Why: demo exploration should not compete with the local-first install prompt for the same first-run attention.
       appInstallStore.dismissInstallModal()
-      appInstallStore.hideInstallCoach()
     },
     { immediate: true }
   )
-
-  watch(showInstallEntry, (value) => {
-    if (!value) {
-      // What: hide drawer coaching when the install entry disappears. Why: the coach copy must not remain visible after native/manual install is no longer available.
-      appInstallStore.hideInstallCoach()
-    }
-  })
 
   async function handleInstallPrimaryAction() {
     if (installModalStatus.value === InstallModalStatus.ManualReady) {
@@ -101,10 +93,9 @@ export function useAppInstall() {
 
     const wasAccepted = await promptInstall()
 
-    // What: close install surfaces only when the browser accepted install or the entry vanished after prompt resolution. Why: local-first shell coaching should stay available after a dismissed native prompt until install is no longer possible.
+    // What: close the install modal only when the browser accepted install or the entry vanished after prompt resolution. Why: a dismissed native prompt should keep the local-first install guidance visible until install is no longer possible.
     if (wasAccepted || !showInstallEntry.value) {
       appInstallStore.dismissInstallModal()
-      appInstallStore.hideInstallCoach()
     }
   }
 

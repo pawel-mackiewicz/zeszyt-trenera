@@ -55,13 +55,6 @@ export const APP_SHELL_MESSAGES = {
       entry: {
         manual: 'Jak zainstalować',
         native: 'Zainstaluj aplikację'
-      },
-      coach: {
-        eyebrow: 'Na później',
-        manual:
-          'Tutaj wrócisz do krótkiej instrukcji dodania aplikacji do ekranu głównego.',
-        native:
-          'Tutaj wrócisz do instalacji, kiedy będziesz chciał zrobić to później.'
       }
     },
     update: {
@@ -150,12 +143,6 @@ export const APP_SHELL_MESSAGES = {
       entry: {
         manual: 'How to install',
         native: 'Install app'
-      },
-      coach: {
-        eyebrow: 'Later',
-        manual:
-          'Return here when you need the short guide for adding the app to the home screen.',
-        native: 'Return here when you want to install the app later.'
       }
     },
     update: {

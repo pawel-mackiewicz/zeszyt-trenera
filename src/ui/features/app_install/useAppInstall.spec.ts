@@ -110,14 +110,13 @@ describe('useAppInstall', () => {
     expect(installStore.installModalVisible).toBe(false)
   })
 
-  it('closes install surfaces after accepted native prompt', async () => {
+  it('closes the install modal after accepted native prompt', async () => {
     const { appStore, composable, installStore, promptInstall } =
       mountInstallModalController()
 
     makeShellReady(appStore)
     installStore.setInstallSurface('native')
     installStore.openInstallModal()
-    installStore.showInstallCoach()
     promptInstall.mockResolvedValueOnce(true)
     await nextTick()
 
@@ -125,7 +124,6 @@ describe('useAppInstall', () => {
 
     expect(promptInstall).toHaveBeenCalledTimes(1)
     expect(installStore.installModalVisible).toBe(false)
-    expect(installStore.installCoachVisible).toBe(false)
   })
 
   it('keeps install surfaces open when native prompt is dismissed and entry is still available', async () => {
@@ -184,18 +182,16 @@ describe('useAppInstall', () => {
     expect(installStore.installModalVisible).toBe(true)
   })
 
-  it('collapses install-only surfaces while demo mode is active', async () => {
+  it('collapses the install modal while demo mode is active', async () => {
     const { appStore, demoStore, installStore } = mountInstallModalController()
 
     makeShellReady(appStore)
     installStore.setInstallSurface('native')
     installStore.openInstallModal()
-    installStore.showInstallCoach()
 
     demoStore.setDemoModeActive(true)
     await nextTick()
 
     expect(installStore.installModalVisible).toBe(false)
-    expect(installStore.installCoachVisible).toBe(false)
   })
 })
