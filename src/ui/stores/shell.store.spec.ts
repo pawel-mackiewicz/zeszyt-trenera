@@ -8,23 +8,23 @@ describe('useShellStore', () => {
     setActivePinia(createPinia())
   })
 
-  it('opens and closes the drawer through explicit shell actions', () => {
+  it('opens and closes the sidebar through explicit shell actions', () => {
     const store = useShellStore()
 
-    store.openDrawer()
-    expect(store.drawerOpen).toBe(true)
+    store.openSidebar()
+    expect(store.sidebarOpen).toBe(true)
 
-    store.closeDrawer()
-    expect(store.drawerOpen).toBe(false)
+    store.closeSidebar()
+    expect(store.sidebarOpen).toBe(false)
   })
 
-  it('toggles the drawer visibility for shared header interactions', () => {
+  it('toggles the sidebar visibility for shared header interactions', () => {
     const store = useShellStore()
 
-    store.toggleDrawer()
-    expect(store.drawerOpen).toBe(true)
+    store.toggleSidebar()
+    expect(store.sidebarOpen).toBe(true)
 
-    store.toggleDrawer()
-    expect(store.drawerOpen).toBe(false)
+    store.toggleSidebar()
+    expect(store.sidebarOpen).toBe(false)
   })
 })

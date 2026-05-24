@@ -12,7 +12,7 @@ export type ShellBottomNavigationItem = {
   activeRouteNames: ReadonlyArray<AppRouteName>
 }
 
-// What: centralize shell chrome route and locale metadata in one module. Why: the header, browser title, and drawer navigation should share one offline-safe dictionary contract instead of drifting through parallel maps.
+// What: centralize shell chrome route and locale metadata in one module. Why: the header, browser title, and sidebar navigation should share one offline-safe dictionary contract instead of drifting through parallel maps.
 export const SHELL_LOCALE_OPTIONS = [
   { value: 'pl', label: 'PL' },
   { value: 'en', label: 'EN' }

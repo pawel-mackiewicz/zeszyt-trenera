@@ -2,25 +2,25 @@ import { ref } from 'vue'
 import { defineStore } from 'pinia'
 
 export const useShellStore = defineStore('shell', () => {
-  // What: isolate transient drawer visibility in its own shell-only store. Why: Header and AppShell drawer need a shared UI contract without leaking local refs through props or touching persisted application data.
-  const drawerOpen = ref(false)
+  // What: isolate transient sidebar visibility in its own shell-only store. Why: Header and the extracted sidebar menu need a shared mobile-first UI contract without leaking local refs through props or touching persisted application data.
+  const sidebarOpen = ref(false)
 
-  function openDrawer() {
-    drawerOpen.value = true
+  function openSidebar() {
+    sidebarOpen.value = true
   }
 
-  function closeDrawer() {
-    drawerOpen.value = false
+  function closeSidebar() {
+    sidebarOpen.value = false
   }
 
-  function toggleDrawer() {
-    drawerOpen.value = !drawerOpen.value
+  function toggleSidebar() {
+    sidebarOpen.value = !sidebarOpen.value
   }
 
   return {
-    drawerOpen,
-    openDrawer,
-    closeDrawer,
-    toggleDrawer
+    sidebarOpen,
+    openSidebar,
+    closeSidebar,
+    toggleSidebar
   }
 })

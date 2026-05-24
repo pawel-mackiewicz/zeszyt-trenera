@@ -111,20 +111,20 @@ const meta: Meta<HeaderStoryArgs> = {
         () => configureHeaderStoryState(args)
       )
 
-      const drawerStateLabel = computed(() =>
-        shellStore.drawerOpen ? 'open' : 'closed'
+      const sidebarStateLabel = computed(() =>
+        shellStore.sidebarOpen ? 'open' : 'closed'
       )
       const demoModalStateLabel = computed(() =>
         useDemoStore().demoIntroModalVisible ? 'open' : 'closed'
       )
 
-      return { drawerStateLabel, demoModalStateLabel }
+      return { sidebarStateLabel, demoModalStateLabel }
     },
     template: `
       <div style="min-height: 10rem; padding-top: 4rem; background: var(--color-background); color: var(--color-on-surface);">
         <Header />
         <!-- What: expose smart Header side effects as tiny story-only probes. Why: play tests need observable state without coupling Header production markup to test-only labels. -->
-        <output data-testid="drawer-state" style="position: absolute; left: -9999px;">{{ drawerStateLabel }}</output>
+        <output data-testid="sidebar-state" style="position: absolute; left: -9999px;">{{ sidebarStateLabel }}</output>
         <output data-testid="demo-modal-state" style="position: absolute; left: -9999px;">{{ demoModalStateLabel }}</output>
       </div>
     `
@@ -150,10 +150,10 @@ export const MenuToggleAction: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement)
 
-    // What: verify the hamburger writes to shared shell state. Why: AppShell owns the drawer UI, so this hidden probe is the story-level evidence that Header still opens it.
+    // What: verify the hamburger writes to shared shell state. Why: SidebarMenu owns the menu UI, so this hidden probe is the story-level evidence that Header still opens it.
     await userEvent.click(canvas.getByTestId('shell-menu-button'))
     await waitFor(() =>
-      expect(canvas.getByTestId('drawer-state')).toHaveTextContent('open')
+      expect(canvas.getByTestId('sidebar-state')).toHaveTextContent('open')
     )
   }
 }

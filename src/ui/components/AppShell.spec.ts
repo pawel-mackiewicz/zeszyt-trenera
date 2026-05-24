@@ -532,14 +532,14 @@ describe('AppShell', () => {
     await findButtonByText(wrapper, 'Aktualizuj aplikację')?.trigger('click')
 
     expect(mockUpdateServiceWorker).toHaveBeenCalledWith(true)
-    expect(shellStore.drawerOpen).toBe(false)
+    expect(shellStore.sidebarOpen).toBe(false)
     expect(wrapper.text()).not.toContain('Zaktualizuj teraz')
   })
 
-  it('renders the drawer from the shared shell store state', () => {
+  it('renders the sidebar from the shared shell store state', () => {
     const { wrapper } = mountShell((appStore, _demoStore, shellStore) => {
       appStore.setAppReady()
-      shellStore.openDrawer()
+      shellStore.openSidebar()
     })
 
     expect(wrapper.find('[data-testid="export-backup-button"]').exists()).toBe(
@@ -548,20 +548,20 @@ describe('AppShell', () => {
     expect(wrapper.text()).toMatch(/v\d+\.\d+\.\d+/)
   })
 
-  it('closes the shared drawer after route changes', async () => {
+  it('closes the shared sidebar after route changes', async () => {
     const { shellStore } = mountShell(
       (appStore, _demoStore, nextShellStore) => {
         appStore.setAppReady()
-        nextShellStore.openDrawer()
+        nextShellStore.openSidebar()
       }
     )
 
-    expect(shellStore.drawerOpen).toBe(true)
+    expect(shellStore.sidebarOpen).toBe(true)
 
     mockRoute.fullPath = '/payments'
     await nextTick()
 
-    expect(shellStore.drawerOpen).toBe(false)
+    expect(shellStore.sidebarOpen).toBe(false)
   })
 
   it('exports a local backup from the menu through the application layer', async () => {
@@ -574,7 +574,7 @@ describe('AppShell', () => {
     await flushPromises()
 
     expect(mockExportDatabaseBackup).toHaveBeenCalledWith({})
-    expect(shellStore.drawerOpen).toBe(false)
+    expect(shellStore.sidebarOpen).toBe(false)
   })
 
   it('shows pending backup copy while export is in progress', async () => {
@@ -672,7 +672,7 @@ describe('AppShell', () => {
 
     // What: verify the menu action delegates to the hidden native input click. Why: restore should rely on the browser picker instead of a custom upload surface.
     expect(inputClickSpy).toHaveBeenCalledTimes(1)
-    expect(shellStore.drawerOpen).toBe(false)
+    expect(shellStore.sidebarOpen).toBe(false)
   })
 
   it('imports a selected backup file through the application layer and reloads on success', async () => {
@@ -813,8 +813,8 @@ describe('AppShell', () => {
     await getShellMenuButton(wrapper).trigger('click')
     await wrapper.get('[data-testid="open-reset-modal"]').trigger('click')
 
-    // What: keep AppShell reset coverage at the menu boundary. Why: confirmation input, errors, and application-layer reset execution now belong to the smart reset modal specs.
-    expect(shellStore.drawerOpen).toBe(false)
+    // What: keep AppShell reset coverage at the shell composition boundary. Why: confirmation input, errors, and application-layer reset execution now belong to the smart reset modal specs.
+    expect(shellStore.sidebarOpen).toBe(false)
     expect(
       wrapper.find('[data-testid="reset-confirmation-input"]').exists()
     ).toBe(true)
