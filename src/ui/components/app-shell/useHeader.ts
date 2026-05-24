@@ -48,9 +48,9 @@ export function useHeader() {
     router.back()
   }
 
-  function handleToggleDrawer() {
-    // What: route the hamburger action through the shared shell store. Why: the drawer lives in AppShell, so the merged header needs the same store boundary the manager used before.
-    shellStore.toggleDrawer()
+  function handleToggleSidebar() {
+    // What: route the hamburger action through the shared shell store. Why: the sidebar lives outside Header, so the header needs one shared boundary instead of reaching into menu markup.
+    shellStore.toggleSidebar()
   }
 
   return {
@@ -61,6 +61,6 @@ export function useHeader() {
     showOfflineBadge,
     title,
     handleBack,
-    handleToggleDrawer
+    handleToggleSidebar
   }
 }

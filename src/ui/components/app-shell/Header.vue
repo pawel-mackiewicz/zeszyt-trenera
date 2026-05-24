@@ -11,12 +11,12 @@ const {
   showOfflineBadge,
   title,
   handleBack,
-  handleToggleDrawer
+  handleToggleSidebar
 } = useHeader()
 </script>
 
 <template>
-  <!-- What: keep the shell header as the visible mobile-first chrome. Why: route, network, and drawer decisions now live in useHeader after merging the manager into this component. -->
+  <!-- What: keep the shell header as the visible mobile-first chrome. Why: route, network, and sidebar decisions live in useHeader while the menu markup stays in its own shell component. -->
   <header class="app-shell-header">
     <div class="app-shell-header__leading">
       <button
@@ -35,7 +35,7 @@ const {
         data-testid="shell-menu-button"
         type="button"
         :aria-label="menuButtonLabel"
-        @click="handleToggleDrawer"
+        @click="handleToggleSidebar"
       >
         <AppIcon name="menu" />
       </button>

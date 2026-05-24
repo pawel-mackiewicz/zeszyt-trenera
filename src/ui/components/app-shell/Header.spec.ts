@@ -122,14 +122,14 @@ describe('Header', () => {
     expect(mockRouterPush).not.toHaveBeenCalled()
   })
 
-  it('toggles the shared drawer state from the header menu button', async () => {
+  it('toggles the shared sidebar state from the header menu button', async () => {
     const { wrapper, shellStore } = mountHeader()
 
     await wrapper.get('[data-testid="shell-menu-button"]').trigger('click')
-    expect(shellStore.drawerOpen).toBe(true)
+    expect(shellStore.sidebarOpen).toBe(true)
 
     await wrapper.get('[data-testid="shell-menu-button"]').trigger('click')
-    expect(shellStore.drawerOpen).toBe(false)
+    expect(shellStore.sidebarOpen).toBe(false)
   })
 
   it('shows the demo exit action only in demo mode and lets the shared store open the modal', async () => {
