@@ -89,6 +89,7 @@ export function useDemoIntroModal() {
     try {
       // What: route demo-exit writes through the application use case. Why: local-first data resets must stay behind the application layer instead of letting UI mutate persistence directly.
       await useCases.leaveDemoMode.handle({})
+      // todo window.location.reload() ?
       demoExitStatus.value = DemoExitStatus.Idle
       demoStore.dismissDemoIntroModal()
       demoStore.setDemoModeActive(false)
