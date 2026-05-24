@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, ref, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import {
   SHELL_LOCALE_OPTIONS,
@@ -11,6 +10,7 @@ import {
   SHELL_ROUTE_TITLE_KEYS
 } from '@/ui/components/app-shell/AppShell.config'
 import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
+import { useDatabaseBackup } from '@/ui/components/app-shell/useDatabaseBackup'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
@@ -24,12 +24,24 @@ const appInstallStore = useAppInstallStore()
 const appResetStore = useAppResetStore()
 const appUpdateStore = useAppUpdateStore()
 const shellStore = useShellStore()
-const { useCases } = useAppServices()
 const { t } = useI18n({
   useScope: 'local',
   messages: APP_SHELL_MESSAGES
 })
 const { locale } = useI18n({ useScope: 'global' })
+const {
+  backupExportAlertMessage,
+  backupExportErrorVisible,
+  backupExportInProgress,
+  backupImportErrorVisible,
+  backupImportInProgress,
+  backupImportInput,
+  dismissBackupExportError,
+  dismissBackupImportError,
+  exportDatabaseBackup,
+  handleBackupImportSelection,
+  openBackupImportPicker
+} = useDatabaseBackup()
 
 const { installed, installSurface, showInstallEntry } =
   storeToRefs(appInstallStore)
@@ -40,12 +52,6 @@ const appVersion = __APP_VERSION__
 const localeOptions = SHELL_LOCALE_OPTIONS
 // Keeping menu entries derived from the router avoids shipping dead links in production builds.
 const navigationItems = createNavigationItems()
-const backupImportInput = ref<HTMLInputElement | null>(null)
-const backupImportInProgress = ref(false)
-const backupImportErrorVisible = ref(false)
-const backupExportInProgress = ref(false)
-const backupExportErrorVisible = ref(false)
-const backupExportErrorMessage = ref<string | null>(null)
 
 const appName = computed(() => t('app.name'))
 const installEntryLabel = computed(() =>
@@ -55,9 +61,6 @@ const installEntryLabel = computed(() =>
 )
 const updateActionLabel = computed(() =>
   updatePending.value ? t('update.action.pending') : t('update.action.ready')
-)
-const backupExportAlertMessage = computed(
-  () => backupExportErrorMessage.value ?? t('menu.exportBackup.error')
 )
 
 watch(installed, (value) => {
@@ -69,121 +72,6 @@ watch(installed, (value) => {
 function closeSidebar() {
   // What: route every sidebar dismissal through one shell helper. Why: menu actions and install completion should share the same transient sidebar state transition.
   shellStore.closeSidebar()
-}
-
-function dismissBackupExportError() {
-  // What: let coaches dismiss backup export failures from the shell-level alert. Why: backup retries should not be blocked by stale error copy once the issue is understood.
-  backupExportErrorVisible.value = false
-  backupExportErrorMessage.value = null
-}
-
-function dismissBackupImportError() {
-  // What: let coaches dismiss backup import failures from the shell-level alert. Why: restore retries should not stay blocked by stale error copy once the issue is understood.
-  backupImportErrorVisible.value = false
-}
-
-function openBackupImportPicker() {
-  if (backupImportInProgress.value) {
-    return
-  }
-
-  closeSidebar()
-  backupImportErrorVisible.value = false
-  // What: trigger restore through a hidden native file input. Why: OS pickers keep JSON selection consistent across mobile and desktop without custom upload UI.
-  backupImportInput.value?.click()
-}
-
-async function handleBackupImportSelection(event: Event) {
-  if (backupImportInProgress.value) {
-    return
-  }
-
-  const fileInput = event.target as HTMLInputElement | null
-  const selectedBackupFile = fileInput?.files?.[0]
-
-  if (!selectedBackupFile) {
-    return
-  }
-
-  backupImportErrorVisible.value = false
-  backupImportInProgress.value = true
-
-  try {
-    // What: route backup restore through one dedicated application workflow. Why: destructive clear-and-import writes must stay behind the same application boundary as every other Dexie mutation.
-    await useCases.importDatabaseBackup.handle({
-      backupFile: selectedBackupFile
-    })
-    reloadApplication()
-  } catch (error) {
-    backupImportErrorVisible.value = true
-    console.error('Failed to import local database backup.', error)
-  } finally {
-    // What: clear the picker value after each attempt. Why: browsers do not emit change when the same file is selected twice unless the input value is reset.
-    if (fileInput) {
-      fileInput.value = ''
-    }
-    backupImportInProgress.value = false
-  }
-}
-
-async function exportDatabaseBackup() {
-  if (backupExportInProgress.value) {
-    return
-  }
-
-  closeSidebar()
-  backupExportErrorVisible.value = false
-  backupExportErrorMessage.value = null
-  backupExportInProgress.value = true
-
-  try {
-    // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
-    await useCases.exportDatabaseBackup.handle({})
-  } catch (error) {
-    // What: attach technical browser error details to the shared export alert. Why: Android share/download failures are often browser-specific and impossible to diagnose from generic copy.
-    backupExportErrorMessage.value = buildBackupExportErrorMessage(t, error)
-    backupExportErrorVisible.value = true
-    console.error('Failed to export local database backup.', error)
-  } finally {
-    backupExportInProgress.value = false
-  }
-}
-
-function buildBackupExportErrorMessage(
-  translate: (key: string, values?: Record<string, unknown>) => string,
-  error: unknown
-): string {
-  const errorDetails = formatErrorDetails(error)
-
-  if (!errorDetails) {
-    return translate('menu.exportBackup.error')
-  }
-
-  return `${translate('menu.exportBackup.error')} ${translate(
-    'menu.exportBackup.errorDetails',
-    {
-      details: errorDetails
-    }
-  )}`
-}
-
-function formatErrorDetails(error: unknown): string | null {
-  if (error instanceof DOMException || error instanceof Error) {
-    const message = error.message.trim()
-
-    if (message.length === 0) {
-      return error.name
-    }
-
-    return `${error.name}: ${message}`
-  }
-
-  if (typeof error === 'string') {
-    const message = error.trim()
-    return message.length > 0 ? message : null
-  }
-
-  return null
 }
 
 function openResetModalFromMenu() {
@@ -199,11 +87,6 @@ function openInstallEntry() {
 async function handleUpdateAction() {
   closeSidebar()
   await appUpdateStore.activateWaitingUpdate()
-}
-
-function reloadApplication() {
-  // What: restart the whole shell after a successful full restore. Why: the current session still holds Pinia and i18n state in memory, so a cold boot is the safe way to reflect overwritten local-first data immediately.
-  window.location.reload()
 }
 
 function changeLocale(nextLocale: AppLocale) {
