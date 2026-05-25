@@ -51,20 +51,21 @@ const rangeLabel = computed(() => {
     <div class="age-range-filter__track">
       <span class="age-range-filter__bound">{{ minBound }}</span>
       <div class="age-range-filter__slider">
+        <!-- What: name each stacked slider by the boundary it changes. Why: the mobile custom rail visually merges two native controls, so non-visual users and E2E flows need explicit targets. -->
         <input
           v-model.number="minValueModel"
+          :aria-label="t('minLabel')"
           class="age-range-filter__input"
           :max="maxBound"
           :min="minBound"
-          style="height: 0"
           type="range"
         />
         <input
           v-model.number="maxValueModel"
+          :aria-label="t('maxLabel')"
           class="age-range-filter__input"
           :max="maxBound"
           :min="minBound"
-          style="height: 0"
           type="range"
         />
         <div class="age-range-filter__rail"></div>
@@ -138,6 +139,8 @@ input[type='range'] {
   inset: 0;
   z-index: 2;
   width: 100%;
+  height: 100%;
+  margin: 0;
   pointer-events: none;
 }
 
@@ -185,10 +188,14 @@ input[type='range']::-moz-range-track {
 {
   "pl": {
     "label": "Zakres wieku",
+    "minLabel": "Minimalny wiek",
+    "maxLabel": "Maksymalny wiek",
     "range": "{min} - {max} lat"
   },
   "en": {
     "label": "Age range",
+    "minLabel": "Minimum age",
+    "maxLabel": "Maximum age",
     "range": "{min} - {max} years"
   }
 }
