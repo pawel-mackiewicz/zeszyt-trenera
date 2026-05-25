@@ -1,5 +1,8 @@
 import { expect, type Locator, type Page } from 'playwright/test'
 
+// Why: roster helpers keep exporting the demo entry point for existing specs, while the actual modal workflow lives in one demo-focused helper module.
+export { openDemoRoster } from './demo'
+
 export type RosterMemberDraft = {
   firstName: string
   lastName: string
@@ -7,13 +10,6 @@ export type RosterMemberDraft = {
   joinedAt?: string
   countryCode?: string
   phoneNumberRest?: string
-}
-
-export async function openDemoRoster(page: Page) {
-  await page.goto('/')
-
-  await page.getByRole('button', { name: /sprawdzam!/i }).click()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
 }
 
 export async function addRosterMemberViaUi(

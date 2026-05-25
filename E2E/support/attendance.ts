@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from 'playwright/test'
 
-import { openDemoRoster } from './roster'
+import { openDemoRoster } from './demo'
 
 export type AttendanceSessionExpectation = {
   count: number

@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from 'playwright/test'
 
-import { openDemoRoster } from './roster'
+import { openDemoRoster } from './demo'
 
 export type DemoPaymentMemberTarget = {
   age: number
@@ -13,6 +13,7 @@ export type DemoPaymentTargets = {
   attended: DemoPaymentMemberTarget & {
     attendanceCount: number
   }
+  paid: DemoPaymentMemberTarget
   monthLabel: string
 }
 
@@ -288,6 +289,9 @@ export function currentDemoPaymentTargets(
   )
   const attendedIndex = attendedIndexes[0] as number
   const absentIndex = absentIndexes[0] as number
+  const paidIndex = memberOrder[
+    attendedCount + DEMO_UNPAID_ABSENT_MEMBER_COUNT
+  ] as number
 
   return {
     attended: {
@@ -295,6 +299,7 @@ export function currentDemoPaymentTargets(
       attendanceCount: attendanceTargets[0] as number
     },
     absent: demoMemberTarget(absentIndex),
+    paid: demoMemberTarget(paidIndex),
     monthLabel: formatPolishMonthLabel(monthStart)
   }
 }

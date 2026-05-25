@@ -1,10 +1,9 @@
 import { expect, test } from 'playwright/test'
 
-test('adds a roster member and keeps it after reload', async ({ page }) => {
-  await page.goto('/')
+import { openDemoRoster } from './support/demo'
 
-  await page.getByRole('button', { name: /sprawdzam!/i }).click()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+test('adds a roster member and keeps it after reload', async ({ page }) => {
+  await openDemoRoster(page)
 
   await page.getByRole('link', { name: /dodaj członka/i }).click()
   await expect(
