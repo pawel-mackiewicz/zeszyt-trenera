@@ -5,7 +5,12 @@ import {
   leaveDemoForSetup,
   openDemoIntro
 } from './support/demo'
-import { addRosterMemberViaUi, type RosterMemberDraft } from './support/roster'
+import {
+  addRosterMemberViaUi,
+  expectRosterMemberHidden,
+  expectRosterMemberVisible,
+  type RosterMemberDraft
+} from './support/roster'
 import { INSTALL_MODAL_SHOWN_STORAGE_KEY } from '../src/appStorageKeys'
 
 type FakeBeforeInstallPromptEvent = Event & {
@@ -77,7 +82,10 @@ async function addRosterMemberAndReload(page: Page, member: RosterMemberDraft) {
 
   // Why: sidebar backup assertions must read durable roster rows, not member-form state that only exists before the local-first app reloads.
   await page.reload()
-  await expectMemberVisible(page, `${member.firstName} ${member.lastName}`)
+  await expectRosterMemberVisible(
+    page,
+    `${member.firstName} ${member.lastName}`
+  )
 }
 
 async function resetApplicationFromSidebar(page: Page) {
@@ -245,16 +253,6 @@ async function suppressAutomaticInstallPrompt(page: Page) {
   }, INSTALL_MODAL_SHOWN_STORAGE_KEY)
 }
 
-async function expectMemberVisible(page: Page, fullName: string) {
-  await expect(page.getByText(new RegExp(`^${fullName}$`, 'i'))).toBeVisible()
-}
-
-async function expectMemberHidden(page: Page, fullName: string) {
-  await expect(
-    page.getByText(new RegExp(`^${fullName}$`, 'i'))
-  ).not.toBeVisible()
-}
-
 test('opens from the header and shows outside-demo sidebar actions', async ({
   page
 }) => {
@@ -280,11 +278,11 @@ test('exports a backup and imports it back', async ({ page }, testInfo) => {
 
   // Why: the restore check needs a real newer local write to overwrite, otherwise import could pass without replacing app data.
   await addRosterMemberAndReload(page, SECOND_MEMBER)
-  await expectMemberVisible(page, 'Marta Kowalska')
+  await expectRosterMemberVisible(page, 'Marta Kowalska')
 
   await restoreBackupFromSidebar(page, backupPath)
-  await expectMemberVisible(page, 'Marta Kowalska')
-  await expectMemberHidden(page, 'Jan Nowak')
+  await expectRosterMemberVisible(page, 'Marta Kowalska')
+  await expectRosterMemberHidden(page, 'Jan Nowak')
 })
 
 test('resets the app and boots demo mode again', async ({ page }) => {
