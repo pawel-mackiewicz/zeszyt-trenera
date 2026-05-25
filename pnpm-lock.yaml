@@ -7,9 +7,6 @@ settings:
 importers:
   .:
     dependencies:
-      '@xstate/vue':
-        specifier: ^5.0.0
-        version: 5.0.0(vue@3.5.30(typescript@5.9.3))(xstate@5.31.1)
       dexie:
         specifier: ^4.4.0
         version: 4.4.2
@@ -37,9 +34,6 @@ importers:
       workbox-window:
         specifier: ^7.4.0
         version: 7.4.0
-      xstate:
-        specifier: ^5.31.0
-        version: 5.31.1
     devDependencies:
       '@chromatic-com/storybook':
         specifier: ^5.1.2
@@ -3321,18 +3315,6 @@ packages:
       {
         integrity: sha512-6aN99yL695Hi9SuIk1oC88l9o0gmxL1nGWWQ/kNy81HigJ0FoaoTXpytCj6ItzgyCEwA9kF1wixsTuv5cjsgng==
       }
-
-  '@xstate/vue@5.0.0':
-    resolution:
-      {
-        integrity: sha512-9TyJV4yz5QLJdEU44Ly9LBooEyZmv0nht3qEvDflxXAJmSn1dzaZeESdHFm+ANHtxoUed5jGqH6NT86BusvXQg==
-      }
-    peerDependencies:
-      vue: ^3.0.0
-      xstate: ^5.20.0
-    peerDependenciesMeta:
-      xstate:
-        optional: true
 
   abbrev@2.0.0:
     resolution:
@@ -7007,12 +6989,6 @@ packages:
       }
     engines: { node: '>=12' }
 
-  xstate@5.31.1:
-    resolution:
-      {
-        integrity: sha512-3P7t7GQ61BvLu+8Cj6Zq7rcS34vecL9pvfN2ucUWmIFIUG+rAREviOs4Xy4OO3BuJHSz6RLU8eqDXxSbVotjDQ==
-      }
-
   yallist@3.1.1:
     resolution:
       {
@@ -9007,12 +8983,6 @@ snapshots:
       vue: 3.5.30(typescript@5.9.3)
 
   '@webcontainer/env@1.1.1': {}
-
-  '@xstate/vue@5.0.0(vue@3.5.30(typescript@5.9.3))(xstate@5.31.1)':
-    dependencies:
-      vue: 3.5.30(typescript@5.9.3)
-    optionalDependencies:
-      xstate: 5.31.1
 
   abbrev@2.0.0: {}
 
@@ -11367,8 +11337,6 @@ snapshots:
       is-wsl: 3.1.1
 
   xml-name-validator@4.0.0: {}
-
-  xstate@5.31.1: {}
 
   yallist@3.1.1: {}
 
