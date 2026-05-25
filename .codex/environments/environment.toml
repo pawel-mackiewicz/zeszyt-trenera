@@ -5,5 +5,4 @@ name = "zeszyt-trenera"
 [setup]
 script = '''
 # inject ./.temp/
-# inject ./E2E/.temp/
 '''
