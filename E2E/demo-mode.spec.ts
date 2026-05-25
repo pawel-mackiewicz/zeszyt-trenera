@@ -3,9 +3,8 @@ import { expect, test } from 'playwright/test'
 import {
   continueDemo,
   demoIntroDialog,
-  leaveDemoForSetup,
-  openDemoIntro,
-  openLeaveDemoIntro
+  exitDemoModeForSetup,
+  openDemoIntro
 } from './support/demo'
 import {
   currentDemoPaymentTargets,
@@ -46,8 +45,7 @@ test('leaves demo through the intro modal and opens setup on reload', async ({
 }) => {
   await openDemoIntro(page)
   await continueDemo(page)
-  await openLeaveDemoIntro(page)
-  await leaveDemoForSetup(page)
+  await exitDemoModeForSetup(page)
 
   // Why: leaving demo must persist the dismissal choice outside the wiped notebook, otherwise a mobile reload would immediately reseed demo data again.
   await page.reload()

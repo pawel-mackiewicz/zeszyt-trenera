@@ -32,6 +32,12 @@ export async function openLeaveDemoIntro(page: Page) {
   await expect(demoIntroDialog(page)).toBeVisible()
 }
 
+export async function exitDemoModeForSetup(page: Page) {
+  // Why: specs that already entered demo should share the visible exit path instead of duplicating the header CTA plus confirmation modal sequence.
+  await openLeaveDemoIntro(page)
+  await leaveDemoForSetup(page)
+}
+
 export async function leaveDemoForSetup(page: Page) {
   await demoIntroDialog(page)
     .getByRole('button', { name: /już testowałem/i })
