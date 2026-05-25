@@ -9,6 +9,8 @@ export {
 } from 'vue-router/dist/vue-router.mjs'
 
 export type {
+  RouteLocationNormalized,
   RouteLocationNormalizedLoaded,
-  RouteRecordRaw
+  RouteRecordRaw,
+  Router
 } from 'vue-router/dist/vue-router.mjs'

@@ -6,6 +6,7 @@ import { i18n } from './ui/i18n'
 import { provideAppServices } from './ui/appServices'
 import App from './ui/App.vue'
 import router from './ui/router'
+import { installSetupPhaseNavigation } from './ui/router/setupPhaseNavigation'
 import { useAppStore } from './ui/stores/app'
 import { useDemoStore } from './ui/features/demo/demo.store'
 // This root entrypoint keeps the PWA bootstrap easy to find while Vite serves the shell from /src/main.ts.
@@ -18,6 +19,15 @@ function bootstrap() {
   const app = createApp(App)
   const services = createAppServices(new TrainerNotebookDb())
   const database = services.database
+  const appStore = useAppStore(pinia)
+  const demoStore = useDemoStore(pinia)
+
+  // What: install setup navigation beside router bootstrap. Why: first-run routing depends on local setup read models, so AppShell should render state while the router enforces the unskippable setup path.
+  installSetupPhaseNavigation({
+    router,
+    appStore,
+    queries: services.queries
+  })
 
   // Providing one shared service bag keeps bootstrap stable while the number of app workflows grows.
   provideAppServices(app, services)
@@ -27,9 +37,6 @@ function bootstrap() {
   app.use(i18n)
   app.use(router)
   app.mount('#app')
-
-  const appStore = useAppStore(pinia)
-  const demoStore = useDemoStore(pinia)
 
   void database
     .open()

@@ -53,9 +53,9 @@ export default defineConfig({
       )
     }
   },
-  // What: pre-bundle the Pinia dependency used by smart Storybook stories. Why: browser story tests can reload when Vite discovers it mid-run, which breaks dynamic imports in the local test server.
+  // What: pre-bundle dependencies used by smart Storybook stories. Why: browser story tests can reload when Vite discovers a dependency mid-run, which breaks dynamic imports in the local test server.
   optimizeDeps: {
-    include: ['pinia']
+    include: ['pinia', 'uuid']
   },
   test: {
     // What: hide console output produced by tests that pass. Why: expected failure-path coverage should not make a clean local-first PWA test run look broken.

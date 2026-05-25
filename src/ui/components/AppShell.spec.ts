@@ -4,7 +4,6 @@ import { computed, nextTick, reactive, ref, type Ref } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
-import type { SetupStatus } from '@/read/ObserveSetupStatusQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppShell from '@/ui/components/AppShell.vue'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
@@ -19,11 +18,6 @@ import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useShellStore } from '@/ui/stores/shell.store'
-
-type SetupStatusObserver = {
-  next(value: SetupStatus): void
-  error?(error: unknown): void
-}
 
 type MockRoute = {
   meta: Record<string, unknown>
@@ -67,12 +61,9 @@ vi.mock('@/ui/pwa/register', () => ({
 describe('AppShell', () => {
   let mockRouterPush: Mock
   let mockRouterBack: Mock
-  let mockRouterReplace: Mock
   let mockUpdateAvailable: Ref<boolean>
   let mockUpdateServiceWorker: Mock
   let mockRoute: MockRoute
-  let mockSetupStatusObservers: SetupStatusObserver[]
-  let mockSetupStatus: SetupStatus
   let mockImportDatabaseBackup: Mock
   let mockExportDatabaseBackup: Mock
   let mockResetApplicationData: Mock
@@ -82,15 +73,12 @@ describe('AppShell', () => {
     window.localStorage.clear()
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
-    mockRouterReplace = vi.fn()
     mockUpdateAvailable = ref(false)
     mockUpdateServiceWorker = vi.fn().mockResolvedValue(undefined)
     mockImportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockExportDatabaseBackup = vi.fn().mockResolvedValue(undefined)
     mockResetApplicationData = vi.fn().mockResolvedValue(undefined)
     mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
-    mockSetupStatusObservers = []
-    mockSetupStatus = 'ready'
 
     mockRoute = reactive({
       meta: {},
@@ -106,7 +94,7 @@ describe('AppShell', () => {
     vi.mocked(useRouter).mockReturnValue({
       push: mockRouterPush,
       back: mockRouterBack,
-      replace: mockRouterReplace,
+      replace: vi.fn(),
       forward: vi.fn(),
       go: vi.fn(),
       currentRoute: { value: {} } as unknown
@@ -124,24 +112,7 @@ describe('AppShell', () => {
       updateServiceWorker: mockUpdateServiceWorker
     })
     vi.mocked(useAppServices).mockReturnValue({
-      queries: {
-        observeSetupStatus: {
-          handle: vi.fn(() => ({
-            subscribe(observer: SetupStatusObserver) {
-              mockSetupStatusObservers.push(observer)
-              observer.next(mockSetupStatus)
-
-              return {
-                unsubscribe() {
-                  mockSetupStatusObservers = mockSetupStatusObservers.filter(
-                    (entry) => entry !== observer
-                  )
-                }
-              }
-            }
-          }))
-        }
-      } as unknown,
+      queries: {} as unknown,
       useCases: {
         importDatabaseBackup: {
           handle: mockImportDatabaseBackup
@@ -168,7 +139,8 @@ describe('AppShell', () => {
       appUpdateStore: ReturnType<typeof useAppUpdateStore>,
       appResetStore: ReturnType<typeof useAppResetStore>,
       appInstallStore: ReturnType<typeof useAppInstallStore>
-    ) => void
+    ) => void,
+    options: { defaultSetupReady?: boolean } = {}
   ) {
     const pinia = createPinia()
     const i18n = createAppI18n('pl')
@@ -188,6 +160,15 @@ describe('AppShell', () => {
       appResetStore,
       appInstallStore
     )
+
+    if (
+      options.defaultSetupReady !== false &&
+      appStore.appReadiness === 'ready' &&
+      appStore.setupStatus === 'checking'
+    ) {
+      // What: default integration specs to a completed setup state. Why: setup routing now lives outside AppShell, so shell chrome tests should opt into setup states only when they render that phase.
+      appStore.setSetupStatus('ready')
+    }
 
     const wrapper = mount(AppShell, {
       global: {
@@ -214,12 +195,6 @@ describe('AppShell', () => {
 
   function getShellMenuButton(wrapper: VueWrapper) {
     return wrapper.get('[data-testid="shell-menu-button"]')
-  }
-
-  async function emitSetupStatus(value: SetupStatus) {
-    mockSetupStatus = value
-    mockSetupStatusObservers.forEach((observer) => observer.next(value))
-    await nextTick()
   }
 
   function spyOnExpectedConsoleError() {
@@ -482,43 +457,37 @@ describe('AppShell', () => {
     )
   })
 
-  it('replaces the current route with the club setup screen when setup data is missing', () => {
-    mockSetupStatus = 'requires-club'
-
+  it('renders the setup phase without normal shell chrome when setup data is missing', () => {
     const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
+      appStore.setSetupStatus('requires-club')
     })
 
-    expect(mockRouterReplace).toHaveBeenCalledWith('/setup/club')
     expect(wrapper.find('header').exists()).toBe(false)
     expect(wrapper.find('.router-view-stub').exists()).toBe(true)
   })
 
-  it('moves the setup flow from club to trainer after the club record appears', async () => {
-    mockSetupStatus = 'requires-club'
+  it('renders setup checking copy while the setup read model is loading', () => {
+    const { wrapper } = mountShell(
+      (appStore) => {
+        appStore.setAppReady()
+      },
+      { defaultSetupReady: false }
+    )
 
-    mountShell((appStore) => {
-      appStore.setAppReady()
-    })
-
-    await emitSetupStatus('requires-trainer')
-
-    expect(mockRouterReplace).toHaveBeenLastCalledWith('/setup/trainer')
+    expect(wrapper.text()).toContain('Konfiguracja startowa')
+    expect(wrapper.text()).toContain('Sprawdzam dane startowe')
+    expect(wrapper.find('.router-view-stub').exists()).toBe(false)
   })
 
-  it('returns to the members route once setup becomes complete', async () => {
-    mockSetupStatus = 'requires-trainer'
-    mockRoute.name = 'setup-trainer'
-    mockRoute.path = '/setup/trainer'
-    mockRoute.fullPath = '/setup/trainer'
-
-    mountShell((appStore) => {
+  it('renders the ready shell only after setup is complete', () => {
+    const { wrapper } = mountShell((appStore) => {
       appStore.setAppReady()
+      appStore.setSetupStatus('ready')
     })
 
-    await emitSetupStatus('ready')
-
-    expect(mockRouterReplace).toHaveBeenCalledWith('/member')
+    expect(wrapper.find('header').exists()).toBe(true)
+    expect(wrapper.find('.router-view-stub').exists()).toBe(true)
   })
 
   it('activates the waiting shell from the hamburger menu without restoring the modal', async () => {
