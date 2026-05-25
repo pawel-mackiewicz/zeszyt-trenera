@@ -3,4 +3,7 @@ version = 1
 name = "zeszyt-trenera"
 
 [setup]
-script = "# inject ./.temp/"
+script = '''
+# inject ./.temp/
+# inject ./E2E/.temp/
+'''
