@@ -1,12 +1,11 @@
 import { expect, test } from 'playwright/test'
 
+import { openDemoRoster } from './support/demo'
+
 test('edits a demo member and keeps the change after reload', async ({
   page
 }) => {
-  await page.goto('/')
-
-  await page.getByRole('button', { name: /sprawdzam!/i }).click()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await openDemoRoster(page)
 
   await page.getByText(/^kamaru usman$/i).click()
   await page.getByRole('button', { name: /^edytuj$/i }).click()
