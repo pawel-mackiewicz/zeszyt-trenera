@@ -2,15 +2,21 @@
   "compilerOptions": {
     "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    // Why: Vite, Playwright, and Storybook config types assume modern JS/runtime declarations even though this project does not ship Node-side code.
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "strict": true,
+    // Why: tooling packages expose optional peer declarations that are not part of this app's contract, so config checks should stay focused on local files.
+    "skipLibCheck": true,
     "types": ["node"]
   },
   "include": [
     "vite.config.ts",
     "vitest.config.ts",
+    "playwright.config.ts",
     // Why: Storybook 10 publishes its Vue/Vite config types through package exports, so main.ts needs the Node tooling project's Bundler resolution.
     ".storybook/main.ts",
     "eslint.config.mjs",

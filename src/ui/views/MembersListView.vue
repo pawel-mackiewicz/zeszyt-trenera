@@ -385,13 +385,16 @@ onMounted(() => {
             >
               <!-- What: inline edit fields live under expanded member details. Why: list users can adjust data in place without leaving this mobile-first workflow. -->
               <div class="flex flex-col">
+                <!-- What: connect each visible edit label to its field with a per-member id. Why: mobile users, assistive tech, and E2E tests should all target the same accessible form controls instead of structural markup. -->
                 <!-- What: keep the edit labels plain even for mandatory identity fields. Why: the explicit required marker is reserved for the add-member flow, while edit stays visually lighter for quick inline corrections. -->
                 <label
+                  :for="`member-edit-first-name-${member.id}`"
                   class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                   >{{ t('edit.fields.firstName') }}</label
                 >
                 <!-- What: render the editable first name in uppercase. Why: the edit state should match the member list presentation, so coaches do not see the name switch casing mid-flow. -->
                 <input
+                  :id="`member-edit-first-name-${member.id}`"
                   v-model="editFirstName"
                   type="text"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
@@ -400,11 +403,13 @@ onMounted(() => {
               </div>
               <div class="flex flex-col">
                 <label
+                  :for="`member-edit-last-name-${member.id}`"
                   class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                   >{{ t('edit.fields.lastName') }}</label
                 >
                 <!-- What: render the editable last name in uppercase. Why: the edit form should preserve the same visual identity cues as the roster rows instead of dropping back to lowercase. -->
                 <input
+                  :id="`member-edit-last-name-${member.id}`"
                   v-model="editLastName"
                   type="text"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm uppercase"
@@ -413,10 +418,12 @@ onMounted(() => {
               </div>
               <div class="flex flex-col">
                 <label
+                  :for="`member-edit-phone-number-${member.id}`"
                   class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                   >{{ t('edit.fields.phoneNumber') }}</label
                 >
                 <input
+                  :id="`member-edit-phone-number-${member.id}`"
                   v-model="editPhoneNumber"
                   type="tel"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
@@ -424,10 +431,12 @@ onMounted(() => {
               </div>
               <div class="flex flex-col">
                 <label
+                  :for="`member-edit-date-of-birth-${member.id}`"
                   class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                   >{{ t('edit.fields.dateOfBirth') }}</label
                 >
                 <input
+                  :id="`member-edit-date-of-birth-${member.id}`"
                   v-model="editDateOfBirth"
                   type="date"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
@@ -436,10 +445,12 @@ onMounted(() => {
               </div>
               <div class="flex flex-col">
                 <label
+                  :for="`member-edit-joined-at-${member.id}`"
                   class="font-label text-[0.6rem] text-secondary uppercase font-bold"
                   >{{ t('edit.fields.joinedAt') }}</label
                 >
                 <input
+                  :id="`member-edit-joined-at-${member.id}`"
                   v-model="editJoinedAt"
                   type="date"
                   class="bg-transparent border-b border-on-surface py-2 font-mono text-sm"
