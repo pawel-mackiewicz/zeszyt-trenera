@@ -50,12 +50,7 @@ export async function addRosterMemberViaUi(
   await page.getByRole('button', { name: /^zapisz$/i }).click()
   await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
   await expect(
-    page.getByText(
-      new RegExp(
-        `^${escapeRegExp(member.firstName)} ${escapeRegExp(member.lastName)}$`,
-        'i'
-      )
-    )
+    rosterMemberName(page, `${member.firstName} ${member.lastName}`)
   ).toBeVisible()
 }
 
@@ -74,10 +69,44 @@ export async function reloadRosterAfterLocalWrites(page: Page) {
   await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
 }
 
+export function rosterMemberName(page: Page, fullName: string): Locator {
+  // Why: member specs and shell flows share exact-name roster assertions, so escaping the regex once keeps readable tests from duplicating brittle locator details.
+  return page.getByText(new RegExp(`^${escapeRegExp(fullName)}$`, 'i'))
+}
+
 export function rosterMemberRows(page: Page, marker: string): Locator {
   return page.getByText(
     new RegExp(`^[\\p{L}\\s-]+${escapeRegExp(marker)}[\\p{L}\\s-]+$`, 'iu')
   )
+}
+
+export async function expectRosterMemberVisible(page: Page, fullName: string) {
+  await expect(rosterMemberName(page, fullName)).toBeVisible()
+}
+
+export async function expectRosterMemberHidden(page: Page, fullName: string) {
+  await expect(rosterMemberName(page, fullName)).not.toBeVisible()
+}
+
+export async function openRosterMemberDetails(page: Page, fullName: string) {
+  await rosterMemberName(page, fullName).click()
+
+  // Why: detail-level member assertions must prove the roster row opened the persisted member card, not only that the list item was visible.
+  await expect(page.getByRole('button', { name: /^edytuj$/i })).toBeVisible()
+}
+
+export async function updateRosterMemberFirstName(
+  page: Page,
+  fullName: string,
+  firstName: string
+) {
+  await openRosterMemberDetails(page, fullName)
+  await page.getByRole('button', { name: /^edytuj$/i }).click()
+  await page.getByLabel(/^imię$/i).fill(firstName)
+  await page.getByRole('button', { name: /zapisz zmiany/i }).click()
+
+  // Why: edit specs should wait for the roster route before reloading so a save that writes but fails navigation is still caught.
+  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
 }
 
 function escapeRegExp(value: string): string {
