@@ -13,6 +13,9 @@ export default tseslint.config(
       'dist',
       'coverage',
       'dev-dist',
+      // Why: generated diagnostics and scratch artifacts should not enter source lint gates, including stale Playwright output from earlier local runs.
+      '.temp',
+      'E2E/.temp',
       // Why: Storybook stories are isolated UI examples and should not fail app-wide lint gates.
       'src/stories/**'
     ]

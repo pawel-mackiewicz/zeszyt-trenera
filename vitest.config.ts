@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath, URL } from 'node:url'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
-import { defineConfig } from 'vitest/config'
+import { configDefaults, defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 import path from 'node:path'
 import { storybookTest } from '@storybook/addon-vitest/vitest-plugin'
@@ -58,6 +58,8 @@ export default defineConfig({
     include: ['pinia', 'uuid']
   },
   test: {
+    // What: keep browser-level Playwright specs out of the unit/component runner. Why: E2E files use Playwright Test's runtime and must be executed by `pnpm test:e2e`, not imported by Vitest.
+    exclude: [...configDefaults.exclude, 'E2E/**'],
     // What: hide console output produced by tests that pass. Why: expected failure-path coverage should not make a clean local-first PWA test run look broken.
     silent: 'passed-only',
     onConsoleLog(log, type) {

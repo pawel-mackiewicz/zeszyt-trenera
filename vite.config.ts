@@ -15,7 +15,7 @@ const packageJson = JSON.parse(
   version: string
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
     // Surfacing the package version at build time keeps the installed shell badge aligned with package.json without an extra runtime fetch.
     __APP_VERSION__: JSON.stringify(packageJson.version)
@@ -66,11 +66,12 @@ export default defineConfig({
         suppressWarnings: true
       }
     }),
-    cloudflare()
+    // What: skip the Cloudflare dev adapter in Playwright mode. Why: E2E checks exercise the local-first SPA in a real browser and do not need Worker plumbing that probes host network interfaces.
+    ...(mode === 'e2e' ? [] : [cloudflare()])
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   }
-})
+}))
