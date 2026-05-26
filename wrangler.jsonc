@@ -22,6 +22,7 @@
             ]
     },
     "prod": {
+      "name": "zeszyt-trenera",
       "routes": [
         {
           "pattern": "app.zeszyt-trenera.pl",
