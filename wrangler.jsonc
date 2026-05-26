@@ -1,12 +1,33 @@
 {
+  // prod config:
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "zeszyt-trenera",
   "compatibility_date": "2026-04-03",
+  "compatibility_flags": ["nodejs_compat"],
   "observability": {
     "enabled": true
   },
   "assets": {
+    "directory": "./dist",
     "not_found_handling": "single-page-application"
   },
-  "compatibility_flags": ["nodejs_compat"]
+
+  "env": {
+    "staging": {
+            "routes": [
+              {
+                "pattern": "staging.zeszyt-trenera.pl",
+                "custom_domain": true
+              }
+            ]
+    },
+    "prod": {
+      "routes": [
+        {
+          "pattern": "app.zeszyt-trenera.pl",
+          "custom_domain": true
+        }
+      ]
+    }
+  }
 }

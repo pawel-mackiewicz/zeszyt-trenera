@@ -1,6 +1,6 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.5.116",
+  "version": "0.5.117",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.33.0",
@@ -20,9 +20,10 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:install": "playwright install chromium",
     "test:storybook": "vitest run --project storybook",
-    "deploy": "pnpm run build && wrangler deploy",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "deploy": "pnpm run build && wrangler deploy --env prod",
+    "deploy:staging": "pnpm run build && wrangler deploy --env staging"
   },
   "dependencies": {
     "dexie": "^4.4.0",
@@ -37,7 +38,6 @@
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^5.1.2",
-    "@cloudflare/vite-plugin": "^1.31.0",
     "@eslint/js": "^10.0.1",
     "@fontsource/inter": "^5.2.8",
     "@fontsource/roboto-mono": "^5.2.8",

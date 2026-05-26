@@ -7,15 +7,13 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vite'
 
-import { cloudflare } from '@cloudflare/vite-plugin'
-
 const packageJson = JSON.parse(
   readFileSync(new URL('./package.json', import.meta.url), 'utf-8')
 ) as {
   version: string
 }
 
-export default defineConfig(({ mode }) => ({
+export default defineConfig({
   define: {
     // Surfacing the package version at build time keeps the installed shell badge aligned with package.json without an extra runtime fetch.
     __APP_VERSION__: JSON.stringify(packageJson.version)
@@ -65,13 +63,11 @@ export default defineConfig(({ mode }) => ({
         enabled: true,
         suppressWarnings: true
       }
-    }),
-    // What: skip the Cloudflare dev adapter in Playwright mode. Why: E2E checks exercise the local-first SPA in a real browser and do not need Worker plumbing that probes host network interfaces.
-    ...(mode === 'e2e' ? [] : [cloudflare()])
+    })
   ],
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   }
-}))
+})
