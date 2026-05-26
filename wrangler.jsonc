@@ -27,7 +27,7 @@
           "pattern": "app.zeszyt-trenera.pl",
           "custom_domain": true
         }
-      ]
+      ],"name": "zeszyt-trenera"
     }
   }
 }
