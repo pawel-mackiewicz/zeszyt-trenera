@@ -4,5 +4,6 @@ export interface AttendanceListRepoPort {
   findById(attendanceListId: string): Promise<AttendanceList | null>
   save(attendanceList: AttendanceList): Promise<void>
   update(attendanceList: AttendanceList): Promise<void>
+  delete(attendanceListId: string): Promise<void>
   existsByStart(start: Date): Promise<boolean>
 }

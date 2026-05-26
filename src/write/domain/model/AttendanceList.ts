@@ -142,6 +142,15 @@ export class AttendanceList {
     return [updatedAttendanceList, event]
   }
 
+  public static delete(
+    existingAttendanceList: AttendanceList
+  ): AttendanceListDeletedDomainEvent {
+    // Why: deletion needs the removed session snapshot because the persisted row is gone after the write, including non-empty member attendance.
+    return new AttendanceListDeletedDomainEvent(
+      existingAttendanceList.toSnapshot()
+    )
+  }
+
   // Persistence adapters and event serializers share one snapshot so stored attendance data cannot drift apart.
   public toSnapshot(): AttendanceListSnapshot {
     return {
@@ -178,6 +187,15 @@ export class AttendanceListUpdatedDomainEvent extends DomainEvent<AttendanceList
   public readonly eventName = 'attendance-list.updated'
 
   public constructor(attendanceList: AttendanceListSnapshot) {
+    super(attendanceList)
+  }
+}
+
+export class AttendanceListDeletedDomainEvent extends DomainEvent<AttendanceListSnapshot> {
+  public readonly eventName = 'attendance-list.deleted'
+
+  public constructor(attendanceList: AttendanceListSnapshot) {
+    // Why: delete events carry the full snapshot so local-first audits and future replay paths can identify exactly what was removed.
     super(attendanceList)
   }
 }

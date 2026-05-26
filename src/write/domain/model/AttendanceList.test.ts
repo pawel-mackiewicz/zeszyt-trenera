@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   AttendanceList,
+  AttendanceListDeletedDomainEvent,
   AttendanceListIdMismatchError,
   AttendanceListRecordedDomainEvent,
   AttendanceListUpdatedDomainEvent,
@@ -11,6 +12,21 @@ import {
 } from '@/write/domain/model/AttendanceList'
 
 describe('AttendanceList Model', () => {
+  it('creates a deletion event with the removed attendance snapshot', () => {
+    const existingAttendanceList = AttendanceList.rehydrate({
+      id: 'attendance-list-1',
+      memberIds: ['member-1', 'member-2'],
+      start: new Date('2026-03-27T17:00:00Z'),
+      createdAt: new Date('2026-03-01T10:00:00Z')
+    })
+
+    const event = AttendanceList.delete(existingAttendanceList)
+
+    expect(event).toBeInstanceOf(AttendanceListDeletedDomainEvent)
+    expect(event.eventName).toBe('attendance-list.deleted')
+    expect(event.payload).toEqual(existingAttendanceList.toSnapshot())
+  })
+
   it('records an attendance list with all required properties', () => {
     const id = 'attendance-list-1'
     const start = new Date('2026-03-27T17:00:00Z')

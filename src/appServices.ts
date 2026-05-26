@@ -4,6 +4,7 @@ import {
   BootstrapDemoModeUseCase,
   type BootstrapDemoModeResult
 } from '@/write/application/BootstrapDemoModeUseCase'
+import { DeleteAttendanceListUseCase } from '@/write/application/DeleteAttendanceListUseCase'
 import { ExportDatabaseBackupUseCase } from '@/write/application/ExportDatabaseBackupUseCase'
 import { ImportDatabaseBackupUseCase } from '@/write/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/write/application/LeaveDemoModeUseCase'
@@ -18,6 +19,7 @@ import { UpdateAttendanceListUseCase } from '@/write/application/UpdateAttendanc
 import { UpdateMemberUseCase } from '@/write/application/UpdateMemberUseCase'
 import type { UseCase } from '@/write/application/UseCase'
 import type { BootstrapDemoModeCommand } from '@/write/application/requests/BootstrapDemoModeCommand'
+import type { DeleteAttendanceListCommand } from '@/write/application/requests/DeleteAttendanceListCommand'
 import type { ExportDatabaseBackupCommand } from '@/write/application/requests/ExportDatabaseBackupCommand'
 import type { ImportDatabaseBackupCommand } from '@/write/application/requests/ImportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/write/application/requests/LeaveDemoModeCommand'
@@ -84,6 +86,7 @@ export type AppUseCases = {
     BootstrapDemoModeCommand,
     BootstrapDemoModeResult
   >
+  readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
   readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
@@ -225,6 +228,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveIdGenerator()
       )
   )
+  const resolveDeleteAttendanceList = lazy(
+    () =>
+      new DeleteAttendanceListUseCase(
+        resolveUnitOfWork(),
+        resolveAttendanceListRepo(),
+        resolveEventRepo()
+      )
+  )
   const resolveUpdateAttendanceList = lazy(
     () =>
       new UpdateAttendanceListUseCase(
@@ -320,6 +331,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get bootstrapDemoMode() {
       return resolveBootstrapDemoMode()
     },
+    get deleteAttendanceList() {
+      return resolveDeleteAttendanceList()
+    },
     get exportDatabaseBackup() {
       return resolveExportDatabaseBackup()
     },
@@ -347,7 +361,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get resetApplicationData() {
       return resolveResetApplicationData()
     },
-    // Keeping reminder dispatch behind the shared use-case bag lets payments stay UI-thin while the application layer owns SMS body construction and sender identity lookup.
     get sendMembershipPaymentReminder() {
       return resolveSendMembershipPaymentReminder()
     },
@@ -360,27 +373,22 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   }
 
   const queries: AppQueries = {
-    // Keeping session hydration behind the shared query bag lets attendance edit stay off raw Dexie APIs while still reading one persisted session through the application boundary.
+    // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get getAttendanceSessionById() {
       return resolveGetAttendanceSessionById()
     },
-    // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()
     },
-    // What: expose one attendance-specific member read contract. Why: create and edit attendance flows should not read Dexie directly or receive full roster details they never use.
     get listMembersForAttendanceEditor() {
       return resolveListMembersForAttendanceEditor()
     },
-    // What: expose one roster-specific member read contract. Why: the members screen needs profile fields for details and edits while staying behind the shared read boundary.
     get listMembersForRoster() {
       return resolveListMembersForRoster()
     },
-    // Keeping the reactive payments read on the shared service bag prepares the upcoming screen to subscribe through the application boundary instead of opening its own Dexie watcher.
     get observeMembershipPaymentStatusByMonth() {
       return resolveObserveMembershipPaymentStatusByMonth()
     },
-    // Keeping startup setup state in the shared query bag lets the shell react to local club/trainer writes without reading Dexie directly.
     get observeSetupStatus() {
       return resolveObserveSetupStatus()
     }

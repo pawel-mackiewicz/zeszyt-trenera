@@ -50,6 +50,9 @@ describe('uiAppServices', () => {
         bootstrapDemoMode: {
           handle
         },
+        deleteAttendanceList: {
+          handle
+        },
         exportDatabaseBackup: {
           handle
         },

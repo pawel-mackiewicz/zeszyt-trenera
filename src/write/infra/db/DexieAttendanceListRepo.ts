@@ -36,6 +36,11 @@ export class DexieAttendanceListRepo implements AttendanceListRepoPort {
     )
   }
 
+  public async delete(attendanceListId: string): Promise<void> {
+    // Why: deleting by primary key lets the application workflow remove even non-empty local sessions without loading unrelated attendance rows on mobile.
+    await this.database.attendanceLists.delete(attendanceListId)
+  }
+
   public async existsByStart(start: Date): Promise<boolean> {
     // Attendance checks key off the training start, so the adapter uses one indexed lookup instead of loading all local sessions.
     const persistedAttendanceList = await this.database.attendanceLists

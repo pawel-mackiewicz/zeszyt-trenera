@@ -78,6 +78,7 @@ describe('BootstrapDemoModeUseCase', () => {
       findById: vi.fn().mockResolvedValue(null),
       save: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn(),
       existsByStart: vi.fn().mockResolvedValue(false)
     }
     eventRepo = {

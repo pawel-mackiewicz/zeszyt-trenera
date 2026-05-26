@@ -80,6 +80,10 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
     throw new Error('Not implemented in this fake')
   }
 
+  async delete(_attendanceListId: string): Promise<void> {
+    throw new Error('Not implemented in this fake')
+  }
+
   async existsByStart(start: Date): Promise<boolean> {
     this.existsByStartChecks.push(new Date(start.getTime()))
 

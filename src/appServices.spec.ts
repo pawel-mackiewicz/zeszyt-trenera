@@ -85,6 +85,9 @@ describe('appServices', () => {
     expect(services.useCases.bootstrapDemoMode).toBe(
       services.useCases.bootstrapDemoMode
     )
+    expect(services.useCases.deleteAttendanceList).toBe(
+      services.useCases.deleteAttendanceList
+    )
     expect(services.useCases.exportDatabaseBackup).toBe(
       services.useCases.exportDatabaseBackup
     )
@@ -286,6 +289,50 @@ describe('appServices', () => {
         id: persistedAttendanceList.id,
         memberIds: persistedAttendanceList.memberIds,
         start: persistedAttendanceList.start,
+        createdAt: persistedAttendanceList.createdAt
+      }
+    })
+  })
+
+  it('assembles the attendance deletion workflow for non-empty lists and matching event rows', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerMember.handle({
+      firstName: 'Jane',
+      lastName: 'Doe',
+      phoneNumber: '+48 123 456 789',
+      dateOfBirth: createBirthDate('2010-01-01T00:00:00Z')
+    })
+
+    const persistedMember = (await database.members.toArray())[0]
+    const start = new Date('2026-03-27T18:00:00Z')
+
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMember.id],
+      start
+    })
+
+    const persistedAttendanceList = (
+      await database.attendanceLists.toArray()
+    )[0]
+
+    await services.useCases.deleteAttendanceList.handle({
+      attendanceListId: persistedAttendanceList.id
+    })
+
+    const persistedEvents = await database.events.toArray()
+    const deletedEvent = persistedEvents.find(
+      (event) => event.eventName === 'attendance-list.deleted'
+    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
+
+    await expect(database.attendanceLists.toArray()).resolves.toEqual([])
+    expect(deletedEvent).toMatchObject({
+      eventName: 'attendance-list.deleted',
+      // Deleted attendance events keep the removed snapshot because the Dexie row is intentionally unavailable after this workflow commits.
+      payload: {
+        id: persistedAttendanceList.id,
+        memberIds: [persistedMember.id],
+        start,
         createdAt: persistedAttendanceList.createdAt
       }
     })

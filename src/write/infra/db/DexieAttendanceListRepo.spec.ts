@@ -98,6 +98,27 @@ describe('DexieAttendanceListRepo', () => {
     ])
   })
 
+  it('deletes an attendance list from Dexie', async () => {
+    const [attendanceList] = AttendanceList.record(
+      {
+        memberIds: ['member-1', 'member-2'],
+        start: new Date('2026-03-27T18:00:00Z')
+      },
+      'attendance-list-1'
+    )
+
+    await repository.save(attendanceList)
+    await repository.delete('attendance-list-1')
+
+    await expect(database.attendanceLists.toArray()).resolves.toEqual([])
+  })
+
+  it('ignores deletion for an unknown attendance list id', async () => {
+    await repository.delete('missing-attendance-list')
+
+    await expect(database.attendanceLists.toArray()).resolves.toEqual([])
+  })
+
   it('reports when no attendance list exists for a training start yet', async () => {
     await expect(
       repository.existsByStart(new Date('2026-03-27T18:00:00Z'))
