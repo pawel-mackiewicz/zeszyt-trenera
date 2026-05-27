@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import {
@@ -29,6 +29,10 @@ import {
   AGE_FILTER_MIN,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
+// What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
+import MembershipPaymentConfirmationModal, {
+  type MembershipPaymentConfirmationModalMember
+} from './MembershipPaymentConfirmationModal.vue'
 
 type ObservableSubscription = {
   unsubscribe(): void
@@ -105,6 +109,22 @@ const confirmationError = computed(() =>
     ? ''
     : t(`confirmation.errors.${confirmationErrorKey.value}`)
 )
+const confirmationMember =
+  computed<MembershipPaymentConfirmationModalMember | null>(() => {
+    const selectedMember = selectedMemberForConfirmation.value
+
+    if (selectedMember === null) {
+      return null
+    }
+
+    // What: adapt the selected payment target into the modal's presentation contract. Why: the view should keep domain data and application-layer write context while the extracted component receives only render-ready labels.
+    return {
+      attendanceCount: selectedMember.attendanceCount,
+      ageLabel: formatAge(selectedMember),
+      coveredMonthLabel: selectedMember.coveredMonthLabel,
+      memberName: formatMemberName(selectedMember)
+    }
+  })
 const feedbackMessage = computed(() => {
   if (paymentFeedback.value === null) {
     return ''
@@ -347,14 +367,6 @@ async function sendReminder(member: MembershipPaymentStatusMemberListItem) {
   }
 }
 
-function handleWindowKeydown(event: KeyboardEvent) {
-  if (event.key !== 'Escape' || selectedMemberForConfirmation.value === null) {
-    return
-  }
-
-  closeConfirmationDialog()
-}
-
 watch(
   activeMonth,
   (monthStart) => {
@@ -365,13 +377,8 @@ watch(
   }
 )
 
-onMounted(() => {
-  window.addEventListener('keydown', handleWindowKeydown)
-})
-
 onBeforeUnmount(() => {
   unsubscribePaymentsLedger()
-  window.removeEventListener('keydown', handleWindowKeydown)
 })
 </script>
 
@@ -663,133 +670,16 @@ onBeforeUnmount(() => {
       </section>
     </div>
 
-    <Transition name="payments-overlay">
-      <div
-        v-if="selectedMemberForConfirmation"
-        class="fixed inset-0 z-70 flex items-end justify-center p-4 sm:items-center"
-      >
-        <div
-          class="payments-confirmation__backdrop"
-          @click="closeConfirmationDialog"
-        ></div>
-        <section
-          aria-labelledby="payments-confirmation-title"
-          aria-modal="true"
-          class="relative grid w-full max-w-lg gap-4 border border-on-surface bg-surface p-5 hard-shadow"
-          role="dialog"
-        >
-          <p
-            class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-          >
-            {{ t('confirmation.eyebrow') }}
-          </p>
-          <h3
-            id="payments-confirmation-title"
-            class="font-headline text-[2rem] font-bold uppercase tracking-tight"
-          >
-            {{ t('confirmation.title') }}
-          </h3>
-          <p class="text-sm leading-6 text-secondary">
-            {{
-              t('confirmation.body', {
-                memberName: formatMemberName(selectedMemberForConfirmation),
-                month: selectedMemberForConfirmation.coveredMonthLabel
-              })
-            }}
-          </p>
-
-          <dl class="grid gap-3 sm:grid-cols-2">
-            <div class="payments-confirmation__detail">
-              <dt
-                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-              >
-                {{ t('confirmation.memberLabel') }}
-              </dt>
-              <dd
-                class="font-headline text-lg font-bold uppercase tracking-tight"
-              >
-                {{ formatMemberName(selectedMemberForConfirmation) }}
-              </dd>
-            </div>
-            <div class="payments-confirmation__detail">
-              <dt
-                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-              >
-                {{ t('confirmation.monthLabel') }}
-              </dt>
-              <dd
-                class="font-headline text-lg font-bold uppercase tracking-tight"
-              >
-                {{ selectedMemberForConfirmation.coveredMonthLabel }}
-              </dd>
-            </div>
-            <div class="payments-confirmation__detail">
-              <dt
-                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-              >
-                {{ t('confirmation.ageLabel') }}
-              </dt>
-              <dd
-                class="font-headline text-lg font-bold uppercase tracking-tight"
-              >
-                {{ formatAge(selectedMemberForConfirmation) }}
-              </dd>
-            </div>
-            <div
-              v-if="selectedMemberForConfirmation.attendanceCount > 0"
-              class="payments-confirmation__detail"
-            >
-              <dt
-                class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-              >
-                {{ t('confirmation.attendanceLabel') }}
-              </dt>
-              <dd
-                class="font-headline text-lg font-bold uppercase tracking-tight"
-              >
-                {{
-                  t('confirmation.attendanceValue', {
-                    count: selectedMemberForConfirmation.attendanceCount
-                  })
-                }}
-              </dd>
-            </div>
-          </dl>
-
-          <FloatingErrorAlert
-            v-if="confirmationError"
-            :message="confirmationError"
-            :title="t('confirmation.errors.title')"
-            top-offset="shell"
-            @dismiss="dismissConfirmationError"
-          />
-
-          <div
-            class="payments-confirmation__actions flex flex-col gap-3 sm:flex-row sm:justify-end"
-          >
-            <AppButton
-              :disabled="isConfirmingPayment"
-              type="button"
-              @click="confirmPayment"
-            >
-              {{
-                isConfirmingPayment
-                  ? t('actions.confirmingPayment')
-                  : t('actions.confirmPayment')
-              }}
-            </AppButton>
-            <AppButton
-              :disabled="isConfirmingPayment"
-              variant="secondary"
-              type="button"
-              @click="closeConfirmationDialog"
-            >
-              {{ t('actions.cancel') }}
-            </AppButton>
-          </div>
-        </section>
-      </div>
-    </Transition>
+    <MembershipPaymentConfirmationModal
+      :error-message="confirmationError"
+      :error-title="t('confirmation.errors.title')"
+      :is-pending="isConfirmingPayment"
+      :member="confirmationMember"
+      :visible="selectedMemberForConfirmation !== null"
+      @close="closeConfirmationDialog"
+      @confirm="confirmPayment"
+      @dismiss-error="dismissConfirmationError"
+    />
   </div>
 </template>
 
@@ -869,34 +759,6 @@ onBeforeUnmount(() => {
   height: 1.25rem;
 }
 
-.payments-confirmation__backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.18);
-  backdrop-filter: blur(2px);
-}
-
-.payments-confirmation__detail {
-  display: grid;
-  gap: 0.35rem;
-  padding: 0.875rem;
-  border: 1px solid var(--color-outline-variant);
-  background: var(--color-surface-container-low);
-}
-
-.payments-overlay-enter-active,
-.payments-overlay-leave-active {
-  transition:
-    opacity 0.18s ease,
-    transform 0.18s ease;
-}
-
-.payments-overlay-enter-from,
-.payments-overlay-leave-to {
-  opacity: 0;
-  transform: translateY(0.5rem);
-}
-
 @media (min-width: 720px) {
   .payments-member-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -926,10 +788,7 @@ onBeforeUnmount(() => {
     "actions": {
       "markAsPaid": "Oznacz jako opłacone",
       "remind": "Przypomnij",
-      "reminding": "Otwieranie...",
-      "confirmPayment": "Potwierdź płatność",
-      "confirmingPayment": "Zapisywanie...",
-      "cancel": "Anuluj"
+      "reminding": "Otwieranie..."
     },
     "sections": {
       "unpaidAttended": {
@@ -974,14 +833,6 @@ onBeforeUnmount(() => {
       }
     },
     "confirmation": {
-      "eyebrow": "Potwierdzenie",
-      "title": "Oznaczyć składkę jako opłaconą?",
-      "body": "Czy odebrano płatność od {memberName} za {month}?",
-      "memberLabel": "Członek",
-      "monthLabel": "Miesiąc",
-      "ageLabel": "Wiek",
-      "attendanceLabel": "Obecności",
-      "attendanceValue": "{count} treningi w tym miesiącu",
       "errors": {
         "title": "Nie udało się zapisać płatności",
         "submit": "Spróbuj ponownie. Ten ekran nie zapisał jeszcze zmiany."
@@ -999,10 +850,7 @@ onBeforeUnmount(() => {
     "actions": {
       "markAsPaid": "Mark as paid",
       "remind": "Remind",
-      "reminding": "Opening...",
-      "confirmPayment": "Confirm payment",
-      "confirmingPayment": "Saving...",
-      "cancel": "Cancel"
+      "reminding": "Opening..."
     },
     "sections": {
       "unpaidAttended": {
@@ -1047,14 +895,6 @@ onBeforeUnmount(() => {
       }
     },
     "confirmation": {
-      "eyebrow": "Confirmation",
-      "title": "Mark membership as paid?",
-      "body": "Have you received the payment from {memberName} for {month}?",
-      "memberLabel": "Member",
-      "monthLabel": "Month",
-      "ageLabel": "Age",
-      "attendanceLabel": "Attendance",
-      "attendanceValue": "{count} sessions in this month",
       "errors": {
         "title": "The payment could not be saved",
         "submit": "Try again. This screen has not recorded the change yet."

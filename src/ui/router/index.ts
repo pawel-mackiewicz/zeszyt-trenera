@@ -7,7 +7,7 @@ import AttendanceEditView from '@/ui/views/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
 import ClubSetupView from '@/ui/views/ClubSetupView.vue'
-import MembershipPaymentsView from '@/ui/views/MembershipPaymentsView.vue'
+import MembershipPaymentsView from '@/ui/features/payment/MembershipPaymentsView.vue'
 import TrainerSetupView from '@/ui/views/TrainerSetupView.vue'
 
 type AppRouteMeta = {
@@ -70,6 +70,7 @@ const baseRoutes = [
   {
     path: '/payments',
     name: 'membership-payments',
+    // What: route to the payment feature entry view. Why: `/payments` stays stable while the payment screen and its supporting UI live together.
     component: MembershipPaymentsView,
     meta: {}
   },
