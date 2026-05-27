@@ -2,6 +2,7 @@ import { expect, test } from 'playwright/test'
 
 import {
   addDays,
+  attendanceHistoryDeleteButton,
   attendanceHistorySessionLink,
   createAttendanceSessionViaUi,
   expectAttendanceHistoryMonth,
@@ -161,6 +162,58 @@ test('persists edits to an existing training', async ({ page }) => {
     date: sessionDate,
     time: updatedTime
   })
+})
+
+test('deletes an attendance list from history and keeps it deleted after reload', async ({
+  page
+}) => {
+  const sessionDate = startOfToday()
+  const remainingSession = {
+    count: 1,
+    date: sessionDate,
+    time: '23:30'
+  }
+  const deletedSession = {
+    count: 2,
+    date: sessionDate,
+    time: '23:45'
+  }
+
+  await openDemoAttendanceHistory(page)
+  await createAttendanceSessionViaUi(page, remainingSession, [
+    ATTENDANCE_MEMBER_ONE
+  ])
+  await createAttendanceSessionViaUi(page, deletedSession, [
+    ATTENDANCE_MEMBER_TWO,
+    ATTENDANCE_MEMBER_THREE
+  ])
+  await reloadAttendanceHistoryAfterLocalWrites(page)
+  await expectAttendanceSessionVisible(page, remainingSession)
+  await expectAttendanceSessionVisible(page, deletedSession)
+
+  await attendanceHistoryDeleteButton(page, deletedSession).click()
+  const confirmationDialog = page.getByRole('dialog', {
+    name: /usunąć trening/i
+  })
+  await expect(confirmationDialog).toBeVisible()
+  await expect(confirmationDialog.getByText(deletedSession.time)).toBeVisible()
+
+  await confirmationDialog
+    .getByRole('button', { name: /^usuń trening$/i })
+    .click()
+
+  await expect(confirmationDialog).not.toBeVisible()
+  await expect(
+    attendanceHistorySessionLink(page, deletedSession)
+  ).not.toBeVisible()
+  await expectAttendanceSessionVisible(page, remainingSession)
+
+  // Why: deleting the row only proves the local-first write when a fresh history render does not bring the removed attendance list back from IndexedDB.
+  await reloadAttendanceHistoryAfterLocalWrites(page)
+  await expect(
+    attendanceHistorySessionLink(page, deletedSession)
+  ).not.toBeVisible()
+  await expectAttendanceSessionVisible(page, remainingSession)
 })
 
 test('switches attendance history months', async ({ page }) => {

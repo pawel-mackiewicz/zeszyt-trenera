@@ -7,6 +7,9 @@ import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { RouterLink } from '@/ui/router/runtime'
+import AttendanceDeleteConfirmationModal, {
+  type AttendanceDeleteConfirmationModalSession
+} from '@/ui/views/AttendanceDeleteConfirmationModal.vue'
 
 type AttendanceHistoryRow = {
   id: string
@@ -14,15 +17,34 @@ type AttendanceHistoryRow = {
   attendanceCount: number
 }
 
-const { queries } = useAppServices()
+const { queries, useCases } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
 
 const activeMonth = ref(startOfMonth(new Date()))
 const sessions = ref<AttendanceHistoryRow[]>([])
 const isLoading = ref(true)
 const loadFailed = ref(false)
+// What: keep destructive deletion state in the history screen. Why: the row still edits through routing, while the delete workflow needs its own confirmation and application-layer write state.
+const selectedSessionForDeletion = ref<AttendanceHistoryRow | null>(null)
+const isDeletingSession = ref(false)
+const deleteFailed = ref(false)
 
 const hasSessions = computed(() => sessions.value.length > 0)
+const deleteConfirmationSession =
+  computed<AttendanceDeleteConfirmationModalSession | null>(() => {
+    const selectedSession = selectedSessionForDeletion.value
+
+    if (selectedSession === null) {
+      return null
+    }
+
+    // What: adapt the selected row into the modal's presentation contract. Why: the view keeps the application-layer delete target while the extracted modal receives only render-ready labels.
+    return {
+      attendanceLabel: formatAttendanceCount(selectedSession.attendanceCount),
+      dateLabel: formatSessionDate(selectedSession.start),
+      timeLabel: formatSessionTime(selectedSession.start)
+    }
+  })
 
 function startOfMonth(value: Date) {
   return new Date(value.getFullYear(), value.getMonth(), 1)
@@ -52,6 +74,54 @@ function formatAttendanceCount(count: number) {
   )
 }
 
+function openDeleteConfirmation(session: AttendanceHistoryRow) {
+  deleteFailed.value = false
+  // What: snapshot the row that owns the trash action. Why: the confirmation modal must show the exact training that will be removed even if the monthly list later reloads.
+  selectedSessionForDeletion.value = session
+}
+
+function closeDeleteConfirmation() {
+  if (isDeletingSession.value) {
+    return
+  }
+
+  selectedSessionForDeletion.value = null
+  deleteFailed.value = false
+}
+
+function dismissDeleteError() {
+  // What: keep the failed delete retryable in place. Why: local-first writes can fail transiently and the coach should not lose the selected training context.
+  deleteFailed.value = false
+}
+
+async function confirmDeleteSession() {
+  const selectedSession = selectedSessionForDeletion.value
+
+  if (selectedSession === null || isDeletingSession.value) {
+    return
+  }
+
+  isDeletingSession.value = true
+  deleteFailed.value = false
+
+  try {
+    // What: delete through the shared application use case. Why: attendance history must not bypass domain tombstone events or the unit-of-work boundary from the UI.
+    await useCases.deleteAttendanceList.handle({
+      attendanceListId: selectedSession.id
+    })
+
+    sessions.value = sessions.value.filter(
+      (session) => session.id !== selectedSession.id
+    )
+    selectedSessionForDeletion.value = null
+  } catch (error) {
+    deleteFailed.value = true
+    console.error('Failed to delete attendance list from history', error)
+  } finally {
+    isDeletingSession.value = false
+  }
+}
+
 async function loadSessionsForMonth(monthStart: Date) {
   isLoading.value = true
   loadFailed.value = false
@@ -70,6 +140,7 @@ async function loadSessionsForMonth(monthStart: Date) {
 }
 
 watch(activeMonth, (monthStart) => {
+  closeDeleteConfirmation()
   void loadSessionsForMonth(monthStart)
 })
 
@@ -98,6 +169,7 @@ onMounted(() => {
         <span>{{ t('ledger.date') }}</span>
         <span>{{ t('ledger.time') }}</span>
         <span class="text-right">{{ t('ledger.attendance') }}</span>
+        <span aria-hidden="true"></span>
       </div>
 
       <div
@@ -138,35 +210,64 @@ onMounted(() => {
       </div>
 
       <div v-else class="attendance-history__rows">
-        <!-- What: make each saved session row the entry into attendance editing. Why: coaches correct history by selecting the exact training they want to adjust from the monthly archive. -->
-        <RouterLink
+        <article
           v-for="(session, index) in sessions"
           :key="session.id"
-          :to="`/attendance/${session.id}/edit`"
           class="attendance-history__row"
           :class="{
             'attendance-history__row--alt': index % 2 === 1
           }"
-          :aria-label="
-            t('actions.editTrainingAria', {
-              date: formatSessionDate(session.start),
-              time: formatSessionTime(session.start)
-            })
-          "
         >
-          <p class="attendance-history__row-date">
-            {{ formatSessionDate(session.start) }}
-          </p>
-          <p class="attendance-history__row-time">
-            {{ formatSessionTime(session.start) }}
-          </p>
-          <p class="attendance-history__row-count">
-            <span>{{ formatAttendanceCount(session.attendanceCount) }}</span>
-            <AppIcon name="chevron_right" />
-          </p>
-        </RouterLink>
+          <!-- What: make the wide row surface the edit link while the trash icon is its own button. Why: coaches can still tap a training to edit it, but destructive deletion must not accidentally navigate. -->
+          <RouterLink
+            :to="`/attendance/${session.id}/edit`"
+            class="attendance-history__row-link"
+            :aria-label="
+              t('actions.editTrainingAria', {
+                date: formatSessionDate(session.start),
+                time: formatSessionTime(session.start)
+              })
+            "
+          >
+            <p class="attendance-history__row-date">
+              {{ formatSessionDate(session.start) }}
+            </p>
+            <p class="attendance-history__row-time">
+              {{ formatSessionTime(session.start) }}
+            </p>
+            <p class="attendance-history__row-count">
+              <span>{{ formatAttendanceCount(session.attendanceCount) }}</span>
+            </p>
+          </RouterLink>
+          <button
+            :data-testid="`attendance-delete-${session.id}`"
+            type="button"
+            class="attendance-history__row-delete"
+            :aria-label="
+              t('actions.deleteTrainingAria', {
+                date: formatSessionDate(session.start),
+                time: formatSessionTime(session.start)
+              })
+            "
+            :disabled="isDeletingSession"
+            @click="openDeleteConfirmation(session)"
+          >
+            <AppIcon name="delete" />
+          </button>
+        </article>
       </div>
     </section>
+
+    <!-- What: render the destructive confirmation through an extracted modal. Why: this screen should keep selection and application-layer deletion while dialog behavior stays reusable and testable. -->
+    <AttendanceDeleteConfirmationModal
+      :has-error="deleteFailed"
+      :is-pending="isDeletingSession"
+      :session="deleteConfirmationSession"
+      :visible="selectedSessionForDeletion !== null"
+      @close="closeDeleteConfirmation"
+      @confirm="confirmDeleteSession"
+      @dismiss-error="dismissDeleteError"
+    />
 
     <!-- What: keep the add action floating above the shell navigation on every scroll position. Why: the attendance recorder needs to stay reachable from the archive view without forcing coaches to return to the bottom of a long monthly list. -->
     <div class="attendance-history__action-fab app-floating-action">
@@ -180,6 +281,11 @@ onMounted(() => {
 <style scoped>
 .attendance-history {
   --history-panel-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
+  /* What: share one desktop ledger grid between headers and rows. Why: the delete action needs reserved space without pulling "Godzina" and "Obecność" away from their matching values. */
+  --attendance-history-data-columns: minmax(0, 1.4fr) minmax(0, 0.9fr)
+    minmax(0, 0.8fr);
+  --attendance-history-delete-column: 2.75rem;
+  --attendance-history-column-gap: 1rem;
   /* What: keep the floating add action from covering the last ledger rows. Why: the bottom navigation and safe-area inset take permanent space in the PWA shell, so the history content needs matching clearance. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
 }
@@ -210,8 +316,10 @@ onMounted(() => {
 
 .attendance-history__ledger-head {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr);
-  gap: 1rem;
+  grid-template-columns:
+    var(--attendance-history-data-columns)
+    var(--attendance-history-delete-column);
+  gap: var(--attendance-history-column-gap);
   padding: 1rem;
   border-bottom: 2px solid var(--color-on-surface);
   background: var(--color-surface-container-low);
@@ -230,14 +338,14 @@ onMounted(() => {
 
 .attendance-history__row {
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.8fr);
-  gap: 1rem;
-  align-items: center;
-  padding: 1.2rem 1rem;
+  grid-template-columns:
+    var(--attendance-history-data-columns)
+    var(--attendance-history-delete-column);
+  gap: var(--attendance-history-column-gap);
+  align-items: stretch;
+  padding: 0 1rem;
   border-bottom: 1px solid rgba(16, 59, 55, 0.1);
   background: rgba(255, 255, 255, 0.45);
-  color: inherit;
-  text-decoration: none;
   transition: background-color 160ms ease;
 }
 
@@ -245,18 +353,78 @@ onMounted(() => {
   background: rgba(243, 243, 243, 0.82);
 }
 
+/* What: backlight the complete row surface, including the delete column. Why: hover feedback should describe one editable training entry without making the destructive action feel detached. */
 .attendance-history__row:hover,
-.attendance-history__row:focus-visible {
+.attendance-history__row:focus-within {
   background: color-mix(in srgb, var(--color-surface-container-low) 82%, white);
-}
-
-.attendance-history__row:focus-visible {
-  outline: 2px solid rgba(174, 20, 23, 0.42);
-  outline-offset: -2px;
 }
 
 .attendance-history__row:last-child {
   border-bottom: 0;
+}
+
+.attendance-history__row-link {
+  grid-column: 1 / 4;
+  display: grid;
+  grid-template-columns: var(--attendance-history-data-columns);
+  gap: var(--attendance-history-column-gap);
+  align-items: center;
+  min-width: 0;
+  padding: 1.2rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.attendance-history__row-link:focus-visible {
+  outline: 2px solid rgba(174, 20, 23, 0.42);
+  outline-offset: -2px;
+}
+
+.attendance-history__row-delete {
+  grid-column: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  justify-self: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-danger));
+  color: color-mix(in srgb, var(--color-danger) 82%, var(--color-on-surface));
+  transform: translate(0, 0);
+  box-shadow: 0 0 0 rgba(26, 28, 28, 0);
+  /* What: make the trash affordance a compact hard-edged tool instead of a faint red wash. Why: destructive actions should feel intentional while staying secondary to the row-level edit surface. */
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.attendance-history__row-delete:hover:not(:disabled),
+.attendance-history__row-delete:focus-visible {
+  border-color: var(--color-on-surface);
+  background: var(--color-danger);
+  color: var(--color-on-primary);
+  box-shadow: 2px 2px 0 var(--color-on-surface);
+  transform: translate(-1px, -1px);
+}
+
+.attendance-history__row-delete:focus-visible {
+  outline: 2px solid rgba(174, 20, 23, 0.42);
+  outline-offset: 3px;
+}
+
+.attendance-history__row-delete:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--color-on-surface);
+  transform: translate(0, 0);
+}
+
+.attendance-history__row-delete:disabled {
+  opacity: 0.5;
 }
 
 .attendance-history__row-date,
@@ -373,6 +541,10 @@ onMounted(() => {
 
   /* What: collapse the ledger into stacked mobile rows. Why: the history hub has to stay glanceable on phones where three rigid columns would either overflow or shrink the date beyond recognition. */
   .attendance-history__row {
+    gap: 0.5rem;
+  }
+
+  .attendance-history__row-link {
     grid-template-columns: 1fr auto;
     gap: 0.5rem 1rem;
   }
@@ -406,7 +578,8 @@ onMounted(() => {
     },
     "actions": {
       "newTraining": "+ DODAJ",
-      "editTrainingAria": "Edytuj trening z dnia {date}, godzina {time}"
+      "editTrainingAria": "Edytuj trening z dnia {date}, godzina {time}",
+      "deleteTrainingAria": "Usuń trening z dnia {date}, godzina {time}"
     },
     "states": {
       "loading": "Ładowanie historii...",
@@ -431,7 +604,8 @@ onMounted(() => {
     },
     "actions": {
       "newTraining": "+ ADD",
-      "editTrainingAria": "Edit training on {date} at {time}"
+      "editTrainingAria": "Edit training on {date} at {time}",
+      "deleteTrainingAria": "Delete training on {date} at {time}"
     },
     "states": {
       "loading": "Loading history...",

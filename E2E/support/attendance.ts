@@ -111,6 +111,21 @@ export function attendanceHistorySessionLink(
   })
 }
 
+export function attendanceHistoryDeleteButton(
+  page: Page,
+  session: Pick<AttendanceSessionExpectation, 'date' | 'time'>
+): Locator {
+  // Why: the history delete action is intentionally exposed through its localized aria label, so E2E coverage follows the same target a mobile screen reader user receives.
+  return page.getByRole('button', {
+    name: new RegExp(
+      `usuń trening z dnia ${escapeRegExp(
+        formatPolishSessionDate(session.date)
+      )}, godzina ${escapeRegExp(session.time)}`,
+      'i'
+    )
+  })
+}
+
 export async function expectAttendanceSessionVisible(
   page: Page,
   session: AttendanceSessionExpectation
