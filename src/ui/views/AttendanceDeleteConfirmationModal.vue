@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
     "deleteConfirmation": {
       "eyebrow": "Potwierdzenie",
       "title": "Usunąć trening?",
-      "body": "Ta lista obecności zniknie z lokalnej historii. Członkowie nie zostaną usunięci.",
+      "body": "Ta akcja jest nieodwracalna! Sprawdź czy na pewno usuwasz właściwy trening.",
       "dateLabel": "Data",
       "timeLabel": "Godzina",
       "attendanceLabel": "Obecność",
@@ -238,7 +238,7 @@ onBeforeUnmount(() => {
     "deleteConfirmation": {
       "eyebrow": "Confirmation",
       "title": "Delete this training?",
-      "body": "This attendance list will disappear from local history. Members will not be deleted.",
+      "body": "This action is irreversible! Make sure you are deleting the correct training.",
       "dateLabel": "Date",
       "timeLabel": "Time",
       "attendanceLabel": "Attendance",
