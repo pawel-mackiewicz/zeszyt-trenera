@@ -27,6 +27,8 @@ jobs:
   checks:
     name: Checks
     runs-on: ubuntu-24.04
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-noble
     timeout-minutes: 15
 
     steps:
