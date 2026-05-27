@@ -29,7 +29,7 @@ export default defineConfig({
     timezoneId: 'Europe/Warsaw',
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',
-    video: 'retain-on-failure'
+    video: 'off'
   },
   webServer: {
     // Why: Vite dev keeps the first E2E loop fast while the spec still exercises the real browser, IndexedDB, router, and PWA shell.
