@@ -102,8 +102,8 @@ describe('inspectIndexedDb', () => {
     )
 
     expect(snapshot.databaseName).toBe(database.name)
-    // What: pin the inspector to the current Dexie schema version. Why: the debug view should surface the exact schema revision the app is shipping, including the new member birth-date identity index.
-    expect(snapshot.schemaVersion).toBe(11)
+    // What: pin the inspector to the current Dexie schema version. Why: the debug view should surface the exact schema revision the app is shipping, including the member-dependency lookup indexes.
+    expect(snapshot.schemaVersion).toBe(12)
     expect(snapshot.tableSnapshots).toHaveLength(6)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
@@ -145,14 +145,14 @@ describe('inspectIndexedDb', () => {
     })
     expect(membershipPaymentsTable).toMatchObject({
       primaryKey: 'id',
-      indexes: ['[memberId+coveredMonth]', 'coveredMonth'],
+      indexes: ['memberId', '[memberId+coveredMonth]', 'coveredMonth'],
       rowCount: 0,
       columns: []
     })
     expect(attendanceListsTable).toMatchObject({
       primaryKey: 'id',
       // The debug snapshot must include the attendance store so resets stay trustworthy after the latest offline schema expansion.
-      indexes: ['start'],
+      indexes: ['start', 'memberIds'],
       rowCount: 0,
       columns: []
     })

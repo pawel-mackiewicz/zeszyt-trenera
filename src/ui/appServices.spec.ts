@@ -53,6 +53,9 @@ describe('uiAppServices', () => {
         deleteAttendanceList: {
           handle
         },
+        deleteMember: {
+          handle
+        },
         exportDatabaseBackup: {
           handle
         },

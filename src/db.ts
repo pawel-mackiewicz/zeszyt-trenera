@@ -131,6 +131,18 @@ export class TrainerNotebookDb extends Dexie {
       // Attendance registration must reject duplicate session starts offline without scanning all recorded sessions on a phone.
       attendanceLists: 'id, &start'
     })
+
+    this.version(12).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // Why: duplicate member checks now use stable identity data instead of optional contact data, so local-first registration needs a name-plus-birth-date index.
+      members: 'id, [firstName+lastName+dateOfBirth]',
+      // Why: member deletion must detect payment dependencies by member id without scanning a full local ledger on a phone.
+      membershipPayments: 'id, memberId, [memberId+coveredMonth], coveredMonth',
+      // Why: member deletion must detect attendance dependencies by member id while preserving the duplicate-session start guard.
+      attendanceLists: 'id, &start, *memberIds'
+    })
   }
 }
 

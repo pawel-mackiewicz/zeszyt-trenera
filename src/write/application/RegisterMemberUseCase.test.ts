@@ -53,6 +53,10 @@ class FakeMemberRepo implements MemberRepoPort {
     throw new Error('Not implemented in this test')
   }
 
+  async delete(_memberId: string): Promise<void> {
+    throw new Error('Not implemented in this test')
+  }
+
   async findById(): Promise<Member | null> {
     return null
   }

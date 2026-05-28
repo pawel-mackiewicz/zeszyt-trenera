@@ -12,6 +12,17 @@ export class DexieMembershipPaymentRepo implements MembershipPaymentRepoPort {
     )
   }
 
+  public async findIdsByMemberId(memberId: string): Promise<string[]> {
+    const paymentIds = await this.database.membershipPayments
+      .where('memberId')
+      .equals(memberId)
+      .primaryKeys()
+
+    return paymentIds
+      .map(String)
+      .sort((left, right) => left.localeCompare(right))
+  }
+
   public async existsByMemberIdAndCoveredMonth(
     memberId: string,
     coveredMonth: string

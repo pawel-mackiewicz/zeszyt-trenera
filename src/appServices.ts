@@ -5,6 +5,10 @@ import {
   type BootstrapDemoModeResult
 } from '@/write/application/BootstrapDemoModeUseCase'
 import { DeleteAttendanceListUseCase } from '@/write/application/DeleteAttendanceListUseCase'
+import {
+  DeleteMemberUseCase,
+  type DeleteMemberResult
+} from '@/write/application/DeleteMemberUseCase'
 import { ExportDatabaseBackupUseCase } from '@/write/application/ExportDatabaseBackupUseCase'
 import { ImportDatabaseBackupUseCase } from '@/write/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/write/application/LeaveDemoModeUseCase'
@@ -20,6 +24,7 @@ import { UpdateMemberUseCase } from '@/write/application/UpdateMemberUseCase'
 import type { UseCase } from '@/write/application/UseCase'
 import type { BootstrapDemoModeCommand } from '@/write/application/requests/BootstrapDemoModeCommand'
 import type { DeleteAttendanceListCommand } from '@/write/application/requests/DeleteAttendanceListCommand'
+import type { DeleteMemberCommand } from '@/write/application/requests/DeleteMemberCommand'
 import type { ExportDatabaseBackupCommand } from '@/write/application/requests/ExportDatabaseBackupCommand'
 import type { ImportDatabaseBackupCommand } from '@/write/application/requests/ImportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/write/application/requests/LeaveDemoModeCommand'
@@ -87,6 +92,7 @@ export type AppUseCases = {
     BootstrapDemoModeResult
   >
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
+  readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
   readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
   readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
   readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
@@ -236,6 +242,16 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveEventRepo()
       )
   )
+  const resolveDeleteMember = lazy(
+    () =>
+      new DeleteMemberUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveMembershipPaymentRepo(),
+        resolveAttendanceListRepo(),
+        resolveEventRepo()
+      )
+  )
   const resolveUpdateAttendanceList = lazy(
     () =>
       new UpdateAttendanceListUseCase(
@@ -333,6 +349,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get deleteAttendanceList() {
       return resolveDeleteAttendanceList()
+    },
+    get deleteMember() {
+      return resolveDeleteMember()
     },
     get exportDatabaseBackup() {
       return resolveExportDatabaseBackup()

@@ -21,7 +21,7 @@ describe('db', () => {
     )
 
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(11)
+    expect(db.verno).toBe(12)
     expect(db.tables).toHaveLength(6)
     expect(clubsTable?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
@@ -29,7 +29,7 @@ describe('db', () => {
     expect(attendanceListsTable?.schema.primKey.name).toBe('id')
     expect(
       attendanceListsTable?.schema.indexes.map((index) => index.name)
-    ).toEqual(['start'])
+    ).toEqual(['start', 'memberIds'])
     expect(eventsTable?.schema.primKey.name).toBe('eventId')
     expect(eventsTable?.schema.indexes.map((index) => index.name)).toEqual([
       'eventName',
@@ -45,7 +45,7 @@ describe('db', () => {
     expect(membershipPaymentsTable?.schema.primKey.name).toBe('id')
     expect(
       membershipPaymentsTable?.schema.indexes.map((index) => index.name)
-    ).toEqual(['[memberId+coveredMonth]', 'coveredMonth'])
+    ).toEqual(['memberId', '[memberId+coveredMonth]', 'coveredMonth'])
   })
 
   afterEach(async () => {

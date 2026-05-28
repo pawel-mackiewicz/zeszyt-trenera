@@ -27,6 +27,10 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
     return this.attendanceListsById.get(attendanceListId) ?? null
   }
 
+  async findIdsByMemberId(_memberId: string): Promise<string[]> {
+    return []
+  }
+
   async save(_attendanceList: AttendanceList): Promise<void> {
     throw new Error('Not implemented in this fake')
   }

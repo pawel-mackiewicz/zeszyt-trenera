@@ -42,6 +42,10 @@ class FakeMemberRepo implements MemberRepoPort {
     throw new Error('Not implemented in this fake')
   }
 
+  async delete(_memberId: string): Promise<void> {
+    throw new Error('Not implemented in this fake')
+  }
+
   async findById(): Promise<Member | null> {
     return null
   }
@@ -76,6 +80,10 @@ class FakeMembershipPaymentRepo implements MembershipPaymentRepoPort {
 
   async save(payment: MembershipPayment): Promise<void> {
     this.savedPayments.push(payment)
+  }
+
+  async findIdsByMemberId(_memberId: string): Promise<string[]> {
+    return []
   }
 
   async existsByMemberIdAndCoveredMonth(

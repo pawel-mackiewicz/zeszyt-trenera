@@ -66,16 +66,19 @@ describe('BootstrapDemoModeUseCase', () => {
     memberRepo = {
       save: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn().mockResolvedValue(null),
       existsById: vi.fn().mockResolvedValue(false),
       existsByNameAndBirthDate: vi.fn().mockResolvedValue(false)
     }
     membershipPaymentRepo = {
       save: vi.fn().mockResolvedValue(undefined),
+      findIdsByMemberId: vi.fn().mockResolvedValue([]),
       existsByMemberIdAndCoveredMonth: vi.fn().mockResolvedValue(false)
     }
     attendanceListRepo = {
       findById: vi.fn().mockResolvedValue(null),
+      findIdsByMemberId: vi.fn().mockResolvedValue([]),
       save: vi.fn().mockResolvedValue(undefined),
       update: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn(),

@@ -32,6 +32,10 @@ class FakeMemberRepo implements MemberRepoPort {
     this.membersById.set(member.id, member)
   }
 
+  async delete(memberId: string): Promise<void> {
+    this.membersById.delete(memberId)
+  }
+
   async findById(memberId: string): Promise<Member | null> {
     return this.membersById.get(memberId) ?? null
   }

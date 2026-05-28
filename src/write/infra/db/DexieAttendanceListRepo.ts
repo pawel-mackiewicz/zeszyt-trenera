@@ -24,6 +24,17 @@ export class DexieAttendanceListRepo implements AttendanceListRepoPort {
     )
   }
 
+  public async findIdsByMemberId(memberId: string): Promise<string[]> {
+    const attendanceListIds = await this.database.attendanceLists
+      .where('memberIds')
+      .equals(memberId)
+      .primaryKeys()
+
+    return attendanceListIds
+      .map(String)
+      .sort((left, right) => left.localeCompare(right))
+  }
+
   public async save(attendanceList: AttendanceList): Promise<void> {
     await this.database.attendanceLists.add(
       this.toPersistedAttendanceList(attendanceList)

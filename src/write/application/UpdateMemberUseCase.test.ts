@@ -31,6 +31,10 @@ class FakeMemberRepo implements MemberRepoPort {
     this.updates.push(member)
   }
 
+  async delete(_memberId: string): Promise<void> {
+    throw new Error('Not implemented in this test')
+  }
+
   async findById(memberId: string): Promise<Member | null> {
     return this.membersById.get(memberId) ?? null
   }

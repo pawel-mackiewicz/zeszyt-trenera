@@ -196,6 +196,10 @@ export class Member {
     return [updatedMember, updateEvent]
   }
 
+  public static delete(existingMember: Member): MemberDeletedDomainEvent {
+    return new MemberDeletedDomainEvent(existingMember.toSnapshot())
+  }
+
   // Persistence adapters and event serializers share one snapshot so stored member data cannot drift apart.
   public toSnapshot(): MemberSnapshot {
     return {
@@ -252,6 +256,14 @@ export class MemberUpdatedDomainEvent extends DomainEvent<MemberUpdatedSnapshot>
 
   public constructor(payload: MemberUpdatedSnapshot) {
     super(payload)
+  }
+}
+
+export class MemberDeletedDomainEvent extends DomainEvent<MemberSnapshot> {
+  public readonly eventName = 'member.deleted'
+
+  public constructor(member: MemberSnapshot) {
+    super(member)
   }
 }
 

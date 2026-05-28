@@ -14,6 +14,10 @@ export class DexieMemberRepo implements MemberRepoPort {
     await this.database.members.put(this.toPersistedMember(member))
   }
 
+  public async delete(memberId: string): Promise<void> {
+    await this.database.members.delete(memberId)
+  }
+
   public async findById(memberId: string): Promise<Member | null> {
     const persistedMember = await this.database.members.get(memberId)
     if (!persistedMember) return null

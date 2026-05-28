@@ -33,6 +33,10 @@ class FakeMemberRepo implements MemberRepoPort {
     throw new Error('Not implemented in this fake')
   }
 
+  async delete(_memberId: string): Promise<void> {
+    throw new Error('Not implemented in this fake')
+  }
+
   async findById(): Promise<Member | null> {
     return null
   }
@@ -63,6 +67,10 @@ class FakeAttendanceListRepo implements AttendanceListRepoPort {
   async findById(attendanceListId: string): Promise<AttendanceList | null> {
     this.findByIdChecks.push(attendanceListId)
     return this.attendanceListsById.get(attendanceListId) ?? null
+  }
+
+  async findIdsByMemberId(_memberId: string): Promise<string[]> {
+    return []
   }
 
   async save(_attendanceList: AttendanceList): Promise<void> {
