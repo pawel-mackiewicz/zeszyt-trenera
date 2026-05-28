@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
-import AppIcon from '@/ui/components/AppIcon.vue'
+import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 import ConfirmationModal, {
   type ConfirmationModalDetail
 } from '@/ui/components/modals/ConfirmationModal.vue'
@@ -263,11 +263,9 @@ async function confirmDeleteMember() {
       >
         {{ t('actions.openEdit') }}
       </AppButton>
-      <button
+      <DeleteIconButton
         v-if="!isEditing"
         data-testid="member-delete-open"
-        type="button"
-        class="member-details-drawer__delete-action"
         :aria-label="
           t('actions.deleteMemberAria', {
             name: memberDisplayName
@@ -280,9 +278,7 @@ async function confirmDeleteMember() {
         "
         :disabled="isDeletingMember"
         @click="openDeleteConfirmation"
-      >
-        <AppIcon name="delete" />
-      </button>
+      />
     </div>
     <MemberEditDrawer
       :is-open="isEditing"
@@ -368,47 +364,6 @@ async function confirmDeleteMember() {
 .member-details-drawer__phone-action:focus-visible {
   outline: 2px solid var(--color-on-surface);
   outline-offset: 2px;
-}
-
-.member-details-drawer__delete-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-danger));
-  color: color-mix(in srgb, var(--color-danger) 82%, var(--color-on-surface));
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-
-.member-details-drawer__delete-action:hover:not(:disabled),
-.member-details-drawer__delete-action:focus-visible {
-  border-color: var(--color-on-surface);
-  background: var(--color-danger);
-  color: var(--color-on-primary);
-  box-shadow: 2px 2px 0 var(--color-on-surface);
-  transform: translate(-1px, -1px);
-}
-
-.member-details-drawer__delete-action:focus-visible {
-  outline: 2px solid rgba(174, 20, 23, 0.42);
-  outline-offset: 3px;
-}
-
-.member-details-drawer__delete-action:active:not(:disabled) {
-  box-shadow: 0 0 0 var(--color-on-surface);
-  transform: translate(0, 0);
-}
-
-.member-details-drawer__delete-action:disabled {
-  opacity: 0.5;
 }
 </style>
 

@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { RouterLink } from '@/ui/router/runtime'
 import AttendanceDeleteConfirmationModal, {
@@ -239,9 +240,8 @@ onMounted(() => {
               <span>{{ formatAttendanceCount(session.attendanceCount) }}</span>
             </p>
           </RouterLink>
-          <button
+          <DeleteIconButton
             :data-testid="`attendance-delete-${session.id}`"
-            type="button"
             class="attendance-history__row-delete"
             :aria-label="
               t('actions.deleteTrainingAria', {
@@ -251,9 +251,7 @@ onMounted(() => {
             "
             :disabled="isDeletingSession"
             @click="openDeleteConfirmation(session)"
-          >
-            <AppIcon name="delete" />
-          </button>
+          />
         </article>
       </div>
     </section>
@@ -284,7 +282,7 @@ onMounted(() => {
   /* What: share one desktop ledger grid between headers and rows. Why: the delete action needs reserved space without pulling "Godzina" and "Obecność" away from their matching values. */
   --attendance-history-data-columns: minmax(0, 1.4fr) minmax(0, 0.9fr)
     minmax(0, 0.8fr);
-  --attendance-history-delete-column: 2.75rem;
+  --attendance-history-delete-column: 3rem;
   --attendance-history-column-gap: 1rem;
   /* What: keep the floating add action from covering the last ledger rows. Why: the bottom navigation and safe-area inset take permanent space in the PWA shell, so the history content needs matching clearance. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
@@ -382,49 +380,8 @@ onMounted(() => {
 
 .attendance-history__row-delete {
   grid-column: 4;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   align-self: center;
   justify-self: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 1px solid transparent;
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-danger));
-  color: color-mix(in srgb, var(--color-danger) 82%, var(--color-on-surface));
-  transform: translate(0, 0);
-  box-shadow: 0 0 0 rgba(26, 28, 28, 0);
-  /* What: make the trash affordance a compact hard-edged tool instead of a faint red wash. Why: destructive actions should feel intentional while staying secondary to the row-level edit surface. */
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-
-.attendance-history__row-delete:hover:not(:disabled),
-.attendance-history__row-delete:focus-visible {
-  border-color: var(--color-on-surface);
-  background: var(--color-danger);
-  color: var(--color-on-primary);
-  box-shadow: 2px 2px 0 var(--color-on-surface);
-  transform: translate(-1px, -1px);
-}
-
-.attendance-history__row-delete:focus-visible {
-  outline: 2px solid rgba(174, 20, 23, 0.42);
-  outline-offset: 3px;
-}
-
-.attendance-history__row-delete:active:not(:disabled) {
-  box-shadow: 0 0 0 var(--color-on-surface);
-  transform: translate(0, 0);
-}
-
-.attendance-history__row-delete:disabled {
-  opacity: 0.5;
 }
 
 .attendance-history__row-date,
