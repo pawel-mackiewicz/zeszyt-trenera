@@ -96,6 +96,19 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
   editError.value = ''
 }
 
+function finishMemberDelete(memberId: string) {
+  // What: remove the deleted member from the current read-model projection. Why: successful local-first writes should update the roster immediately without forcing a full query reload.
+  savedMembers.value = savedMembers.value.filter(
+    (member) => member.id !== memberId
+  )
+
+  if (openMemberId.value === memberId) {
+    openMemberId.value = null
+  }
+
+  editError.value = ''
+}
+
 onMounted(() => {
   void loadSavedMembers()
 })
@@ -193,6 +206,7 @@ onMounted(() => {
           <MemberDetailsDrawer
             :is-open="openMemberId === member.id"
             :member="member"
+            @deleted="finishMemberDelete"
             @error="showEditError"
             @saved="finishMemberEdit"
           />

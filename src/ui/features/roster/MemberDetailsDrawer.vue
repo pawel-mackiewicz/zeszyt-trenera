@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
+import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
+import AppIcon from '@/ui/components/AppIcon.vue'
+import ConfirmationModal, {
+  type ConfirmationModalDetail
+} from '@/ui/components/modals/ConfirmationModal.vue'
 import MemberEditDrawer from '@/ui/features/roster/MemberEditDrawer.vue'
 
 const props = defineProps<{
@@ -12,18 +17,57 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
+  deleted: [memberId: string]
   error: [message: string]
   saved: [member: MemberRosterListItem]
 }>()
 
+const { useCases } = useAppServices()
 const { t } = useI18n({ useScope: 'local' })
 const isEditing = ref(false)
+const deleteModalMode = ref<'confirm' | 'attendance-blocked' | null>(null)
+const isDeletingMember = ref(false)
+const deleteFailed = ref(false)
+const attendanceBlockerCount = ref(0)
+
+const memberDisplayName = computed(
+  () => `${props.member.firstName} ${props.member.lastName}`
+)
+const deleteModalDetails = computed<ConfirmationModalDetail[]>(() => [
+  {
+    label: t('deleteConfirmation.details.member'),
+    value: memberDisplayName.value
+  },
+  {
+    label: t('dateOfBirth'),
+    value: formatDisplayDate(props.member.dateOfBirth)
+  }
+])
+const deleteModalTitle = computed(() =>
+  deleteModalMode.value === 'attendance-blocked'
+    ? t('deleteAttendanceBlocked.title')
+    : t('deleteConfirmation.title')
+)
+const deleteModalBody = computed(() =>
+  deleteModalMode.value === 'attendance-blocked'
+    ? t('deleteAttendanceBlocked.body', { count: attendanceBlockerCount.value })
+    : t('deleteConfirmation.body')
+)
+const deleteModalConfirmLabel = computed(() =>
+  deleteModalMode.value === 'attendance-blocked'
+    ? t('deleteAttendanceBlocked.actions.confirm')
+    : t('deleteConfirmation.actions.confirm')
+)
+const deleteModalErrorMessage = computed(() =>
+  deleteFailed.value ? t('deleteConfirmation.errors.submit') : ''
+)
 
 watch(
   () => props.isOpen,
   (isOpen) => {
     if (!isOpen) {
       isEditing.value = false
+      resetDeleteState()
       emit('error', '')
     }
   }
@@ -33,9 +77,17 @@ watch(
   () => props.member.id,
   () => {
     isEditing.value = false
+    resetDeleteState()
     emit('error', '')
   }
 )
+
+function resetDeleteState() {
+  deleteModalMode.value = null
+  isDeletingMember.value = false
+  deleteFailed.value = false
+  attendanceBlockerCount.value = 0
+}
 
 function formatDisplayDate(val: Date | string): string {
   const date = val instanceof Date ? val : new Date(val)
@@ -60,6 +112,7 @@ function toPhoneMessageHref(phoneNumber: string): string {
 
 function startEditing() {
   emit('error', '')
+  resetDeleteState()
   isEditing.value = true
 }
 
@@ -72,6 +125,77 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
   isEditing.value = false
   emit('error', '')
   emit('saved', updatedMember)
+}
+
+function openDeleteConfirmation() {
+  if (isDeletingMember.value) {
+    return
+  }
+
+  emit('error', '')
+  deleteFailed.value = false
+  attendanceBlockerCount.value = 0
+  deleteModalMode.value = 'confirm'
+}
+
+function closeDeleteModal() {
+  if (isDeletingMember.value) {
+    return
+  }
+
+  resetDeleteState()
+}
+
+function dismissDeleteError() {
+  deleteFailed.value = false
+}
+
+async function confirmDeleteMember() {
+  if (deleteModalMode.value === 'attendance-blocked') {
+    closeDeleteModal()
+    return
+  }
+
+  if (deleteModalMode.value !== 'confirm' || isDeletingMember.value) {
+    return
+  }
+
+  isDeletingMember.value = true
+  deleteFailed.value = false
+  emit('error', '')
+
+  try {
+    // What: member removal stays behind the application use case. Why: the UI must preserve tombstone events, dependency checks, and unit-of-work semantics.
+    const result = await useCases.deleteMember.handle({
+      memberId: props.member.id
+    })
+
+    if (result.membershipPaymentIds.length > 0) {
+      resetDeleteState()
+      emit('error', t('deleteConfirmation.errors.hasPayments'))
+      return
+    }
+
+    if (result.attendanceListIds.length > 0) {
+      isDeletingMember.value = false
+      attendanceBlockerCount.value = result.attendanceListIds.length
+      deleteModalMode.value = 'attendance-blocked'
+      return
+    }
+
+    if (result.deleted) {
+      resetDeleteState()
+      emit('deleted', props.member.id)
+      return
+    }
+
+    deleteFailed.value = true
+  } catch (error) {
+    deleteFailed.value = true
+    console.error('Failed to delete member from roster details', error)
+  } finally {
+    isDeletingMember.value = false
+  }
 }
 </script>
 
@@ -128,7 +252,7 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
       </span>
     </div>
     <div
-      class="col-span-2 md:col-span-4 flex justify-end border-t border-outline-variant pt-3"
+      class="col-span-2 md:col-span-4 flex justify-end gap-3 border-t border-outline-variant pt-3"
     >
       <!-- What: inline member actions now reuse the shared AppButton primitive. Why: edit flows should inherit the same tap targets and state styling as the rest of this mobile-first PWA instead of shipping view-specific button markup. -->
       <AppButton
@@ -139,6 +263,26 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
       >
         {{ t('actions.openEdit') }}
       </AppButton>
+      <button
+        v-if="!isEditing"
+        data-testid="member-delete-open"
+        type="button"
+        class="member-details-drawer__delete-action"
+        :aria-label="
+          t('actions.deleteMemberAria', {
+            name: memberDisplayName
+          })
+        "
+        :title="
+          t('actions.deleteMemberAria', {
+            name: memberDisplayName
+          })
+        "
+        :disabled="isDeletingMember"
+        @click="openDeleteConfirmation"
+      >
+        <AppIcon name="delete" />
+      </button>
     </div>
     <MemberEditDrawer
       :is-open="isEditing"
@@ -146,6 +290,25 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
       @cancel="cancelEditing"
       @error="emit('error', $event)"
       @saved="finishMemberEdit"
+    />
+    <ConfirmationModal
+      :body="deleteModalBody"
+      :cancel-label="t('deleteConfirmation.actions.cancel')"
+      cancel-test-id="member-delete-cancel"
+      :confirm-label="deleteModalConfirmLabel"
+      confirm-test-id="member-delete-confirm"
+      :details="deleteModalDetails"
+      :error-message="deleteModalErrorMessage"
+      :error-title="t('deleteConfirmation.errors.title')"
+      :hide-cancel="deleteModalMode === 'attendance-blocked'"
+      :is-pending="isDeletingMember"
+      :pending-label="t('deleteConfirmation.actions.pending')"
+      :title="deleteModalTitle"
+      :visible="deleteModalMode !== null"
+      backdrop-test-id="member-delete-backdrop"
+      @close="closeDeleteModal"
+      @confirm="confirmDeleteMember"
+      @dismiss-error="dismissDeleteError"
     />
   </div>
 </template>
@@ -206,6 +369,47 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
   outline: 2px solid var(--color-on-surface);
   outline-offset: 2px;
 }
+
+.member-details-drawer__delete-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid transparent;
+  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-danger));
+  color: color-mix(in srgb, var(--color-danger) 82%, var(--color-on-surface));
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease,
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.member-details-drawer__delete-action:hover:not(:disabled),
+.member-details-drawer__delete-action:focus-visible {
+  border-color: var(--color-on-surface);
+  background: var(--color-danger);
+  color: var(--color-on-primary);
+  box-shadow: 2px 2px 0 var(--color-on-surface);
+  transform: translate(-1px, -1px);
+}
+
+.member-details-drawer__delete-action:focus-visible {
+  outline: 2px solid rgba(174, 20, 23, 0.42);
+  outline-offset: 3px;
+}
+
+.member-details-drawer__delete-action:active:not(:disabled) {
+  box-shadow: 0 0 0 var(--color-on-surface);
+  transform: translate(0, 0);
+}
+
+.member-details-drawer__delete-action:disabled {
+  opacity: 0.5;
+}
 </style>
 
 <i18n lang="json">
@@ -218,7 +422,32 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
     "actions": {
       "call": "zadzwoń",
       "msg": "sms",
+      "deleteMemberAria": "Usuń członka {name}",
       "openEdit": "Edytuj"
+    },
+    "deleteConfirmation": {
+      "title": "Usunąć członka?",
+      "body": "Ta akcja usunie członka z rejestru. Nie da się jej cofnąć.",
+      "details": {
+        "member": "Członek"
+      },
+      "actions": {
+        "confirm": "Usuń",
+        "pending": "Usuwanie...",
+        "cancel": "Anuluj"
+      },
+      "errors": {
+        "title": "Nie udało się usunąć",
+        "submit": "Spróbuj ponownie. Członek nie został usunięty.",
+        "hasPayments": "Nie możesz usunąć członka, który ma zapisane płatności."
+      }
+    },
+    "deleteAttendanceBlocked": {
+      "title": "Najpierw usuń z treningów",
+      "body": "Ten członek występuje na {count} listach obecności. Usuń go ze wszystkich treningów, zanim usuniesz go z rejestru.",
+      "actions": {
+        "confirm": "Rozumiem"
+      }
     }
   },
   "en": {
@@ -229,7 +458,32 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
     "actions": {
       "call": "call",
       "msg": "msg",
+      "deleteMemberAria": "Delete member {name}",
       "openEdit": "Edit"
+    },
+    "deleteConfirmation": {
+      "title": "Delete member?",
+      "body": "This will remove the member from the roster. This action cannot be undone.",
+      "details": {
+        "member": "Member"
+      },
+      "actions": {
+        "confirm": "Delete",
+        "pending": "Deleting...",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "title": "Delete failed",
+        "submit": "Try again. The member was not deleted.",
+        "hasPayments": "You cannot delete a member who has recorded payments."
+      }
+    },
+    "deleteAttendanceBlocked": {
+      "title": "Remove from trainings first",
+      "body": "This member is still present on {count} attendance lists. Remove them from all trainings before deleting them from the roster.",
+      "actions": {
+        "confirm": "OK"
+      }
     }
   }
 }

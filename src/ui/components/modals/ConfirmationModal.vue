@@ -28,6 +28,7 @@ const props = withDefaults(
     detailsClass?: string
     errorMessage?: string
     errorTitle?: string
+    hideCancel?: boolean
     isPending?: boolean
     pendingLabel?: string
     size?: ConfirmationModalSize
@@ -45,6 +46,7 @@ const props = withDefaults(
     detailsClass: '',
     errorMessage: '',
     errorTitle: '',
+    hideCancel: false,
     isPending: false,
     pendingLabel: '',
     size: 'lg'
@@ -145,6 +147,7 @@ onBeforeUnmount(() => {
         {{ confirmButtonLabel }}
       </AppButton>
       <AppButton
+        v-if="!props.hideCancel"
         :disabled="props.isPending"
         :data-testid="props.cancelTestId || undefined"
         variant="secondary"

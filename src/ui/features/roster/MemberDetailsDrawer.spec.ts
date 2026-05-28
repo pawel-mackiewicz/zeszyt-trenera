@@ -6,6 +6,7 @@ import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
 import { createAppI18n } from '@/ui/i18n.ts'
 
 describe('MemberDetailsDrawer', () => {
+  const mockDeleteMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
   const member = {
     id: 'member-1',
@@ -18,6 +19,7 @@ describe('MemberDetailsDrawer', () => {
   }
 
   beforeEach(() => {
+    mockDeleteMemberHandle.mockReset()
     mockUpdateMemberHandle.mockReset()
   })
 
@@ -38,6 +40,7 @@ describe('MemberDetailsDrawer', () => {
         provide: createAppServicesProvides({
           queries: {} as never,
           useCases: {
+            deleteMember: { handle: mockDeleteMemberHandle },
             updateMember: { handle: mockUpdateMemberHandle }
           } as never
         })
@@ -101,5 +104,95 @@ describe('MemberDetailsDrawer', () => {
       lastName: 'silva'
     })
     expect(wrapper.find('form').exists()).toBe(false)
+  })
+
+  it('opens member delete confirmation from the trash action', async () => {
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-delete-open"]').trigger('click')
+
+    expect(wrapper.text()).toContain('Delete member?')
+    expect(wrapper.text()).toContain('Anderson Silva')
+    expect(wrapper.get('[data-testid="member-delete-confirm"]').text()).toBe(
+      'Delete'
+    )
+  })
+
+  it('deletes a clean member through the application use case', async () => {
+    mockDeleteMemberHandle.mockResolvedValue({
+      membershipPaymentIds: [],
+      attendanceListIds: [],
+      deleted: true
+    })
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-delete-open"]').trigger('click')
+    await wrapper.get('[data-testid="member-delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockDeleteMemberHandle).toHaveBeenCalledWith({
+      memberId: 'member-1'
+    })
+    expect(wrapper.emitted('deleted')?.[0]).toEqual(['member-1'])
+    expect(wrapper.emitted('error')?.at(-1)?.[0]).toBe('')
+  })
+
+  it('emits a payment blocker error without deleting the member', async () => {
+    mockDeleteMemberHandle.mockResolvedValue({
+      membershipPaymentIds: ['payment-1'],
+      attendanceListIds: ['attendance-1'],
+      deleted: false
+    })
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-delete-open"]').trigger('click')
+    await wrapper.get('[data-testid="member-delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('deleted')).toBeUndefined()
+    expect(wrapper.emitted('error')?.at(-1)?.[0]).toBe(
+      'You cannot delete a member who has recorded payments.'
+    )
+  })
+
+  it('shows attendance blocker info without deleting the member', async () => {
+    mockDeleteMemberHandle.mockResolvedValue({
+      membershipPaymentIds: [],
+      attendanceListIds: ['attendance-1', 'attendance-2'],
+      deleted: false
+    })
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-delete-open"]').trigger('click')
+    await wrapper.get('[data-testid="member-delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('deleted')).toBeUndefined()
+    expect(wrapper.text()).toContain('Remove from trainings first')
+    expect(wrapper.text()).toContain('2 attendance lists')
+    expect(wrapper.find('[data-testid="member-delete-cancel"]').exists()).toBe(
+      false
+    )
+
+    await wrapper.get('[data-testid="member-delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockDeleteMemberHandle).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps the delete confirmation retryable when deletion fails', async () => {
+    mockDeleteMemberHandle.mockRejectedValue(new Error('write failed'))
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-delete-open"]').trigger('click')
+    await wrapper.get('[data-testid="member-delete-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('deleted')).toBeUndefined()
+    expect(wrapper.text()).toContain('Delete member?')
+    expect(wrapper.text()).toContain('Try again. The member was not deleted.')
+    expect(wrapper.find('[data-testid="member-delete-confirm"]').exists()).toBe(
+      true
+    )
   })
 })
