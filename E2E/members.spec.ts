@@ -1,8 +1,23 @@
 import { expect, test, type Page } from 'playwright/test'
 
 import {
+  createAttendanceSessionViaUi,
+  reloadAttendanceHistoryAfterLocalWrites,
+  startOfToday,
+  type AttendanceSessionExpectation
+} from './support/attendance'
+import {
+  confirmPayment,
+  currentDemoPaymentTargets,
+  expectPaymentWritePersistedAsPaid,
+  filterPaymentsByMember,
+  openDemoPayments,
+  openPaymentConfirmation
+} from './support/payments'
+import {
   addRosterMemberViaUi,
   addRosterMembersViaUi,
+  expectRosterMemberHidden,
   expectRosterMemberVisible,
   openDemoRoster,
   openRosterMemberDetails,
@@ -22,6 +37,23 @@ const ADDED_MEMBER: RosterMemberDraft = {
 }
 
 const SORT_MARKER = 'Sortcase'
+const CLEAN_DELETE_MEMBER: RosterMemberDraft = {
+  firstName: 'Delete',
+  lastName: 'Clean',
+  dateOfBirth: '2014-08-12',
+  joinedAt: '2026-02-10'
+}
+const ATTENDANCE_BLOCKED_MEMBER: RosterMemberDraft = {
+  firstName: 'Delete',
+  lastName: 'Attendance',
+  dateOfBirth: '2013-07-09',
+  joinedAt: '2026-02-11'
+}
+const ATTENDANCE_BLOCKED_SESSION: AttendanceSessionExpectation = {
+  count: 1,
+  date: startOfToday(),
+  time: '18:15'
+}
 
 const SORT_MEMBERS: RosterMemberDraft[] = [
   {
@@ -64,6 +96,25 @@ async function filterRosterByName(page: Page, name: string) {
   await page.getByLabel(/szukaj w rejestrze/i).fill(name)
 }
 
+async function openRosterAfterLocalWrites(page: Page) {
+  await page.goto('/member')
+  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+}
+
+async function deleteRosterMemberFromDetails(page: Page, fullName: string) {
+  await openRosterMemberDetails(page, fullName)
+  await page
+    .getByRole('button', {
+      name: new RegExp(`usuń członka ${escapeRegExp(fullName)}`, 'i')
+    })
+    .click()
+
+  await expect(
+    page.getByRole('heading', { name: /usunąć członka/i })
+  ).toBeVisible()
+  await page.getByRole('button', { name: /^usuń$/i }).click()
+}
+
 async function filterRosterByAgeRange(
   page: Page,
   {
@@ -80,6 +131,28 @@ async function filterRosterByAgeRange(
 
 async function expectSortcaseRows(page: Page, expectedRows: string[]) {
   await expect(rosterMemberRows(page, SORT_MARKER)).toHaveText(expectedRows)
+}
+
+async function createAttendanceBlocker(page: Page, fullName: string) {
+  await page.goto('/attendance')
+  await expect(
+    page.getByRole('heading', { level: 2, name: /historia treningów/i })
+  ).toBeVisible()
+
+  await createAttendanceSessionViaUi(page, ATTENDANCE_BLOCKED_SESSION, [
+    fullName
+  ])
+
+  // Why: a delete blocker must be persisted by the attendance write use case before the roster delete flow can prove DeleteMemberUseCase rejected it.
+  await reloadAttendanceHistoryAfterLocalWrites(page)
+}
+
+function memberFullName(member: RosterMemberDraft): string {
+  return `${member.firstName} ${member.lastName}`
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
 test('adds a roster member and keeps it after reload', async ({ page }) => {
@@ -202,4 +275,73 @@ test('shows call and sms actions in member details', async ({ page }) => {
 
   await expect(callLink).toHaveAttribute('href', 'tel:+48500000029')
   await expect(smsLink).toHaveAttribute('href', 'sms:+48500000029')
+})
+
+test('deletes a roster member without saved payments or attendance', async ({
+  page
+}) => {
+  const fullName = memberFullName(CLEAN_DELETE_MEMBER)
+
+  await openDemoRoster(page)
+  await addRosterMemberViaUi(page, CLEAN_DELETE_MEMBER)
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberVisible(page, fullName)
+
+  await deleteRosterMemberFromDetails(page, fullName)
+  await expect(
+    page.getByRole('heading', { name: /usunąć członka/i })
+  ).not.toBeVisible()
+  await expectRosterMemberHidden(page, fullName)
+
+  // Why: local-first deletion is only complete when the member stays gone after IndexedDB is re-read on reload.
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberHidden(page, fullName)
+})
+
+test('keeps a roster member when saved payment history blocks deletion', async ({
+  page
+}) => {
+  const { absent: memberWithPayment } = currentDemoPaymentTargets()
+
+  await openDemoPayments(page)
+  await filterPaymentsByMember(page, memberWithPayment)
+  await openPaymentConfirmation(page)
+  await confirmPayment(page)
+  await expectPaymentWritePersistedAsPaid(page, memberWithPayment)
+
+  await openRosterAfterLocalWrites(page)
+  await deleteRosterMemberFromDetails(page, memberWithPayment.fullName)
+
+  await expect(
+    page.getByText(/nie możesz usunąć członka, który ma zapisane płatności/i)
+  ).toBeVisible()
+
+  // Why: DeleteMemberUseCase must leave paid members in the local roster even after the blocked delete attempt and a fresh read.
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberVisible(page, memberWithPayment.fullName)
+})
+
+test('keeps a roster member when attendance history blocks deletion', async ({
+  page
+}) => {
+  const fullName = memberFullName(ATTENDANCE_BLOCKED_MEMBER)
+
+  await openDemoRoster(page)
+  await addRosterMemberViaUi(page, ATTENDANCE_BLOCKED_MEMBER)
+  await createAttendanceBlocker(page, fullName)
+
+  await openRosterAfterLocalWrites(page)
+  await deleteRosterMemberFromDetails(page, fullName)
+
+  await expect(
+    page.getByRole('heading', { name: /najpierw usuń z treningów/i })
+  ).toBeVisible()
+  await expect(
+    page.getByText(/ten członek występuje na 1 listach obecności/i)
+  ).toBeVisible()
+  await page.getByRole('button', { name: /^rozumiem$/i }).click()
+
+  // Why: attendance-linked members must remain after the explanatory modal is dismissed and the roster reloads from local storage.
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberVisible(page, fullName)
 })
