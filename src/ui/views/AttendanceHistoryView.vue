@@ -378,10 +378,11 @@ onMounted(() => {
   outline-offset: -2px;
 }
 
-.attendance-history__row-delete {
+.attendance-history__row-delete.delete-icon-button {
   grid-column: 4;
   align-self: center;
   justify-self: center;
+  background: transparent;
 }
 
 .attendance-history__row-date,

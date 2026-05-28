@@ -10,12 +10,6 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 </template>
 
 <style scoped>
-.delete-icon-button {
-  border-color: transparent;
-  background: color-mix(in srgb, var(--color-surface) 92%, var(--color-danger));
-  color: color-mix(in srgb, var(--color-danger) 82%, var(--color-on-surface));
-}
-
 .delete-icon-button.app-button--secondary:hover:not(:disabled),
 .delete-icon-button.app-button--secondary:focus-visible {
   border-color: var(--color-on-surface);
