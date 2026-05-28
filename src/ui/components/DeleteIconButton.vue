@@ -5,7 +5,7 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 
 <template>
   <AppButton icon-only variant="secondary" class="delete-icon-button">
-    <AppIcon name="delete" />
+    <AppIcon name="circle_x" />
   </AppButton>
 </template>
 

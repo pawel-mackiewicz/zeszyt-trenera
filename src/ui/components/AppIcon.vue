@@ -6,8 +6,8 @@ type IconName =
   | 'arrow_upward'
   | 'chevron_right'
   | 'check_circle'
+  | 'circle_x'
   | 'calendar_today'
-  | 'delete'
   | 'expand_more'
   | 'group'
   | 'menu'
@@ -68,13 +68,11 @@ defineProps<{
       <!-- What: add a forward chevron to the local icon set. Why: editable attendance history rows need a compact visual cue that still works offline without the remote icon font. -->
       <path d="m9 6 6 6-6 6" />
     </template>
-    <template v-else-if="name === 'delete'">
-      <!-- What: add a local trash-bin glyph. Why: destructive attendance actions must remain understandable when the installed PWA is offline and cannot rely on an external icon font. -->
-      <path d="M5 7h14" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-      <path d="M9 7V5h6v2" />
-      <path d="M7 7l1 13h8l1-13" />
+    <template v-else-if="name === 'circle_x'">
+      <!-- What: keep destructive actions as a local circled X glyph. Why: the installed PWA must render the delete button clearly while offline. -->
+      <circle cx="12" cy="12" r="8" />
+      <path d="m9 9 6 6" />
+      <path d="m15 9-6 6" />
     </template>
     <template v-else-if="name === 'group'">
       <path d="M8.5 12a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />
