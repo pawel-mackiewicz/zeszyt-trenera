@@ -10,11 +10,11 @@ import {
 } from 'vitest'
 import { nextTick } from 'vue'
 
-import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
-import { createAppI18n } from '@/ui/i18n'
-import AddMemberView from '@/ui/views/AddMemberView.vue'
-import { useRouter } from '@/ui/router/runtime'
-import { useAppServices } from '@/ui/appServices'
+import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber.ts'
+import { createAppI18n } from '@/ui/i18n.ts'
+import AddMemberView from '@/ui/features/roster/AddMemberView.vue'
+import { useRouter } from '@/ui/router/runtime.ts'
+import { useAppServices } from '@/ui/appServices.ts'
 
 vi.mock('@/ui/router/runtime', () => ({
   useRouter: vi.fn(),

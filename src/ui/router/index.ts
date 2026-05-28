@@ -1,8 +1,8 @@
 import type { RouteRecordRaw } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
-import MembersListView from '@/ui/views/MembersListView.vue'
-import AddMemberView from '@/ui/views/AddMemberView.vue'
+import MembersListView from '@/ui/features/roster/MembersListView.vue'
+import AddMemberView from '@/ui/features/roster/AddMemberView.vue'
 import AttendanceEditView from '@/ui/views/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'

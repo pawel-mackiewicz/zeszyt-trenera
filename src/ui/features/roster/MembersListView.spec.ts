@@ -1,9 +1,9 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createAppI18n } from '@/ui/i18n'
-import { createAppServicesProvides } from '@/ui/appServices'
-import MembersListView from '@/ui/views/MembersListView.vue'
+import { createAppI18n } from '@/ui/i18n.ts'
+import { createAppServicesProvides } from '@/ui/appServices.ts'
+import MembersListView from '@/ui/features/roster/MembersListView.vue'
 
 describe('MembersListView', () => {
   const mockUpdateMemberHandle = vi.fn()
