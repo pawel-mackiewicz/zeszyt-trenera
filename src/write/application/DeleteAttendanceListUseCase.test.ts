@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { DeleteAttendanceListUseCase } from '@/write/application/DeleteAttendanceListUseCase'
-import type { AttendanceListRepoPort } from '@/write/application/ports/AttendanceListRepoPort'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
+import { FakeAttendanceListRepo } from '@/write/application/ports/AttendanceListRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import {
   AttendanceList,
   AttendanceListDeletedDomainEvent,
@@ -14,46 +13,6 @@ import {
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
-  }
-}
-
-class FakeAttendanceListRepo implements AttendanceListRepoPort {
-  public readonly findByIdChecks: string[] = []
-  public readonly deleteCalls: string[] = []
-  public attendanceListsById = new Map<string, AttendanceList>()
-
-  async findById(attendanceListId: string): Promise<AttendanceList | null> {
-    this.findByIdChecks.push(attendanceListId)
-    return this.attendanceListsById.get(attendanceListId) ?? null
-  }
-
-  async findIdsByMemberId(_memberId: string): Promise<string[]> {
-    return []
-  }
-
-  async save(_attendanceList: AttendanceList): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async update(_attendanceList: AttendanceList): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async delete(attendanceListId: string): Promise<void> {
-    this.deleteCalls.push(attendanceListId)
-    this.attendanceListsById.delete(attendanceListId)
-  }
-
-  async existsByStart(_start: Date): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

@@ -4,7 +4,7 @@ import type {
   BuildPaymentReminderMessageInput,
   PaymentReminderMessageBuilderPort
 } from '@/write/application/ports/PaymentReminderMessageBuilderPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
 import type {
   PaymentReminderSender,
   PaymentReminderSenderPort
@@ -20,34 +20,6 @@ import {
 } from '@/write/application/SendMembershipPaymentReminderUseCase'
 import { Member, MemberNotFoundError } from '@/write/domain/model/Member'
 import { PhoneNumber } from '@/write/domain/model/vo/PhoneNumber'
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly membersById = new Map<string, Member>()
-
-  async save(member: Member): Promise<void> {
-    this.membersById.set(member.id, member)
-  }
-
-  async update(member: Member): Promise<void> {
-    this.membersById.set(member.id, member)
-  }
-
-  async delete(memberId: string): Promise<void> {
-    this.membersById.delete(memberId)
-  }
-
-  async findById(memberId: string): Promise<Member | null> {
-    return this.membersById.get(memberId) ?? null
-  }
-
-  async existsById(memberId: string): Promise<boolean> {
-    return this.membersById.has(memberId)
-  }
-
-  async existsByNameAndBirthDate(): Promise<boolean> {
-    return false
-  }
-}
 
 class FakePaymentReminderSenderPort implements PaymentReminderSenderPort {
   public sender: PaymentReminderSender | null = {

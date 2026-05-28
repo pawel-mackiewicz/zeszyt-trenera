@@ -1,108 +1,21 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { AttendanceListRepoPort } from '@/write/application/ports/AttendanceListRepoPort'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
+import { FakeAttendanceListRepo } from '@/write/application/ports/AttendanceListRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
 import { UpdateAttendanceListUseCase } from '@/write/application/UpdateAttendanceListUseCase'
 import type { UpdateAttendanceListCommand } from '@/write/application/requests/UpdateAttendanceListCommand'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import {
   AttendanceList,
   AttendanceListAlreadyExistsError,
   AttendanceListNotFoundError,
   AttendanceListUpdatedDomainEvent
 } from '@/write/domain/model/AttendanceList'
-import type { Member } from '@/write/domain/model/Member'
 import { MemberNotFoundError } from '@/write/domain/model/Member'
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
-  }
-}
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly existsByIdChecks: string[] = []
-  public existingMemberIds = new Set<string>()
-
-  async save(_member: Member): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async update(_member: Member): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async delete(_memberId: string): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async findById(): Promise<Member | null> {
-    return null
-  }
-
-  async existsById(memberId: string): Promise<boolean> {
-    this.existsByIdChecks.push(memberId)
-    return this.existingMemberIds.has(memberId)
-  }
-
-  async existsByNameAndBirthDate(
-    _firstName: string,
-
-    _lastName: string,
-
-    _dateOfBirth: Date
-  ): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeAttendanceListRepo implements AttendanceListRepoPort {
-  public readonly findByIdChecks: string[] = []
-  public readonly updateCalls: AttendanceList[] = []
-  public readonly existsByStartChecks: Date[] = []
-  public attendanceListsById = new Map<string, AttendanceList>()
-  public existingStarts = new Set<number>()
-
-  async findById(attendanceListId: string): Promise<AttendanceList | null> {
-    this.findByIdChecks.push(attendanceListId)
-    return this.attendanceListsById.get(attendanceListId) ?? null
-  }
-
-  async findIdsByMemberId(_memberId: string): Promise<string[]> {
-    return []
-  }
-
-  async save(_attendanceList: AttendanceList): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async update(attendanceList: AttendanceList): Promise<void> {
-    this.updateCalls.push(attendanceList)
-    this.attendanceListsById.set(attendanceList.id, attendanceList)
-  }
-
-  async delete(_attendanceListId: string): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async existsByStart(start: Date): Promise<boolean> {
-    this.existsByStartChecks.push(new Date(start.getTime()))
-
-    return (
-      this.existingStarts.has(start.getTime()) ||
-      [...this.attendanceListsById.values()].some(
-        (attendanceList) => attendanceList.start.getTime() === start.getTime()
-      )
-    )
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

@@ -7,36 +7,14 @@ import {
   ClubCreatedDomainEvent
 } from '@/write/domain/model/Club'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
-import type { ClubRepoPort } from '@/write/application/ports/ClubRepoPort'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
+import { FakeClubRepo } from '@/write/application/ports/ClubRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/application/ports/IdGeneratorPort'
 
 // Fake implementations
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
-  }
-}
-
-class FakeClubRepo implements ClubRepoPort {
-  public readonly savedClubs: Club[] = []
-  public loadedClub: Club | undefined
-
-  async save(club: Club): Promise<void> {
-    this.savedClubs.push(club)
-  }
-
-  async exists(): Promise<boolean> {
-    return this.loadedClub != null
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

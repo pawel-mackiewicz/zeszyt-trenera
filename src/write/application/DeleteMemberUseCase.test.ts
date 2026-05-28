@@ -1,101 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
 import { DeleteMemberUseCase } from '@/write/application/DeleteMemberUseCase'
-import type { AttendanceListRepoPort } from '@/write/application/ports/AttendanceListRepoPort'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
-import type { MembershipPaymentRepoPort } from '@/write/application/ports/MembershipPaymentRepoPort'
+import { FakeAttendanceListRepo } from '@/write/application/ports/AttendanceListRepoPort'
+import {
+  FakeEventRepo,
+  type EventRepoPort
+} from '@/write/application/ports/EventRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
+import { FakeMembershipPaymentRepo } from '@/write/application/ports/MembershipPaymentRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
-import type { AttendanceList } from '@/write/domain/model/AttendanceList'
 import {
   Member,
   MemberDeletedDomainEvent,
   MemberNotFoundError
 } from '@/write/domain/model/Member'
-import type { MembershipPayment } from '@/write/domain/model/MembershipPayment'
 
 class FakeUnitOfWork implements UnitOfWork {
   public async execute<T>(work: () => Promise<T>): Promise<T> {
     return work()
-  }
-}
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly deletedMemberIds: string[] = []
-  private readonly membersById = new Map<string, Member>()
-
-  public seed(member: Member): void {
-    this.membersById.set(member.id, member)
-  }
-
-  public async save(member: Member): Promise<void> {
-    this.membersById.set(member.id, member)
-  }
-
-  public async update(member: Member): Promise<void> {
-    this.membersById.set(member.id, member)
-  }
-
-  public async delete(memberId: string): Promise<void> {
-    this.deletedMemberIds.push(memberId)
-    this.membersById.delete(memberId)
-  }
-
-  public async findById(memberId: string): Promise<Member | null> {
-    return this.membersById.get(memberId) ?? null
-  }
-
-  public async existsById(memberId: string): Promise<boolean> {
-    return this.membersById.has(memberId)
-  }
-
-  public async existsByNameAndBirthDate(): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeMembershipPaymentRepo implements MembershipPaymentRepoPort {
-  public readonly idsByMemberId = new Map<string, string[]>()
-
-  public async save(_payment: MembershipPayment): Promise<void> {}
-
-  public async findIdsByMemberId(memberId: string): Promise<string[]> {
-    return this.idsByMemberId.get(memberId) ?? []
-  }
-
-  public async existsByMemberIdAndCoveredMonth(): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeAttendanceListRepo implements AttendanceListRepoPort {
-  public readonly idsByMemberId = new Map<string, string[]>()
-
-  public async findById(): Promise<AttendanceList | null> {
-    return null
-  }
-
-  public async findIdsByMemberId(memberId: string): Promise<string[]> {
-    return this.idsByMemberId.get(memberId) ?? []
-  }
-
-  public async save(_attendanceList: AttendanceList): Promise<void> {}
-
-  public async update(_attendanceList: AttendanceList): Promise<void> {}
-
-  public async delete(_attendanceListId: string): Promise<void> {}
-
-  public async existsByStart(): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeEventRepo implements Pick<EventRepoPort, 'save'> {
-  public readonly savedEvents: DomainEvent<unknown>[] = []
-
-  public async save(event: DomainEvent<unknown>): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

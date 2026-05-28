@@ -1,12 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { RegisterTrainerUseCase } from './RegisterTrainerUseCase'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/application/ports/IdGeneratorPort'
-import type { TrainerRepoPort } from '@/write/application/ports/TrainerRepoPort'
+import { FakeTrainerRepo } from '@/write/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
 import type { RegisterTrainerCommand } from '@/write/application/requests/RegisterTrainerCommand'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import {
   Trainer,
   TrainerAlreadyExistsError,
@@ -16,27 +15,6 @@ import {
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
-  }
-}
-
-class FakeTrainerRepo implements TrainerRepoPort {
-  public readonly savedTrainers: Trainer[] = []
-  public loadedTrainer: Trainer | undefined
-
-  async save(trainer: Trainer): Promise<void> {
-    this.savedTrainers.push(trainer)
-  }
-
-  async exists(): Promise<boolean> {
-    return this.loadedTrainer != null
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

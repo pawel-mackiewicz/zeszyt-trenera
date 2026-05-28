@@ -14,12 +14,12 @@
 
   "env": {
     "staging": {
-            "routes": [
-              {
-                "pattern": "staging.zeszyt-trenera.pl",
-                "custom_domain": true
-              }
-            ]
+      "routes": [
+        {
+          "pattern": "staging.zeszyt-trenera.pl",
+          "custom_domain": true
+        }
+      ]
     },
     "prod": {
       "name": "zeszyt-trenera",

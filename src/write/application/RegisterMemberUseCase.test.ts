@@ -1,16 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegisterMemberUseCase } from './RegisterMemberUseCase'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/application/ports/IdGeneratorPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
 import type { RegisterMemberCommand } from '@/write/application/requests/RegisterMemberCommand'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
 import {
   InvalidMemberBirthDateError,
-  Member,
   MemberAlreadyExistsError,
   MemberCreatedDomainEvent
 } from '@/write/domain/model/Member'
@@ -27,75 +25,6 @@ class FakeUnitOfWork implements UnitOfWork {
     )
 
     return await run
-  }
-}
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly savedMembers: Member[] = []
-  public readonly existsChecks: Array<{
-    firstName: string
-    lastName: string
-    dateOfBirth: Date
-  }> = []
-  public existingIdentity:
-    | {
-        firstName: string
-        lastName: string
-        dateOfBirth: Date
-      }
-    | undefined
-
-  async save(member: Member): Promise<void> {
-    this.savedMembers.push(member)
-  }
-
-  async update(_member: Member): Promise<void> {
-    throw new Error('Not implemented in this test')
-  }
-
-  async delete(_memberId: string): Promise<void> {
-    throw new Error('Not implemented in this test')
-  }
-
-  async findById(): Promise<Member | null> {
-    return null
-  }
-
-  async existsById(memberId: string): Promise<boolean> {
-    return this.savedMembers.some((member) => member.id === memberId)
-  }
-
-  async existsByNameAndBirthDate(
-    firstName: string,
-    lastName: string,
-    dateOfBirth: Date
-  ): Promise<boolean> {
-    this.existsChecks.push({
-      firstName,
-      lastName,
-      dateOfBirth: new Date(dateOfBirth.getTime())
-    })
-
-    return (
-      (this.existingIdentity?.firstName === firstName &&
-        this.existingIdentity?.lastName === lastName &&
-        this.existingIdentity?.dateOfBirth.getTime() ===
-          dateOfBirth.getTime()) ||
-      this.savedMembers.some(
-        (member) =>
-          member.firstName === firstName &&
-          member.lastName === lastName &&
-          member.dateOfBirth.getTime() === dateOfBirth.getTime()
-      )
-    )
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

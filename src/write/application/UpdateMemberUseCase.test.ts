@@ -1,11 +1,10 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
 import { UpdateMemberUseCase } from '@/write/application/UpdateMemberUseCase'
 import type { UpdateMemberCommand } from '@/write/application/requests/UpdateMemberCommand'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import {
   MemberNotFoundError,
   MemberUpdatedDomainEvent
@@ -16,49 +15,6 @@ import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
 class FakeUnitOfWork implements UnitOfWork {
   async execute<T>(action: () => Promise<T>): Promise<T> {
     return await action()
-  }
-}
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly updates: Member[] = []
-  public membersById = new Map<string, Member>()
-
-  async save(_member: Member): Promise<void> {
-    throw new Error('Not implemented in this test')
-  }
-
-  async update(member: Member): Promise<void> {
-    this.updates.push(member)
-  }
-
-  async delete(_memberId: string): Promise<void> {
-    throw new Error('Not implemented in this test')
-  }
-
-  async findById(memberId: string): Promise<Member | null> {
-    return this.membersById.get(memberId) ?? null
-  }
-
-  async existsById(memberId: string): Promise<boolean> {
-    return this.membersById.has(memberId)
-  }
-
-  async existsByNameAndBirthDate(
-    _firstName: string,
-
-    _lastName: string,
-
-    _dateOfBirth: Date
-  ): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 

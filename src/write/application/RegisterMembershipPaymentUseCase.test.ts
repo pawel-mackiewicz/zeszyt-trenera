@@ -1,19 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegisterMembershipPaymentUseCase } from './RegisterMembershipPaymentUseCase'
-import type { EventRepoPort } from '@/write/application/ports/EventRepoPort'
+import { FakeEventRepo } from '@/write/application/ports/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/application/ports/IdGeneratorPort'
-import type { MemberRepoPort } from '@/write/application/ports/MemberRepoPort'
-import type { MembershipPaymentRepoPort } from '@/write/application/ports/MembershipPaymentRepoPort'
+import { FakeMemberRepo } from '@/write/application/ports/MemberRepoPort'
+import { FakeMembershipPaymentRepo } from '@/write/application/ports/MembershipPaymentRepoPort'
 import type { UnitOfWork } from '@/write/application/ports/UnitOfWork'
 import type { RegisterMembershipPaymentCommand } from '@/write/application/requests/RegisterMembershipPaymentCommand'
-import type { DomainEvent } from '@/write/domain/events/DomainEvent'
 import {
-  MembershipPayment,
   MembershipPaymentAlreadyExistsError,
   MembershipPaymentRecordedDomainEvent
 } from '@/write/domain/model/MembershipPayment'
-import { Member, MemberNotFoundError } from '@/write/domain/model/Member'
+import { MemberNotFoundError } from '@/write/domain/model/Member'
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()
 
@@ -26,92 +24,6 @@ class FakeUnitOfWork implements UnitOfWork {
     )
 
     return await run
-  }
-}
-
-class FakeMemberRepo implements MemberRepoPort {
-  public readonly savedMembers: Member[] = []
-  public readonly existsByIdChecks: string[] = []
-  public existingMemberIds = new Set<string>()
-
-  async save(member: Member): Promise<void> {
-    this.savedMembers.push(member)
-  }
-
-  async update(_member: Member): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async delete(_memberId: string): Promise<void> {
-    throw new Error('Not implemented in this fake')
-  }
-
-  async findById(): Promise<Member | null> {
-    return null
-  }
-
-  async existsById(memberId: string): Promise<boolean> {
-    this.existsByIdChecks.push(memberId)
-
-    return (
-      this.existingMemberIds.has(memberId) ||
-      this.savedMembers.some((member) => member.id === memberId)
-    )
-  }
-
-  async existsByNameAndBirthDate(
-    _firstName: string,
-
-    _lastName: string,
-
-    _dateOfBirth: Date
-  ): Promise<boolean> {
-    return false
-  }
-}
-
-class FakeMembershipPaymentRepo implements MembershipPaymentRepoPort {
-  public readonly savedPayments: MembershipPayment[] = []
-  public readonly existsChecks: Array<{
-    memberId: string
-    coveredMonth: string
-  }> = []
-  public existingKeys = new Set<string>()
-
-  async save(payment: MembershipPayment): Promise<void> {
-    this.savedPayments.push(payment)
-  }
-
-  async findIdsByMemberId(_memberId: string): Promise<string[]> {
-    return []
-  }
-
-  async existsByMemberIdAndCoveredMonth(
-    memberId: string,
-    coveredMonth: string
-  ): Promise<boolean> {
-    this.existsChecks.push({
-      memberId,
-      coveredMonth
-    })
-
-    const key = `${memberId}::${coveredMonth}`
-
-    return (
-      this.existingKeys.has(key) ||
-      this.savedPayments.some(
-        (payment) =>
-          payment.memberId === memberId && payment.coveredMonth === coveredMonth
-      )
-    )
-  }
-}
-
-class FakeEventRepo implements EventRepoPort {
-  public readonly savedEvents: DomainEvent[] = []
-
-  async save(event: DomainEvent): Promise<void> {
-    this.savedEvents.push(event)
   }
 }
 
