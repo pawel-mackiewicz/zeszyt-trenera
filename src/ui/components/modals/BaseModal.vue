@@ -6,6 +6,7 @@ type BaseModalStack = 'default' | 'raised'
 
 const props = withDefaults(
   defineProps<{
+    actionsClass?: string
     backdropTestId?: string
     size?: BaseModalSize
     stack?: BaseModalStack
@@ -13,6 +14,7 @@ const props = withDefaults(
     visible: boolean
   }>(),
   {
+    actionsClass: '',
     backdropTestId: '',
     size: 'lg',
     stack: 'default'
@@ -61,7 +63,11 @@ function emitClose() {
           <h2 :id="titleId" class="base-modal__title">{{ title }}</h2>
           <slot />
         </div>
-        <div v-if="$slots.actions" class="base-modal__actions">
+        <div
+          v-if="$slots.actions"
+          class="base-modal__actions"
+          :class="props.actionsClass"
+        >
           <slot name="actions" />
         </div>
       </section>
