@@ -2,16 +2,6 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import {
-  MemberPhoneNumberMissingError,
-  PaymentReminderSenderMissingError
-} from '@/write/application/SendMembershipPaymentReminderUseCase'
-import {
-  MembershipPaymentAlreadyExistsError,
-  MembershipPaymentNotFoundError,
-  toMembershipPaymentCoveredMonth
-} from '@/write/domain/model/MembershipPayment'
-import { MemberNotFoundError } from '@/write/domain/model/Member'
 import type {
   MembershipPaymentStatusByMonthResult,
   MembershipPaymentStatusMemberListItem,
@@ -26,50 +16,24 @@ import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
-import { calculateAge } from '@/ui/utils/age'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 // What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
-import MembershipPaymentConfirmationModal, {
-  type MembershipPaymentConfirmationModalMember
-} from './MembershipPaymentConfirmationModal.vue'
-import MembershipPaymentDeleteConfirmationModal, {
-  type MembershipPaymentDeleteConfirmationModalMember
-} from './MembershipPaymentDeleteConfirmationModal.vue'
+import MembershipPaymentConfirmationModal from './MembershipPaymentConfirmationModal.vue'
+import MembershipPaymentDeleteConfirmationModal from './MembershipPaymentDeleteConfirmationModal.vue'
+import { createMembershipPaymentFormatters } from './membershipPaymentFormatters'
+import { useDeleteMembershipPayment } from './useDeleteMembershipPayment'
+import { useMembershipPaymentReminder } from './useMembershipPaymentReminder'
+import { useRegisterMembershipPayment } from './useRegisterMembershipPayment'
 
 type ObservableSubscription = {
   unsubscribe(): void
 }
 
-type ConfirmationErrorKey = 'submit' | null
-type DeletionErrorKey = 'missing' | 'submit' | null
-type ReminderErrorKey =
-  | 'memberMissing'
-  | 'phoneMissing'
-  | 'senderMissing'
-  | 'submit'
-  | null
-
-type PaymentFeedback = {
-  kind: 'alreadyRecorded'
-  memberName: string
-  coveredMonthLabel: string
-} | null
-
-type ConfirmPaymentTarget = MembershipPaymentStatusMemberListItem & {
-  attendanceCount: number
-  coveredMonth: string
-  coveredMonthLabel: string
-}
-
-type DeletePaymentTarget = PaidMembershipPaymentStatusMemberListItem & {
-  coveredMonthLabel: string
-}
-
-const { queries, useCases } = useAppServices()
+const { queries } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
 
 const activeMonth = ref(startOfMonth(new Date()))
@@ -83,15 +47,48 @@ const result = ref<MembershipPaymentStatusByMonthResult>({
   unpaidAbsentMembers: [],
   unpaidAttendedMembers: []
 })
-const paymentFeedback = ref<PaymentFeedback>(null)
-const reminderErrorKey = ref<ReminderErrorKey>(null)
-const reminderInFlightMemberId = ref<string | null>(null)
-const selectedMemberForConfirmation = ref<ConfirmPaymentTarget | null>(null)
-const selectedMemberForDeletion = ref<DeletePaymentTarget | null>(null)
-const confirmationErrorKey = ref<ConfirmationErrorKey>(null)
-const deletionErrorKey = ref<DeletionErrorKey>(null)
-const isConfirmingPayment = ref(false)
-const isDeletingPayment = ref(false)
+const paymentFormatters = createMembershipPaymentFormatters({ locale, t })
+const { formatAge, formatMemberName, formatMonth } = paymentFormatters
+
+const {
+  confirmationErrorKey,
+  confirmationMember,
+  confirmPayment,
+  dismissConfirmationError,
+  dismissPaymentFeedback,
+  closeConfirmationDialog,
+  isConfirmingPayment,
+  openPaymentConfirmation,
+  paymentFeedback,
+  selectedMemberForConfirmation
+} = useRegisterMembershipPayment({
+  activeMonth,
+  formatters: paymentFormatters
+})
+
+const {
+  deletePayment,
+  deletionErrorKey,
+  deletionMember,
+  dismissDeletionError,
+  closeDeletionDialog,
+  isDeletingPayment,
+  openPaymentDeletion: openMembershipPaymentDeletion,
+  selectedMemberForDeletion
+} = useDeleteMembershipPayment({
+  activeMonth,
+  formatters: paymentFormatters
+})
+
+const {
+  dismissReminderError,
+  isSendingReminderForMember,
+  reminderErrorKey,
+  sendReminder
+} = useMembershipPaymentReminder({
+  activeMonth,
+  locale
+})
 
 let paymentsSubscription: ObservableSubscription | null = null
 
@@ -128,36 +125,6 @@ const deletionError = computed(() =>
     ? ''
     : t(`deleteConfirmation.errors.${deletionErrorKey.value}`)
 )
-const confirmationMember =
-  computed<MembershipPaymentConfirmationModalMember | null>(() => {
-    const selectedMember = selectedMemberForConfirmation.value
-
-    if (selectedMember === null) {
-      return null
-    }
-
-    // What: adapt the selected payment target into the modal's presentation contract. Why: the view should keep domain data and application-layer write context while the extracted component receives only render-ready labels.
-    return {
-      attendanceCount: selectedMember.attendanceCount,
-      ageLabel: formatAge(selectedMember),
-      coveredMonthLabel: selectedMember.coveredMonthLabel,
-      memberName: formatMemberName(selectedMember)
-    }
-  })
-const deletionMember =
-  computed<MembershipPaymentDeleteConfirmationModalMember | null>(() => {
-    const selectedMember = selectedMemberForDeletion.value
-
-    if (selectedMember === null) {
-      return null
-    }
-
-    return {
-      ageLabel: formatAge(selectedMember),
-      coveredMonthLabel: selectedMember.coveredMonthLabel,
-      memberName: formatMemberName(selectedMember)
-    }
-  })
 const feedbackMessage = computed(() => {
   if (paymentFeedback.value === null) {
     return ''
@@ -176,24 +143,6 @@ const reminderErrorMessage = computed(() =>
 
 function startOfMonth(value: Date): Date {
   return new Date(value.getFullYear(), value.getMonth(), 1)
-}
-
-function formatMonth(value: Date): string {
-  return new Intl.DateTimeFormat(locale.value, {
-    month: 'long',
-    year: 'numeric'
-  }).format(value)
-}
-
-function formatMemberName(
-  member: MembershipPaymentStatusMemberListItem
-): string {
-  return `${member.firstName} ${member.lastName}`
-}
-
-function formatAge(member: MembershipPaymentStatusMemberListItem): string {
-  // What: render the payment-age label from required birth-date data.
-  return t('table.age', { age: calculateRequiredAge(member.dateOfBirth) })
 }
 
 function matchesMemberFilters(
@@ -234,61 +183,6 @@ function filterAndSortUnpaidAttendedMembers(
   return filterAndSortMembers(members)
 }
 
-function calculateRequiredAge(dateOfBirth: Date, now = new Date()): number {
-  const age = calculateAge(dateOfBirth, now)
-  if (age === null) {
-    // Why: when persisted data is malformed, falling back to zero keeps rendering stable while still making the issue obvious in the UI.
-    return 0
-  }
-
-  return age
-}
-
-function clearConfirmationDialog() {
-  selectedMemberForConfirmation.value = null
-  confirmationErrorKey.value = null
-}
-
-function clearDeletionDialog() {
-  selectedMemberForDeletion.value = null
-  deletionErrorKey.value = null
-}
-
-function closeConfirmationDialog() {
-  if (isConfirmingPayment.value) {
-    return
-  }
-
-  clearConfirmationDialog()
-}
-
-function closeDeletionDialog() {
-  if (isDeletingPayment.value) {
-    return
-  }
-
-  clearDeletionDialog()
-}
-
-function dismissPaymentFeedback() {
-  // What: let coaches clear the shared floating feedback error after reading it. Why: duplicate-payment warnings should stay visible long enough to explain the no-op without occupying the top of the ledger forever.
-  paymentFeedback.value = null
-}
-
-function dismissReminderError() {
-  // What: let coaches clear reminder-specific errors without changing any list filters. Why: SMS launch failures are recoverable side-effects and should not force a month or search reset to continue work.
-  reminderErrorKey.value = null
-}
-
-function dismissConfirmationError() {
-  // What: let the confirmation flow clear the shared floating error card while keeping the dialog open. Why: a failed payment write should be retryable without forcing the coach to stare at a stale warning between attempts.
-  confirmationErrorKey.value = null
-}
-
-function dismissDeletionError() {
-  deletionErrorKey.value = null
-}
-
 function unsubscribePaymentsLedger() {
   paymentsSubscription?.unsubscribe()
   paymentsSubscription = null
@@ -320,8 +214,8 @@ function subscribeToPaymentsLedger(monthStart: Date) {
 
 function handleMonthChange(month: Date) {
   // What: reset month-specific UI state before swapping the shared selector value. Why: payment feedback and confirmation copy belong to one covered month and must not leak into the next ledger.
-  paymentFeedback.value = null
-  reminderErrorKey.value = null
+  dismissPaymentFeedback()
+  dismissReminderError()
   closeConfirmationDialog()
   closeDeletionDialog()
   activeMonth.value = month
@@ -331,127 +225,11 @@ function retryLoading() {
   subscribeToPaymentsLedger(activeMonth.value)
 }
 
-function openPaymentConfirmation(
-  member: MembershipPaymentStatusMemberListItem,
-  attendanceCount = 0
-) {
-  paymentFeedback.value = null
-  confirmationErrorKey.value = null
-
-  // What: snapshot the selected member together with the visible month label. Why: the confirmation dialog must show exactly what will be persisted even if the screen state changes afterward.
-  selectedMemberForConfirmation.value = {
-    ...member,
-    attendanceCount,
-    coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
-    coveredMonthLabel: formatMonth(activeMonth.value)
-  }
-}
-
 function openPaymentDeletion(
   member: PaidMembershipPaymentStatusMemberListItem
 ) {
-  paymentFeedback.value = null
-  deletionErrorKey.value = null
-
-  selectedMemberForDeletion.value = {
-    ...member,
-    coveredMonthLabel: formatMonth(activeMonth.value)
-  }
-}
-
-async function confirmPayment() {
-  const selectedMember = selectedMemberForConfirmation.value
-
-  if (!selectedMember) {
-    return
-  }
-
-  isConfirmingPayment.value = true
-  confirmationErrorKey.value = null
-
-  try {
-    await useCases.registerMembershipPayment.handle({
-      memberId: selectedMember.id,
-      coveredMonth: selectedMember.coveredMonth
-    })
-
-    clearConfirmationDialog()
-  } catch (error) {
-    if (error instanceof MembershipPaymentAlreadyExistsError) {
-      paymentFeedback.value = {
-        kind: 'alreadyRecorded',
-        memberName: formatMemberName(selectedMember),
-        coveredMonthLabel: selectedMember.coveredMonthLabel
-      }
-      clearConfirmationDialog()
-    } else {
-      confirmationErrorKey.value = 'submit'
-    }
-  } finally {
-    isConfirmingPayment.value = false
-  }
-}
-
-async function deletePayment() {
-  const selectedMember = selectedMemberForDeletion.value
-
-  if (!selectedMember) {
-    return
-  }
-
-  isDeletingPayment.value = true
-  deletionErrorKey.value = null
-
-  try {
-    await useCases.deleteMembershipPayment.handle({
-      membershipPaymentId: selectedMember.membershipPaymentId
-    })
-
-    clearDeletionDialog()
-  } catch (error) {
-    deletionErrorKey.value =
-      error instanceof MembershipPaymentNotFoundError ? 'missing' : 'submit'
-  } finally {
-    isDeletingPayment.value = false
-  }
-}
-
-function isSendingReminderForMember(memberId: string): boolean {
-  return reminderInFlightMemberId.value === memberId
-}
-
-function resolveReminderLocale(value: string): 'pl' | 'en' {
-  return value.toLowerCase().startsWith('pl') ? 'pl' : 'en'
-}
-
-async function sendReminder(member: MembershipPaymentStatusMemberListItem) {
-  if (isSendingReminderForMember(member.id)) {
-    return
-  }
-
-  reminderErrorKey.value = null
-  reminderInFlightMemberId.value = member.id
-
-  try {
-    // What: trigger reminder composition through the shared application use case. Why: the view should not assemble sender identity or SMS copy directly, so message policy stays centralized and testable.
-    await useCases.sendMembershipPaymentReminder.handle({
-      memberId: member.id,
-      coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
-      locale: resolveReminderLocale(locale.value)
-    })
-  } catch (error) {
-    if (error instanceof MemberNotFoundError) {
-      reminderErrorKey.value = 'memberMissing'
-    } else if (error instanceof MemberPhoneNumberMissingError) {
-      reminderErrorKey.value = 'phoneMissing'
-    } else if (error instanceof PaymentReminderSenderMissingError) {
-      reminderErrorKey.value = 'senderMissing'
-    } else {
-      reminderErrorKey.value = 'submit'
-    }
-  } finally {
-    reminderInFlightMemberId.value = null
-  }
+  dismissPaymentFeedback()
+  openMembershipPaymentDeletion(member)
 }
 
 watch(
