@@ -1,12 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys'
-import { AttendanceListAlreadyExistsError } from '@/write/domain/model/AttendanceList'
-import { createAppI18n } from '@/ui/i18n'
-import { useAppServices } from '@/ui/appServices'
-import { useRouter } from '@/ui/router/runtime'
-import AttendanceListView from '@/ui/views/AttendanceListView.vue'
+import { ATTENDANCE_DRAFT_STORAGE_KEY } from '@/appStorageKeys.ts'
+import { AttendanceListAlreadyExistsError } from '@/write/domain/model/AttendanceList.ts'
+import { createAppI18n } from '@/ui/i18n.ts'
+import { useAppServices } from '@/ui/appServices.ts'
+import { useRouter } from '@/ui/router/runtime.ts'
+import AttendanceListView from '@/ui/features/attendance/AttendanceListView.vue'
 
 vi.mock('@/ui/router/runtime', () => ({
   useRouter: vi.fn()

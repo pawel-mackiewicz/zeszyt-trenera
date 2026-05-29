@@ -2,9 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import MonthSelector from '@/ui/components/MonthSelector.vue'
-import { createAppI18n } from '@/ui/i18n'
-import { useAppServices } from '@/ui/appServices'
-import AttendanceHistoryView from '@/ui/views/AttendanceHistoryView.vue'
+import { createAppI18n } from '@/ui/i18n.ts'
+import { useAppServices } from '@/ui/appServices.ts'
+import AttendanceHistoryView from '@/ui/features/attendance/AttendanceHistoryView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

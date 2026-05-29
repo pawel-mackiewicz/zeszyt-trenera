@@ -10,7 +10,7 @@ import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { RouterLink } from '@/ui/router/runtime'
 import AttendanceDeleteConfirmationModal, {
   type AttendanceDeleteConfirmationModalSession
-} from '@/ui/views/AttendanceDeleteConfirmationModal.vue'
+} from '@/ui/features/attendance/AttendanceDeleteConfirmationModal.vue'
 
 type AttendanceHistoryRow = {
   id: string
