@@ -509,7 +509,7 @@ onBeforeUnmount(() => {
           <article
             v-for="member in filteredPaidMembers"
             :key="member.id"
-            class="payments-member-row bg-emerald-50/70"
+            class="payments-member-row payments-member-row--paid bg-emerald-50/70"
           >
             <div class="min-w-0">
               <p
@@ -663,7 +663,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
-  justify-self: start;
+  justify-self: end;
 }
 
 .payments-paid-indicator :deep(.app-icon) {
@@ -683,6 +683,21 @@ onBeforeUnmount(() => {
 
   .payments-paid-actions {
     justify-self: end;
+  }
+}
+
+.payments-member-row--paid {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+@media (max-width: 500px) {
+  .payments-member-row--paid {
+    grid-template-columns: 1fr;
+  }
+
+  .payments-paid-actions {
+    justify-self: start;
   }
 }
 </style>

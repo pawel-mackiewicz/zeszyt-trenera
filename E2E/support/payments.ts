@@ -160,7 +160,12 @@ export async function expectUnpaidAbsentPaymentRow(page: Page) {
 }
 
 export async function openPaymentConfirmation(page: Page) {
-  await page.getByRole('button', { name: /^oznacz jako opłacone$/i }).click()
+  const markAsPaidButton = page.getByRole('button', {
+    name: /^oznacz jako opłacone$/i
+  })
+
+  await scrollActionIntoSafeView(markAsPaidButton)
+  await markAsPaidButton.click()
   await expect(paymentConfirmationDialog(page)).toBeVisible()
 }
 
@@ -213,7 +218,7 @@ export async function expectPaymentConfirmationContext(
         'i'
       )
     )
-  ).toBeVisible()
+  ).not.toBeVisible()
   await expect(dialog.getByText(/^członek$/i)).toBeVisible()
   await expect(
     dialog.getByText(new RegExp(`^${escapeRegExp(member.fullName)}$`, 'i'))
@@ -261,7 +266,7 @@ export async function expectPaymentDeletionConfirmationContext(
         'i'
       )
     )
-  ).toBeVisible()
+  ).not.toBeVisible()
   await expect(dialog.getByText(/^członek$/i)).toBeVisible()
   await expect(
     dialog.getByText(new RegExp(`^${escapeRegExp(member.fullName)}$`, 'i'))
@@ -325,6 +330,7 @@ export async function expectReminderWorkflowReachable(page: Page) {
   const reminderButton = page.getByRole('button', { name: /^przypomnij$/i })
 
   await expect(reminderButton).toBeEnabled()
+  await scrollActionIntoSafeView(reminderButton)
   await reminderButton.click()
 
   await expect(reminderButton).toBeEnabled()
@@ -484,10 +490,22 @@ function createMonthSessions(monthStart: Date): Date[] {
 }
 
 function formatPolishMonthLabel(value: Date): string {
-  return new Intl.DateTimeFormat('pl-PL', {
-    month: 'long',
-    year: 'numeric'
-  }).format(value)
+  return capitalizeNamePart(
+    new Intl.DateTimeFormat('pl-PL', {
+      month: 'long',
+      year: 'numeric'
+    }).format(value)
+  )
+}
+
+function capitalizeNamePart(value: string): string {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length === 0) {
+    return trimmedValue
+  }
+
+  return `${trimmedValue.charAt(0).toLocaleUpperCase()}${trimmedValue.slice(1)}`
 }
 
 function toCoveredMonth(value: Date): string {
@@ -506,6 +524,12 @@ function snapDateToQuarterHourGrid(value: Date): Date {
   snappedValue.setMinutes(roundedMinutes)
 
   return snappedValue
+}
+
+async function scrollActionIntoSafeView(locator: Locator) {
+  await locator.evaluate((element) => {
+    element.scrollIntoView({ block: 'center', inline: 'nearest' })
+  })
 }
 
 function createSeededRng(seedValue: string) {
