@@ -23,6 +23,11 @@ export type PaymentConfirmationExpectation = {
   attendanceCount?: number
 }
 
+export type PaymentDeletionExpectation = {
+  member: DemoPaymentMemberTarget
+  monthLabel: string
+}
+
 // Why: payments specs need deterministic demo actors without reading IndexedDB directly, so this mirrors the demo seed's public input list while the app still performs every write.
 const DEMO_MEMBER_NAMES = [
   'Royce Gracie',
@@ -173,6 +178,25 @@ export async function confirmPayment(page: Page) {
   await expect(paymentConfirmationDialog(page)).not.toBeVisible()
 }
 
+export async function openPaymentDeletion(
+  page: Page,
+  member: DemoPaymentMemberTarget
+) {
+  await page
+    .getByRole('button', {
+      name: new RegExp(`^usuń płatność: ${escapeRegExp(member.fullName)}$`, 'i')
+    })
+    .click()
+  await expect(paymentDeletionDialog(page)).toBeVisible()
+}
+
+export async function confirmPaymentDeletion(page: Page) {
+  await paymentDeletionDialog(page)
+    .getByRole('button', { name: /^usuń płatność$/i })
+    .click()
+  await expect(paymentDeletionDialog(page)).not.toBeVisible()
+}
+
 export async function expectPaymentConfirmationContext(
   page: Page,
   { attendanceCount, member, monthLabel }: PaymentConfirmationExpectation
@@ -221,6 +245,41 @@ export async function expectPaymentConfirmationContext(
   ).toBeVisible()
 }
 
+export async function expectPaymentDeletionConfirmationContext(
+  page: Page,
+  { member, monthLabel }: PaymentDeletionExpectation
+) {
+  const dialog = paymentDeletionDialog(page)
+
+  await expect(dialog).toBeVisible()
+  await expect(
+    dialog.getByText(
+      new RegExp(
+        `Czy usunąć płatność od ${escapeRegExp(
+          member.fullName
+        )} za ${escapeRegExp(monthLabel)}\\?`,
+        'i'
+      )
+    )
+  ).toBeVisible()
+  await expect(dialog.getByText(/^członek$/i)).toBeVisible()
+  await expect(
+    dialog.getByText(new RegExp(`^${escapeRegExp(member.fullName)}$`, 'i'))
+  ).toBeVisible()
+  await expect(dialog.getByText(/^miesiąc$/i)).toBeVisible()
+  await expect(
+    dialog.getByText(new RegExp(`^${escapeRegExp(monthLabel)}$`, 'i'))
+  ).toBeVisible()
+  await expect(dialog.getByText(/^wiek$/i)).toBeVisible()
+  await expect(
+    dialog.getByText(new RegExp(`^${member.age} lat$`, 'i'))
+  ).toBeVisible()
+  await expect(
+    dialog.getByRole('button', { name: /^usuń płatność$/i })
+  ).toBeVisible()
+  await expect(dialog.getByRole('button', { name: /^anuluj$/i })).toBeVisible()
+}
+
 export async function expectPaidPaymentRow(
   page: Page,
   member: DemoPaymentMemberTarget
@@ -240,6 +299,25 @@ export async function expectPaymentWritePersistedAsPaid(
   await expectPaidPaymentRow(page, member)
   await expect(
     page.getByRole('button', { name: /^oznacz jako opłacone$/i })
+  ).not.toBeVisible()
+}
+
+export async function expectPaymentWritePersistedAsUnpaid(
+  page: Page,
+  member: DemoPaymentMemberTarget
+) {
+  // Why: payment deletion is a local-first write, so the final assertion must come from a fresh monthly ledger read without assuming whether this demo member attended in the month.
+  await reloadPaymentsAfterLocalWrites(page)
+  await filterPaymentsByMember(page, member)
+  await expect(paymentMemberName(page, member)).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /^oznacz jako opłacone$/i })
+  ).toBeEnabled()
+  await expect(page.getByText(/^opłacone$/i)).not.toBeVisible()
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`^usuń płatność: ${escapeRegExp(member.fullName)}$`, 'i')
+    })
   ).not.toBeVisible()
 }
 
@@ -321,6 +399,12 @@ export function paymentsHeading(page: Page): Locator {
 function paymentConfirmationDialog(page: Page): Locator {
   return page.getByRole('dialog', {
     name: /^oznaczyć składkę jako opłaconą\?$/i
+  })
+}
+
+function paymentDeletionDialog(page: Page): Locator {
+  return page.getByRole('dialog', {
+    name: /^usunąć zapisaną płatność\?$/i
   })
 }
 

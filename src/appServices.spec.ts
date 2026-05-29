@@ -88,6 +88,9 @@ describe('appServices', () => {
     expect(services.useCases.deleteAttendanceList).toBe(
       services.useCases.deleteAttendanceList
     )
+    expect(services.useCases.deleteMembershipPayment).toBe(
+      services.useCases.deleteMembershipPayment
+    )
     expect(services.useCases.exportDatabaseBackup).toBe(
       services.useCases.exportDatabaseBackup
     )
@@ -495,6 +498,7 @@ describe('appServices', () => {
       paidMembers: [
         {
           id: amanda.id,
+          membershipPaymentId: expect.any(String),
           firstName: 'amanda',
           lastName: 'nunes',
           dateOfBirth: new Date('1990-05-30T00:00:00Z'),

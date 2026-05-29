@@ -8,18 +8,21 @@ import {
 } from '@/write/application/SendMembershipPaymentReminderUseCase'
 import {
   MembershipPaymentAlreadyExistsError,
+  MembershipPaymentNotFoundError,
   toMembershipPaymentCoveredMonth
 } from '@/write/domain/model/MembershipPayment'
 import { MemberNotFoundError } from '@/write/domain/model/Member'
 import type {
   MembershipPaymentStatusByMonthResult,
   MembershipPaymentStatusMemberListItem,
+  PaidMembershipPaymentStatusMemberListItem,
   UnpaidAttendedMembershipPaymentStatusMemberListItem
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
+import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
@@ -33,12 +36,16 @@ import {
 import MembershipPaymentConfirmationModal, {
   type MembershipPaymentConfirmationModalMember
 } from './MembershipPaymentConfirmationModal.vue'
+import MembershipPaymentDeleteConfirmationModal, {
+  type MembershipPaymentDeleteConfirmationModalMember
+} from './MembershipPaymentDeleteConfirmationModal.vue'
 
 type ObservableSubscription = {
   unsubscribe(): void
 }
 
 type ConfirmationErrorKey = 'submit' | null
+type DeletionErrorKey = 'missing' | 'submit' | null
 type ReminderErrorKey =
   | 'memberMissing'
   | 'phoneMissing'
@@ -55,6 +62,10 @@ type PaymentFeedback = {
 type ConfirmPaymentTarget = MembershipPaymentStatusMemberListItem & {
   attendanceCount: number
   coveredMonth: string
+  coveredMonthLabel: string
+}
+
+type DeletePaymentTarget = PaidMembershipPaymentStatusMemberListItem & {
   coveredMonthLabel: string
 }
 
@@ -76,8 +87,11 @@ const paymentFeedback = ref<PaymentFeedback>(null)
 const reminderErrorKey = ref<ReminderErrorKey>(null)
 const reminderInFlightMemberId = ref<string | null>(null)
 const selectedMemberForConfirmation = ref<ConfirmPaymentTarget | null>(null)
+const selectedMemberForDeletion = ref<DeletePaymentTarget | null>(null)
 const confirmationErrorKey = ref<ConfirmationErrorKey>(null)
+const deletionErrorKey = ref<DeletionErrorKey>(null)
 const isConfirmingPayment = ref(false)
+const isDeletingPayment = ref(false)
 
 let paymentsSubscription: ObservableSubscription | null = null
 
@@ -109,6 +123,11 @@ const confirmationError = computed(() =>
     ? ''
     : t(`confirmation.errors.${confirmationErrorKey.value}`)
 )
+const deletionError = computed(() =>
+  deletionErrorKey.value === null
+    ? ''
+    : t(`deleteConfirmation.errors.${deletionErrorKey.value}`)
+)
 const confirmationMember =
   computed<MembershipPaymentConfirmationModalMember | null>(() => {
     const selectedMember = selectedMemberForConfirmation.value
@@ -120,6 +139,20 @@ const confirmationMember =
     // What: adapt the selected payment target into the modal's presentation contract. Why: the view should keep domain data and application-layer write context while the extracted component receives only render-ready labels.
     return {
       attendanceCount: selectedMember.attendanceCount,
+      ageLabel: formatAge(selectedMember),
+      coveredMonthLabel: selectedMember.coveredMonthLabel,
+      memberName: formatMemberName(selectedMember)
+    }
+  })
+const deletionMember =
+  computed<MembershipPaymentDeleteConfirmationModalMember | null>(() => {
+    const selectedMember = selectedMemberForDeletion.value
+
+    if (selectedMember === null) {
+      return null
+    }
+
+    return {
       ageLabel: formatAge(selectedMember),
       coveredMonthLabel: selectedMember.coveredMonthLabel,
       memberName: formatMemberName(selectedMember)
@@ -216,12 +249,25 @@ function clearConfirmationDialog() {
   confirmationErrorKey.value = null
 }
 
+function clearDeletionDialog() {
+  selectedMemberForDeletion.value = null
+  deletionErrorKey.value = null
+}
+
 function closeConfirmationDialog() {
   if (isConfirmingPayment.value) {
     return
   }
 
   clearConfirmationDialog()
+}
+
+function closeDeletionDialog() {
+  if (isDeletingPayment.value) {
+    return
+  }
+
+  clearDeletionDialog()
 }
 
 function dismissPaymentFeedback() {
@@ -237,6 +283,10 @@ function dismissReminderError() {
 function dismissConfirmationError() {
   // What: let the confirmation flow clear the shared floating error card while keeping the dialog open. Why: a failed payment write should be retryable without forcing the coach to stare at a stale warning between attempts.
   confirmationErrorKey.value = null
+}
+
+function dismissDeletionError() {
+  deletionErrorKey.value = null
 }
 
 function unsubscribePaymentsLedger() {
@@ -273,6 +323,7 @@ function handleMonthChange(month: Date) {
   paymentFeedback.value = null
   reminderErrorKey.value = null
   closeConfirmationDialog()
+  closeDeletionDialog()
   activeMonth.value = month
 }
 
@@ -292,6 +343,18 @@ function openPaymentConfirmation(
     ...member,
     attendanceCount,
     coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
+    coveredMonthLabel: formatMonth(activeMonth.value)
+  }
+}
+
+function openPaymentDeletion(
+  member: PaidMembershipPaymentStatusMemberListItem
+) {
+  paymentFeedback.value = null
+  deletionErrorKey.value = null
+
+  selectedMemberForDeletion.value = {
+    ...member,
     coveredMonthLabel: formatMonth(activeMonth.value)
   }
 }
@@ -326,6 +389,30 @@ async function confirmPayment() {
     }
   } finally {
     isConfirmingPayment.value = false
+  }
+}
+
+async function deletePayment() {
+  const selectedMember = selectedMemberForDeletion.value
+
+  if (!selectedMember) {
+    return
+  }
+
+  isDeletingPayment.value = true
+  deletionErrorKey.value = null
+
+  try {
+    await useCases.deleteMembershipPayment.handle({
+      membershipPaymentId: selectedMember.membershipPaymentId
+    })
+
+    clearDeletionDialog()
+  } catch (error) {
+    deletionErrorKey.value =
+      error instanceof MembershipPaymentNotFoundError ? 'missing' : 'submit'
+  } finally {
+    isDeletingPayment.value = false
   }
 }
 
@@ -661,10 +748,27 @@ onBeforeUnmount(() => {
               </p>
             </div>
 
-            <span class="payments-paid-indicator">
-              <AppIcon name="check_circle" />
-              <span>{{ t('table.paid') }}</span>
-            </span>
+            <div class="payments-paid-actions">
+              <span class="payments-paid-indicator">
+                <AppIcon name="check_circle" />
+                <span>{{ t('table.paid') }}</span>
+              </span>
+              <DeleteIconButton
+                :id="`payments-open-delete-${member.id}`"
+                :aria-label="
+                  t('actions.deletePaymentFor', {
+                    memberName: formatMemberName(member)
+                  })
+                "
+                :title="
+                  t('actions.deletePaymentFor', {
+                    memberName: formatMemberName(member)
+                  })
+                "
+                type="button"
+                @click="openPaymentDeletion(member)"
+              />
+            </div>
           </article>
         </template>
       </section>
@@ -679,6 +783,16 @@ onBeforeUnmount(() => {
       @close="closeConfirmationDialog"
       @confirm="confirmPayment"
       @dismiss-error="dismissConfirmationError"
+    />
+    <MembershipPaymentDeleteConfirmationModal
+      :error-message="deletionError"
+      :error-title="t('deleteConfirmation.errors.title')"
+      :is-pending="isDeletingPayment"
+      :member="deletionMember"
+      :visible="selectedMemberForDeletion !== null"
+      @close="closeDeletionDialog"
+      @confirm="deletePayment"
+      @dismiss-error="dismissDeletionError"
     />
   </div>
 </template>
@@ -754,6 +868,13 @@ onBeforeUnmount(() => {
   color: var(--success);
 }
 
+.payments-paid-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-self: start;
+}
+
 .payments-paid-indicator :deep(.app-icon) {
   width: 1.25rem;
   height: 1.25rem;
@@ -769,7 +890,7 @@ onBeforeUnmount(() => {
     grid-template-columns: repeat(2, minmax(0, auto));
   }
 
-  .payments-paid-indicator {
+  .payments-paid-actions {
     justify-self: end;
   }
 }
@@ -787,6 +908,7 @@ onBeforeUnmount(() => {
     },
     "actions": {
       "markAsPaid": "Oznacz jako opłacone",
+      "deletePaymentFor": "Usuń płatność: {memberName}",
       "remind": "Przypomnij",
       "reminding": "Otwieranie..."
     },
@@ -837,6 +959,13 @@ onBeforeUnmount(() => {
         "title": "Nie udało się zapisać płatności",
         "submit": "Spróbuj ponownie. Ten ekran nie zapisał jeszcze zmiany."
       }
+    },
+    "deleteConfirmation": {
+      "errors": {
+        "title": "Nie udało się usunąć płatności",
+        "missing": "Ta płatność została już usunięta albo nie jest dostępna.",
+        "submit": "Spróbuj ponownie. Ten ekran nie usunął jeszcze płatności."
+      }
     }
   },
   "en": {
@@ -849,6 +978,7 @@ onBeforeUnmount(() => {
     },
     "actions": {
       "markAsPaid": "Mark as paid",
+      "deletePaymentFor": "Delete payment: {memberName}",
       "remind": "Remind",
       "reminding": "Opening..."
     },
@@ -898,6 +1028,13 @@ onBeforeUnmount(() => {
       "errors": {
         "title": "The payment could not be saved",
         "submit": "Try again. This screen has not recorded the change yet."
+      }
+    },
+    "deleteConfirmation": {
+      "errors": {
+        "title": "The payment could not be deleted",
+        "missing": "This payment has already been deleted or is not available.",
+        "submit": "Try again. This screen has not deleted the payment yet."
       }
     }
   }

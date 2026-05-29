@@ -1,5 +1,5 @@
 import type { MembershipPaymentRepoPort } from '@/write/application/ports/MembershipPaymentRepoPort'
-import type { MembershipPayment } from '@/write/domain/model/MembershipPayment'
+import { MembershipPayment } from '@/write/domain/model/MembershipPayment'
 import type { TrainerNotebookDb } from '@/db'
 import type { PersistedMembershipPayment } from '@/write/infra'
 
@@ -10,6 +10,15 @@ export class DexieMembershipPaymentRepo implements MembershipPaymentRepoPort {
     await this.database.membershipPayments.add(
       this.toPersistedMembershipPayment(payment)
     )
+  }
+
+  public async findById(
+    membershipPaymentId: string
+  ): Promise<MembershipPayment | null> {
+    const persistedPayment =
+      await this.database.membershipPayments.get(membershipPaymentId)
+
+    return persistedPayment ? MembershipPayment.restore(persistedPayment) : null
   }
 
   public async findIdsByMemberId(memberId: string): Promise<string[]> {
@@ -34,6 +43,10 @@ export class DexieMembershipPaymentRepo implements MembershipPaymentRepoPort {
       .first()
 
     return persistedPayment != null
+  }
+
+  public async delete(membershipPaymentId: string): Promise<void> {
+    await this.database.membershipPayments.delete(membershipPaymentId)
   }
 
   private toPersistedMembershipPayment(

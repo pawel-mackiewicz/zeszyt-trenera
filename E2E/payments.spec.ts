@@ -2,16 +2,20 @@ import { test } from 'playwright/test'
 
 import {
   confirmPayment,
+  confirmPaymentDeletion,
   currentDemoPaymentTargets,
   expectPaidPaymentRow,
+  expectPaymentDeletionConfirmationContext,
   expectPaymentConfirmationContext,
+  expectPaymentWritePersistedAsUnpaid,
   expectPaymentWritePersistedAsPaid,
   expectReminderWorkflowReachable,
   expectUnpaidAbsentPaymentRow,
   expectUnpaidAttendedPaymentRow,
   filterPaymentsByMember,
   openDemoPayments,
-  openPaymentConfirmation
+  openPaymentConfirmation,
+  openPaymentDeletion
 } from './support/payments'
 
 test('shows attendance context in the mark-as-paid modal for an attended unpaid member', async ({
@@ -55,6 +59,22 @@ test('moves a confirmed payment to paid members', async ({ page }) => {
   await confirmPayment(page)
   await expectPaidPaymentRow(page, absent)
   await expectPaymentWritePersistedAsPaid(page, absent)
+})
+
+test('moves a deleted payment back to unpaid members', async ({ page }) => {
+  const { monthLabel, paid } = currentDemoPaymentTargets()
+
+  await openDemoPayments(page)
+  await filterPaymentsByMember(page, paid)
+  await expectPaidPaymentRow(page, paid)
+
+  await openPaymentDeletion(page, paid)
+  await expectPaymentDeletionConfirmationContext(page, {
+    member: paid,
+    monthLabel
+  })
+  await confirmPaymentDeletion(page)
+  await expectPaymentWritePersistedAsUnpaid(page, paid)
 })
 
 test('opens a payment reminder without showing SMS failure and keeps the ledger usable', async ({

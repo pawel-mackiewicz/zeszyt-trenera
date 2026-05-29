@@ -73,7 +73,9 @@ describe('BootstrapDemoModeUseCase', () => {
     }
     membershipPaymentRepo = {
       save: vi.fn().mockResolvedValue(undefined),
+      findById: vi.fn().mockResolvedValue(null),
       findIdsByMemberId: vi.fn().mockResolvedValue([]),
+      delete: vi.fn().mockResolvedValue(undefined),
       existsByMemberIdAndCoveredMonth: vi.fn().mockResolvedValue(false)
     }
     attendanceListRepo = {

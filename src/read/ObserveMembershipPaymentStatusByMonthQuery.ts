@@ -16,8 +16,13 @@ export type UnpaidAttendedMembershipPaymentStatusMemberListItem =
     attendanceSessionIds: string[]
   }
 
+export type PaidMembershipPaymentStatusMemberListItem =
+  MembershipPaymentStatusMemberListItem & {
+    membershipPaymentId: string
+  }
+
 export type MembershipPaymentStatusByMonthResult = {
-  paidMembers: MembershipPaymentStatusMemberListItem[]
+  paidMembers: PaidMembershipPaymentStatusMemberListItem[]
   unpaidAbsentMembers: MembershipPaymentStatusMemberListItem[]
   unpaidAttendedMembers: UnpaidAttendedMembershipPaymentStatusMemberListItem[]
 }
@@ -57,8 +62,8 @@ export class ObserveMembershipPaymentStatusByMonthQuery {
             .toArray()
         ])
 
-      const paidMemberIds = new Set(
-        persistedPayments.map((payment) => payment.memberId)
+      const paymentByMemberId = new Map(
+        persistedPayments.map((payment) => [payment.memberId, payment])
       )
       const attendanceSessionIdsByMemberId = new Map<string, string[]>()
 
@@ -94,8 +99,13 @@ export class ObserveMembershipPaymentStatusByMonthQuery {
             member.phoneNumber.trim().length > 0
         }
 
-        if (paidMemberIds.has(member.id)) {
-          result.paidMembers.push(listItem)
+        const payment = paymentByMemberId.get(member.id)
+
+        if (payment) {
+          result.paidMembers.push({
+            ...listItem,
+            membershipPaymentId: payment.id
+          })
           continue
         }
 

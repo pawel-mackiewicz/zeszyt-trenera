@@ -14,6 +14,7 @@ vi.mock('@/ui/appServices', () => ({
 type MembershipPaymentsResult = {
   paidMembers: Array<{
     id: string
+    membershipPaymentId: string
     firstName: string
     lastName: string
     dateOfBirth: Date
@@ -54,6 +55,7 @@ function createObservable(result: MembershipPaymentsResult) {
 describe('MembershipPaymentsView', () => {
   let mockObserveMembershipPaymentStatusByMonthHandle: Mock
   let mockRegisterMembershipPaymentHandle: Mock
+  let mockDeleteMembershipPaymentHandle: Mock
   let mockSendMembershipPaymentReminderHandle: Mock
   let currentResult: MembershipPaymentsResult
 
@@ -65,6 +67,7 @@ describe('MembershipPaymentsView', () => {
       paidMembers: [
         {
           id: 'paid-1',
+          membershipPaymentId: 'payment-paid-1',
           firstName: 'Amanda',
           lastName: 'Nunes',
           dateOfBirth: new Date('1988-05-30T00:00:00Z'),
@@ -103,6 +106,7 @@ describe('MembershipPaymentsView', () => {
       createObservable(currentResult)
     )
     mockRegisterMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
+    mockDeleteMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
     mockSendMembershipPaymentReminderHandle = vi
       .fn()
       .mockResolvedValue(undefined)
@@ -122,6 +126,9 @@ describe('MembershipPaymentsView', () => {
         registerMember: { handle: vi.fn() },
         registerMembershipPayment: {
           handle: mockRegisterMembershipPaymentHandle
+        },
+        deleteMembershipPayment: {
+          handle: mockDeleteMembershipPaymentHandle
         },
         sendMembershipPaymentReminder: {
           handle: mockSendMembershipPaymentReminderHandle
@@ -360,5 +367,60 @@ describe('MembershipPaymentsView', () => {
 
     pendingPayment.resolve()
     await flushPromises()
+  })
+
+  it('opens a delete confirmation dialog for a recorded payment', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('#payments-open-delete-paid-1').trigger('click')
+
+    expect(wrapper.text()).toContain('Usunąć zapisaną płatność?')
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).toContain('październik 2026')
+
+    await wrapper
+      .get('[data-testid="payment-delete-confirmation-cancel"]')
+      .trigger('click')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Usunąć zapisaną płatność?')
+  })
+
+  it('deletes the selected recorded payment only after confirmation', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('#payments-open-delete-paid-1').trigger('click')
+    await wrapper
+      .get('[data-testid="payment-delete-confirmation-confirm"]')
+      .trigger('click')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+
+    expect(mockDeleteMembershipPaymentHandle).toHaveBeenCalledWith({
+      membershipPaymentId: 'payment-paid-1'
+    })
+    expect(wrapper.text()).not.toContain('Usunąć zapisaną płatność?')
+  })
+
+  it('keeps the delete dialog open and hides low-level details when deleting fails unexpectedly', async () => {
+    mockDeleteMembershipPaymentHandle.mockRejectedValue(new Error('boom'))
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('#payments-open-delete-paid-1').trigger('click')
+    await wrapper
+      .get('[data-testid="payment-delete-confirmation-confirm"]')
+      .trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Nie udało się usunąć płatności')
+    expect(wrapper.text()).toContain(
+      'Spróbuj ponownie. Ten ekran nie usunął jeszcze płatności.'
+    )
+    expect(wrapper.text()).not.toContain('boom')
+    expect(wrapper.text()).toContain('Usunąć zapisaną płatność?')
   })
 })

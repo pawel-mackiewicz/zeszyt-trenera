@@ -105,6 +105,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
       paidMembers: [
         {
           id: 'member-paid',
+          membershipPaymentId: 'payment-march',
           firstName: 'Amanda',
           lastName: 'Nunes',
           dateOfBirth: new Date('1990-05-30T00:00:00Z'),
@@ -194,6 +195,7 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
     expect(afterPayment.paidMembers).toEqual([
       {
         id: 'member-attended',
+        membershipPaymentId: 'payment-march',
         firstName: 'Royce',
         lastName: 'Gracie',
         dateOfBirth: new Date('1966-12-12T00:00:00Z'),

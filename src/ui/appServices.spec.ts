@@ -56,6 +56,9 @@ describe('uiAppServices', () => {
         deleteMember: {
           handle
         },
+        deleteMembershipPayment: {
+          handle
+        },
         exportDatabaseBackup: {
           handle
         },

@@ -75,6 +75,13 @@ export class MembershipPayment {
     )
   }
 
+  public static delete(
+    existingPayment: MembershipPayment
+  ): MembershipPaymentDeletedDomainEvent {
+    // Why: payment deletion removes the row, so the local-first event log needs the exact snapshot that disappeared.
+    return new MembershipPaymentDeletedDomainEvent(existingPayment.toSnapshot())
+  }
+
   // Persistence adapters and event serializers share one snapshot so stored membership payment data cannot drift apart.
   public toSnapshot(): MembershipPaymentSnapshot {
     return {
@@ -107,10 +114,26 @@ export class MembershipPaymentRecordedDomainEvent extends DomainEvent<Membership
   }
 }
 
+export class MembershipPaymentDeletedDomainEvent extends DomainEvent<MembershipPaymentSnapshot> {
+  public readonly eventName = 'membership-payment.deleted'
+
+  public constructor(payment: MembershipPaymentSnapshot) {
+    // Delete events carry the removed snapshot so backup/replay paths can identify which month was corrected.
+    super(payment)
+  }
+}
+
 export class MembershipPaymentAlreadyExistsError extends Error {
   public constructor() {
     super('Membership payment for this member and covered month already exists')
     this.name = 'MembershipPaymentAlreadyExistsError'
+  }
+}
+
+export class MembershipPaymentNotFoundError extends Error {
+  public constructor(membershipPaymentId: string) {
+    super(`Membership payment not found: ${membershipPaymentId}`)
+    this.name = 'MembershipPaymentNotFoundError'
   }
 }
 
