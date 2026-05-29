@@ -48,7 +48,7 @@ const result = ref<MembershipPaymentStatusByMonthResult>({
   unpaidAttendedMembers: []
 })
 const paymentFormatters = createMembershipPaymentFormatters({ locale, t })
-const { formatAge, formatMemberName, formatMonth } = paymentFormatters
+const { formatAge, formatMemberName } = paymentFormatters
 
 const {
   confirmationErrorKey,
@@ -114,7 +114,6 @@ const visibleMemberCount = computed(
     filteredUnpaidAbsentMembers.value.length +
     filteredUnpaidAttendedMembers.value.length
 )
-const activeMonthLabel = computed(() => formatMonth(activeMonth.value))
 const confirmationError = computed(() =>
   confirmationErrorKey.value === null
     ? ''
@@ -249,20 +248,19 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="payments-view mx-auto max-w-4xl pt-4 pb-12">
-    <section class="mb-10 flex flex-col gap-3">
-      <p
-        class="font-label text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-secondary"
-      >
-        {{ t('summary.eyebrow') }}
-      </p>
+    <section
+      class="payments-view__hero mb-8 flex flex-col gap-6 md:mb-12 md:flex-row md:items-end md:justify-between"
+    >
+      <div class="max-w-2xl">
+        <h2 class="payments-view__title">
+          {{ t('summary.title') }}
+        </h2>
+      </div>
       <!-- What: move month switching into the first payments control surface. Why: coaches choose the covered ledger before they scan or mark any member, matching the attendance flow's context-first structure. -->
       <MonthSelector
         :model-value="activeMonth"
         @update:model-value="handleMonthChange"
       />
-      <p class="font-mono text-xs uppercase tracking-[0.18em] text-secondary">
-        {{ activeMonthLabel }}
-      </p>
     </section>
 
     <!-- What: surface ledger feedback through the shared floating error card. Why: duplicate-payment warnings should appear in the same top-level location as other recoverable errors instead of blending into the ledger content. -->
@@ -581,6 +579,21 @@ onBeforeUnmount(() => {
   padding-bottom: max(8.5rem, calc(5rem + env(safe-area-inset-bottom) + 4rem));
 }
 
+.payments-view__hero {
+  position: relative;
+}
+
+.payments-view__title {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: clamp(3.5rem, 12vw, 6rem);
+  font-weight: 900;
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+}
+
 .payments-state-card {
   display: grid;
   gap: 1rem;
@@ -678,7 +691,7 @@ onBeforeUnmount(() => {
 {
   "pl": {
     "summary": {
-      "eyebrow": "Miesięczny status składek"
+      "title": "Płatności"
     },
     "search": {
       "label": "Szukaj członka",
@@ -748,7 +761,7 @@ onBeforeUnmount(() => {
   },
   "en": {
     "summary": {
-      "eyebrow": "Monthly membership ledger"
+      "title": "Payments"
     },
     "search": {
       "label": "Search member",
