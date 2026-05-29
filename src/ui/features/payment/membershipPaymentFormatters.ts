@@ -20,16 +20,20 @@ export function createMembershipPaymentFormatters({
   t: MembershipPaymentTranslate
 }) {
   function formatMonth(value: Date): string {
-    return new Intl.DateTimeFormat(locale.value, {
-      month: 'long',
-      year: 'numeric'
-    }).format(value)
+    return capitalizeNamePart(
+      new Intl.DateTimeFormat(locale.value, {
+        month: 'long',
+        year: 'numeric'
+      }).format(value)
+    )
   }
 
   function formatMemberName(
     member: MembershipPaymentStatusMemberListItem
   ): string {
-    return `${member.firstName} ${member.lastName}`
+    return `${capitalizeNamePart(member.firstName)} ${capitalizeNamePart(
+      member.lastName
+    )}`
   }
 
   function formatAge(member: MembershipPaymentStatusMemberListItem): string {
@@ -43,6 +47,16 @@ export function createMembershipPaymentFormatters({
     formatMemberName,
     formatMonth
   }
+}
+
+function capitalizeNamePart(value: string): string {
+  const trimmedValue = value.trim()
+
+  if (trimmedValue.length === 0) {
+    return trimmedValue
+  }
+
+  return `${trimmedValue.charAt(0).toLocaleUpperCase()}${trimmedValue.slice(1)}`
 }
 
 function calculateRequiredAge(dateOfBirth: Date, now = new Date()): number {

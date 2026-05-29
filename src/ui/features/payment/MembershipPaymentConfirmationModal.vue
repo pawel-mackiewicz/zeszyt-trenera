@@ -81,12 +81,6 @@ function requestConfirm() {
   <ConfirmationModal
     :visible="isModalVisible"
     :title="t('confirmation.title')"
-    :body="
-      t('confirmation.body', {
-        memberName: props.member?.memberName ?? '',
-        month: props.member?.coveredMonthLabel ?? ''
-      })
-    "
     :details="details"
     :detail-columns="2"
     :confirm-label="t('confirmation.actions.confirm')"

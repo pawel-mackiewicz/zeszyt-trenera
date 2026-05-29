@@ -314,7 +314,7 @@ describe('MembershipPaymentsView', () => {
 
     expect(wrapper.text()).not.toContain('Oznaczyć składkę jako opłaconą?')
     expect(wrapper.text()).toContain(
-      'Płatność od Georges St-Pierre za październik 2026 jest już zapisana.'
+      'Płatność od Georges St-Pierre za Październik 2026 jest już zapisana.'
     )
   })
 

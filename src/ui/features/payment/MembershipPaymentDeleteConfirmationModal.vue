@@ -69,12 +69,6 @@ function requestConfirm() {
   <ConfirmationModal
     :visible="isModalVisible"
     :title="t('deleteConfirmation.title')"
-    :body="
-      t('deleteConfirmation.body', {
-        memberName: props.member?.memberName ?? '',
-        month: props.member?.coveredMonthLabel ?? ''
-      })
-    "
     :details="details"
     :detail-columns="2"
     :confirm-label="t('deleteConfirmation.actions.confirm')"

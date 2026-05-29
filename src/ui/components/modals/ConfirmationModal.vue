@@ -17,7 +17,7 @@ const props = withDefaults(
   defineProps<{
     actionsClass?: string
     backdropTestId?: string
-    body: string
+    body?: string
     cancelLabel: string
     cancelTestId?: string
     confirmLabel: string
@@ -38,6 +38,7 @@ const props = withDefaults(
   {
     actionsClass: '',
     backdropTestId: '',
+    body: '',
     cancelTestId: '',
     confirmTestId: '',
     detailColumns: 2,
@@ -107,7 +108,7 @@ onBeforeUnmount(() => {
     :actions-class="props.actionsClass"
     @close="requestClose"
   >
-    <p class="base-modal__copy">{{ props.body }}</p>
+    <p v-if="props.body" class="base-modal__copy">{{ props.body }}</p>
 
     <dl
       v-if="props.details.length > 0"

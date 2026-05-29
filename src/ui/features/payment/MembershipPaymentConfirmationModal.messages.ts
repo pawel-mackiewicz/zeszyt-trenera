@@ -5,7 +5,6 @@ export const MEMBERSHIP_PAYMENT_CONFIRMATION_MODAL_MESSAGES = {
   pl: {
     confirmation: {
       title: 'Oznaczyć składkę jako opłaconą?',
-      body: 'Czy odebrano płatność od {memberName} za {month}?',
       memberLabel: 'Członek',
       monthLabel: 'Miesiąc',
       ageLabel: 'Wiek',
@@ -21,7 +20,6 @@ export const MEMBERSHIP_PAYMENT_CONFIRMATION_MODAL_MESSAGES = {
   en: {
     confirmation: {
       title: 'Mark membership as paid?',
-      body: 'Have you received the payment from {memberName} for {month}?',
       memberLabel: 'Member',
       monthLabel: 'Month',
       ageLabel: 'Age',

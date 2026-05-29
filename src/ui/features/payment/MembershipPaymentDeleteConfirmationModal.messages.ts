@@ -5,7 +5,6 @@ export const MEMBERSHIP_PAYMENT_DELETE_CONFIRMATION_MODAL_MESSAGES = {
   pl: {
     deleteConfirmation: {
       title: 'Usunąć zapisaną płatność?',
-      body: 'Czy usunąć płatność od {memberName} za {month}?',
       memberLabel: 'Członek',
       monthLabel: 'Miesiąc',
       ageLabel: 'Wiek',
@@ -19,7 +18,6 @@ export const MEMBERSHIP_PAYMENT_DELETE_CONFIRMATION_MODAL_MESSAGES = {
   en: {
     deleteConfirmation: {
       title: 'Delete recorded payment?',
-      body: 'Delete the payment from {memberName} for {month}?',
       memberLabel: 'Member',
       monthLabel: 'Month',
       ageLabel: 'Age',
