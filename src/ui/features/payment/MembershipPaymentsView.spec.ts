@@ -37,7 +37,10 @@ type MembershipPaymentsResult = {
   }>
 }
 
-function createObservable(result: MembershipPaymentsResult) {
+function createObservable(
+  result: MembershipPaymentsResult,
+  unsubscribeSpies: Mock[]
+) {
   return {
     subscribe(observer: {
       next: (value: MembershipPaymentsResult) => void
@@ -45,8 +48,29 @@ function createObservable(result: MembershipPaymentsResult) {
     }) {
       observer.next(result)
 
+      const unsubscribe = vi.fn()
+      unsubscribeSpies.push(unsubscribe)
+
       return {
-        unsubscribe: vi.fn()
+        unsubscribe
+      }
+    }
+  }
+}
+
+function createErrorObservable(error: unknown, unsubscribeSpies: Mock[]) {
+  return {
+    subscribe(observer: {
+      next: (value: MembershipPaymentsResult) => void
+      error?: (error: unknown) => void
+    }) {
+      observer.error?.(error)
+
+      const unsubscribe = vi.fn()
+      unsubscribeSpies.push(unsubscribe)
+
+      return {
+        unsubscribe
       }
     }
   }
@@ -57,6 +81,7 @@ describe('MembershipPaymentsView', () => {
   let mockRegisterMembershipPaymentHandle: Mock
   let mockDeleteMembershipPaymentHandle: Mock
   let mockSendMembershipPaymentReminderHandle: Mock
+  let subscriptionUnsubscribeSpies: Mock[]
   let currentResult: MembershipPaymentsResult
 
   beforeEach(() => {
@@ -103,13 +128,14 @@ describe('MembershipPaymentsView', () => {
     }
 
     mockObserveMembershipPaymentStatusByMonthHandle = vi.fn(() =>
-      createObservable(currentResult)
+      createObservable(currentResult, subscriptionUnsubscribeSpies)
     )
     mockRegisterMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
     mockDeleteMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
     mockSendMembershipPaymentReminderHandle = vi
       .fn()
       .mockResolvedValue(undefined)
+    subscriptionUnsubscribeSpies = []
 
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
@@ -257,6 +283,73 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Georges St-Pierre')
     expect(wrapper.text()).toContain('Royce Gracie')
     expect(wrapper.text()).not.toContain('Mystery Member')
+  })
+
+  it('sorts ledger rows by the formatted member name', async () => {
+    currentResult = {
+      paidMembers: [],
+      unpaidAbsentMembers: [
+        {
+          id: 'absent-z',
+          firstName: 'Zachary',
+          lastName: 'Zulu',
+          dateOfBirth: new Date('1984-01-01T00:00:00Z'),
+          hasPhoneNumber: true
+        },
+        {
+          id: 'absent-a',
+          firstName: 'Adam',
+          lastName: 'Alpha',
+          dateOfBirth: new Date('1985-01-01T00:00:00Z'),
+          hasPhoneNumber: true
+        }
+      ],
+      unpaidAttendedMembers: []
+    }
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    const rows = wrapper.findAll('.payments-member-row')
+
+    expect(rows).toHaveLength(2)
+    expect(rows[0].text()).toContain('Adam Alpha')
+    expect(rows[1].text()).toContain('Zachary Zulu')
+  })
+
+  it('shows a retry state when the monthly ledger load fails and reloads on demand', async () => {
+    mockObserveMembershipPaymentStatusByMonthHandle
+      .mockImplementationOnce(() =>
+        createErrorObservable(new Error('boom'), subscriptionUnsubscribeSpies)
+      )
+      .mockImplementationOnce(() =>
+        createObservable(currentResult, subscriptionUnsubscribeSpies)
+      )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Nie udało się wczytać miesięcznego statusu płatności.'
+    )
+    expect(wrapper.text()).toContain('Spróbuj ponownie')
+
+    await wrapper.get('.payments-state-card button').trigger('click')
+    await flushPromises()
+
+    expect(
+      mockObserveMembershipPaymentStatusByMonthHandle
+    ).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Royce Gracie')
+  })
+
+  it('unsubscribes the live ledger query when the component unmounts', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    wrapper.unmount()
+
+    expect(subscriptionUnsubscribeSpies[0]).toHaveBeenCalledTimes(1)
   })
 
   it('opens a confirmation dialog with the selected member and covered month', async () => {

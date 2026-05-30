@@ -1,12 +1,10 @@
-import { computed, ref, type Ref } from 'vue'
+import { ref } from 'vue'
 
-import type { MembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
 import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
 } from '@/write/domain/model/MembershipPayment'
-import type { MembershipPaymentFormatters } from './membershipPaymentFormatters'
 
 type CoveredMonth = ReturnType<typeof toMembershipPaymentCoveredMonth>
 
@@ -14,134 +12,66 @@ export type ConfirmationErrorKey = 'submit' | null
 
 export type PaymentFeedback = {
   kind: 'alreadyRecorded'
-  memberName: string
-  coveredMonthLabel: string
 } | null
 
-export type MembershipPaymentConfirmationMember = {
-  attendanceCount: number
-  ageLabel: string
-  coveredMonthLabel: string
-  memberName: string
-}
-
-type ConfirmPaymentTarget = MembershipPaymentStatusMemberListItem & {
-  attendanceCount: number
+export type RegisterMembershipPaymentCommand = {
   coveredMonth: CoveredMonth
-  coveredMonthLabel: string
+  memberId: string
 }
 
-type RegisterMembershipPaymentOptions = {
-  activeMonth: Ref<Date>
-  formatters: MembershipPaymentFormatters
-}
-
-export function useRegisterMembershipPayment({
-  activeMonth,
-  formatters
-}: RegisterMembershipPaymentOptions) {
+export function useRegisterMembershipPayment() {
   const { useCases } = useAppServices()
+  const errorKey = ref<ConfirmationErrorKey>(null)
+  const isPending = ref(false)
   const paymentFeedback = ref<PaymentFeedback>(null)
-  const selectedMemberForConfirmation = ref<ConfirmPaymentTarget | null>(null)
-  const confirmationErrorKey = ref<ConfirmationErrorKey>(null)
-  const isConfirmingPayment = ref(false)
 
-  const confirmationMember =
-    computed<MembershipPaymentConfirmationMember | null>(() => {
-      const selectedMember = selectedMemberForConfirmation.value
-
-      if (selectedMember === null) {
-        return null
-      }
-
-      return {
-        attendanceCount: selectedMember.attendanceCount,
-        ageLabel: formatters.formatAge(selectedMember),
-        coveredMonthLabel: selectedMember.coveredMonthLabel,
-        memberName: formatters.formatMemberName(selectedMember)
-      }
-    })
-
-  function clearConfirmationDialog() {
-    selectedMemberForConfirmation.value = null
-    confirmationErrorKey.value = null
+  function dismissError() {
+    errorKey.value = null
   }
 
-  function closeConfirmationDialog() {
-    if (isConfirmingPayment.value) {
-      return
-    }
-
-    clearConfirmationDialog()
-  }
-
-  function dismissPaymentFeedback() {
+  function dismissFeedback() {
     paymentFeedback.value = null
   }
 
-  function dismissConfirmationError() {
-    confirmationErrorKey.value = null
-  }
+  async function execute(
+    command: RegisterMembershipPaymentCommand
+  ): Promise<boolean> {
+    if (isPending.value) {
+      return false
+    }
 
-  function openPaymentConfirmation(
-    member: MembershipPaymentStatusMemberListItem,
-    attendanceCount = 0
-  ) {
+    isPending.value = true
+    errorKey.value = null
     paymentFeedback.value = null
-    confirmationErrorKey.value = null
-
-    // What: snapshot the selected member with the visible month. Why: the dialog should confirm the exact application-layer write command even if the screen state changes afterward.
-    selectedMemberForConfirmation.value = {
-      ...member,
-      attendanceCount,
-      coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
-      coveredMonthLabel: formatters.formatMonth(activeMonth.value)
-    }
-  }
-
-  async function confirmPayment() {
-    const selectedMember = selectedMemberForConfirmation.value
-
-    if (!selectedMember) {
-      return
-    }
-
-    isConfirmingPayment.value = true
-    confirmationErrorKey.value = null
 
     try {
       await useCases.registerMembershipPayment.handle({
-        memberId: selectedMember.id,
-        coveredMonth: selectedMember.coveredMonth
+        memberId: command.memberId,
+        coveredMonth: command.coveredMonth
       })
 
-      clearConfirmationDialog()
+      return true
     } catch (error) {
       if (error instanceof MembershipPaymentAlreadyExistsError) {
         paymentFeedback.value = {
-          kind: 'alreadyRecorded',
-          memberName: formatters.formatMemberName(selectedMember),
-          coveredMonthLabel: selectedMember.coveredMonthLabel
+          kind: 'alreadyRecorded'
         }
-        clearConfirmationDialog()
-      } else {
-        confirmationErrorKey.value = 'submit'
+        return true
       }
+
+      errorKey.value = 'submit'
+      return false
     } finally {
-      isConfirmingPayment.value = false
+      isPending.value = false
     }
   }
 
   return {
-    confirmationErrorKey,
-    confirmationMember,
-    confirmPayment,
-    dismissConfirmationError,
-    dismissPaymentFeedback,
-    closeConfirmationDialog,
-    isConfirmingPayment,
-    openPaymentConfirmation,
-    paymentFeedback,
-    selectedMemberForConfirmation
+    dismissError,
+    dismissFeedback,
+    errorKey,
+    execute,
+    feedback: paymentFeedback,
+    isPending
   }
 }

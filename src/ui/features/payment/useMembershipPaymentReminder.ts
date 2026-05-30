@@ -1,6 +1,5 @@
-import { ref, type Ref } from 'vue'
+import { ref } from 'vue'
 
-import type { MembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
 import {
   MemberPhoneNumberMissingError,
@@ -10,6 +9,7 @@ import { MemberNotFoundError } from '@/write/domain/model/Member'
 import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
 
 type ReminderLocale = 'pl' | 'en'
+type CoveredMonth = ReturnType<typeof toMembershipPaymentCoveredMonth>
 
 export type ReminderErrorKey =
   | 'memberMissing'
@@ -18,66 +18,65 @@ export type ReminderErrorKey =
   | 'submit'
   | null
 
-type MembershipPaymentReminderOptions = {
-  activeMonth: Ref<Date>
-  locale: Ref<string>
+export type SendMembershipPaymentReminderCommand = {
+  coveredMonth: CoveredMonth
+  locale: string
+  memberId: string
 }
 
 function resolveReminderLocale(value: string): ReminderLocale {
   return value.toLowerCase().startsWith('pl') ? 'pl' : 'en'
 }
 
-export function useMembershipPaymentReminder({
-  activeMonth,
-  locale
-}: MembershipPaymentReminderOptions) {
+export function useMembershipPaymentReminder() {
   const { useCases } = useAppServices()
-  const reminderErrorKey = ref<ReminderErrorKey>(null)
-  const reminderInFlightMemberId = ref<string | null>(null)
+  const errorKey = ref<ReminderErrorKey>(null)
+  const isPending = ref(false)
 
-  function dismissReminderError() {
-    reminderErrorKey.value = null
+  function dismissError() {
+    errorKey.value = null
   }
 
-  function isSendingReminderForMember(memberId: string): boolean {
-    return reminderInFlightMemberId.value === memberId
-  }
-
-  async function sendReminder(member: MembershipPaymentStatusMemberListItem) {
-    if (isSendingReminderForMember(member.id)) {
-      return
+  async function execute(
+    command: SendMembershipPaymentReminderCommand
+  ): Promise<boolean> {
+    if (isPending.value) {
+      return false
     }
 
-    reminderErrorKey.value = null
-    reminderInFlightMemberId.value = member.id
+    errorKey.value = null
+    isPending.value = true
 
     try {
       // What: delegate SMS composition to the application use case. Why: the UI should not own sender identity or reminder-copy policy.
       await useCases.sendMembershipPaymentReminder.handle({
-        memberId: member.id,
-        coveredMonth: toMembershipPaymentCoveredMonth(activeMonth.value),
-        locale: resolveReminderLocale(locale.value)
+        memberId: command.memberId,
+        coveredMonth: command.coveredMonth,
+        locale: resolveReminderLocale(command.locale)
       })
+
+      return true
     } catch (error) {
       if (error instanceof MemberNotFoundError) {
-        reminderErrorKey.value = 'memberMissing'
+        errorKey.value = 'memberMissing'
       } else if (error instanceof MemberPhoneNumberMissingError) {
-        reminderErrorKey.value = 'phoneMissing'
+        errorKey.value = 'phoneMissing'
       } else if (error instanceof PaymentReminderSenderMissingError) {
-        reminderErrorKey.value = 'senderMissing'
+        errorKey.value = 'senderMissing'
       } else {
-        reminderErrorKey.value = 'submit'
+        errorKey.value = 'submit'
       }
+
+      return false
     } finally {
-      reminderInFlightMemberId.value = null
+      isPending.value = false
     }
   }
 
   return {
-    dismissReminderError,
-    isSendingReminderForMember,
-    reminderErrorKey,
-    reminderInFlightMemberId,
-    sendReminder
+    dismissError,
+    errorKey,
+    execute,
+    isPending
   }
 }

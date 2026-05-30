@@ -1,111 +1,52 @@
-import { computed, ref, type Ref } from 'vue'
+import { ref } from 'vue'
 
-import type { PaidMembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { useAppServices } from '@/ui/appServices'
 import { MembershipPaymentNotFoundError } from '@/write/domain/model/MembershipPayment'
-import type { MembershipPaymentFormatters } from './membershipPaymentFormatters'
 
 export type DeletionErrorKey = 'missing' | 'submit' | null
 
-export type MembershipPaymentDeleteConfirmationMember = {
-  ageLabel: string
-  coveredMonthLabel: string
-  memberName: string
+export type DeleteMembershipPaymentCommand = {
+  membershipPaymentId: string
 }
 
-type DeletePaymentTarget = PaidMembershipPaymentStatusMemberListItem & {
-  coveredMonthLabel: string
-}
-
-type DeleteMembershipPaymentOptions = {
-  activeMonth: Ref<Date>
-  formatters: MembershipPaymentFormatters
-}
-
-export function useDeleteMembershipPayment({
-  activeMonth,
-  formatters
-}: DeleteMembershipPaymentOptions) {
+export function useDeleteMembershipPayment() {
   const { useCases } = useAppServices()
-  const selectedMemberForDeletion = ref<DeletePaymentTarget | null>(null)
-  const deletionErrorKey = ref<DeletionErrorKey>(null)
-  const isDeletingPayment = ref(false)
+  const errorKey = ref<DeletionErrorKey>(null)
+  const isPending = ref(false)
 
-  const deletionMember =
-    computed<MembershipPaymentDeleteConfirmationMember | null>(() => {
-      const selectedMember = selectedMemberForDeletion.value
-
-      if (selectedMember === null) {
-        return null
-      }
-
-      return {
-        ageLabel: formatters.formatAge(selectedMember),
-        coveredMonthLabel: selectedMember.coveredMonthLabel,
-        memberName: formatters.formatMemberName(selectedMember)
-      }
-    })
-
-  function clearDeletionDialog() {
-    selectedMemberForDeletion.value = null
-    deletionErrorKey.value = null
+  function dismissError() {
+    errorKey.value = null
   }
 
-  function closeDeletionDialog() {
-    if (isDeletingPayment.value) {
-      return
+  async function execute(
+    command: DeleteMembershipPaymentCommand
+  ): Promise<boolean> {
+    if (isPending.value) {
+      return false
     }
 
-    clearDeletionDialog()
-  }
-
-  function dismissDeletionError() {
-    deletionErrorKey.value = null
-  }
-
-  function openPaymentDeletion(
-    member: PaidMembershipPaymentStatusMemberListItem
-  ) {
-    deletionErrorKey.value = null
-
-    selectedMemberForDeletion.value = {
-      ...member,
-      coveredMonthLabel: formatters.formatMonth(activeMonth.value)
-    }
-  }
-
-  async function deletePayment() {
-    const selectedMember = selectedMemberForDeletion.value
-
-    if (!selectedMember) {
-      return
-    }
-
-    isDeletingPayment.value = true
-    deletionErrorKey.value = null
+    isPending.value = true
+    errorKey.value = null
 
     try {
       await useCases.deleteMembershipPayment.handle({
-        membershipPaymentId: selectedMember.membershipPaymentId
+        membershipPaymentId: command.membershipPaymentId
       })
 
-      clearDeletionDialog()
+      return true
     } catch (error) {
-      deletionErrorKey.value =
+      errorKey.value =
         error instanceof MembershipPaymentNotFoundError ? 'missing' : 'submit'
+      return false
     } finally {
-      isDeletingPayment.value = false
+      isPending.value = false
     }
   }
 
   return {
-    deletePayment,
-    deletionErrorKey,
-    deletionMember,
-    dismissDeletionError,
-    closeDeletionDialog,
-    isDeletingPayment,
-    openPaymentDeletion,
-    selectedMemberForDeletion
+    dismissError,
+    errorKey,
+    execute,
+    isPending
   }
 }
