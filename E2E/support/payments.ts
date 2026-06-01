@@ -289,9 +289,15 @@ export async function expectPaidPaymentRow(
   page: Page,
   member: DemoPaymentMemberTarget
 ) {
-  await expect(page.getByText('Opłacili', { exact: true })).toBeVisible()
-  await expect(paymentMemberName(page, member)).toBeVisible()
-  await expect(page.getByText(/^opłacone$/i)).toBeVisible()
+  const paidSection = page.getByRole('region', { name: /^opłacili$/i })
+
+  await expect(paidSection).toBeVisible()
+  await expect(paymentMemberName(paidSection, member)).toBeVisible()
+  await expect(
+    paidSection.getByRole('button', {
+      name: new RegExp(`^usuń płatność: ${escapeRegExp(member.fullName)}$`, 'i')
+    })
+  ).toBeVisible()
 }
 
 export async function expectPaymentWritePersistedAsPaid(
@@ -389,7 +395,7 @@ export function currentDemoPaymentTargets(
 }
 
 export function paymentMemberName(
-  page: Page,
+  page: Page | Locator,
   member: DemoPaymentMemberTarget
 ): Locator {
   return page.getByText(new RegExp(`^${escapeRegExp(member.fullName)}$`, 'i'))

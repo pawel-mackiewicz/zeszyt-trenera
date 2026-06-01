@@ -8,7 +8,7 @@ const props = defineProps<{
 </script>
 
 <template>
-  <section class="payments-ledger-section">
+  <section class="payments-ledger-section" :aria-label="props.title">
     <div class="payments-ledger-section__header">
       <div class="payments-ledger-section__title" :class="props.titleClass">
         {{ props.title }}
