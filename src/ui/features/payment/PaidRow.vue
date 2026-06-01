@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { PaidMembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
-import AppIcon from '@/ui/components/AppIcon.vue'
 import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 
 import BasePaymentRow from './BasePaymentRow.vue'
@@ -38,10 +37,6 @@ function handleDelete() {
     <template #meta>{{ ageLabel }}</template>
     <template #aside>
       <div class="payments-paid-actions">
-        <span class="payments-paid-indicator">
-          <AppIcon name="check_circle" />
-          <span>{{ t('table.paid') }}</span>
-        </span>
         <DeleteIconButton
           :id="`payments-open-delete-${props.member.id}`"
           :aria-label="deleteActionLabel"
@@ -62,24 +57,6 @@ function handleDelete() {
   justify-self: end;
 }
 
-.payments-paid-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  justify-self: start;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--success);
-}
-
-.payments-paid-indicator :deep(.app-icon) {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
 @media (max-width: 500px) {
   .payments-paid-actions {
     justify-self: start;
@@ -92,17 +69,11 @@ function handleDelete() {
   "pl": {
     "actions": {
       "deletePaymentFor": "Usuń płatność: {memberName}"
-    },
-    "table": {
-      "paid": "Opłacone"
     }
   },
   "en": {
     "actions": {
       "deletePaymentFor": "Delete payment: {memberName}"
-    },
-    "table": {
-      "paid": "Paid"
     }
   }
 }
