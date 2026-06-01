@@ -2,110 +2,26 @@ import type {
   DemoAttendanceListSeed,
   DemoMemberSeed,
   DemoSeed
-} from '@/write/application/ports/DemoSeedFactoryPort'
-import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
+} from '@/write/application/ports/DemoSeedFactoryPort.ts'
+import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment.ts'
+import {
+  DEMO_MEMBER_PROFILES,
+  DEMO_PREVIOUS_MONTH_UNPAID_ABSENT_MEMBER_COUNT,
+  DEMO_UNPAID_ABSENT_MEMBER_COUNT,
+  MAX_PREVIOUS_MONTH_UNPAID_ATTENDED_MEMBER_COUNT,
+  MAX_UNPAID_ATTENDED_MEMBER_COUNT,
+  MIN_CURRENT_SESSION_SIZE,
+  MIN_PREVIOUS_SESSION_SIZE
+} from '@/write/infra/demo/demoSeedData.ts'
+import {
+  createMonthSessions,
+  createSeededRng,
+  resolveCurrentMonthSessions,
+  shuffle,
+  startOfMonth
+} from '@/write/infra/demo/demoSeedCalculations.ts'
 
 // Why: infra owns the concrete seeding algorithm, but the payload contract stays in the application layer to keep bootstrap orchestration dependency-safe.
-
-type DemoName = {
-  firstName: string
-  lastName: string
-}
-
-const DEMO_MEMBER_NAMES: DemoName[] = [
-  { firstName: 'Royce', lastName: 'Gracie' },
-  { firstName: 'Rickson', lastName: 'Gracie' },
-  { firstName: 'Roger', lastName: 'Gracie' },
-  { firstName: 'Marcelo', lastName: 'Garcia' },
-  { firstName: 'Gordon', lastName: 'Ryan' },
-  { firstName: 'Andre', lastName: 'Galvao' },
-  { firstName: 'Marcus', lastName: 'Almeida' },
-  { firstName: 'Romulo', lastName: 'Barral' },
-  { firstName: 'Rafael', lastName: 'Mendes' },
-  { firstName: 'Guilherme', lastName: 'Mendes' },
-  { firstName: 'Rubens', lastName: 'Cobrinha' },
-  { firstName: 'Rodolfo', lastName: 'Vieira' },
-  { firstName: 'Bernardo', lastName: 'Faria' },
-  { firstName: 'Leandro', lastName: 'Lo' },
-  { firstName: 'Tainan', lastName: 'Dalpra' },
-  { firstName: 'Mica', lastName: 'Galvao' },
-  { firstName: 'Demian', lastName: 'Maia' },
-  { firstName: 'Charles', lastName: 'Oliveira' },
-  { firstName: 'Anderson', lastName: 'Silva' },
-  { firstName: 'Jose', lastName: 'Aldo' },
-  { firstName: 'Amanda', lastName: 'Nunes' },
-  { firstName: 'Valentina', lastName: 'Shevchenko' },
-  { firstName: 'Zhang', lastName: 'Weili' },
-  { firstName: 'Joanna', lastName: 'Jedrzejczyk' },
-  { firstName: 'Islam', lastName: 'Makhachev' },
-  { firstName: 'Khabib', lastName: 'Nurmagomedov' },
-  { firstName: 'Jon', lastName: 'Jones' },
-  { firstName: 'Georges', lastName: 'St-Pierre' },
-  { firstName: 'Daniel', lastName: 'Cormier' },
-  { firstName: 'Kamaru', lastName: 'Usman' },
-  { firstName: 'Israel', lastName: 'Adesanya' },
-  { firstName: 'Alexander', lastName: 'Volkanovski' },
-  { firstName: 'Max', lastName: 'Holloway' },
-  { firstName: 'Conor', lastName: 'McGregor' },
-  { firstName: 'Dustin', lastName: 'Poirier' },
-  { firstName: 'Nate', lastName: 'Diaz' },
-  { firstName: 'Nick', lastName: 'Diaz' },
-  { firstName: 'Frankie', lastName: 'Edgar' },
-  { firstName: 'Ronda', lastName: 'Rousey' },
-  { firstName: 'Holly', lastName: 'Holm' },
-  { firstName: 'Cris', lastName: 'Cyborg' },
-  { firstName: 'Fedor', lastName: 'Emelianenko' },
-  { firstName: 'Mirko', lastName: 'Filipovic' },
-  { firstName: 'Fabricio', lastName: 'Werdum' },
-  { firstName: 'Antonio', lastName: 'Nogueira' },
-  { firstName: 'Junior', lastName: 'Dos Santos' },
-  { firstName: 'Cain', lastName: 'Velasquez' },
-  { firstName: 'Lyoto', lastName: 'Machida' },
-  { firstName: 'Bj', lastName: 'Penn' },
-  { firstName: 'Henry', lastName: 'Cejudo' },
-  // Why: make demo rosters feel closer to the app's Polish audience during onboarding, screenshots, and local demos.
-  { firstName: 'Mamed', lastName: 'Khalidov' },
-  { firstName: 'Mariusz', lastName: 'Pudzianowski' },
-  { firstName: 'Janek', lastName: 'Błachowicz' },
-  { firstName: 'Mateusz', lastName: 'Gamrot' },
-  { firstName: 'Karolina', lastName: 'Kowalkiewicz' },
-  { firstName: 'Damian', lastName: 'Janikowski' },
-  { firstName: 'Michał', lastName: 'Materla' },
-  { firstName: 'Łukasz', lastName: 'Jurkowski' },
-  { firstName: 'Artur', lastName: 'Szpilka' },
-  { firstName: 'Tomasz', lastName: 'Adamek' }
-]
-
-const DEMO_MEMBER_AGES = [
-  5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 20, 21, 22, 23, 24, 25, 26,
-  27, 28, 29, 30, 32, 34, 36, 38, 40, 42, 44, 46, 48, 50, 52, 54, 56, 58, 60,
-  61, 62, 63, 64, 65, 67, 69, 71, 73, 75, 19, 31, 33, 35, 37, 39, 41, 43, 45, 47
-] as const
-
-const MONTH_SESSION_TEMPLATE = [
-  { day: 1, hours: 8, minutes: 0 },
-  { day: 1, hours: 12, minutes: 0 },
-  { day: 2, hours: 18, minutes: 0 },
-  { day: 4, hours: 18, minutes: 0 },
-  { day: 6, hours: 18, minutes: 0 },
-  { day: 8, hours: 18, minutes: 0 },
-  { day: 10, hours: 18, minutes: 0 },
-  { day: 12, hours: 18, minutes: 0 },
-  { day: 14, hours: 18, minutes: 0 },
-  { day: 17, hours: 18, minutes: 0 },
-  { day: 19, hours: 18, minutes: 0 },
-  { day: 21, hours: 18, minutes: 0 },
-  { day: 24, hours: 18, minutes: 0 },
-  { day: 26, hours: 18, minutes: 0 },
-  { day: 28, hours: 18, minutes: 0 }
-] as const
-
-const DEMO_UNPAID_ABSENT_MEMBER_COUNT = 5
-const DEMO_PREVIOUS_MONTH_UNPAID_ABSENT_MEMBER_COUNT = 4
-const MAX_UNPAID_ATTENDED_MEMBER_COUNT = 3
-const MAX_PREVIOUS_MONTH_UNPAID_ATTENDED_MEMBER_COUNT = 2
-const MIN_CURRENT_SESSION_SIZE = 6
-const MIN_PREVIOUS_SESSION_SIZE = 8
 
 /**
  * Builds one deterministic demo dataset from runtime time.
@@ -198,8 +114,7 @@ export function createDemoSeed(now: Date): DemoSeed {
 }
 
 function createDemoMembers(now: Date): DemoMemberSeed[] {
-  return DEMO_MEMBER_NAMES.map((name, index) => {
-    const age = DEMO_MEMBER_AGES[index]
+  return DEMO_MEMBER_PROFILES.map(({ firstName, lastName, age }, index) => {
     const dateOfBirth = new Date(now.getFullYear() - age, 0, 1)
     const yearsInClub = Math.min(
       Math.max(1, (index % 9) + 1),
@@ -208,7 +123,8 @@ function createDemoMembers(now: Date): DemoMemberSeed[] {
     const joinedAt = new Date(now.getFullYear() - yearsInClub, 0, 15)
 
     return {
-      ...name,
+      firstName,
+      lastName,
       // What: synthesize birth dates from age buckets instead of real athlete biographies. Why: the demo needs a broad, filterable roster without implying any real-world personal data is stored locally.
       dateOfBirth,
       joinedAt,
@@ -456,43 +372,6 @@ function sampleDistinctSessionIndexes(
     .sort((left, right) => left - right)
 }
 
-function resolveCurrentMonthSessions(monthStart: Date, now: Date): Date[] {
-  const pastTemplateSessions = createMonthSessions(monthStart).filter(
-    (sessionStart) => sessionStart.getTime() <= now.getTime()
-  )
-
-  if (pastTemplateSessions.length > 0) {
-    return pastTemplateSessions
-  }
-
-  const fallbackSession = new Date(now)
-
-  fallbackSession.setMinutes(fallbackSession.getMinutes() - 15)
-
-  // What: fall back to one immediately-past session only when the month has not yet reached the first template slot. Why: demo mode should never show an empty current month on the first morning of a calendar page.
-  return [
-    snapDateToQuarterHourGrid(
-      fallbackSession.getTime() < monthStart.getTime()
-        ? monthStart
-        : fallbackSession
-    )
-  ]
-}
-
-function createMonthSessions(monthStart: Date): Date[] {
-  return MONTH_SESSION_TEMPLATE.map((templateEntry) =>
-    snapDateToQuarterHourGrid(
-      new Date(
-        monthStart.getFullYear(),
-        monthStart.getMonth(),
-        templateEntry.day,
-        templateEntry.hours,
-        templateEntry.minutes
-      )
-    )
-  )
-}
-
 function randomInteger(minimum: number, maximum: number, rng: () => number) {
   if (maximum <= minimum) {
     return minimum
@@ -501,62 +380,6 @@ function randomInteger(minimum: number, maximum: number, rng: () => number) {
   return Math.floor(rng() * (maximum - minimum + 1)) + minimum
 }
 
-function startOfMonth(value: Date): Date {
-  return new Date(value.getFullYear(), value.getMonth(), 1)
-}
-
 function addMonths(value: Date, offset: number): Date {
   return new Date(value.getFullYear(), value.getMonth() + offset, 1)
-}
-
-function snapDateToQuarterHourGrid(value: Date): Date {
-  const snappedValue = new Date(value)
-  const roundedMinutes = Math.round(snappedValue.getMinutes() / 15) * 15
-
-  snappedValue.setSeconds(0, 0)
-  snappedValue.setMinutes(roundedMinutes)
-
-  return snappedValue
-}
-
-function createSeededRng(seedValue: string) {
-  return mulberry32(hashString(seedValue))
-}
-
-function hashString(value: string): number {
-  let hash = 1779033703 ^ value.length
-
-  for (let index = 0; index < value.length; index += 1) {
-    hash = Math.imul(hash ^ value.charCodeAt(index), 3432918353)
-    hash = (hash << 13) | (hash >>> 19)
-  }
-
-  return hash >>> 0
-}
-
-function mulberry32(seed: number) {
-  let state = seed >>> 0
-
-  return () => {
-    state = (state + 0x6d2b79f5) >>> 0
-    let result = Math.imul(state ^ (state >>> 15), 1 | state)
-
-    result ^= result + Math.imul(result ^ (result >>> 7), 61 | result)
-
-    return ((result ^ (result >>> 14)) >>> 0) / 4294967296
-  }
-}
-
-function shuffle<T>(values: T[], rng: () => number): T[] {
-  const copy = [...values]
-
-  for (let index = copy.length - 1; index > 0; index -= 1) {
-    const randomIndex = Math.floor(rng() * (index + 1))
-    const currentValue = copy[index]
-
-    copy[index] = copy[randomIndex] as T
-    copy[randomIndex] = currentValue as T
-  }
-
-  return copy
 }

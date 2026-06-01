@@ -31,7 +31,7 @@ import {
   type TrainerSnapshot
 } from '@/write/domain/model/Trainer'
 import { createAppServices } from '@/appServices'
-import { createDemoSeed } from '@/write/infra/createDemoSeed'
+import { createDemoSeed } from '@/write/infra/demo/createDemoSeed.ts'
 import type { PersistedDomainEvent } from '@/write/infra'
 import { TrainerNotebookDb } from '@/db'
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import { createDemoSeed } from '@/write/infra/createDemoSeed'
-import { calculateAge } from '@/ui/utils/age'
+import { createDemoSeed } from '@/write/infra/demo/createDemoSeed.ts'
+import { calculateAge } from '@/ui/utils/age.ts'
 
 describe('createDemoSeed', () => {
   it('derives current and previous months from runtime now, not a hard-coded year', () => {

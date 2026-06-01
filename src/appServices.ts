@@ -41,7 +41,7 @@ import type { UpdateAttendanceListCommand } from '@/write/application/requests/U
 import type { UpdateMemberCommand } from '@/write/application/requests/UpdateMemberCommand'
 import type { TrainerNotebookDb } from '@/db'
 import { BrowserSmsComposer } from '@/write/infra/BrowserSmsComposer'
-import { DemoSeedFactory } from '@/write/infra/DemoSeedFactory'
+import { DemoSeedFactory } from '@/write/infra/demo/DemoSeedFactory.ts'
 import { DexieAttendanceListRepo } from '@/write/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/write/infra/db/DexieAppResetRepo'
 import { DexieDatabaseBackupExporter } from '@/write/infra/db/DexieDatabaseBackupExporter'

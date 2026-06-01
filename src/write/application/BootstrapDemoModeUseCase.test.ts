@@ -18,7 +18,7 @@ import type { AttendanceListRepoPort } from '@/write/application/ports/Attendanc
 import type { ClockPort } from '@/write/application/ports/ClockPort'
 import type { ClubRepoPort } from '@/write/application/ports/ClubRepoPort'
 import type { IdGeneratorPort } from '@/write/application/ports/IdGeneratorPort'
-import { createDemoSeed } from '@/write/infra/createDemoSeed'
+import { createDemoSeed } from '@/write/infra/demo/createDemoSeed.ts'
 
 describe('BootstrapDemoModeUseCase', () => {
   let unitOfWork: UnitOfWork
