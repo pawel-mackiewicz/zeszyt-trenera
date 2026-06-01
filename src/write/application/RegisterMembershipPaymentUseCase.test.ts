@@ -70,7 +70,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 12000,
+        amountMinor: 120_00,
         currency: 'PLN'
       }
     }
@@ -93,7 +93,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
       coveredMonth: '2026-03'
     })
     expect(savedPayment.chargedAmount?.toSnapshot()).toEqual({
-      amountMinor: 12000,
+      amountMinor: 120_00,
       currency: 'PLN'
     })
     // The fixed ID proves the workflow consumes the injected generator instead of delegating infrastructure concerns into the aggregate.
@@ -118,7 +118,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
         memberId: 'missing-member',
         coveredMonth: '2026-03',
         chargedAmount: {
-          amountMinor: 12000,
+          amountMinor: 120_00,
           currency: 'PLN'
         }
       })
@@ -141,7 +141,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
         memberId: 'member-1',
         coveredMonth: '2026-03',
         chargedAmount: {
-          amountMinor: 12000,
+          amountMinor: 120_00,
           currency: 'PLN'
         }
       })
@@ -167,7 +167,7 @@ describe('RegisterMembershipPaymentUseCase', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 12000,
+        amountMinor: 120_00,
         currency: 'PLN'
       }
     }

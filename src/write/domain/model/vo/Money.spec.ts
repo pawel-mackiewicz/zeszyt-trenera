@@ -9,12 +9,12 @@ import {
 describe('Money', () => {
   it('creates money with a non-negative minor-unit amount and currency', () => {
     const money = Money.create({
-      amountMinor: 16_000,
+      amountMinor: 160_00,
       currency: 'PLN'
     })
 
     expect(money.toSnapshot()).toEqual({
-      amountMinor: 16_000,
+      amountMinor: 160_00,
       currency: 'PLN'
     })
   })
@@ -31,7 +31,7 @@ describe('Money', () => {
   it('returns a string representation', () => {
     expect(
       Money.create({
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: 'PLN'
       }).toString()
     ).toBe('160,00 PLN')
@@ -56,7 +56,7 @@ describe('Money', () => {
   it('rejects empty currency', () => {
     expect(() =>
       Money.create({
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: ' '
       })
     ).toThrow(InvalidMoneyCurrencyError)

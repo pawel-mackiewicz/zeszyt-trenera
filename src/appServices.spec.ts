@@ -151,7 +151,7 @@ describe('appServices', () => {
       memberId: persistedMember.id,
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: 'PLN'
       }
     })
@@ -484,7 +484,7 @@ describe('appServices', () => {
       memberId: amanda.id,
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: 'PLN'
       }
     })
@@ -931,7 +931,7 @@ describe('appServices', () => {
       memberId: persistedMember.id,
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: 'PLN'
       }
     })
@@ -951,7 +951,7 @@ describe('appServices', () => {
         memberId: persistedPayment.memberId,
         coveredMonth: persistedPayment.coveredMonth,
         chargedAmount: {
-          amountMinor: 16_000,
+          amountMinor: 160_00,
           currency: 'PLN'
         },
         createdAt: persistedPayment.createdAt
@@ -975,7 +975,7 @@ describe('appServices', () => {
       memberId: persistedMember.id,
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 16_000,
+        amountMinor: 160_00,
         currency: 'PLN'
       }
     })
@@ -985,7 +985,7 @@ describe('appServices', () => {
         memberId: persistedMember.id,
         coveredMonth: '2026-03',
         chargedAmount: {
-          amountMinor: 16_000,
+          amountMinor: 160_00,
           currency: 'PLN'
         }
       })
@@ -1007,7 +1007,7 @@ describe('appServices', () => {
         memberId: 'missing-member',
         coveredMonth: '2026-03',
         chargedAmount: {
-          amountMinor: 16_000,
+          amountMinor: 160_00,
           currency: 'PLN'
         }
       })

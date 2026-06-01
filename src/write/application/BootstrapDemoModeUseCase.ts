@@ -32,7 +32,7 @@ import { Money } from '@/write/domain/model/vo/Money'
 import { PhoneNumber } from '@/write/domain/model/vo/PhoneNumber'
 
 const DEMO_MEMBERSHIP_PAYMENT_AMOUNT = Money.create({
-  amountMinor: 16_000,
+  amountMinor: 160_00,
   currency: 'PLN'
 })
 

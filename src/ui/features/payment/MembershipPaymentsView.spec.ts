@@ -137,7 +137,7 @@ describe('MembershipPaymentsView', () => {
     currentSummaryResult = {
       paidMembersCount: 1,
       totalPaidAmount: {
-        amountMinor: 17_550,
+        amountMinor: 175_50,
         currency: 'PLN'
       },
       unpaidMembersCount: 3
@@ -454,7 +454,7 @@ describe('MembershipPaymentsView', () => {
       memberId: 'absent-1',
       coveredMonth: '2026-10',
       chargedAmount: {
-        amountMinor: 17_550,
+        amountMinor: 175_50,
         currency: 'PLN'
       }
     })

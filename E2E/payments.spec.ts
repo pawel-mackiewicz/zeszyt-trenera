@@ -97,7 +97,7 @@ test('updates the monthly statistics after a confirmed payment and reload', asyn
     initialSummary.unpaidMembersCount - 1
   )
   expect(updatedSummary.totalPaidAmountMinor).toBe(
-    initialSummary.totalPaidAmountMinor + 16_000
+    initialSummary.totalPaidAmountMinor + 160_00
   )
   expect(updatedSummary.completionPercent).toBe(
     Math.round(

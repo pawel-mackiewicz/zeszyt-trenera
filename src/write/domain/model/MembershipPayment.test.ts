@@ -19,7 +19,7 @@ describe('MembershipPayment Model', () => {
         memberId: 'member-1',
         coveredMonth: '2026-03',
         chargedAmount: Money.create({
-          amountMinor: 12000,
+          amountMinor: 120_00,
           currency: 'PLN'
         })
       },
@@ -32,7 +32,7 @@ describe('MembershipPayment Model', () => {
     expect(payment.memberId).toBe('member-1')
     expect(payment.coveredMonth).toBe('2026-03')
     expect(payment.chargedAmount?.toSnapshot()).toEqual({
-      amountMinor: 12000,
+      amountMinor: 120_00,
       currency: 'PLN'
     })
 
@@ -50,7 +50,7 @@ describe('MembershipPayment Model', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 12000,
+        amountMinor: 120_00,
         currency: 'PLN'
       },
       createdAt: payment.createdAt
@@ -69,7 +69,7 @@ describe('MembershipPayment Model', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 9000,
+        amountMinor: 90_00,
         currency: 'PLN'
       },
       createdAt: new Date('2026-03-20T00:00:00Z')
@@ -81,7 +81,7 @@ describe('MembershipPayment Model', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: Money.create({
-        amountMinor: 9000,
+        amountMinor: 90_00,
         currency: 'PLN'
       }),
       createdAt: new Date('2026-03-20T00:00:00Z')
@@ -91,7 +91,7 @@ describe('MembershipPayment Model', () => {
       memberId: 'member-1',
       coveredMonth: '2026-03',
       chargedAmount: {
-        amountMinor: 9000,
+        amountMinor: 90_00,
         currency: 'PLN'
       },
       createdAt: new Date('2026-03-20T00:00:00Z')
@@ -150,7 +150,7 @@ describe('MembershipPayment Model', () => {
           memberId: 'member-1',
           coveredMonth: '2026-3',
           chargedAmount: Money.create({
-            amountMinor: 12000,
+            amountMinor: 120_00,
             currency: 'PLN'
           })
         },
@@ -164,7 +164,7 @@ describe('MembershipPayment Model', () => {
           memberId: 'member-1',
           coveredMonth: '2026-13',
           chargedAmount: Money.create({
-            amountMinor: 12000,
+            amountMinor: 120_00,
             currency: 'PLN'
           })
         },
