@@ -14,7 +14,9 @@ import {
   expectUnpaidAttendedPaymentRow,
   filterPaymentsByMember,
   openDemoPayments,
+  openMonthlyPaymentSummary,
   openPaymentConfirmation,
+  readMonthlyPaymentSummary,
   openPaymentDeletion
 } from './support/payments'
 
@@ -62,6 +64,46 @@ test('moves a confirmed payment to paid members', async ({ page }) => {
   await confirmPayment(page)
   await expectPaidPaymentRow(page, absent)
   await expectPaymentWritePersistedAsPaid(page, absent)
+})
+
+test('updates the monthly statistics after a confirmed payment and reload', async ({
+  page
+}) => {
+  const { absent } = currentDemoPaymentTargets()
+
+  await openDemoPayments(page)
+  await openMonthlyPaymentSummary(page)
+  const initialSummary = await readMonthlyPaymentSummary(page)
+
+  if (initialSummary.totalPaidAmountMinor === null) {
+    throw new Error('Expected the initial monthly payment total to be present')
+  }
+
+  const initialTotalMemberCount =
+    initialSummary.paidMembersCount + initialSummary.unpaidMembersCount
+
+  await filterPaymentsByMember(page, absent)
+  await openPaymentConfirmation(page)
+  await confirmPayment(page)
+  await expectPaymentWritePersistedAsPaid(page, absent)
+
+  await openMonthlyPaymentSummary(page)
+  const updatedSummary = await readMonthlyPaymentSummary(page)
+
+  expect(updatedSummary.paidMembersCount).toBe(
+    initialSummary.paidMembersCount + 1
+  )
+  expect(updatedSummary.unpaidMembersCount).toBe(
+    initialSummary.unpaidMembersCount - 1
+  )
+  expect(updatedSummary.totalPaidAmountMinor).toBe(
+    initialSummary.totalPaidAmountMinor + 16_000
+  )
+  expect(updatedSummary.completionPercent).toBe(
+    Math.round(
+      ((initialSummary.paidMembersCount + 1) / initialTotalMemberCount) * 100
+    )
+  )
 })
 
 test('moves a deleted payment back to unpaid members', async ({ page }) => {

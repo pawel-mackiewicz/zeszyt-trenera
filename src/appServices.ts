@@ -84,6 +84,11 @@ import {
   type ObserveMembershipPaymentStatusByMonthQueryInput
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import {
+  ObserveMembershipPaymentSummaryByMonthQuery,
+  type MembershipPaymentSummaryByMonthResult,
+  type ObserveMembershipPaymentSummaryByMonthQueryInput
+} from '@/read/ObserveMembershipPaymentSummaryByMonthQuery'
+import {
   ObserveSetupStatusQuery,
   type SetupStatus
 } from '@/read/ObserveSetupStatusQuery'
@@ -131,6 +136,11 @@ export type AppQueries = {
     handle(
       input: ObserveMembershipPaymentStatusByMonthQueryInput
     ): Observable<MembershipPaymentStatusByMonthResult>
+  }
+  readonly observeMembershipPaymentSummaryByMonth: {
+    handle(
+      input: ObserveMembershipPaymentSummaryByMonthQueryInput
+    ): Observable<MembershipPaymentSummaryByMonthResult>
   }
   readonly observeSetupStatus: {
     handle(): Observable<SetupStatus>
@@ -287,6 +297,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveObserveMembershipPaymentStatusByMonth = lazy(
     () => new ObserveMembershipPaymentStatusByMonthQuery(database)
   )
+  const resolveObserveMembershipPaymentSummaryByMonth = lazy(
+    () => new ObserveMembershipPaymentSummaryByMonthQuery(database)
+  )
   const resolveObserveSetupStatus = lazy(
     () => new ObserveSetupStatusQuery(database)
   )
@@ -421,6 +434,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get observeMembershipPaymentStatusByMonth() {
       return resolveObserveMembershipPaymentStatusByMonth()
+    },
+    get observeMembershipPaymentSummaryByMonth() {
+      return resolveObserveMembershipPaymentSummaryByMonth()
     },
     get observeSetupStatus() {
       return resolveObserveSetupStatus()

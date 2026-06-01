@@ -79,6 +79,9 @@ describe('appServices', () => {
     expect(services.queries.observeMembershipPaymentStatusByMonth).toBe(
       services.queries.observeMembershipPaymentStatusByMonth
     )
+    expect(services.queries.observeMembershipPaymentSummaryByMonth).toBe(
+      services.queries.observeMembershipPaymentSummaryByMonth
+    )
     expect(services.queries.observeSetupStatus).toBe(
       services.queries.observeSetupStatus
     )

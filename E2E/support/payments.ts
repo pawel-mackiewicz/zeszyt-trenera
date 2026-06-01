@@ -28,6 +28,46 @@ export async function openDemoPayments(page: Page) {
   await expect(paymentsHeading(page)).toBeVisible()
 }
 
+export type MonthlyPaymentSummarySnapshot = {
+  completionPercent: number
+  paidMembersCount: number
+  totalPaidAmountMinor: number | null
+  unpaidMembersCount: number
+}
+
+export async function openMonthlyPaymentSummary(page: Page) {
+  const summaryTrigger = page.getByRole('button', {
+    name: /^statystyki miesiąca$/i
+  })
+
+  await scrollActionIntoSafeView(summaryTrigger)
+  await summaryTrigger.click()
+  await expect(summaryTrigger).toHaveAttribute('aria-expanded', 'true')
+}
+
+export async function readMonthlyPaymentSummary(
+  page: Page
+): Promise<MonthlyPaymentSummarySnapshot> {
+  const summary = page.getByRole('region', { name: /^statystyki miesiąca$/i })
+
+  await expect(summary).toBeVisible()
+
+  const [paidMembersCount, unpaidMembersCount, totalPaidAmount, completion] =
+    await Promise.all([
+      readSummaryValue(summary.getByText(/^opłacili$/i)),
+      readSummaryValue(summary.getByText(/^do rozliczenia$/i)),
+      readSummaryValue(summary.getByText(/^wpłacono$/i)),
+      readSummaryValue(summary.getByText(/^pokrycie$/i))
+    ])
+
+  return {
+    completionPercent: parseSummaryPercent(completion),
+    paidMembersCount: parseSummaryNumber(paidMembersCount),
+    totalPaidAmountMinor: parseSummaryAmount(totalPaidAmount),
+    unpaidMembersCount: parseSummaryNumber(unpaidMembersCount)
+  }
+}
+
 export async function reloadPaymentsAfterLocalWrites(page: Page) {
   // Why: payment confirmation is only proven when the monthly ledger reloads from local storage after Vue loses transient state.
   await page.reload()
@@ -292,4 +332,55 @@ async function scrollActionIntoSafeView(locator: Locator) {
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+async function readSummaryValue(label: Locator) {
+  return label.evaluate((node) => {
+    const value = node.nextElementSibling?.textContent?.trim()
+
+    if (value === undefined || value === null) {
+      throw new Error('Missing summary value')
+    }
+
+    return value
+  })
+}
+
+function parseSummaryNumber(value: string) {
+  const parsed = Number.parseInt(value, 10)
+
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Unable to parse summary count from: ${value}`)
+  }
+
+  return parsed
+}
+
+function parseSummaryPercent(value: string) {
+  const parsed = Number.parseInt(value.replace('%', ''), 10)
+
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Unable to parse summary percent from: ${value}`)
+  }
+
+  return parsed
+}
+
+function parseSummaryAmount(value: string) {
+  if (value === 'Brak wpłat') {
+    return null
+  }
+
+  const normalized = value
+    .replace(/\u00a0/g, ' ')
+    .replace(/[^\d,.-]/g, '')
+    .replace(',', '.')
+
+  const parsed = Number.parseFloat(normalized)
+
+  if (Number.isNaN(parsed)) {
+    throw new Error(`Unable to parse summary amount from: ${value}`)
+  }
+
+  return Math.round(parsed * 100)
 }

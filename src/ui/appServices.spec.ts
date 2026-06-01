@@ -42,6 +42,9 @@ describe('uiAppServices', () => {
         observeMembershipPaymentStatusByMonth: {
           handle: observeHandle
         },
+        observeMembershipPaymentSummaryByMonth: {
+          handle: observeHandle
+        },
         observeSetupStatus: {
           handle: observeHandle
         }

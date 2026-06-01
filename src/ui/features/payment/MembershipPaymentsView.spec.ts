@@ -37,13 +37,19 @@ type MembershipPaymentsResult = {
   }>
 }
 
-function createObservable(
-  result: MembershipPaymentsResult,
-  unsubscribeSpies: Mock[]
-) {
+type MembershipPaymentSummaryResult = {
+  paidMembersCount: number
+  totalPaidAmount: {
+    amountMinor: number
+    currency: string
+  } | null
+  unpaidMembersCount: number
+}
+
+function createObservable<T>(result: T, unsubscribeSpies: Mock[]) {
   return {
     subscribe(observer: {
-      next: (value: MembershipPaymentsResult) => void
+      next: (value: T) => void
       error?: (error: unknown) => void
     }) {
       observer.next(result)
@@ -58,10 +64,10 @@ function createObservable(
   }
 }
 
-function createErrorObservable(error: unknown, unsubscribeSpies: Mock[]) {
+function createErrorObservable<T>(error: unknown, unsubscribeSpies: Mock[]) {
   return {
     subscribe(observer: {
-      next: (value: MembershipPaymentsResult) => void
+      next: (value: T) => void
       error?: (error: unknown) => void
     }) {
       observer.error?.(error)
@@ -78,11 +84,13 @@ function createErrorObservable(error: unknown, unsubscribeSpies: Mock[]) {
 
 describe('MembershipPaymentsView', () => {
   let mockObserveMembershipPaymentStatusByMonthHandle: Mock
+  let mockObserveMembershipPaymentSummaryByMonthHandle: Mock
   let mockRegisterMembershipPaymentHandle: Mock
   let mockDeleteMembershipPaymentHandle: Mock
   let mockSendMembershipPaymentReminderHandle: Mock
   let subscriptionUnsubscribeSpies: Mock[]
   let currentResult: MembershipPaymentsResult
+  let currentSummaryResult: MembershipPaymentSummaryResult
 
   beforeEach(() => {
     vi.useFakeTimers()
@@ -126,9 +134,20 @@ describe('MembershipPaymentsView', () => {
         }
       ]
     }
+    currentSummaryResult = {
+      paidMembersCount: 1,
+      totalPaidAmount: {
+        amountMinor: 17_550,
+        currency: 'PLN'
+      },
+      unpaidMembersCount: 3
+    }
 
     mockObserveMembershipPaymentStatusByMonthHandle = vi.fn(() =>
       createObservable(currentResult, subscriptionUnsubscribeSpies)
+    )
+    mockObserveMembershipPaymentSummaryByMonthHandle = vi.fn(() =>
+      createObservable(currentSummaryResult, subscriptionUnsubscribeSpies)
     )
     mockRegisterMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
     mockDeleteMembershipPaymentHandle = vi.fn().mockResolvedValue(undefined)
@@ -144,6 +163,9 @@ describe('MembershipPaymentsView', () => {
         },
         observeMembershipPaymentStatusByMonth: {
           handle: mockObserveMembershipPaymentStatusByMonthHandle
+        },
+        observeMembershipPaymentSummaryByMonth: {
+          handle: mockObserveMembershipPaymentSummaryByMonthHandle
         }
       },
       useCases: {
@@ -178,6 +200,17 @@ describe('MembershipPaymentsView', () => {
 
     expect(
       mockObserveMembershipPaymentStatusByMonthHandle
+    ).toHaveBeenCalledWith({
+      month: new Date(2026, 9, 1)
+    })
+  })
+
+  it('loads the current month summary through the shared payments summary query', async () => {
+    mountView()
+    await flushPromises()
+
+    expect(
+      mockObserveMembershipPaymentSummaryByMonthHandle
     ).toHaveBeenCalledWith({
       month: new Date(2026, 9, 1)
     })
@@ -219,6 +252,30 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Georges St-Pierre')
     expect(wrapper.text()).toContain('Opłacili')
     expect(wrapper.text()).toContain('Amanda Nunes')
+  })
+
+  it('renders the expandable monthly payment summary above filters', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.html().indexOf('payment-summary')).toBeLessThan(
+      wrapper.html().indexOf('payments-search')
+    )
+    expect(wrapper.get('.payment-summary__trigger').text()).toContain(
+      'Statystyki miesiąca'
+    )
+    expect(wrapper.get('.payment-summary__trigger').text()).not.toContain(
+      '1/4 opłacone'
+    )
+    expect(wrapper.get('.payment-summary__trigger').text()).not.toContain(
+      '175,50'
+    )
+
+    await wrapper.get('.payment-summary__trigger').trigger('click')
+
+    expect(wrapper.text()).toContain('Wpłacono')
+    expect(wrapper.text()).toContain('Pokrycie')
+    expect(wrapper.text()).toContain('25%')
   })
 
   it('renders remind actions and disables reminder for members without a phone number', async () => {
@@ -349,7 +406,9 @@ describe('MembershipPaymentsView', () => {
 
     wrapper.unmount()
 
+    expect(subscriptionUnsubscribeSpies).toHaveLength(2)
     expect(subscriptionUnsubscribeSpies[0]).toHaveBeenCalledTimes(1)
+    expect(subscriptionUnsubscribeSpies[1]).toHaveBeenCalledTimes(1)
   })
 
   it('opens a confirmation dialog with the selected member and covered month', async () => {

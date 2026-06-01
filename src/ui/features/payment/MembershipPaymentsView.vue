@@ -17,6 +17,7 @@ import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
 // What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
 import MembershipPaymentConfirmationModal from './MembershipPaymentConfirmationModal.vue'
 import MembershipPaymentDeleteConfirmationModal from './MembershipPaymentDeleteConfirmationModal.vue'
+import MembershipPaymentSummarySection from './MembershipPaymentSummarySection.vue'
 import PaidSection from './PaidSection.vue'
 import UnpaidAbsentSection from './UnpaidAbsentSection.vue'
 import UnpaidAttendedSection from './UnpaidAttendedSection.vue'
@@ -26,6 +27,7 @@ import {
 } from './membershipPaymentActions'
 import { createMembershipPaymentFormatters } from './membershipPaymentFormatters'
 import { useMonthlyPaymentLedger } from './useMonthlyPaymentLedger'
+import { useMonthlyPaymentSummary } from './useMonthlyPaymentSummary'
 import { useDeleteMembershipPayment } from './useDeleteMembershipPayment'
 import { useMembershipPaymentReminder } from './useMembershipPaymentReminder'
 import { useRegisterMembershipPayment } from './useRegisterMembershipPayment'
@@ -88,6 +90,15 @@ const {
   maxAgeFilter,
   minAgeFilter,
   searchQuery
+})
+
+const {
+  isLoading: isSummaryLoading,
+  loadFailed: summaryLoadFailed,
+  retryLoading: retrySummaryLoading,
+  summary: paymentSummary
+} = useMonthlyPaymentSummary({
+  activeMonth
 })
 
 const {
@@ -363,7 +374,15 @@ function handleMonthChange(month: Date) {
       @dismiss="dismissReminderError"
     />
 
-    <!-- What: keep filters directly above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance instead of splitting search into a separate hero block. -->
+    <MembershipPaymentSummarySection
+      class="mb-4"
+      :is-loading="isSummaryLoading"
+      :load-failed="summaryLoadFailed"
+      :summary="paymentSummary"
+      @retry="retrySummaryLoading"
+    />
+
+    <!-- What: keep filters directly below the summary and above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance while the monthly totals remain visible before narrowing the list. -->
     <section class="mb-4 pb-2">
       <div class="flex flex-col gap-2">
         <AgeRangeFilter
