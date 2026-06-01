@@ -6,6 +6,7 @@ import {
   MembershipPaymentRecordedDomainEvent,
   toMembershipPaymentCoveredMonth
 } from '@/write/domain/model/MembershipPayment'
+import { Money } from '@/write/domain/model/vo/Money'
 
 describe('MembershipPayment Model', () => {
   it('records a membership payment with all required properties', () => {
@@ -16,7 +17,11 @@ describe('MembershipPayment Model', () => {
     const [payment, event] = MembershipPayment.record(
       {
         memberId: 'member-1',
-        coveredMonth: '2026-03'
+        coveredMonth: '2026-03',
+        chargedAmount: Money.create({
+          amountMinor: 12000,
+          currency: 'PLN'
+        })
       },
       id
     )
@@ -26,6 +31,10 @@ describe('MembershipPayment Model', () => {
     expect(payment.id).toBe(id)
     expect(payment.memberId).toBe('member-1')
     expect(payment.coveredMonth).toBe('2026-03')
+    expect(payment.chargedAmount?.toSnapshot()).toEqual({
+      amountMinor: 12000,
+      currency: 'PLN'
+    })
 
     expect(payment.createdAt).toBeDefined()
     expect(payment.createdAt).toBeInstanceOf(Date)
@@ -40,6 +49,10 @@ describe('MembershipPayment Model', () => {
       id,
       memberId: 'member-1',
       coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 12000,
+        currency: 'PLN'
+      },
       createdAt: payment.createdAt
     })
 
@@ -55,6 +68,10 @@ describe('MembershipPayment Model', () => {
       id: 'payment-1',
       memberId: 'member-1',
       coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 9000,
+        currency: 'PLN'
+      },
       createdAt: new Date('2026-03-20T00:00:00Z')
     })
 
@@ -63,12 +80,38 @@ describe('MembershipPayment Model', () => {
       id: 'payment-1',
       memberId: 'member-1',
       coveredMonth: '2026-03',
+      chargedAmount: Money.create({
+        amountMinor: 9000,
+        currency: 'PLN'
+      }),
       createdAt: new Date('2026-03-20T00:00:00Z')
     })
     expect(payment.toSnapshot()).toEqual({
       id: 'payment-1',
       memberId: 'member-1',
       coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 9000,
+        currency: 'PLN'
+      },
+      createdAt: new Date('2026-03-20T00:00:00Z')
+    })
+  })
+
+  it('restores legacy persisted membership payments without charged amount as null', () => {
+    const payment = MembershipPayment.restore({
+      id: 'payment-1',
+      memberId: 'member-1',
+      coveredMonth: '2026-03',
+      createdAt: new Date('2026-03-20T00:00:00Z')
+    })
+
+    expect(payment.chargedAmount).toBeNull()
+    expect(payment.toSnapshot()).toEqual({
+      id: 'payment-1',
+      memberId: 'member-1',
+      coveredMonth: '2026-03',
+      chargedAmount: null,
       createdAt: new Date('2026-03-20T00:00:00Z')
     })
   })
@@ -79,6 +122,7 @@ describe('MembershipPayment Model', () => {
       id: 'payment-1',
       memberId: 'member-1',
       coveredMonth: '2026-03',
+      chargedAmount: null,
       createdAt: originalCreatedAt
     })
 
@@ -104,7 +148,11 @@ describe('MembershipPayment Model', () => {
       MembershipPayment.record(
         {
           memberId: 'member-1',
-          coveredMonth: '2026-3'
+          coveredMonth: '2026-3',
+          chargedAmount: Money.create({
+            amountMinor: 12000,
+            currency: 'PLN'
+          })
         },
         'payment-1'
       )
@@ -114,7 +162,11 @@ describe('MembershipPayment Model', () => {
       MembershipPayment.record(
         {
           memberId: 'member-1',
-          coveredMonth: '2026-13'
+          coveredMonth: '2026-13',
+          chargedAmount: Money.create({
+            amountMinor: 12000,
+            currency: 'PLN'
+          })
         },
         'payment-1'
       )
@@ -127,6 +179,7 @@ describe('MembershipPayment Model', () => {
         id: 'payment-1',
         memberId: 'member-1',
         coveredMonth: '03-2026',
+        chargedAmount: null,
         createdAt: new Date('2026-03-20T00:00:00Z')
       })
     ).toThrow(InvalidMembershipPaymentCoveredMonthError)
@@ -136,6 +189,7 @@ describe('MembershipPayment Model', () => {
         id: 'payment-1',
         memberId: 'member-1',
         coveredMonth: '2026/03',
+        chargedAmount: null,
         createdAt: new Date('2026-03-20T00:00:00Z')
       })
     ).toThrow(InvalidMembershipPaymentCoveredMonthError)

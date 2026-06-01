@@ -10,6 +10,7 @@ import {
   MembershipPaymentAlreadyExistsError
 } from '@/write/domain/model/MembershipPayment'
 import { MemberNotFoundError } from '@/write/domain/model/Member'
+import { Money } from '@/write/domain/model/vo/Money'
 
 export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembershipPaymentCommand> {
   constructor(
@@ -58,7 +59,8 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
     return MembershipPayment.record(
       {
         memberId: dto.memberId,
-        coveredMonth: dto.coveredMonth
+        coveredMonth: dto.coveredMonth,
+        chargedAmount: Money.create(dto.chargedAmount)
       },
       this.idGenerator.generate()
     )

@@ -1,4 +1,4 @@
-import { test } from 'playwright/test'
+import { expect, test } from 'playwright/test'
 
 import {
   confirmPayment,
@@ -32,6 +32,9 @@ test('shows attendance context in the mark-as-paid modal for an attended unpaid 
     member: attended,
     monthLabel
   })
+  await expect(
+    page.getByTestId('payment-confirmation-charged-amount')
+  ).toBeVisible()
 })
 
 test('hides attendance context in the mark-as-paid modal for an absent unpaid member', async ({

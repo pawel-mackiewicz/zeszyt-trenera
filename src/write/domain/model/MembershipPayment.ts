@@ -1,5 +1,6 @@
 import { DomainEvent } from '@/write/domain/events/DomainEvent'
 import { copyDate } from './DateUtils'
+import { Money, type MoneySnapshot } from './vo/Money'
 
 // Offline filters and future Dexie indexes need one timezone-free month key, so the domain only accepts already-canonical YYYY-MM values instead of date-like inputs.
 const assertCoveredMonth = (value: string): string => {
@@ -13,13 +14,22 @@ const assertCoveredMonth = (value: string): string => {
 export type RecordMembershipPaymentInput = {
   memberId: string
   coveredMonth: string
+  chargedAmount?: Money | null
 }
 
 export type MembershipPaymentSnapshot = {
   id: string
   memberId: string
   coveredMonth: string
+  chargedAmount: MoneySnapshot | null
   createdAt: Date
+}
+
+export type PersistedMembershipPaymentSnapshot = Omit<
+  MembershipPaymentSnapshot,
+  'chargedAmount'
+> & {
+  chargedAmount?: MoneySnapshot | null
 }
 
 /**
@@ -38,6 +48,7 @@ export class MembershipPayment {
 
   private _memberId: string
   private _coveredMonth: string
+  private _chargedAmount: Money | null
   private _createdAt: Date
 
   private constructor(
@@ -48,6 +59,7 @@ export class MembershipPayment {
     this.id = id
     this._memberId = input.memberId
     this._coveredMonth = assertCoveredMonth(input.coveredMonth)
+    this._chargedAmount = input.chargedAmount ?? null
     this._createdAt = copyDate(createdAt)
   }
 
@@ -63,12 +75,15 @@ export class MembershipPayment {
   }
 
   public static restore(
-    snapshot: MembershipPaymentSnapshot
+    snapshot: PersistedMembershipPaymentSnapshot
   ): MembershipPayment {
     return new MembershipPayment(
       {
         memberId: snapshot.memberId,
-        coveredMonth: snapshot.coveredMonth
+        coveredMonth: snapshot.coveredMonth,
+        chargedAmount: snapshot.chargedAmount
+          ? Money.create(snapshot.chargedAmount)
+          : null
       },
       snapshot.id,
       snapshot.createdAt
@@ -88,6 +103,7 @@ export class MembershipPayment {
       id: this.id,
       memberId: this.memberId,
       coveredMonth: this.coveredMonth,
+      chargedAmount: this.chargedAmount?.toSnapshot() ?? null,
       createdAt: this.createdAt
     }
   }
@@ -98,6 +114,10 @@ export class MembershipPayment {
 
   public get coveredMonth() {
     return this._coveredMonth
+  }
+
+  public get chargedAmount() {
+    return this._chargedAmount
   }
 
   public get createdAt() {

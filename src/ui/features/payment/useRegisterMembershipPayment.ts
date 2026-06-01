@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 
 import { useAppServices } from '@/ui/appServices'
+import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
 import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
@@ -15,6 +16,7 @@ export type PaymentFeedback = {
 } | null
 
 export type RegisterMembershipPaymentCommand = {
+  chargedAmount: MoneySnapshot
   coveredMonth: CoveredMonth
   memberId: string
 }
@@ -47,7 +49,8 @@ export function useRegisterMembershipPayment() {
     try {
       await useCases.registerMembershipPayment.handle({
         memberId: command.memberId,
-        coveredMonth: command.coveredMonth
+        coveredMonth: command.coveredMonth,
+        chargedAmount: command.chargedAmount
       })
 
       return true

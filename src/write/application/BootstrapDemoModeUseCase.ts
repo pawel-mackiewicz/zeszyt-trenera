@@ -28,7 +28,13 @@ import { Club } from '@/write/domain/model/Club'
 import { MembershipPayment } from '@/write/domain/model/MembershipPayment'
 import { Member } from '@/write/domain/model/Member'
 import { Trainer } from '@/write/domain/model/Trainer'
+import { Money } from '@/write/domain/model/vo/Money'
 import { PhoneNumber } from '@/write/domain/model/vo/PhoneNumber'
+
+const DEMO_MEMBERSHIP_PAYMENT_AMOUNT = Money.create({
+  amountMinor: 16_000,
+  currency: 'PLN'
+})
 
 export type BootstrapDemoModeResult = {
   demoModeActive: boolean
@@ -246,7 +252,8 @@ export class BootstrapDemoModeUseCase implements UseCase<
       const [payment, paymentEvent] = MembershipPayment.record(
         {
           memberId: memberIds[paymentSeed.memberIndex] as string,
-          coveredMonth: paymentSeed.coveredMonth
+          coveredMonth: paymentSeed.coveredMonth,
+          chargedAmount: DEMO_MEMBERSHIP_PAYMENT_AMOUNT
         },
         this.idGenerator.generate()
       )

@@ -129,6 +129,8 @@ onBeforeUnmount(() => {
       </div>
     </dl>
 
+    <slot />
+
     <FloatingErrorAlert
       v-if="props.errorMessage"
       :message="props.errorMessage"

@@ -68,7 +68,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
 
     const dto: RegisterMembershipPaymentCommand = {
       memberId: 'member-1',
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 12000,
+        currency: 'PLN'
+      }
     }
 
     await useCase.handle(dto)
@@ -87,6 +91,10 @@ describe('RegisterMembershipPaymentUseCase', () => {
     expect(savedPayment).toMatchObject({
       memberId: 'member-1',
       coveredMonth: '2026-03'
+    })
+    expect(savedPayment.chargedAmount?.toSnapshot()).toEqual({
+      amountMinor: 12000,
+      currency: 'PLN'
     })
     // The fixed ID proves the workflow consumes the injected generator instead of delegating infrastructure concerns into the aggregate.
     expect(savedPayment.id).toBe('membership-payment-generated-by-test')
@@ -108,7 +116,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
     await expect(
       useCase.handle({
         memberId: 'missing-member',
-        coveredMonth: '2026-03'
+        coveredMonth: '2026-03',
+        chargedAmount: {
+          amountMinor: 12000,
+          currency: 'PLN'
+        }
       })
     ).rejects.toThrow(MemberNotFoundError)
 
@@ -127,7 +139,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
     await expect(
       useCase.handle({
         memberId: 'member-1',
-        coveredMonth: '2026-03'
+        coveredMonth: '2026-03',
+        chargedAmount: {
+          amountMinor: 12000,
+          currency: 'PLN'
+        }
       })
     ).rejects.toThrow(MembershipPaymentAlreadyExistsError)
 
@@ -149,7 +165,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
 
     const dto: RegisterMembershipPaymentCommand = {
       memberId: 'member-1',
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 12000,
+        currency: 'PLN'
+      }
     }
 
     const results = await Promise.allSettled([

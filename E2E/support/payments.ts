@@ -78,7 +78,10 @@ export async function cancelPaymentConfirmation(page: Page) {
   await expect(paymentConfirmationDialog(page)).not.toBeVisible()
 }
 
-export async function confirmPayment(page: Page) {
+export async function confirmPayment(page: Page, chargedAmount = '160,00') {
+  await paymentConfirmationDialog(page)
+    .getByTestId('payment-confirmation-charged-amount')
+    .fill(chargedAmount)
   await paymentConfirmationDialog(page)
     .getByRole('button', { name: /^potwierdź płatność$/i })
     .click()
@@ -271,7 +274,7 @@ export function paymentsHeading(page: Page): Locator {
 
 function paymentConfirmationDialog(page: Page): Locator {
   return page.getByRole('dialog', {
-    name: /^oznaczyć składkę jako opłaconą\?$/i
+    name: /^przyjmij płatność$/i
   })
 }
 

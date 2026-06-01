@@ -146,7 +146,11 @@ describe('appServices', () => {
 
     await services.useCases.registerMembershipPayment.handle({
       memberId: persistedMember.id,
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 16_000,
+        currency: 'PLN'
+      }
     })
     await services.useCases.registerAttendanceList.handle({
       memberIds: [persistedMember.id],
@@ -475,7 +479,11 @@ describe('appServices', () => {
 
     await services.useCases.registerMembershipPayment.handle({
       memberId: amanda.id,
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 16_000,
+        currency: 'PLN'
+      }
     })
     await services.useCases.registerAttendanceList.handle({
       memberIds: [royce.id],
@@ -918,7 +926,11 @@ describe('appServices', () => {
 
     await services.useCases.registerMembershipPayment.handle({
       memberId: persistedMember.id,
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 16_000,
+        currency: 'PLN'
+      }
     })
 
     const persistedPayments = await database.membershipPayments.toArray()
@@ -935,6 +947,10 @@ describe('appServices', () => {
         id: persistedPayment.id,
         memberId: persistedPayment.memberId,
         coveredMonth: persistedPayment.coveredMonth,
+        chargedAmount: {
+          amountMinor: 16_000,
+          currency: 'PLN'
+        },
         createdAt: persistedPayment.createdAt
       }
     })
@@ -954,13 +970,21 @@ describe('appServices', () => {
 
     await services.useCases.registerMembershipPayment.handle({
       memberId: persistedMember.id,
-      coveredMonth: '2026-03'
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 16_000,
+        currency: 'PLN'
+      }
     })
 
     await expect(
       services.useCases.registerMembershipPayment.handle({
         memberId: persistedMember.id,
-        coveredMonth: '2026-03'
+        coveredMonth: '2026-03',
+        chargedAmount: {
+          amountMinor: 16_000,
+          currency: 'PLN'
+        }
       })
     ).rejects.toThrow(MembershipPaymentAlreadyExistsError)
 
@@ -978,7 +1002,11 @@ describe('appServices', () => {
     await expect(
       services.useCases.registerMembershipPayment.handle({
         memberId: 'missing-member',
-        coveredMonth: '2026-03'
+        coveredMonth: '2026-03',
+        chargedAmount: {
+          amountMinor: 16_000,
+          currency: 'PLN'
+        }
       })
     ).rejects.toThrow(MemberNotFoundError)
 

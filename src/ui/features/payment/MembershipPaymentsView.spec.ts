@@ -358,9 +358,14 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-open-confirm-attended-1').trigger('click')
 
-    expect(wrapper.text()).toContain('Oznaczyć składkę jako opłaconą?')
+    expect(wrapper.text()).toContain('Przyjmij Płatność')
     expect(wrapper.text()).toContain('Royce Gracie')
     expect(wrapper.text()).toContain('październik 2026')
+    expect(
+      wrapper
+        .get('[data-testid="payment-confirmation-charged-amount"]')
+        .attributes('inputmode')
+    ).toBe('decimal')
     expect(wrapper.text()).toContain('2 treningi w tym miesiącu')
 
     await wrapper
@@ -369,7 +374,7 @@ describe('MembershipPaymentsView', () => {
       .trigger('click')
     await vi.runAllTimersAsync()
     await flushPromises()
-    expect(wrapper.text()).not.toContain('Oznaczyć składkę jako opłaconą?')
+    expect(wrapper.text()).not.toContain('Przyjmij Płatność')
   })
 
   it('records the selected payment only after confirmation', async () => {
@@ -378,6 +383,9 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-open-confirm-absent-1').trigger('click')
     await wrapper
+      .get('[data-testid="payment-confirmation-charged-amount"]')
+      .setValue('175,50')
+    await wrapper
       .find('.payments-confirmation__actions button')
       .trigger('click')
     await vi.runAllTimersAsync()
@@ -385,9 +393,13 @@ describe('MembershipPaymentsView', () => {
 
     expect(mockRegisterMembershipPaymentHandle).toHaveBeenCalledWith({
       memberId: 'absent-1',
-      coveredMonth: '2026-10'
+      coveredMonth: '2026-10',
+      chargedAmount: {
+        amountMinor: 17_550,
+        currency: 'PLN'
+      }
     })
-    expect(wrapper.text()).not.toContain('Oznaczyć składkę jako opłaconą?')
+    expect(wrapper.text()).not.toContain('Przyjmij Płatność')
   })
 
   it('closes the dialog and shows non-blocking feedback when the payment already exists', async () => {
@@ -400,12 +412,15 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-open-confirm-absent-1').trigger('click')
     await wrapper
+      .get('[data-testid="payment-confirmation-charged-amount"]')
+      .setValue('160')
+    await wrapper
       .find('.payments-confirmation__actions button')
       .trigger('click')
     await vi.runAllTimersAsync()
     await flushPromises()
 
-    expect(wrapper.text()).not.toContain('Oznaczyć składkę jako opłaconą?')
+    expect(wrapper.text()).not.toContain('Przyjmij Płatność')
     expect(wrapper.text()).toContain(
       'Płatność od Georges St-Pierre za Październik 2026 jest już zapisana.'
     )
@@ -419,6 +434,9 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-open-confirm-absent-1').trigger('click')
     await wrapper
+      .get('[data-testid="payment-confirmation-charged-amount"]')
+      .setValue('160')
+    await wrapper
       .find('.payments-confirmation__actions button')
       .trigger('click')
     await flushPromises()
@@ -428,7 +446,7 @@ describe('MembershipPaymentsView', () => {
       'Spróbuj ponownie. Ten ekran nie zapisał jeszcze zmiany.'
     )
     expect(wrapper.text()).not.toContain('boom')
-    expect(wrapper.text()).toContain('Oznaczyć składkę jako opłaconą?')
+    expect(wrapper.text()).toContain('Przyjmij Płatność')
   })
 
   it('disables the confirm action while the payment write is pending', async () => {
@@ -447,6 +465,9 @@ describe('MembershipPaymentsView', () => {
     await flushPromises()
 
     await wrapper.get('#payments-open-confirm-absent-1').trigger('click')
+    await wrapper
+      .get('[data-testid="payment-confirmation-charged-amount"]')
+      .setValue('160')
     const confirmButton = wrapper.get('.payments-confirmation__actions button')
     await confirmButton.trigger('click')
     await flushPromises()

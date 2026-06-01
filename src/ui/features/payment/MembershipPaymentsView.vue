@@ -13,6 +13,7 @@ import MonthSelector from '@/ui/components/MonthSelector.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
 import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
 import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
+import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
 // What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
 import MembershipPaymentConfirmationModal from './MembershipPaymentConfirmationModal.vue'
 import MembershipPaymentDeleteConfirmationModal from './MembershipPaymentDeleteConfirmationModal.vue'
@@ -220,7 +221,7 @@ function openPaymentConfirmation(
   }
 }
 
-async function confirmPayment() {
+async function confirmPayment(chargedAmount: MoneySnapshot) {
   const selectedMember = selectedMemberForConfirmation.value
 
   if (selectedMember === null) {
@@ -228,6 +229,7 @@ async function confirmPayment() {
   }
 
   const completed = await executeRegisterMembershipPayment({
+    chargedAmount,
     coveredMonth: selectedMember.coveredMonth,
     memberId: selectedMember.id
   })

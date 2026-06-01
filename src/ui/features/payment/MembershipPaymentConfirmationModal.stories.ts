@@ -12,6 +12,7 @@ import {
 
 type MembershipPaymentConfirmationModalStoryArgs = {
   confirmResult: 'success' | 'pending' | 'failure'
+  chargedAmount: string | number | null
   errorMessage: string
   errorTitle: string
   isPending: boolean
@@ -24,6 +25,17 @@ function resolveStoryLocale(
 ): MembershipPaymentConfirmationModalLocale {
   // What: coerce Storybook globals to the component's locales. Why: play assertions should remain deterministic when the toolbar locale is absent or malformed.
   return value === 'en' ? 'en' : 'pl'
+}
+
+async function expectChargedAmountValue(
+  canvasElement: HTMLElement,
+  expectedValue: string
+) {
+  const canvas = within(canvasElement)
+
+  await expect(
+    canvas.getByTestId('payment-confirmation-charged-amount')
+  ).toHaveValue(expectedValue)
 }
 
 const defaultMember: MembershipPaymentConfirmationModalMember = {
@@ -55,6 +67,7 @@ const meta: Meta<MembershipPaymentConfirmationModalStoryArgs> = {
   },
   args: {
     confirmResult: 'success',
+    chargedAmount: '150,00',
     errorMessage: '',
     errorTitle: '',
     isPending: false,
@@ -124,6 +137,7 @@ const meta: Meta<MembershipPaymentConfirmationModalStoryArgs> = {
       <MembershipPaymentConfirmationModal
         :visible="visible"
         :member="args.member"
+        :charged-amount="args.chargedAmount"
         :is-pending="isPending"
         :error-message="errorMessage"
         :error-title="errorTitle"
@@ -139,6 +153,33 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+
+export const ChargedAmountAsInteger: Story = {
+  args: {
+    chargedAmount: 150
+  },
+  play: async ({ canvasElement }) => {
+    await expectChargedAmountValue(canvasElement, '150.00')
+  }
+}
+
+export const ChargedAmountAsCommaDecimal: Story = {
+  args: {
+    chargedAmount: '150,00'
+  },
+  play: async ({ canvasElement }) => {
+    await expectChargedAmountValue(canvasElement, '150,00')
+  }
+}
+
+export const ChargedAmountAsDotDecimal: Story = {
+  args: {
+    chargedAmount: '150.00'
+  },
+  play: async ({ canvasElement }) => {
+    await expectChargedAmountValue(canvasElement, '150.00')
+  }
+}
 
 export const ConfirmAction: Story = {
   play: async ({ canvasElement }) => {
