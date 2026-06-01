@@ -39,11 +39,11 @@ type MembershipPaymentsResult = {
 
 type MembershipPaymentSummaryResult = {
   paidMembersCount: number
+  attendedUnpaidMembersCount: number
   totalPaidAmount: {
     amountMinor: number
     currency: string
   } | null
-  unpaidMembersCount: number
 }
 
 function createObservable<T>(result: T, unsubscribeSpies: Mock[]) {
@@ -136,11 +136,11 @@ describe('MembershipPaymentsView', () => {
     }
     currentSummaryResult = {
       paidMembersCount: 1,
+      attendedUnpaidMembersCount: 3,
       totalPaidAmount: {
         amountMinor: 175_50,
         currency: 'PLN'
-      },
-      unpaidMembersCount: 3
+      }
     }
 
     mockObserveMembershipPaymentStatusByMonthHandle = vi.fn(() =>

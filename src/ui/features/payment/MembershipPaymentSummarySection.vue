@@ -21,7 +21,8 @@ const { t, locale } = useI18n({ useScope: 'local' })
 const isExpanded = ref(false)
 
 const totalMemberCount = computed(
-  () => props.summary.paidMembersCount + props.summary.unpaidMembersCount
+  () =>
+    props.summary.paidMembersCount + props.summary.attendedUnpaidMembersCount
 )
 const completionPercent = computed(() => {
   if (totalMemberCount.value === 0) {
@@ -90,7 +91,7 @@ function formatMoney(value: MoneySnapshot | null): string {
         </div>
         <div class="payment-summary__item">
           <dt>{{ t('unpaidLabel') }}</dt>
-          <dd>{{ summary.unpaidMembersCount }}</dd>
+          <dd>{{ summary.attendedUnpaidMembersCount }}</dd>
         </div>
         <div class="payment-summary__item">
           <dt>{{ t('amountLabel') }}</dt>

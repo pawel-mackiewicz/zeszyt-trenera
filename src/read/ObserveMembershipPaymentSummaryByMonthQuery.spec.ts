@@ -20,7 +20,7 @@ describe('ObserveMembershipPaymentSummaryByMonthQuery', () => {
     await database.delete()
   })
 
-  it('counts paid and unpaid members and totals the current month payment amounts', async () => {
+  it('counts paid and attended unpaid members and totals the current month payment amounts', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerMember.handle({
@@ -67,6 +67,10 @@ describe('ObserveMembershipPaymentSummaryByMonthQuery', () => {
         amountMinor: 500_00,
         currency: 'PLN'
       }
+    })
+    await services.useCases.registerAttendanceList.handle({
+      memberIds: [persistedMembers[2].id],
+      start: new Date('2026-03-10T18:00:00Z')
     })
 
     const observable =
@@ -116,7 +120,7 @@ describe('ObserveMembershipPaymentSummaryByMonthQuery', () => {
 
     expect(initialSummary).toEqual({
       paidMembersCount: 2,
-      unpaidMembersCount: 1,
+      attendedUnpaidMembersCount: 1,
       totalPaidAmount: {
         amountMinor: 360_00,
         currency: 'PLN'
@@ -124,7 +128,7 @@ describe('ObserveMembershipPaymentSummaryByMonthQuery', () => {
     })
     expect(updatedSummary).toEqual({
       paidMembersCount: 3,
-      unpaidMembersCount: 0,
+      attendedUnpaidMembersCount: 0,
       totalPaidAmount: {
         amountMinor: 460_00,
         currency: 'PLN'

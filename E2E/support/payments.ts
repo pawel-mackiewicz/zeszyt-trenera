@@ -32,7 +32,7 @@ export type MonthlyPaymentSummarySnapshot = {
   completionPercent: number
   paidMembersCount: number
   totalPaidAmountMinor: number | null
-  unpaidMembersCount: number
+  attendedUnpaidMembersCount: number
 }
 
 export async function openMonthlyPaymentSummary(page: Page) {
@@ -52,19 +52,23 @@ export async function readMonthlyPaymentSummary(
 
   await expect(summary).toBeVisible()
 
-  const [paidMembersCount, unpaidMembersCount, totalPaidAmount, completion] =
-    await Promise.all([
-      readSummaryValue(summary.getByText(/^opłacili$/i)),
-      readSummaryValue(summary.getByText(/^do rozliczenia$/i)),
-      readSummaryValue(summary.getByText(/^wpłacono$/i)),
-      readSummaryValue(summary.getByText(/^pokrycie$/i))
-    ])
+  const [
+    paidMembersCount,
+    attendedUnpaidMembersCount,
+    totalPaidAmount,
+    completion
+  ] = await Promise.all([
+    readSummaryValue(summary.getByText(/^opłacili$/i)),
+    readSummaryValue(summary.getByText(/^do rozliczenia$/i)),
+    readSummaryValue(summary.getByText(/^wpłacono$/i)),
+    readSummaryValue(summary.getByText(/^pokrycie$/i))
+  ])
 
   return {
     completionPercent: parseSummaryPercent(completion),
     paidMembersCount: parseSummaryNumber(paidMembersCount),
     totalPaidAmountMinor: parseSummaryAmount(totalPaidAmount),
-    unpaidMembersCount: parseSummaryNumber(unpaidMembersCount)
+    attendedUnpaidMembersCount: parseSummaryNumber(attendedUnpaidMembersCount)
   }
 }
 

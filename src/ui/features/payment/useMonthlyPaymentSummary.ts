@@ -18,8 +18,8 @@ export function useMonthlyPaymentSummary({
 
   const summary = ref<MembershipPaymentSummaryByMonthResult>({
     paidMembersCount: 0,
-    totalPaidAmount: null,
-    unpaidMembersCount: 0
+    attendedUnpaidMembersCount: 0,
+    totalPaidAmount: null
   })
   const isLoading = ref(true)
   const loadFailed = ref(false)

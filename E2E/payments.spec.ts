@@ -80,7 +80,7 @@ test('updates the monthly statistics after a confirmed payment and reload', asyn
   }
 
   const initialTotalMemberCount =
-    initialSummary.paidMembersCount + initialSummary.unpaidMembersCount
+    initialSummary.paidMembersCount + initialSummary.attendedUnpaidMembersCount
 
   await filterPaymentsByMember(page, absent)
   await openPaymentConfirmation(page)
@@ -93,15 +93,16 @@ test('updates the monthly statistics after a confirmed payment and reload', asyn
   expect(updatedSummary.paidMembersCount).toBe(
     initialSummary.paidMembersCount + 1
   )
-  expect(updatedSummary.unpaidMembersCount).toBe(
-    initialSummary.unpaidMembersCount - 1
+  expect(updatedSummary.attendedUnpaidMembersCount).toBe(
+    initialSummary.attendedUnpaidMembersCount
   )
   expect(updatedSummary.totalPaidAmountMinor).toBe(
     initialSummary.totalPaidAmountMinor + 160_00
   )
   expect(updatedSummary.completionPercent).toBe(
     Math.round(
-      ((initialSummary.paidMembersCount + 1) / initialTotalMemberCount) * 100
+      ((initialSummary.paidMembersCount + 1) / (initialTotalMemberCount + 1)) *
+        100
     )
   )
 })
