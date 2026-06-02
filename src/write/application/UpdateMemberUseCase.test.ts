@@ -137,6 +137,7 @@ function memberSnapshot(): MemberSnapshot {
     lastName: 'doe',
     phoneNumber: '+48111111111',
     dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+    archived: false,
     createdAt: new Date('2026-03-01T00:00:00Z')
   }
 }

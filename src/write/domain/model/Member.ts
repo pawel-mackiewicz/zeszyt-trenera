@@ -83,6 +83,8 @@ type MemberStateInput = {
   phoneNumber?: PhoneNumber
   dateOfBirth: Date
   joinedAt?: Date
+  archived?: boolean
+  archivedAt?: Date
 }
 
 export type MemberSnapshot = {
@@ -92,6 +94,8 @@ export type MemberSnapshot = {
   phoneNumber?: string
   dateOfBirth: Date
   joinedAt?: Date
+  archived: boolean
+  archivedAt?: Date
   createdAt: Date
 }
 
@@ -112,6 +116,8 @@ export class Member {
   private _phoneNumber?: PhoneNumber
   private _dateOfBirth: Date
   private _joinedAt?: Date
+  private _archived: boolean
+  private _archivedAt?: Date
   private _createdAt: Date
 
   private constructor(input: MemberStateInput, id: string, createdAt?: Date) {
@@ -121,6 +127,8 @@ export class Member {
     this._phoneNumber = input.phoneNumber
     this._dateOfBirth = copyDate(input.dateOfBirth)
     this._joinedAt = copyOptionalDate(input.joinedAt)
+    this._archived = input.archived ?? false
+    this._archivedAt = copyOptionalDate(input.archivedAt)
     this._createdAt = copyDate(createdAt ?? new Date())
   }
   public static register(
@@ -150,13 +158,16 @@ export class Member {
             ? undefined
             : PhoneNumber.create(snapshot.phoneNumber),
         dateOfBirth: snapshot.dateOfBirth,
-        joinedAt: snapshot.joinedAt
+        joinedAt: snapshot.joinedAt,
+        archived: snapshot.archived,
+        archivedAt: snapshot.archivedAt
       },
       snapshot.id,
       snapshot.createdAt
     )
   }
 
+  // make not static?
   public static update(
     existingMember: Member,
     input: UpdateMemberInput
@@ -173,7 +184,9 @@ export class Member {
         lastName: normalizeMemberName(input.lastName),
         phoneNumber: input.phoneNumber,
         dateOfBirth: input.dateOfBirth,
-        joinedAt: input.joinedAt
+        joinedAt: input.joinedAt,
+        archived: existingMember.isArchived(),
+        archivedAt: existingMember.archivedAt
       },
       existingMember.id,
       existingMember.createdAt
@@ -196,6 +209,49 @@ export class Member {
     return [updatedMember, updateEvent]
   }
 
+  public archive(): [Member, MemberArchivedDomainEvent] {
+    const archivedMember = new Member(
+      {
+        firstName: this.firstName,
+        lastName: this.lastName,
+        phoneNumber: this.phoneNumber,
+        dateOfBirth: this.dateOfBirth,
+        joinedAt: this.joinedAt,
+        archived: true,
+        archivedAt: new Date()
+      },
+      this.id,
+      this.createdAt
+    )
+
+    return [
+      archivedMember,
+      new MemberArchivedDomainEvent(archivedMember.toSnapshot())
+    ]
+  }
+
+  public unarchive(): [Member, MemberUnarchivedDomainEvent] {
+    const unarchivedMember = new Member(
+      {
+        firstName: this.firstName,
+        lastName: this.lastName,
+        phoneNumber: this.phoneNumber,
+        dateOfBirth: this.dateOfBirth,
+        joinedAt: this.joinedAt,
+        archived: false,
+        archivedAt: undefined
+      },
+      this.id,
+      this.createdAt
+    )
+
+    return [
+      unarchivedMember,
+      new MemberUnarchivedDomainEvent(unarchivedMember.toSnapshot())
+    ]
+  }
+
+  //make not static?
   public static delete(existingMember: Member): MemberDeletedDomainEvent {
     return new MemberDeletedDomainEvent(existingMember.toSnapshot())
   }
@@ -212,6 +268,8 @@ export class Member {
         : { phoneNumber: this.phoneNumber.value }),
       dateOfBirth: this.dateOfBirth,
       ...(this.joinedAt === undefined ? {} : { joinedAt: this.joinedAt }),
+      archived: this.isArchived(),
+      ...(this.archivedAt === undefined ? {} : { archivedAt: this.archivedAt }),
       createdAt: this.createdAt
     }
   }
@@ -235,6 +293,14 @@ export class Member {
 
   public get joinedAt() {
     return copyOptionalDate(this._joinedAt)
+  }
+
+  public isArchived() {
+    return this._archived
+  }
+
+  public get archivedAt() {
+    return copyOptionalDate(this._archivedAt)
   }
 
   public get createdAt() {
@@ -261,6 +327,22 @@ export class MemberUpdatedDomainEvent extends DomainEvent<MemberUpdatedSnapshot>
 
 export class MemberDeletedDomainEvent extends DomainEvent<MemberSnapshot> {
   public readonly eventName = 'member.deleted'
+
+  public constructor(member: MemberSnapshot) {
+    super(member)
+  }
+}
+
+export class MemberArchivedDomainEvent extends DomainEvent<MemberSnapshot> {
+  public readonly eventName = 'member.archived'
+
+  public constructor(member: MemberSnapshot) {
+    super(member)
+  }
+}
+
+export class MemberUnarchivedDomainEvent extends DomainEvent<MemberSnapshot> {
+  public readonly eventName = 'member.unarchived'
 
   public constructor(member: MemberSnapshot) {
     super(member)

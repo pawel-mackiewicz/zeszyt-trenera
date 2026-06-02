@@ -19,6 +19,8 @@ export type PersistedMember = {
   phoneNumber?: string
   dateOfBirth: Date
   joinedAt?: Date
+  archived?: boolean
+  archivedAt?: Date
   createdAt: Date
 }
 

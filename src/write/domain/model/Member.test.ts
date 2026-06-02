@@ -62,6 +62,7 @@ describe('Member Model', () => {
       lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: createBirthDate(),
+      archived: false,
       createdAt: member.createdAt
     })
 
@@ -92,6 +93,7 @@ describe('Member Model', () => {
       lastName: 'doe',
       phoneNumber: '+48123456789',
       dateOfBirth: createBirthDate(),
+      archived: false,
       createdAt: member.createdAt
     })
     expect('joinedAt' in snapshot).toBe(false)
@@ -116,6 +118,7 @@ describe('Member Model', () => {
       phoneNumber: '+48123456789',
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       joinedAt: new Date('2024-09-01T00:00:00Z'),
+      archived: false,
       createdAt: member.createdAt
     })
   })
@@ -174,6 +177,7 @@ describe('Member Model', () => {
       firstName: 'jane',
       lastName: 'doe',
       dateOfBirth: createBirthDate(),
+      archived: false,
       createdAt: member.createdAt
     })
     expect(event.payload).toEqual(member.toSnapshot())
@@ -223,6 +227,7 @@ describe('Member Model', () => {
       firstName: 'jane',
       lastName: 'doe',
       dateOfBirth: createBirthDate(),
+      archived: false,
       createdAt
     })
 
@@ -232,8 +237,51 @@ describe('Member Model', () => {
       firstName: 'jane',
       lastName: 'doe',
       dateOfBirth: createBirthDate(),
+      archived: false,
       createdAt
     })
+  })
+
+  it('archives a member and emits a snapshot-based archived event', () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
+      },
+      'member-1'
+    )
+
+    const [archivedMember, event] = member.archive()
+
+    expect(archivedMember.isArchived()).toBe(true)
+    expect(archivedMember.archivedAt).toBeInstanceOf(Date)
+    expect(event.eventName).toBe('member.archived')
+    expect(event.payload).toEqual(archivedMember.toSnapshot())
+    expect(event.payload.archived).toBe(true)
+  })
+
+  it('unarchives a member and clears the archived timestamp', () => {
+    const [member] = Member.register(
+      {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        phoneNumber: createPhoneNumber(),
+        dateOfBirth: createBirthDate()
+      },
+      'member-1'
+    )
+
+    const [archivedMember] = member.archive()
+    const [unarchivedMember, event] = archivedMember.unarchive()
+
+    expect(unarchivedMember.isArchived()).toBe(false)
+    expect(unarchivedMember.archivedAt).toBeUndefined()
+    expect(event.eventName).toBe('member.unarchived')
+    expect(event.payload).toEqual(unarchivedMember.toSnapshot())
+    expect(event.payload.archived).toBe(false)
+    expect('archivedAt' in event.payload).toBe(false)
   })
 
   it('allows updates that clear the phone number', () => {

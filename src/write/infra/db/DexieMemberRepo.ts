@@ -59,6 +59,10 @@ export class DexieMemberRepo implements MemberRepoPort {
       ...(member.phoneNumber ? { phoneNumber: member.phoneNumber } : {}),
       dateOfBirth: member.dateOfBirth,
       ...(member.joinedAt === undefined ? {} : { joinedAt: member.joinedAt }),
+      archived: member.archived ?? false,
+      ...(member.archivedAt === undefined
+        ? {}
+        : { archivedAt: member.archivedAt }),
       createdAt: member.createdAt
     }
   }
