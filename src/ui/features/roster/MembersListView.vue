@@ -4,14 +4,12 @@ import { useI18n } from 'vue-i18n'
 
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
-import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import MembersSortTool from '@/ui/components/MembersSortTool.vue'
-import SearchBar from '@/ui/components/SearchBar.vue'
 import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
 import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
+import RosterFilterSection from '@/ui/features/roster/RosterFilterSection.vue'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
@@ -185,32 +183,13 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- Utility Bar -->
-      <section class="mb-12 border-b-2 border-on-surface pb-4">
-        <!-- What: swap the local search markup for the shared roster search bar. Why: members should match the compact attendance affordance instead of maintaining its own divergent search treatment. -->
-        <SearchBar
-          v-model="searchQuery"
-          input-id="members-search"
-          :input-label="t('search.label')"
-          :placeholder="t('search.placeholder')"
-        />
-
-        <!-- What: delegate the roster sorting UI to one shared component. Why: this keeps sort copy, toggle behavior, and mobile-first styling consistent with other reusable filter tools like AgeRangeFilter. -->
-        <MembersSortTool
-          v-model:sort-field="memberSortField"
-          v-model:sort-direction="memberSortDirection"
-        />
-      </section>
-
-      <!-- Additional filters -->
-      <section class="mb-8 border-b-2 border-on-surface pb-6">
-        <AgeRangeFilter
-          v-model:min-value="minAgeFilter"
-          v-model:max-value="maxAgeFilter"
-          :max-bound="AGE_FILTER_MAX"
-          :min-bound="AGE_FILTER_MIN"
-        />
-      </section>
+      <RosterFilterSection
+        v-model:search-query="searchQuery"
+        v-model:min-age-filter="minAgeFilter"
+        v-model:max-age-filter="maxAgeFilter"
+        v-model:member-sort-field="memberSortField"
+        v-model:member-sort-direction="memberSortDirection"
+      />
 
       <!-- Roster tabs -->
       <nav class="members-list-view__tabs" :aria-label="t('tabs.label')">
@@ -366,10 +345,6 @@ onBeforeUnmount(() => {
     "summary": {
       "memberCount": "{count} członków"
     },
-    "search": {
-      "label": "Szukaj w rejestrze",
-      "placeholder": "Wpisz imię i nazwisko"
-    },
     "tabs": {
       "label": "Zakres rejestru",
       "active": "Aktywni",
@@ -386,10 +361,6 @@ onBeforeUnmount(() => {
     },
     "summary": {
       "memberCount": "{count} members"
-    },
-    "search": {
-      "label": "Search the register",
-      "placeholder": "Enter first and last name"
     },
     "tabs": {
       "label": "Roster scope",
