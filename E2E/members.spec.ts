@@ -54,6 +54,12 @@ const ATTENDANCE_BLOCKED_SESSION: AttendanceSessionExpectation = {
   date: startOfToday(),
   time: '18:15'
 }
+const ARCHIVE_FLOW_MEMBER: RosterMemberDraft = {
+  firstName: 'Archive',
+  lastName: 'Restore',
+  dateOfBirth: '2012-06-15',
+  joinedAt: '2026-03-02'
+}
 
 const SORT_MEMBERS: RosterMemberDraft[] = [
   {
@@ -113,6 +119,50 @@ async function deleteRosterMemberFromDetails(page: Page, fullName: string) {
     page.getByRole('heading', { name: /usunąć członka/i })
   ).toBeVisible()
   await page.getByRole('button', { name: /^usuń$/i }).click()
+}
+
+async function archiveRosterMemberFromDetails(page: Page, fullName: string) {
+  await openRosterMemberDetails(page, fullName)
+  await page
+    .getByRole('button', {
+      name: new RegExp(`zarchiwizuj członka ${escapeRegExp(fullName)}`, 'i')
+    })
+    .click()
+
+  await expect(
+    page.getByRole('heading', { name: /zarchiwizować członka/i })
+  ).toBeVisible()
+  await page.getByRole('button', { name: /^archiwizuj$/i }).click()
+  await expect(
+    page.getByRole('heading', { name: /zarchiwizować członka/i })
+  ).not.toBeVisible()
+}
+
+async function openRosterTab(page: Page, tabName: string) {
+  const tab = page.getByRole('button', {
+    name: new RegExp(`^${escapeRegExp(tabName)}$`, 'i')
+  })
+
+  await tab.click()
+  await expect(tab).toHaveAttribute('aria-pressed', 'true')
+}
+
+async function openArchivedRosterMemberDetails(page: Page, fullName: string) {
+  await page.getByText(new RegExp(`^${escapeRegExp(fullName)}$`, 'i')).click()
+  await expect(
+    page.getByRole('button', {
+      name: new RegExp(`przywróć członka ${escapeRegExp(fullName)}`, 'i')
+    })
+  ).toBeVisible()
+}
+
+async function unarchiveRosterMemberFromDetails(page: Page, fullName: string) {
+  await openArchivedRosterMemberDetails(page, fullName)
+  await page
+    .getByRole('button', {
+      name: new RegExp(`przywróć członka ${escapeRegExp(fullName)}`, 'i')
+    })
+    .click()
 }
 
 async function filterRosterByAgeRange(
@@ -260,6 +310,34 @@ test('updates the roster member counter after a persisted add', async ({
 
   await expect(page.getByText(/^61 członków$/i)).toBeVisible()
   await expectRosterMemberVisible(page, 'Licznik Rosterowy')
+})
+
+test('archives and restores a roster member after reload', async ({ page }) => {
+  const fullName = memberFullName(ARCHIVE_FLOW_MEMBER)
+
+  await openDemoRoster(page)
+  await addRosterMemberViaUi(page, ARCHIVE_FLOW_MEMBER)
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberVisible(page, fullName)
+
+  await archiveRosterMemberFromDetails(page, fullName)
+  await expectRosterMemberHidden(page, fullName)
+
+  // Why: archive is a local-first roster mutation, so the archived projection must survive a fresh IndexedDB read before restoration is tested.
+  await reloadRosterAfterLocalWrites(page)
+  await expectRosterMemberHidden(page, fullName)
+  await openRosterTab(page, 'Archiwum')
+  await expectRosterMemberVisible(page, fullName)
+
+  await unarchiveRosterMemberFromDetails(page, fullName)
+  await expectRosterMemberHidden(page, fullName)
+
+  // Why: restore is only complete when the member leaves the archived projection and returns to active roster after local storage is re-read.
+  await reloadRosterAfterLocalWrites(page)
+  await openRosterTab(page, 'Archiwum')
+  await expectRosterMemberHidden(page, fullName)
+  await openRosterTab(page, 'Aktywni')
+  await expectRosterMemberVisible(page, fullName)
 })
 
 test('shows call and sms actions in member details', async ({ page }) => {
