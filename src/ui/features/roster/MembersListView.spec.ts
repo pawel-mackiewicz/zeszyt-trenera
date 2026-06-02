@@ -120,7 +120,7 @@ describe('MembersListView', () => {
     expect(wrapper.text()).not.toContain('Archived Member')
 
     await tabButtons[1]?.trigger('click')
-    await flushPromises()
+    await flushRosterTabTransition()
 
     expect(mockObserveArchivedMembersForRosterHandle).toHaveBeenCalledOnce()
     expect(tabButtons[1]?.attributes('aria-pressed')).toBe('true')
@@ -152,7 +152,7 @@ describe('MembersListView', () => {
     expect(mockObserveArchivedMembersForRosterHandle).toHaveBeenCalledTimes(1)
 
     await tabButtons[1]?.trigger('click')
-    await flushPromises()
+    await flushRosterTabTransition()
 
     activeMembersObservable.emit([
       {
@@ -168,7 +168,7 @@ describe('MembersListView', () => {
     expect(wrapper.text()).not.toContain('Still Loaded')
 
     await tabButtons[0]?.trigger('click')
-    await flushPromises()
+    await flushRosterTabTransition()
 
     expect(mockObserveMembersForRosterHandle).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('Still Loaded')
@@ -243,7 +243,7 @@ describe('MembersListView', () => {
       .get('nav[aria-label="Roster scope"]')
       .findAll('button')[1]
       .trigger('click')
-    await flushPromises()
+    await flushRosterTabTransition()
     await wrapper.find('summary').trigger('click')
 
     expect(wrapper.find('[data-testid="member-archive-open"]').exists()).toBe(
@@ -667,4 +667,12 @@ function createObservable<T>(value: T, options: { emit?: boolean } = {}) {
       }
     }
   }
+}
+
+async function flushRosterTabTransition() {
+  await flushPromises()
+  vi.runOnlyPendingTimers()
+  await flushPromises()
+  vi.runOnlyPendingTimers()
+  await flushPromises()
 }
