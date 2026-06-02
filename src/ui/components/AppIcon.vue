@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CircleCheckBig, CircleX, Archive, ArchiveRestore } from '@lucide/vue'
 type IconName =
   | 'add'
   | 'arrow_back'
@@ -60,8 +61,7 @@ defineProps<{
       <path d="M5 12h14" />
     </template>
     <template v-else-if="name === 'check_circle'">
-      <circle cx="12" cy="12" r="8" />
-      <path d="m8.5 12.25 2.25 2.25 4.75-4.75" />
+      <CircleCheckBig />
     </template>
     <template v-else-if="name === 'expand_more'">
       <path d="m6 9 6 6 6-6" />
@@ -71,22 +71,13 @@ defineProps<{
       <path d="m9 6 6 6-6 6" />
     </template>
     <template v-else-if="name === 'circle_x'">
-      <!-- What: keep destructive actions as a local circled X glyph. Why: the installed PWA must render the delete button clearly while offline. -->
-      <circle cx="12" cy="12" r="8" />
-      <path d="m9 9 6 6" />
-      <path d="m15 9-6 6" />
+      <CircleX />
     </template>
     <template v-else-if="name === 'archive'">
-      <path d="M4 7h16" />
-      <path d="M5 10h14v8H5z" />
-      <path d="m12 13v-3.5" />
-      <path d="m9.5 11.5 2.5 2.5 2.5-2.5" />
+      <Archive />
     </template>
     <template v-else-if="name === 'unarchive'">
-      <path d="M4 7h16" />
-      <path d="M5 10h14v8H5z" />
-      <path d="m12 14V9.5" />
-      <path d="m9.5 12 2.5-2.5 2.5 2.5" />
+      <ArchiveRestore />
     </template>
     <template v-else-if="name === 'group'">
       <path d="M8.5 12a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />

@@ -26,6 +26,7 @@
     "deploy:staging": "pnpm run build && wrangler deploy --env staging"
   },
   "dependencies": {
+    "@lucide/vue": "^1.17.0",
     "dexie": "^4.4.0",
     "dexie-export-import": "^4.4.0",
     "libphonenumber-js": "^1.12.40",
