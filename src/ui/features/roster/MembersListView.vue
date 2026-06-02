@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
@@ -10,6 +10,7 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MembersSortTool from '@/ui/components/MembersSortTool.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
+import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
 import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
 import {
   AGE_FILTER_MAX,
@@ -24,43 +25,79 @@ import {
 
 const { queries } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
-const savedMembers = ref<MemberRosterListItem[]>([])
-const isLoading = ref(true)
+const activeMembers = ref<MemberRosterListItem[]>([])
+const archivedMembers = ref<MemberRosterListItem[]>([])
+const isActiveMembersLoading = ref(true)
+const isArchivedMembersLoading = ref(true)
 const searchQuery = ref('')
 const maxAgeFilter = ref(AGE_FILTER_MAX)
 const minAgeFilter = ref(AGE_FILTER_MIN)
 const memberSortField = ref<MemberSortField>('firstName')
 const memberSortDirection = ref<MemberSortDirection>('asc')
+const rosterTabs = ['active', 'archived'] as const
+type RosterTab = (typeof rosterTabs)[number]
+const selectedRosterTab = ref<RosterTab>('active')
 
 const openMemberId = ref<string | null>(null)
 const editError = ref('')
-let membersSubscription: { unsubscribe(): void } | null = null
+let activeMembersSubscription: { unsubscribe(): void } | null = null
+let archivedMembersSubscription: { unsubscribe(): void } | null = null
+const currentMembers = computed(() =>
+  selectedRosterTab.value === 'active'
+    ? activeMembers.value
+    : archivedMembers.value
+)
+const isLoading = computed(() =>
+  selectedRosterTab.value === 'active'
+    ? isActiveMembersLoading.value
+    : isArchivedMembersLoading.value
+)
 const membersCountLabel = computed(() =>
-  t('summary.memberCount', { count: savedMembers.value.length })
+  t('summary.memberCount', { count: currentMembers.value.length })
 )
 
 function formatMemberName(member: MemberRosterListItem): string {
   return `${member.firstName} ${member.lastName}`
 }
 
-function subscribeToSavedMembers() {
-  isLoading.value = true
-  // What: keep the roster list wired to the application read contract. Why: the members screen should refresh automatically when local writes change the roster instead of performing manual reloads.
-  membersSubscription?.unsubscribe()
-  membersSubscription = queries.observeMembersForRoster.handle().subscribe({
-    next(members) {
-      savedMembers.value = members
-      isLoading.value = false
-    },
-    error(error) {
-      console.error('Failed to load members', error)
-      isLoading.value = false
-    }
-  })
+function subscribeToActiveMembers() {
+  isActiveMembersLoading.value = true
+  // What: keep the active roster wired to its own live application read contract. Why: switching roster tabs should not tear down and reload the active member projection.
+  activeMembersSubscription?.unsubscribe()
+  activeMembersSubscription = queries.observeMembersForRoster
+    .handle()
+    .subscribe({
+      next(members) {
+        activeMembers.value = members
+        isActiveMembersLoading.value = false
+      },
+      error(error) {
+        console.error('Failed to load members', error)
+        isActiveMembersLoading.value = false
+      }
+    })
+}
+
+function subscribeToArchivedMembers() {
+  isArchivedMembersLoading.value = true
+  // What: keep archived roster data loaded alongside active members. Why: tab changes should swap already-observed local-first projections instead of rebuilding one shared subscription.
+  archivedMembersSubscription?.unsubscribe()
+  archivedMembersSubscription = queries
+    .observeArchivedMembersForRoster!.handle()
+    .subscribe({
+      next(members) {
+        archivedMembers.value = members
+        isArchivedMembersLoading.value = false
+      },
+      error(error) {
+        console.error('Failed to load archived members', error)
+        isArchivedMembersLoading.value = false
+      }
+    })
 }
 
 const filteredMembers = computed(() => {
-  const visibleMembers = savedMembers.value.filter((member) => {
+  const visibleMembers = currentMembers.value.filter((member) => {
     const fullName = formatMemberName(member).toLowerCase()
     const matchesSearch = fullName.includes(searchQuery.value.toLowerCase())
     const matchesAge = matchesAgeRange(
@@ -105,13 +142,22 @@ function finishMemberMutation(memberId: string) {
   editError.value = ''
 }
 
+watch(selectedRosterTab, () => {
+  // What: close expanded rows when changing roster scope. Why: active and archived tabs represent different local-first projections, so details from one ledger should not remain open in the other.
+  openMemberId.value = null
+  editError.value = ''
+})
+
 onMounted(() => {
-  subscribeToSavedMembers()
+  subscribeToActiveMembers()
+  subscribeToArchivedMembers()
 })
 
 onBeforeUnmount(() => {
-  membersSubscription?.unsubscribe()
-  membersSubscription = null
+  activeMembersSubscription?.unsubscribe()
+  archivedMembersSubscription?.unsubscribe()
+  activeMembersSubscription = null
+  archivedMembersSubscription = null
 })
 </script>
 
@@ -166,6 +212,23 @@ onBeforeUnmount(() => {
         />
       </section>
 
+      <!-- Roster tabs -->
+      <nav class="members-list-view__tabs" :aria-label="t('tabs.label')">
+        <button
+          v-for="tab in rosterTabs"
+          :key="tab"
+          class="members-list-view__tab"
+          :class="{
+            'members-list-view__tab--active': selectedRosterTab === tab
+          }"
+          type="button"
+          :aria-pressed="selectedRosterTab === tab"
+          @click="selectedRosterTab = tab"
+        >
+          {{ t(`tabs.${tab}`) }}
+        </button>
+      </nav>
+
       <!-- Member Ledger List -->
       <div class="space-y-0 border-t-2 border-on-surface">
         <div
@@ -205,12 +268,20 @@ onBeforeUnmount(() => {
             />
           </summary>
           <MemberDetailsDrawer
+            v-if="selectedRosterTab === 'active'"
             :is-open="openMemberId === member.id"
             :member="member"
             @archived="finishMemberMutation"
             @deleted="finishMemberMutation"
             @error="showEditError"
             @saved="finishMemberEdit"
+          />
+          <ArchivedMemberDetailsDrawer
+            v-else
+            :is-open="openMemberId === member.id"
+            :member="member"
+            @error="showEditError"
+            @unarchived="finishMemberMutation"
           />
         </details>
       </div>
@@ -236,6 +307,54 @@ onBeforeUnmount(() => {
   /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
 }
+
+.members-list-view__tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 2px solid var(--color-on-surface);
+  border-bottom: 2px solid var(--color-on-surface);
+  background: var(--color-surface);
+}
+
+.members-list-view__tab {
+  min-height: 2.5rem;
+  border-bottom: 3px solid transparent;
+  border-left: 0;
+  border-right: 1px solid var(--color-outline-variant);
+  border-top: 0;
+  background: transparent;
+  color: var(--color-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.65rem 0.75rem 0.55rem;
+  text-transform: uppercase;
+  transition:
+    border-color 160ms ease,
+    color 160ms ease,
+    background-color 160ms ease;
+}
+
+.members-list-view__tab:hover,
+.members-list-view__tab:focus-visible {
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface);
+}
+
+.members-list-view__tab:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -4px;
+}
+
+.members-list-view__tab:last-child {
+  border-right: 0;
+}
+
+.members-list-view__tab--active {
+  border-bottom-color: var(--color-primary);
+  color: var(--color-on-surface);
+}
 </style>
 
 <i18n lang="json">
@@ -250,6 +369,11 @@ onBeforeUnmount(() => {
     "search": {
       "label": "Szukaj w rejestrze",
       "placeholder": "Wpisz imię i nazwisko"
+    },
+    "tabs": {
+      "label": "Zakres rejestru",
+      "active": "Aktywni",
+      "archived": "Archiwum"
     },
     "states": {
       "loading": "Ładowanie członków...",
@@ -266,6 +390,11 @@ onBeforeUnmount(() => {
     "search": {
       "label": "Search the register",
       "placeholder": "Enter first and last name"
+    },
+    "tabs": {
+      "label": "Roster scope",
+      "active": "Active",
+      "archived": "Archived"
     },
     "states": {
       "loading": "Loading members...",

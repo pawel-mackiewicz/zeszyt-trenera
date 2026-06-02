@@ -14,6 +14,7 @@ type IconName =
   | 'menu'
   | 'payments'
   | 'search'
+  | 'unarchive'
 
 // Keeping the icon set inline avoids the remote icon webfont that left the shell blank offline.
 defineProps<{
@@ -80,6 +81,12 @@ defineProps<{
       <path d="M5 10h14v8H5z" />
       <path d="m12 13v-3.5" />
       <path d="m9.5 11.5 2.5 2.5 2.5-2.5" />
+    </template>
+    <template v-else-if="name === 'unarchive'">
+      <path d="M4 7h16" />
+      <path d="M5 10h14v8H5z" />
+      <path d="m12 14V9.5" />
+      <path d="m9.5 12 2.5-2.5 2.5 2.5" />
     </template>
     <template v-else-if="name === 'group'">
       <path d="M8.5 12a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z" />

@@ -8,15 +8,22 @@ import MembersListView from '@/ui/features/roster/MembersListView.vue'
 
 describe('MembersListView', () => {
   const mockArchiveMemberHandle = vi.fn()
+  const mockUnarchiveMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
+  const mockObserveArchivedMembersForRosterHandle = vi.fn()
   const mockObserveMembersForRosterHandle = vi.fn()
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
     mockArchiveMemberHandle.mockReset()
+    mockUnarchiveMemberHandle.mockReset()
     mockUpdateMemberHandle.mockReset()
+    mockObserveArchivedMembersForRosterHandle.mockReset()
     mockObserveMembersForRosterHandle.mockReset()
+    mockObserveArchivedMembersForRosterHandle.mockReturnValue(
+      createObservable([])
+    )
     mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
   })
 
@@ -36,12 +43,16 @@ describe('MembersListView', () => {
         },
         provide: createAppServicesProvides({
           queries: {
+            observeArchivedMembersForRoster: {
+              handle: mockObserveArchivedMembersForRosterHandle
+            },
             observeMembersForRoster: {
               handle: mockObserveMembersForRosterHandle
             }
           } as never,
           useCases: {
             archiveMember: { handle: mockArchiveMemberHandle },
+            unarchiveMember: { handle: mockUnarchiveMemberHandle },
             updateMember: { handle: mockUpdateMemberHandle }
           } as never
         })
@@ -71,6 +82,97 @@ describe('MembersListView', () => {
 
     expect(wrapper.text()).toContain('Brak zapisanych członków.')
     expect(wrapper.text()).toContain('0 członków')
+  })
+
+  it('renders active and archived tabs between filters and the member ledger', async () => {
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-active',
+          firstName: 'Active',
+          lastName: 'Member',
+          dateOfBirth: new Date('1994-06-01T00:00:00Z')
+        }
+      ])
+    )
+    mockObserveArchivedMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-archived',
+          firstName: 'Archived',
+          lastName: 'Member',
+          dateOfBirth: new Date('1988-06-01T00:00:00Z')
+        }
+      ])
+    )
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    const tabs = wrapper.get('nav[aria-label="Roster scope"]')
+    const tabButtons = tabs.findAll('button')
+    expect(tabButtons.map((button) => button.text())).toStrictEqual([
+      'Active',
+      'Archived'
+    ])
+    expect(tabButtons[0]?.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('Active Member')
+    expect(wrapper.text()).not.toContain('Archived Member')
+
+    await tabButtons[1]?.trigger('click')
+    await flushPromises()
+
+    expect(mockObserveArchivedMembersForRosterHandle).toHaveBeenCalledOnce()
+    expect(tabButtons[1]?.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('Archived Member')
+    expect(wrapper.text()).not.toContain('Active Member')
+  })
+
+  it('keeps the active roster subscription loaded while switching roster tabs', async () => {
+    const activeMembersObservable = createObservable<MemberRosterListItem[]>([
+      {
+        id: 'member-active',
+        firstName: 'Active',
+        lastName: 'Member',
+        dateOfBirth: new Date('1994-06-01T00:00:00Z')
+      }
+    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(activeMembersObservable)
+    mockObserveArchivedMembersForRosterHandle.mockReturnValue(
+      createObservable([])
+    )
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    const tabButtons = wrapper
+      .get('nav[aria-label="Roster scope"]')
+      .findAll('button')
+    expect(mockObserveMembersForRosterHandle).toHaveBeenCalledTimes(1)
+    expect(mockObserveArchivedMembersForRosterHandle).toHaveBeenCalledTimes(1)
+
+    await tabButtons[1]?.trigger('click')
+    await flushPromises()
+
+    activeMembersObservable.emit([
+      {
+        id: 'member-active-updated',
+        firstName: 'Still',
+        lastName: 'Loaded',
+        dateOfBirth: new Date('1994-06-01T00:00:00Z')
+      }
+    ])
+    await flushPromises()
+
+    expect(mockObserveMembersForRosterHandle).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).not.toContain('Still Loaded')
+
+    await tabButtons[0]?.trigger('click')
+    await flushPromises()
+
+    expect(mockObserveMembersForRosterHandle).toHaveBeenCalledTimes(1)
+    expect(wrapper.text()).toContain('Still Loaded')
+    expect(wrapper.text()).not.toContain('Loading members...')
   })
 
   it('renders the add-member action as the shared route link', async () => {
@@ -114,6 +216,52 @@ describe('MembersListView', () => {
 
     expect(mockArchiveMemberHandle).toHaveBeenCalledWith({
       memberId: 'member-1'
+    })
+    expect(wrapper.get('details').attributes('open')).toBeUndefined()
+  })
+
+  it('shows only the unarchive button for archived members and closes the drawer after restoring', async () => {
+    mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
+    mockObserveArchivedMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-archived',
+          firstName: 'Archived',
+          lastName: 'Member',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1988-06-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
+    mockUnarchiveMemberHandle.mockResolvedValue(undefined)
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper
+      .get('nav[aria-label="Roster scope"]')
+      .findAll('button')[1]
+      .trigger('click')
+    await flushPromises()
+    await wrapper.find('summary').trigger('click')
+
+    expect(wrapper.find('[data-testid="member-archive-open"]').exists()).toBe(
+      false
+    )
+    expect(wrapper.find('[data-testid="member-delete-open"]').exists()).toBe(
+      false
+    )
+    expect(wrapper.get('[data-testid="member-unarchive"]').text()).toBe('')
+    expect(
+      wrapper.get('[data-testid="member-unarchive"]').attributes('aria-label')
+    ).toBe('Unarchive member Archived Member')
+
+    await wrapper.get('[data-testid="member-unarchive"]').trigger('click')
+    await flushPromises()
+
+    expect(mockUnarchiveMemberHandle).toHaveBeenCalledWith({
+      memberId: 'member-archived'
     })
     expect(wrapper.get('details').attributes('open')).toBeUndefined()
   })
