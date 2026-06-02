@@ -79,13 +79,13 @@ import {
   type AttendanceEditorMemberListItem
 } from '@/read/ListMembersForAttendanceEditorQuery'
 import {
-  ListArchivedMembersForRosterQuery,
+  ObserveArchivedMembersForRosterQuery,
   type ArchivedMemberRosterListItem
-} from '@/read/ListArchivedMembersForRosterQuery'
+} from '@/read/ObserveArchivedMembersForRosterQuery'
 import {
-  ListMembersForRosterQuery,
+  ObserveMembersForRosterQuery,
   type MemberRosterListItem
-} from '@/read/ListMembersForRosterQuery'
+} from '@/read/ObserveMembersForRosterQuery'
 import {
   ObserveMembershipPaymentStatusByMonthQuery,
   type MembershipPaymentStatusByMonthResult,
@@ -139,11 +139,11 @@ export type AppQueries = {
   readonly listMembersForAttendanceEditor: {
     handle(): Promise<AttendanceEditorMemberListItem[]>
   }
-  readonly listArchivedMembersForRoster?: {
-    handle(): Promise<ArchivedMemberRosterListItem[]>
+  readonly observeArchivedMembersForRoster?: {
+    handle(): Observable<ArchivedMemberRosterListItem[]>
   }
-  readonly listMembersForRoster: {
-    handle(): Promise<MemberRosterListItem[]>
+  readonly observeMembersForRoster: {
+    handle(): Observable<MemberRosterListItem[]>
   }
   readonly observeMembershipPaymentStatusByMonth: {
     handle(
@@ -312,11 +312,11 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveListMembersForAttendanceEditor = lazy(
     () => new ListMembersForAttendanceEditorQuery(database)
   )
-  const resolveListArchivedMembersForRoster = lazy(
-    () => new ListArchivedMembersForRosterQuery(database)
+  const resolveObserveArchivedMembersForRoster = lazy(
+    () => new ObserveArchivedMembersForRosterQuery(database)
   )
-  const resolveListMembersForRoster = lazy(
-    () => new ListMembersForRosterQuery(database)
+  const resolveObserveMembersForRoster = lazy(
+    () => new ObserveMembersForRosterQuery(database)
   )
   const resolveObserveMembershipPaymentStatusByMonth = lazy(
     () => new ObserveMembershipPaymentStatusByMonthQuery(database)
@@ -467,11 +467,11 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get listMembersForAttendanceEditor() {
       return resolveListMembersForAttendanceEditor()
     },
-    get listArchivedMembersForRoster() {
-      return resolveListArchivedMembersForRoster()
+    get observeArchivedMembersForRoster() {
+      return resolveObserveArchivedMembersForRoster()
     },
-    get listMembersForRoster() {
-      return resolveListMembersForRoster()
+    get observeMembersForRoster() {
+      return resolveObserveMembersForRoster()
     },
     get observeMembershipPaymentStatusByMonth() {
       return resolveObserveMembershipPaymentStatusByMonth()

@@ -70,8 +70,8 @@ describe('appServices', () => {
     expect(services.queries.listMembersForAttendanceEditor).toBe(
       services.queries.listMembersForAttendanceEditor
     )
-    expect(services.queries.listMembersForRoster).toBe(
-      services.queries.listMembersForRoster
+    expect(services.queries.observeMembersForRoster).toBe(
+      services.queries.observeMembersForRoster
     )
     expect(services.queries.getAttendanceSessionById).toBe(
       services.queries.getAttendanceSessionById

@@ -3,18 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createAppI18n } from '@/ui/i18n.ts'
 import { createAppServicesProvides } from '@/ui/appServices.ts'
+import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import MembersListView from '@/ui/features/roster/MembersListView.vue'
 
 describe('MembersListView', () => {
   const mockUpdateMemberHandle = vi.fn()
-  const mockListMembersForRosterHandle = vi.fn()
+  const mockObserveMembersForRosterHandle = vi.fn()
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
     mockUpdateMemberHandle.mockReset()
-    mockListMembersForRosterHandle.mockReset()
-    mockListMembersForRosterHandle.mockResolvedValue([])
+    mockObserveMembersForRosterHandle.mockReset()
+    mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
   })
 
   afterEach(() => {
@@ -33,8 +34,8 @@ describe('MembersListView', () => {
         },
         provide: createAppServicesProvides({
           queries: {
-            listMembersForRoster: {
-              handle: mockListMembersForRosterHandle
+            observeMembersForRoster: {
+              handle: mockObserveMembersForRosterHandle
             }
           } as never,
           useCases: {
@@ -46,8 +47,8 @@ describe('MembersListView', () => {
   }
 
   it('renders loading copy from the local English dictionary', async () => {
-    mockListMembersForRosterHandle.mockImplementation(
-      () => new Promise(() => undefined) as never
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([], { emit: false })
     )
 
     const wrapper = mountView('en')
@@ -60,7 +61,7 @@ describe('MembersListView', () => {
   })
 
   it('renders the empty state from the local Polish dictionary', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([])
+    mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -70,7 +71,7 @@ describe('MembersListView', () => {
   })
 
   it('renders the add-member action as the shared route link', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([])
+    mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -81,29 +82,31 @@ describe('MembersListView', () => {
   })
 
   it('sorts members alphabetically by the visible full name', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Zane',
-        lastName: 'Beta',
-        dateOfBirth: new Date('1994-06-01T00:00:00Z'),
-        createdAt: new Date('2026-03-22T10:00:00Z')
-      },
-      {
-        id: 'member-2',
-        firstName: 'Adam',
-        lastName: 'Zulu',
-        dateOfBirth: new Date('1986-03-01T00:00:00Z'),
-        createdAt: new Date('2026-03-23T10:00:00Z')
-      },
-      {
-        id: 'member-3',
-        firstName: 'Adam',
-        lastName: 'Alpha',
-        dateOfBirth: new Date('2003-08-01T00:00:00Z'),
-        createdAt: new Date('2026-03-24T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Zane',
+          lastName: 'Beta',
+          dateOfBirth: new Date('1994-06-01T00:00:00Z'),
+          createdAt: new Date('2026-03-22T10:00:00Z')
+        },
+        {
+          id: 'member-2',
+          firstName: 'Adam',
+          lastName: 'Zulu',
+          dateOfBirth: new Date('1986-03-01T00:00:00Z'),
+          createdAt: new Date('2026-03-23T10:00:00Z')
+        },
+        {
+          id: 'member-3',
+          firstName: 'Adam',
+          lastName: 'Alpha',
+          dateOfBirth: new Date('2003-08-01T00:00:00Z'),
+          createdAt: new Date('2026-03-24T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -116,7 +119,7 @@ describe('MembersListView', () => {
   })
 
   it('renders dedicated sort field choices and one direction toggle', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([])
+    mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -143,32 +146,34 @@ describe('MembersListView', () => {
   })
 
   it('changes roster ordering when the selected sort field or direction changes', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Zane',
-        lastName: 'Beta',
-        dateOfBirth: new Date('1994-06-01T00:00:00Z'),
-        joinedAt: new Date('2024-02-01T00:00:00Z'),
-        createdAt: new Date('2026-03-22T10:00:00Z')
-      },
-      {
-        id: 'member-2',
-        firstName: 'Adam',
-        lastName: 'Zulu',
-        dateOfBirth: new Date('1986-03-01T00:00:00Z'),
-        joinedAt: new Date('2023-01-15T00:00:00Z'),
-        createdAt: new Date('2026-03-23T10:00:00Z')
-      },
-      {
-        id: 'member-3',
-        firstName: 'Adam',
-        lastName: 'Alpha',
-        dateOfBirth: new Date('2003-08-01T00:00:00Z'),
-        joinedAt: new Date('2025-04-01T00:00:00Z'),
-        createdAt: new Date('2026-03-24T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Zane',
+          lastName: 'Beta',
+          dateOfBirth: new Date('1994-06-01T00:00:00Z'),
+          joinedAt: new Date('2024-02-01T00:00:00Z'),
+          createdAt: new Date('2026-03-22T10:00:00Z')
+        },
+        {
+          id: 'member-2',
+          firstName: 'Adam',
+          lastName: 'Zulu',
+          dateOfBirth: new Date('1986-03-01T00:00:00Z'),
+          joinedAt: new Date('2023-01-15T00:00:00Z'),
+          createdAt: new Date('2026-03-23T10:00:00Z')
+        },
+        {
+          id: 'member-3',
+          firstName: 'Adam',
+          lastName: 'Alpha',
+          dateOfBirth: new Date('2003-08-01T00:00:00Z'),
+          joinedAt: new Date('2025-04-01T00:00:00Z'),
+          createdAt: new Date('2026-03-24T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -215,32 +220,34 @@ describe('MembersListView', () => {
   })
 
   it('applies normalized age-range filtering when slider handles cross', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Anderson',
-        lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
-      },
-      {
-        id: 'member-2',
-        firstName: 'Royce',
-        lastName: 'Gracie',
-        phoneNumber: '+48 222 222 222',
-        dateOfBirth: new Date('1970-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-21T10:00:00Z')
-      },
-      {
-        id: 'member-3',
-        firstName: 'Mystery',
-        lastName: 'Member',
-        phoneNumber: '+48 333 333 333',
-        dateOfBirth: new Date('2018-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-22T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        },
+        {
+          id: 'member-2',
+          firstName: 'Royce',
+          lastName: 'Gracie',
+          phoneNumber: '+48 222 222 222',
+          dateOfBirth: new Date('1970-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-21T10:00:00Z')
+        },
+        {
+          id: 'member-3',
+          firstName: 'Mystery',
+          lastName: 'Member',
+          phoneNumber: '+48 333 333 333',
+          dateOfBirth: new Date('2018-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-22T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -258,17 +265,19 @@ describe('MembersListView', () => {
   })
 
   it('submits member updates through the application layer use case', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Anderson',
-        lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        joinedAt: new Date('2024-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          joinedAt: new Date('2024-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
     mockUpdateMemberHandle.mockResolvedValue(undefined)
 
     const wrapper = mountView('en')
@@ -297,18 +306,28 @@ describe('MembersListView', () => {
   })
 
   it('keeps edit labels plain while letting the edit form clear phone', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
+    const membersObservable = createObservable<MemberRosterListItem[]>([
       {
         id: 'member-1',
         firstName: 'Anderson',
         lastName: 'Silva',
         phoneNumber: '+48 111 111 111',
         dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        joinedAt: new Date('2024-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
+        joinedAt: new Date('2024-01-01T00:00:00Z')
       }
     ])
-    mockUpdateMemberHandle.mockResolvedValue(undefined)
+    mockObserveMembersForRosterHandle.mockReturnValue(membersObservable)
+    mockUpdateMemberHandle.mockImplementation(async () => {
+      membersObservable.emit([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          joinedAt: new Date('2024-01-01T00:00:00Z')
+        }
+      ])
+    })
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -355,16 +374,18 @@ describe('MembersListView', () => {
   })
 
   it('renders call and msg actions for saved phone numbers', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Anderson',
-        lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -379,16 +400,18 @@ describe('MembersListView', () => {
   })
 
   it('localizes call and msg actions in Polish', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Anderson',
-        lastName: 'Silva',
-        phoneNumber: '+48 111 111 111',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('pl')
     await flushPromises()
@@ -403,15 +426,17 @@ describe('MembersListView', () => {
   })
 
   it('renders missing phone with the same typography as missing joined date details', async () => {
-    mockListMembersForRosterHandle.mockResolvedValue([
-      {
-        id: 'member-1',
-        firstName: 'Anderson',
-        lastName: 'Silva',
-        dateOfBirth: new Date('1990-01-01T00:00:00Z'),
-        createdAt: new Date('2026-03-20T10:00:00Z')
-      }
-    ])
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
 
     const wrapper = mountView('en')
     await flushPromises()
@@ -430,3 +455,31 @@ describe('MembersListView', () => {
     )
   })
 })
+
+type TestObservableObserver<T> = {
+  next(value: T): void
+  error(error: unknown): void
+}
+
+function createObservable<T>(value: T, options: { emit?: boolean } = {}) {
+  const observers = new Set<TestObservableObserver<T>>()
+
+  return {
+    emit(value: T) {
+      observers.forEach((observer) => observer.next(value))
+    },
+    subscribe(observer: TestObservableObserver<T>) {
+      observers.add(observer)
+
+      if (options.emit !== false) {
+        observer.next(value)
+      }
+
+      return {
+        unsubscribe() {
+          observers.delete(observer)
+        }
+      }
+    }
+  }
+}

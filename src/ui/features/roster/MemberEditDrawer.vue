@@ -10,7 +10,7 @@ import {
   MemberNotFoundError
 } from '@/write/domain/model/Member'
 import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
-import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
+import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 

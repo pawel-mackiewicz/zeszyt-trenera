@@ -1,21 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Observable } from 'dexie'
 
 import { TrainerNotebookDb } from '@/db'
-import { ListArchivedMembersForRosterQuery } from '@/read/ListArchivedMembersForRosterQuery'
+import { ObserveArchivedMembersForRosterQuery } from '@/read/ObserveArchivedMembersForRosterQuery'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
 }
 
-describe('ListArchivedMembersForRosterQuery', () => {
+describe('ObserveArchivedMembersForRosterQuery', () => {
   let database: TrainerNotebookDb
-  let query: ListArchivedMembersForRosterQuery
+  let query: ObserveArchivedMembersForRosterQuery
 
   beforeEach(() => {
     database = new TrainerNotebookDb(
       createTestDbName('archived-members-roster-read')
     )
-    query = new ListArchivedMembersForRosterQuery(database)
+    query = new ObserveArchivedMembersForRosterQuery(database)
   })
 
   afterEach(async () => {
@@ -53,7 +54,7 @@ describe('ListArchivedMembersForRosterQuery', () => {
       }
     ])
 
-    await expect(query.handle()).resolves.toEqual([
+    await expect(waitForFirstEmission(query.handle())).resolves.toEqual([
       {
         id: 'member-1',
         firstName: 'anderson',
@@ -84,6 +85,21 @@ describe('ListArchivedMembersForRosterQuery', () => {
       }
     ])
 
-    await expect(query.handle()).resolves.toEqual([])
+    await expect(waitForFirstEmission(query.handle())).resolves.toEqual([])
   })
 })
+
+function waitForFirstEmission<T>(observable: Observable<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const subscription = observable.subscribe({
+      next(value) {
+        queueMicrotask(() => subscription.unsubscribe())
+        resolve(value)
+      },
+      error(error) {
+        queueMicrotask(() => subscription.unsubscribe())
+        reject(error)
+      }
+    })
+  })
+}

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
+import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
@@ -34,6 +34,7 @@ const memberSortDirection = ref<MemberSortDirection>('asc')
 
 const openMemberId = ref<string | null>(null)
 const editError = ref('')
+let membersSubscription: { unsubscribe(): void } | null = null
 const membersCountLabel = computed(() =>
   t('summary.memberCount', { count: savedMembers.value.length })
 )
@@ -42,16 +43,20 @@ function formatMemberName(member: MemberRosterListItem): string {
   return `${member.firstName} ${member.lastName}`
 }
 
-async function loadSavedMembers() {
+function subscribeToSavedMembers() {
   isLoading.value = true
-  try {
-    // What: load roster rows through the read query bag. Why: this members screen should consume application read contracts instead of opening Dexie directly in UI code.
-    savedMembers.value = await queries.listMembersForRoster.handle()
-  } catch (error) {
-    console.error('Failed to load members', error)
-  } finally {
-    isLoading.value = false
-  }
+  // What: keep the roster list wired to the application read contract. Why: the members screen should refresh automatically when local writes change the roster instead of performing manual reloads.
+  membersSubscription?.unsubscribe()
+  membersSubscription = queries.observeMembersForRoster.handle().subscribe({
+    next(members) {
+      savedMembers.value = members
+      isLoading.value = false
+    },
+    error(error) {
+      console.error('Failed to load members', error)
+      isLoading.value = false
+    }
+  })
 }
 
 const filteredMembers = computed(() => {
@@ -88,20 +93,11 @@ function showEditError(message: string) {
   editError.value = message
 }
 
-function finishMemberEdit(updatedMember: MemberRosterListItem) {
-  // What: update the rendered member immediately after saving. Why: local-first UX should confirm edits instantly instead of waiting for a full table reload.
-  savedMembers.value = savedMembers.value.map((member) =>
-    member.id === updatedMember.id ? updatedMember : member
-  )
+function finishMemberEdit() {
   editError.value = ''
 }
 
 function finishMemberDelete(memberId: string) {
-  // What: remove the deleted member from the current read-model projection. Why: successful local-first writes should update the roster immediately without forcing a full query reload.
-  savedMembers.value = savedMembers.value.filter(
-    (member) => member.id !== memberId
-  )
-
   if (openMemberId.value === memberId) {
     openMemberId.value = null
   }
@@ -110,7 +106,12 @@ function finishMemberDelete(memberId: string) {
 }
 
 onMounted(() => {
-  void loadSavedMembers()
+  subscribeToSavedMembers()
+})
+
+onBeforeUnmount(() => {
+  membersSubscription?.unsubscribe()
+  membersSubscription = null
 })
 </script>
 

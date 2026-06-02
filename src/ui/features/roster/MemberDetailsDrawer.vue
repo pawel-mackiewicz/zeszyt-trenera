@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { MemberRosterListItem } from '@/read/ListMembersForRosterQuery'
+import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'

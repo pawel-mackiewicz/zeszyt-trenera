@@ -1,19 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import type { Observable } from 'dexie'
 
 import { TrainerNotebookDb } from '@/db'
-import { ListMembersForRosterQuery } from '@/read/ListMembersForRosterQuery'
+import { ObserveMembersForRosterQuery } from '@/read/ObserveMembersForRosterQuery'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
 }
 
-describe('ListMembersForRosterQuery', () => {
+describe('ObserveMembersForRosterQuery', () => {
   let database: TrainerNotebookDb
-  let query: ListMembersForRosterQuery
+  let query: ObserveMembersForRosterQuery
 
   beforeEach(() => {
     database = new TrainerNotebookDb(createTestDbName('members-roster-read'))
-    query = new ListMembersForRosterQuery(database)
+    query = new ObserveMembersForRosterQuery(database)
   })
 
   afterEach(async () => {
@@ -50,7 +51,7 @@ describe('ListMembersForRosterQuery', () => {
       }
     ])
 
-    await expect(query.handle()).resolves.toEqual([
+    await expect(waitForFirstEmission(query.handle())).resolves.toEqual([
       {
         id: 'member-1',
         firstName: 'anderson',
@@ -71,6 +72,21 @@ describe('ListMembersForRosterQuery', () => {
   })
 
   it('returns an empty list when no members are persisted', async () => {
-    await expect(query.handle()).resolves.toEqual([])
+    await expect(waitForFirstEmission(query.handle())).resolves.toEqual([])
   })
 })
+
+function waitForFirstEmission<T>(observable: Observable<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const subscription = observable.subscribe({
+      next(value) {
+        queueMicrotask(() => subscription.unsubscribe())
+        resolve(value)
+      },
+      error(error) {
+        queueMicrotask(() => subscription.unsubscribe())
+        reject(error)
+      }
+    })
+  })
+}
