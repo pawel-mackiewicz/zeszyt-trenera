@@ -8,11 +8,9 @@ export default defineConfig({
   testDir: './E2E',
   testMatch: '**/*.spec.ts',
   outputDir: 'E2E/.temp/test-results',
-  fullyParallel: true,
   forbidOnly: isCi,
-  retries: isCi ? 2 : 0,
-  // Why: CI should favor deterministic local-first storage isolation over raw browser parallelism while local runs can use Playwright defaults.
-  workers: isCi ? 1 : undefined,
+  retries: isCi ? 2 : 1,
+  workers: isCi ? 1 : 2,
   reporter: [
     ['list'],
     [
