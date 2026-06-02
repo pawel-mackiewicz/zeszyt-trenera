@@ -73,6 +73,31 @@ describe('ObserveMembershipPaymentSummaryByMonthQuery', () => {
       start: new Date('2026-03-10T18:00:00Z')
     })
 
+    await database.members.add({
+      id: 'member-archived',
+      firstName: 'Archived',
+      lastName: 'Fighter',
+      phoneNumber: '+48444444444',
+      dateOfBirth: new Date('1970-01-01T00:00:00Z'),
+      archived: true,
+      archivedAt: new Date('2026-03-11T00:00:00Z'),
+      createdAt: new Date('2026-03-11T00:00:00Z')
+    })
+    await services.useCases.registerMembershipPayment.handle({
+      memberId: 'member-archived',
+      coveredMonth: '2026-03',
+      chargedAmount: {
+        amountMinor: 999_00,
+        currency: 'PLN'
+      }
+    })
+    await database.attendanceLists.add({
+      id: 'attendance-archived',
+      memberIds: ['member-archived'],
+      start: new Date('2026-03-11T18:00:00Z'),
+      createdAt: new Date('2026-03-11T18:30:00Z')
+    })
+
     const observable =
       services.queries.observeMembershipPaymentSummaryByMonth.handle({
         month: new Date('2026-03-15T00:00:00Z')

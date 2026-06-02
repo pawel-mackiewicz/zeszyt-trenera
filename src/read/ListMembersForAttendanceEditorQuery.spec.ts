@@ -41,6 +41,15 @@ describe('ListMembersForAttendanceEditorQuery', () => {
         lastName: 'member',
         dateOfBirth: new Date('2000-01-01T00:00:00Z'),
         createdAt: new Date('2026-03-21T10:00:00Z')
+      },
+      {
+        id: 'member-archived',
+        firstName: 'old',
+        lastName: 'member',
+        dateOfBirth: new Date('1999-01-01T00:00:00Z'),
+        archived: true,
+        archivedAt: new Date('2026-03-22T10:00:00Z'),
+        createdAt: new Date('2026-03-22T10:00:00Z')
       }
     ])
 

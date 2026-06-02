@@ -16,9 +16,12 @@ export class ListMembersForAttendanceEditorQuery {
   public async handle(): Promise<AttendanceEditorMemberListItem[]> {
     const now = this.nowProvider()
     const persistedMembers = await this.database.members.toArray()
+    const activeMembers = persistedMembers.filter(
+      (member) => member.archived !== true
+    )
 
     // What: project roster rows to attendance-only fields with derived age. Why: the attendance picker must not receive unrelated personal data when it only needs identity and age filtering.
-    return persistedMembers.map((member) => ({
+    return activeMembers.map((member) => ({
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,

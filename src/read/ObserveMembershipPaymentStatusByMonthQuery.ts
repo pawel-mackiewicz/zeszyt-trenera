@@ -62,13 +62,21 @@ export class ObserveMembershipPaymentStatusByMonthQuery {
             .toArray()
         ])
 
+      const activeMembers = members.filter((member) => member.archived !== true)
+      const activeMemberIds = new Set(activeMembers.map((member) => member.id))
       const paymentByMemberId = new Map(
-        persistedPayments.map((payment) => [payment.memberId, payment])
+        persistedPayments
+          .filter((payment) => activeMemberIds.has(payment.memberId))
+          .map((payment) => [payment.memberId, payment])
       )
       const attendanceSessionIdsByMemberId = new Map<string, string[]>()
 
       for (const attendanceList of persistedAttendanceLists) {
         for (const memberId of attendanceList.memberIds) {
+          if (!activeMemberIds.has(memberId)) {
+            continue
+          }
+
           const attendanceSessionIds =
             attendanceSessionIdsByMemberId.get(memberId)
 
@@ -87,7 +95,7 @@ export class ObserveMembershipPaymentStatusByMonthQuery {
         unpaidAttendedMembers: []
       }
 
-      for (const member of members) {
+      for (const member of activeMembers) {
         const listItem = {
           id: member.id,
           firstName: member.firstName,

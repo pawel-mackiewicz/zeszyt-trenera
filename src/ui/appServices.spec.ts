@@ -53,6 +53,9 @@ describe('uiAppServices', () => {
         bootstrapDemoMode: {
           handle
         },
+        archiveMember: {
+          handle
+        },
         deleteAttendanceList: {
           handle
         },
@@ -96,6 +99,9 @@ describe('uiAppServices', () => {
           handle
         },
         updateMember: {
+          handle
+        },
+        unarchiveMember: {
           handle
         }
       }

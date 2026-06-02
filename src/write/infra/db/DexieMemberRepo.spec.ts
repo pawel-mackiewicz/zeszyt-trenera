@@ -78,6 +78,7 @@ describe('DexieMemberRepo', () => {
       firstName: member.firstName,
       lastName: member.lastName,
       dateOfBirth: member.dateOfBirth,
+      archived: false,
       createdAt: member.createdAt
     })
     expect(persistedMember && 'phoneNumber' in persistedMember).toBe(false)

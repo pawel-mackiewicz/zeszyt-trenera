@@ -58,6 +58,16 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         lastName: 'Gracie',
         dateOfBirth: new Date('1958-11-20T00:00:00Z'),
         createdAt: new Date('2026-01-04T00:00:00Z')
+      },
+      {
+        id: 'member-archived',
+        firstName: 'Archived',
+        lastName: 'Fighter',
+        phoneNumber: '+48444444444',
+        dateOfBirth: new Date('1970-01-01T00:00:00Z'),
+        archived: true,
+        archivedAt: new Date('2026-01-05T00:00:00Z'),
+        createdAt: new Date('2026-01-05T00:00:00Z')
       }
     ])
     await database.membershipPayments.bulkAdd([
@@ -72,6 +82,12 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         memberId: 'member-other-month-payment',
         coveredMonth: '2026-02',
         createdAt: new Date('2026-02-01T00:00:00Z')
+      },
+      {
+        id: 'payment-archived',
+        memberId: 'member-archived',
+        coveredMonth: '2026-03',
+        createdAt: new Date('2026-03-01T00:00:00Z')
       }
     ])
     await database.attendanceLists.bulkAdd([
@@ -92,6 +108,12 @@ describe('ObserveMembershipPaymentStatusByMonthQuery', () => {
         memberIds: ['member-absent'],
         start: new Date('2026-02-20T18:00:00Z'),
         createdAt: new Date('2026-02-20T18:30:00Z')
+      },
+      {
+        id: 'attendance-archived',
+        memberIds: ['member-archived'],
+        start: new Date('2026-03-25T18:00:00Z'),
+        createdAt: new Date('2026-03-25T18:30:00Z')
       }
     ])
 

@@ -1,7 +1,7 @@
 import type { TrainerNotebookDb } from '@/db'
 import { copyDate, copyOptionalDate } from '@/write/domain/model/DateUtils'
 
-export type MemberRosterListItem = {
+export type ArchivedMemberRosterListItem = {
   id: string
   firstName: string
   lastName: string
@@ -10,17 +10,17 @@ export type MemberRosterListItem = {
   joinedAt?: Date
 }
 
-export class ListMembersForRosterQuery {
+export class ListArchivedMembersForRosterQuery {
   public constructor(private readonly database: TrainerNotebookDb) {}
 
-  public async handle(): Promise<MemberRosterListItem[]> {
-    const persistedMembers = await this.database.members.toArray()
-    const activeMembers = persistedMembers.filter(
-      (member) => member.archived !== true
-    )
+  public async handle(): Promise<ArchivedMemberRosterListItem[]> {
+    const archivedMembers = await this.database.members
+      .toCollection()
+      .filter((member) => member.archived === true)
+      .toArray()
 
-    // What: expose only roster fields for details and inline edits. Why: the members screen should not receive storage-only metadata that it never renders.
-    return activeMembers.map((member) => ({
+    // What: expose only roster fields for archived members. Why: the archived roster view should get a dedicated read model without storage-only metadata or active members mixed in.
+    return archivedMembers.map((member) => ({
       id: member.id,
       firstName: member.firstName,
       lastName: member.lastName,

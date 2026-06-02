@@ -9,6 +9,7 @@ import {
   DeleteMemberUseCase,
   type DeleteMemberResult
 } from '@/write/application/DeleteMemberUseCase'
+import { ArchiveMemberUseCase } from '@/write/application/ArchiveMemberUseCase'
 import { DeleteMembershipPaymentUseCase } from '@/write/application/DeleteMembershipPaymentUseCase'
 import { ExportDatabaseBackupUseCase } from '@/write/application/ExportDatabaseBackupUseCase'
 import { ImportDatabaseBackupUseCase } from '@/write/application/ImportDatabaseBackupUseCase'
@@ -30,15 +31,18 @@ import type { DeleteMembershipPaymentCommand } from '@/write/application/request
 import type { ExportDatabaseBackupCommand } from '@/write/application/requests/ExportDatabaseBackupCommand'
 import type { ImportDatabaseBackupCommand } from '@/write/application/requests/ImportDatabaseBackupCommand'
 import type { LeaveDemoModeCommand } from '@/write/application/requests/LeaveDemoModeCommand'
+import type { ArchiveMemberCommand } from '@/write/application/requests/ArchiveMemberCommand'
 import type { RegisterAttendanceListCommand } from '@/write/application/requests/RegisterAttendanceListCommand'
 import type { RegisterClubCommand } from '@/write/application/requests/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/write/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/write/application/requests/RegisterMembershipPaymentCommand'
 import type { ResetApplicationDataCommand } from '@/write/application/requests/ResetApplicationDataCommand'
+import type { UnarchiveMemberCommand } from '@/write/application/requests/UnarchiveMemberCommand'
 import type { RegisterTrainerCommand } from '@/write/application/requests/RegisterTrainerCommand'
 import type { SendMembershipPaymentReminderCommand } from '@/write/application/requests/SendMembershipPaymentReminderCommand'
 import type { UpdateAttendanceListCommand } from '@/write/application/requests/UpdateAttendanceListCommand'
 import type { UpdateMemberCommand } from '@/write/application/requests/UpdateMemberCommand'
+import { UnarchiveMemberUseCase } from '@/write/application/UnarchiveMemberUseCase'
 import type { TrainerNotebookDb } from '@/db'
 import { BrowserSmsComposer } from '@/write/infra/BrowserSmsComposer'
 import { DemoSeedFactory } from '@/write/infra/demo/DemoSeedFactory.ts'
@@ -75,6 +79,10 @@ import {
   type AttendanceEditorMemberListItem
 } from '@/read/ListMembersForAttendanceEditorQuery'
 import {
+  ListArchivedMembersForRosterQuery,
+  type ArchivedMemberRosterListItem
+} from '@/read/ListArchivedMembersForRosterQuery'
+import {
   ListMembersForRosterQuery,
   type MemberRosterListItem
 } from '@/read/ListMembersForRosterQuery'
@@ -100,6 +108,7 @@ export type AppUseCases = {
   >
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
+  readonly archiveMember: UseCase<ArchiveMemberCommand>
   readonly deleteMembershipPayment: UseCase<DeleteMembershipPaymentCommand>
   readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
   readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
@@ -113,6 +122,7 @@ export type AppUseCases = {
   readonly sendMembershipPaymentReminder: UseCase<SendMembershipPaymentReminderCommand>
   readonly updateAttendanceList: UseCase<UpdateAttendanceListCommand>
   readonly updateMember: UseCase<UpdateMemberCommand>
+  readonly unarchiveMember: UseCase<UnarchiveMemberCommand>
 }
 
 export type AppQueries = {
@@ -128,6 +138,9 @@ export type AppQueries = {
   }
   readonly listMembersForAttendanceEditor: {
     handle(): Promise<AttendanceEditorMemberListItem[]>
+  }
+  readonly listArchivedMembersForRoster?: {
+    handle(): Promise<ArchivedMemberRosterListItem[]>
   }
   readonly listMembersForRoster: {
     handle(): Promise<MemberRosterListItem[]>
@@ -265,6 +278,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveEventRepo()
       )
   )
+  const resolveArchiveMember = lazy(
+    () =>
+      new ArchiveMemberUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveEventRepo()
+      )
+  )
   const resolveDeleteMembershipPayment = lazy(
     () =>
       new DeleteMembershipPaymentUseCase(
@@ -290,6 +311,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   )
   const resolveListMembersForAttendanceEditor = lazy(
     () => new ListMembersForAttendanceEditorQuery(database)
+  )
+  const resolveListArchivedMembersForRoster = lazy(
+    () => new ListArchivedMembersForRosterQuery(database)
   )
   const resolveListMembersForRoster = lazy(
     () => new ListMembersForRosterQuery(database)
@@ -348,6 +372,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveEventRepo()
       )
   )
+  const resolveUnarchiveMember = lazy(
+    () =>
+      new UnarchiveMemberUseCase(
+        resolveUnitOfWork(),
+        resolveMemberRepo(),
+        resolveEventRepo()
+      )
+  )
   const resolveResetApplicationData = lazy(
     () =>
       new ResetApplicationDataUseCase(
@@ -376,6 +408,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get deleteMember() {
       return resolveDeleteMember()
+    },
+    get archiveMember() {
+      return resolveArchiveMember()
     },
     get deleteMembershipPayment() {
       return resolveDeleteMembershipPayment()
@@ -415,6 +450,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get updateMember() {
       return resolveUpdateMember()
+    },
+    get unarchiveMember() {
+      return resolveUnarchiveMember()
     }
   }
 
@@ -428,6 +466,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get listMembersForAttendanceEditor() {
       return resolveListMembersForAttendanceEditor()
+    },
+    get listArchivedMembersForRoster() {
+      return resolveListArchivedMembersForRoster()
     },
     get listMembersForRoster() {
       return resolveListMembersForRoster()
