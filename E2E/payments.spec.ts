@@ -2,11 +2,13 @@ import { expect, test } from 'playwright/test'
 
 import {
   confirmPayment,
+  confirmPaymentMemberArchive,
   confirmPaymentDeletion,
   currentDemoPaymentTargets,
   expectPaidPaymentRow,
   expectPaymentDeletionConfirmationContext,
   expectPaymentConfirmationContext,
+  expectPaymentMemberArchivePersisted,
   expectPaymentWritePersistedAsUnpaid,
   expectPaymentWritePersistedAsPaid,
   expectReminderWorkflowReachable,
@@ -16,9 +18,15 @@ import {
   openDemoPayments,
   openMonthlyPaymentSummary,
   openPaymentConfirmation,
-  readMonthlyPaymentSummary,
-  openPaymentDeletion
+  openPaymentMemberArchiveConfirmation,
+  openPaymentDeletion,
+  readMonthlyPaymentSummary
 } from './support/payments'
+import {
+  expectRosterMemberVisible,
+  openRosterAfterLocalWrites,
+  openRosterTab
+} from './support/roster'
 
 test('shows attendance context in the mark-as-paid modal for an attended unpaid member', async ({
   page
@@ -121,6 +129,24 @@ test('moves a deleted payment back to unpaid members', async ({ page }) => {
   })
   await confirmPaymentDeletion(page)
   await expectPaymentWritePersistedAsUnpaid(page, paid)
+})
+
+test('archives an absent unpaid member from the payment row after reload', async ({
+  page
+}) => {
+  const { absent } = currentDemoPaymentTargets()
+
+  await openDemoPayments(page)
+  await filterPaymentsByMember(page, absent)
+  await expectUnpaidAbsentPaymentRow(page)
+
+  await openPaymentMemberArchiveConfirmation(page, absent)
+  await confirmPaymentMemberArchive(page)
+  await expectPaymentMemberArchivePersisted(page, absent)
+
+  await openRosterAfterLocalWrites(page)
+  await openRosterTab(page, 'Archiwum')
+  await expectRosterMemberVisible(page, absent.fullName)
 })
 
 test('opens a payment reminder without showing SMS failure and keeps the ledger usable', async ({

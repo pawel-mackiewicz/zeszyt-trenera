@@ -69,6 +69,23 @@ export async function reloadRosterAfterLocalWrites(page: Page) {
   await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
 }
 
+export async function openRosterAfterLocalWrites(page: Page) {
+  await page.goto('/member')
+  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+
+  // Why: cross-feature member writes should be verified from a fresh roster projection, not from the route that performed the write.
+  await reloadRosterAfterLocalWrites(page)
+}
+
+export async function openRosterTab(page: Page, tabName: string) {
+  const tab = page.getByRole('button', {
+    name: new RegExp(`^${escapeRegExp(tabName)}$`, 'i')
+  })
+
+  await tab.click()
+  await expect(tab).toHaveAttribute('aria-pressed', 'true')
+}
+
 export function rosterMemberName(page: Page, fullName: string): Locator {
   // Why: member specs and shell flows share exact-name roster assertions, so escaping the regex once keeps readable tests from duplicating brittle locator details.
   return page.getByText(new RegExp(`^${escapeRegExp(fullName)}$`, 'i'))

@@ -115,6 +115,22 @@ export async function openPaymentConfirmation(page: Page) {
   await expect(paymentConfirmationDialog(page)).toBeVisible()
 }
 
+export async function openPaymentMemberArchiveConfirmation(
+  page: Page,
+  member: DemoPaymentMemberTarget
+) {
+  const archiveButton = page.getByRole('button', {
+    name: new RegExp(
+      `^zarchiwizuj członka ${escapeRegExp(member.fullName)}$`,
+      'i'
+    )
+  })
+
+  await scrollActionIntoSafeView(archiveButton)
+  await archiveButton.click()
+  await expect(paymentMemberArchiveDialog(page)).toBeVisible()
+}
+
 export async function cancelPaymentConfirmation(page: Page) {
   await paymentConfirmationDialog(page)
     .getByRole('button', { name: /^anuluj$/i })
@@ -130,6 +146,13 @@ export async function confirmPayment(page: Page, chargedAmount = '160,00') {
     .getByRole('button', { name: /^potwierdź płatność$/i })
     .click()
   await expect(paymentConfirmationDialog(page)).not.toBeVisible()
+}
+
+export async function confirmPaymentMemberArchive(page: Page) {
+  await paymentMemberArchiveDialog(page)
+    .getByRole('button', { name: /^archiwizuj$/i })
+    .click()
+  await expect(paymentMemberArchiveDialog(page)).not.toBeVisible()
 }
 
 export async function openPaymentDeletion(
@@ -281,6 +304,19 @@ export async function expectPaymentWritePersistedAsUnpaid(
   ).not.toBeVisible()
 }
 
+export async function expectPaymentMemberArchivePersisted(
+  page: Page,
+  member: DemoPaymentMemberTarget
+) {
+  // Why: archiving from payments is a local-first member write, so the member must disappear from the freshly reloaded monthly ledger instead of only from transient Vue state.
+  await reloadPaymentsAfterLocalWrites(page)
+  await page.getByLabel(/szukaj członka/i).fill(member.fullName)
+  await expect(paymentMemberName(page, member)).not.toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /^oznacz jako opłacone$/i })
+  ).not.toBeVisible()
+}
+
 export async function expectReminderWorkflowReachable(page: Page) {
   const reminderButton = page.getByRole('button', { name: /^przypomnij$/i })
 
@@ -325,6 +361,12 @@ function paymentConfirmationDialog(page: Page): Locator {
 function paymentDeletionDialog(page: Page): Locator {
   return page.getByRole('dialog', {
     name: /^usunąć zapisaną płatność\?$/i
+  })
+}
+
+function paymentMemberArchiveDialog(page: Page): Locator {
+  return page.getByRole('dialog', {
+    name: /^zarchiwizować członka\?$/i
   })
 }
 
