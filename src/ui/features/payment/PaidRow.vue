@@ -32,7 +32,7 @@ function handleDelete() {
 </script>
 
 <template>
-  <BasePaymentRow class="payments-member-row--paid bg-emerald-50/70">
+  <BasePaymentRow class="payments-paid-row bg-emerald-50/70">
     <template #name>{{ memberName }}</template>
     <template #meta>{{ ageLabel }}</template>
     <template #aside>
@@ -57,9 +57,28 @@ function handleDelete() {
   justify-self: end;
 }
 
-@media (max-width: 500px) {
+@media (max-width: 719px) {
+  .payments-paid-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+  }
+
+  .payments-paid-row :deep(.payments-member-row__aside),
   .payments-paid-actions {
-    justify-self: start;
+    display: contents;
+  }
+
+  .payments-paid-actions :deep(.delete-icon-button) {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
+    justify-self: end;
+  }
+}
+
+@media (min-width: 720px) {
+  .payments-paid-actions {
+    justify-self: end;
   }
 }
 </style>
