@@ -167,61 +167,66 @@ onBeforeUnmount(() => {
       />
 
       <!-- Member Ledger List -->
-      <div class="space-y-0 border-t-2 border-on-surface">
+      <Transition name="roster-tab-ledger" mode="out-in">
         <div
-          v-if="isLoading"
-          class="p-8 text-center font-mono text-secondary uppercase animate-pulse"
+          :key="selectedRosterTab"
+          class="roster-tab-ledger space-y-0 border-t-2 border-on-surface"
         >
-          {{ t('states.loading') }}
-        </div>
-        <div
-          v-if="!isLoading && filteredMembers.length === 0"
-          class="p-8 text-center font-mono text-secondary uppercase"
-        >
-          {{ t('states.empty') }}
-        </div>
-
-        <details
-          v-for="member in filteredMembers"
-          :key="member.id"
-          class="group"
-          :open="openMemberId === member.id"
-        >
-          <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
-          <summary
-            class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
-            @click.prevent="toggleDetails(member.id)"
+          <div
+            v-if="isLoading"
+            class="p-8 text-center font-mono text-secondary uppercase animate-pulse"
           >
-            <span class="flex flex-col">
-              <span
-                class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
-                >{{ member.firstName }} {{ member.lastName }}</span
-              >
-            </span>
-            <AppIcon
-              class="expand-icon transition-transform duration-200 text-secondary"
-              :class="{ 'rotate-180': openMemberId === member.id }"
-              name="expand_more"
+            {{ t('states.loading') }}
+          </div>
+          <div
+            v-if="!isLoading && filteredMembers.length === 0"
+            class="p-8 text-center font-mono text-secondary uppercase"
+          >
+            {{ t('states.empty') }}
+          </div>
+
+          <details
+            v-for="member in filteredMembers"
+            :key="member.id"
+            class="group"
+            :open="openMemberId === member.id"
+          >
+            <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
+            <summary
+              class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
+              @click.prevent="toggleDetails(member.id)"
+            >
+              <span class="flex flex-col">
+                <span
+                  class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
+                  >{{ member.firstName }} {{ member.lastName }}</span
+                >
+              </span>
+              <AppIcon
+                class="expand-icon transition-transform duration-200 text-secondary"
+                :class="{ 'rotate-180': openMemberId === member.id }"
+                name="expand_more"
+              />
+            </summary>
+            <MemberDetailsDrawer
+              v-if="selectedRosterTab === 'active'"
+              :is-open="openMemberId === member.id"
+              :member="member"
+              @archived="finishMemberMutation"
+              @deleted="finishMemberMutation"
+              @error="showEditError"
+              @saved="finishMemberEdit"
             />
-          </summary>
-          <MemberDetailsDrawer
-            v-if="selectedRosterTab === 'active'"
-            :is-open="openMemberId === member.id"
-            :member="member"
-            @archived="finishMemberMutation"
-            @deleted="finishMemberMutation"
-            @error="showEditError"
-            @saved="finishMemberEdit"
-          />
-          <ArchivedMemberDetailsDrawer
-            v-else
-            :is-open="openMemberId === member.id"
-            :member="member"
-            @error="showEditError"
-            @unarchived="finishMemberMutation"
-          />
-        </details>
-      </div>
+            <ArchivedMemberDetailsDrawer
+              v-else
+              :is-open="openMemberId === member.id"
+              :member="member"
+              @error="showEditError"
+              @unarchived="finishMemberMutation"
+            />
+          </details>
+        </div>
+      </Transition>
 
       <div class="members-list-view__action-fab app-floating-action">
         <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
@@ -243,6 +248,23 @@ onBeforeUnmount(() => {
 .members-list-view {
   /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
+}
+
+.roster-tab-ledger-enter-active,
+.roster-tab-ledger-leave-active {
+  transition: opacity 240ms var(--ease-standard);
+}
+
+.roster-tab-ledger-enter-from,
+.roster-tab-ledger-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roster-tab-ledger-enter-active,
+  .roster-tab-ledger-leave-active {
+    transition: opacity 120ms ease;
+  }
 }
 </style>
 
