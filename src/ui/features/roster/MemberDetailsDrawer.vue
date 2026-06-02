@@ -3,13 +3,11 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
-import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import ArchiveIconButton from '@/ui/components/ArchiveIconButton.vue'
 import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
-import ConfirmationModal, {
-  type ConfirmationModalDetail
-} from '@/ui/components/modals/ConfirmationModal.vue'
+import MemberArchiveConfirmationModal from '@/ui/features/roster/MemberArchiveConfirmationModal.vue'
+import MemberDeleteConfirmationModal from '@/ui/features/roster/MemberDeleteConfirmationModal.vue'
 import MemberEditDrawer from '@/ui/features/roster/MemberEditDrawer.vue'
 
 const props = defineProps<{
@@ -24,65 +22,22 @@ const emit = defineEmits<{
   saved: [member: MemberRosterListItem]
 }>()
 
-const { useCases } = useAppServices()
 const { t } = useI18n({ useScope: 'local' })
 const isEditing = ref(false)
 const archiveModalVisible = ref(false)
-const deleteModalMode = ref<'confirm' | 'attendance-blocked' | null>(null)
+const deleteModalVisible = ref(false)
 const isArchivingMember = ref(false)
 const isDeletingMember = ref(false)
-const archiveFailed = ref(false)
-const deleteFailed = ref(false)
-const attendanceBlockerCount = ref(0)
 
 const memberDisplayName = computed(
   () => `${props.member.firstName} ${props.member.lastName}`
 )
-const archiveModalDetails = computed<ConfirmationModalDetail[]>(() => [
-  {
-    label: t('archiveConfirmation.details.member'),
-    value: memberDisplayName.value
-  },
-  {
-    label: t('dateOfBirth'),
-    value: formatDisplayDate(props.member.dateOfBirth)
-  }
-])
-const archiveModalTitle = computed(() => t('archiveConfirmation.title'))
-const archiveModalBody = computed(() => t('archiveConfirmation.body'))
-const archiveModalConfirmLabel = computed(() =>
-  t('archiveConfirmation.actions.confirm')
-)
-const archiveModalErrorMessage = computed(() =>
-  archiveFailed.value ? t('archiveConfirmation.errors.submit') : ''
-)
-const deleteModalDetails = computed<ConfirmationModalDetail[]>(() => [
-  {
-    label: t('deleteConfirmation.details.member'),
-    value: memberDisplayName.value
-  },
-  {
-    label: t('dateOfBirth'),
-    value: formatDisplayDate(props.member.dateOfBirth)
-  }
-])
-const deleteModalTitle = computed(() =>
-  deleteModalMode.value === 'attendance-blocked'
-    ? t('deleteAttendanceBlocked.title')
-    : t('deleteConfirmation.title')
-)
-const deleteModalBody = computed(() =>
-  deleteModalMode.value === 'attendance-blocked'
-    ? t('deleteAttendanceBlocked.body', { count: attendanceBlockerCount.value })
-    : t('deleteConfirmation.body')
-)
-const deleteModalConfirmLabel = computed(() =>
-  deleteModalMode.value === 'attendance-blocked'
-    ? t('deleteAttendanceBlocked.actions.confirm')
-    : t('deleteConfirmation.actions.confirm')
-)
-const deleteModalErrorMessage = computed(() =>
-  deleteFailed.value ? t('deleteConfirmation.errors.submit') : ''
+const memberActionDisabled = computed(
+  () =>
+    isArchivingMember.value ||
+    isDeletingMember.value ||
+    archiveModalVisible.value ||
+    deleteModalVisible.value
 )
 
 watch(
@@ -110,14 +65,11 @@ watch(
 function resetArchiveState() {
   archiveModalVisible.value = false
   isArchivingMember.value = false
-  archiveFailed.value = false
 }
 
 function resetDeleteState() {
-  deleteModalMode.value = null
+  deleteModalVisible.value = false
   isDeletingMember.value = false
-  deleteFailed.value = false
-  attendanceBlockerCount.value = 0
 }
 
 function formatDisplayDate(val: Date | string): string {
@@ -164,51 +116,18 @@ function openArchiveConfirmation() {
     isArchivingMember.value ||
     isDeletingMember.value ||
     archiveModalVisible.value ||
-    deleteModalMode.value !== null
+    deleteModalVisible.value
   ) {
     return
   }
 
   emit('error', '')
-  archiveFailed.value = false
   resetDeleteState()
   archiveModalVisible.value = true
 }
 
 function closeArchiveModal() {
-  if (isArchivingMember.value) {
-    return
-  }
-
   resetArchiveState()
-}
-
-function dismissArchiveError() {
-  archiveFailed.value = false
-}
-
-async function confirmArchiveMember() {
-  if (!archiveModalVisible.value || isArchivingMember.value) {
-    return
-  }
-
-  isArchivingMember.value = true
-  archiveFailed.value = false
-
-  try {
-    // What: keep archiving behind the application use case. Why: this drawer must preserve archive events and local-first persistence rules instead of mutating roster state directly.
-    await useCases.archiveMember.handle({
-      memberId: props.member.id
-    })
-
-    resetArchiveState()
-    emit('archived', props.member.id)
-  } catch (error) {
-    archiveFailed.value = true
-    console.error('Failed to archive member from roster details', error)
-  } finally {
-    isArchivingMember.value = false
-  }
 }
 
 function openDeleteConfirmation() {
@@ -216,76 +135,28 @@ function openDeleteConfirmation() {
     isDeletingMember.value ||
     isArchivingMember.value ||
     archiveModalVisible.value ||
-    deleteModalMode.value !== null
+    deleteModalVisible.value
   ) {
     return
   }
 
   emit('error', '')
-  deleteFailed.value = false
-  attendanceBlockerCount.value = 0
   resetArchiveState()
-  deleteModalMode.value = 'confirm'
+  deleteModalVisible.value = true
 }
 
 function closeDeleteModal() {
-  if (isDeletingMember.value) {
-    return
-  }
-
   resetDeleteState()
 }
 
-function dismissDeleteError() {
-  deleteFailed.value = false
+function finishArchiveMember(memberId: string) {
+  resetArchiveState()
+  emit('archived', memberId)
 }
 
-async function confirmDeleteMember() {
-  if (deleteModalMode.value === 'attendance-blocked') {
-    closeDeleteModal()
-    return
-  }
-
-  if (deleteModalMode.value !== 'confirm' || isDeletingMember.value) {
-    return
-  }
-
-  isDeletingMember.value = true
-  deleteFailed.value = false
-  emit('error', '')
-
-  try {
-    // What: member removal stays behind the application use case. Why: the UI must preserve tombstone events, dependency checks, and unit-of-work semantics.
-    const result = await useCases.deleteMember.handle({
-      memberId: props.member.id
-    })
-
-    if (result.membershipPaymentIds.length > 0) {
-      resetDeleteState()
-      emit('error', t('deleteConfirmation.errors.hasPayments'))
-      return
-    }
-
-    if (result.attendanceListIds.length > 0) {
-      isDeletingMember.value = false
-      attendanceBlockerCount.value = result.attendanceListIds.length
-      deleteModalMode.value = 'attendance-blocked'
-      return
-    }
-
-    if (result.deleted) {
-      resetDeleteState()
-      emit('deleted', props.member.id)
-      return
-    }
-
-    deleteFailed.value = true
-  } catch (error) {
-    deleteFailed.value = true
-    console.error('Failed to delete member from roster details', error)
-  } finally {
-    isDeletingMember.value = false
-  }
+function finishDeleteMember(memberId: string) {
+  resetDeleteState()
+  emit('deleted', memberId)
 }
 </script>
 
@@ -349,12 +220,7 @@ async function confirmDeleteMember() {
         v-if="!isEditing"
         variant="secondary"
         type="button"
-        :disabled="
-          isArchivingMember ||
-          isDeletingMember ||
-          archiveModalVisible ||
-          deleteModalMode !== null
-        "
+        :disabled="memberActionDisabled"
         @click="startEditing"
       >
         {{ t('actions.openEdit') }}
@@ -366,7 +232,7 @@ async function confirmDeleteMember() {
           isArchivingMember ||
           isDeletingMember ||
           archiveModalVisible ||
-          deleteModalMode !== null
+          deleteModalVisible
         "
         :aria-label="
           t('actions.archiveMemberAria', {
@@ -397,7 +263,7 @@ async function confirmDeleteMember() {
           isDeletingMember ||
           isArchivingMember ||
           archiveModalVisible ||
-          deleteModalMode !== null
+          deleteModalVisible
         "
         @click="openDeleteConfirmation"
       />
@@ -409,42 +275,21 @@ async function confirmDeleteMember() {
       @error="emit('error', $event)"
       @saved="finishMemberEdit"
     />
-    <ConfirmationModal
-      :body="deleteModalBody"
-      :cancel-label="t('deleteConfirmation.actions.cancel')"
-      cancel-test-id="member-delete-cancel"
-      :confirm-label="deleteModalConfirmLabel"
-      confirm-test-id="member-delete-confirm"
-      :details="deleteModalDetails"
-      :error-message="deleteModalErrorMessage"
-      :error-title="t('deleteConfirmation.errors.title')"
-      :hide-cancel="deleteModalMode === 'attendance-blocked'"
-      :is-pending="isDeletingMember"
-      :pending-label="t('deleteConfirmation.actions.pending')"
-      :title="deleteModalTitle"
-      :visible="deleteModalMode !== null"
-      backdrop-test-id="member-delete-backdrop"
+    <MemberDeleteConfirmationModal
+      :member="member"
+      :visible="deleteModalVisible"
       @close="closeDeleteModal"
-      @confirm="confirmDeleteMember"
-      @dismiss-error="dismissDeleteError"
+      @deleted="finishDeleteMember"
+      @error="emit('error', $event)"
+      @pending-change="isDeletingMember = $event"
     />
-    <ConfirmationModal
-      :body="archiveModalBody"
-      :cancel-label="t('archiveConfirmation.actions.cancel')"
-      cancel-test-id="member-archive-cancel"
-      :confirm-label="archiveModalConfirmLabel"
-      confirm-test-id="member-archive-confirm"
-      :details="archiveModalDetails"
-      :error-message="archiveModalErrorMessage"
-      :error-title="t('archiveConfirmation.errors.title')"
-      :is-pending="isArchivingMember"
-      :pending-label="t('archiveConfirmation.actions.pending')"
-      :title="archiveModalTitle"
+    <MemberArchiveConfirmationModal
+      :member="member"
       :visible="archiveModalVisible"
-      backdrop-test-id="member-archive-backdrop"
+      @archived="finishArchiveMember"
       @close="closeArchiveModal"
-      @confirm="confirmArchiveMember"
-      @dismiss-error="dismissArchiveError"
+      @error="emit('error', $event)"
+      @pending-change="isArchivingMember = $event"
     />
   </div>
 </template>
@@ -520,46 +365,6 @@ async function confirmDeleteMember() {
       "archiveMemberAria": "Zarchiwizuj członka {name}",
       "deleteMemberAria": "Usuń członka {name}",
       "openEdit": "Edytuj"
-    },
-    "archiveConfirmation": {
-      "title": "Zarchiwizować członka?",
-      "body": "Ta akcja przeniesie członka do archiwum. Będzie można go przywrócić później.",
-      "details": {
-        "member": "Członek"
-      },
-      "actions": {
-        "confirm": "Archiwizuj",
-        "pending": "Archiwizowanie...",
-        "cancel": "Anuluj"
-      },
-      "errors": {
-        "title": "Nie udało się zarchiwizować",
-        "submit": "Spróbuj ponownie. Członek nie został zarchiwizowany."
-      }
-    },
-    "deleteConfirmation": {
-      "title": "Usunąć członka?",
-      "body": "Ta akcja usunie członka z rejestru. Nie da się jej cofnąć.",
-      "details": {
-        "member": "Członek"
-      },
-      "actions": {
-        "confirm": "Usuń",
-        "pending": "Usuwanie...",
-        "cancel": "Anuluj"
-      },
-      "errors": {
-        "title": "Nie udało się usunąć",
-        "submit": "Spróbuj ponownie. Członek nie został usunięty.",
-        "hasPayments": "Nie możesz usunąć członka, który ma zapisane płatności."
-      }
-    },
-    "deleteAttendanceBlocked": {
-      "title": "Najpierw usuń z treningów",
-      "body": "Ten członek występuje na {count} listach obecności. Usuń go ze wszystkich treningów, zanim usuniesz go z rejestru.",
-      "actions": {
-        "confirm": "Rozumiem"
-      }
     }
   },
   "en": {
@@ -573,46 +378,6 @@ async function confirmDeleteMember() {
       "archiveMemberAria": "Archive member {name}",
       "deleteMemberAria": "Delete member {name}",
       "openEdit": "Edit"
-    },
-    "archiveConfirmation": {
-      "title": "Archive member?",
-      "body": "This will move the member to the archived roster. You can restore them later.",
-      "details": {
-        "member": "Member"
-      },
-      "actions": {
-        "confirm": "Archive",
-        "pending": "Archiving...",
-        "cancel": "Cancel"
-      },
-      "errors": {
-        "title": "Archive failed",
-        "submit": "Try again. The member was not archived."
-      }
-    },
-    "deleteConfirmation": {
-      "title": "Delete member?",
-      "body": "This will remove the member from the roster. This action cannot be undone.",
-      "details": {
-        "member": "Member"
-      },
-      "actions": {
-        "confirm": "Delete",
-        "pending": "Deleting...",
-        "cancel": "Cancel"
-      },
-      "errors": {
-        "title": "Delete failed",
-        "submit": "Try again. The member was not deleted.",
-        "hasPayments": "You cannot delete a member who has recorded payments."
-      }
-    },
-    "deleteAttendanceBlocked": {
-      "title": "Remove from trainings first",
-      "body": "This member is still present on {count} attendance lists. Remove them from all trainings before deleting them from the roster.",
-      "actions": {
-        "confirm": "OK"
-      }
     }
   }
 }
