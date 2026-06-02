@@ -192,12 +192,12 @@ onBeforeUnmount(() => {
             class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
             @click.prevent="toggleDetails(member.id)"
           >
-            <div class="flex flex-col">
+            <span class="flex flex-col">
               <span
                 class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
                 >{{ member.firstName }} {{ member.lastName }}</span
               >
-            </div>
+            </span>
             <AppIcon
               class="expand-icon transition-transform duration-200 text-secondary"
               :class="{ 'rotate-180': openMemberId === member.id }"
