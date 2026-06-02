@@ -97,7 +97,7 @@ function finishMemberEdit() {
   editError.value = ''
 }
 
-function finishMemberDelete(memberId: string) {
+function finishMemberMutation(memberId: string) {
   if (openMemberId.value === memberId) {
     openMemberId.value = null
   }
@@ -207,7 +207,8 @@ onBeforeUnmount(() => {
           <MemberDetailsDrawer
             :is-open="openMemberId === member.id"
             :member="member"
-            @deleted="finishMemberDelete"
+            @archived="finishMemberMutation"
+            @deleted="finishMemberMutation"
             @error="showEditError"
             @saved="finishMemberEdit"
           />

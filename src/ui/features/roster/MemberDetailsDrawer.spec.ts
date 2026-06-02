@@ -7,6 +7,7 @@ import { createAppI18n } from '@/ui/i18n.ts'
 
 describe('MemberDetailsDrawer', () => {
   const mockDeleteMemberHandle = vi.fn()
+  const mockArchiveMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
   const member = {
     id: 'member-1',
@@ -20,6 +21,7 @@ describe('MemberDetailsDrawer', () => {
 
   beforeEach(() => {
     mockDeleteMemberHandle.mockReset()
+    mockArchiveMemberHandle.mockReset()
     mockUpdateMemberHandle.mockReset()
   })
 
@@ -40,6 +42,7 @@ describe('MemberDetailsDrawer', () => {
         provide: createAppServicesProvides({
           queries: {} as never,
           useCases: {
+            archiveMember: { handle: mockArchiveMemberHandle },
             deleteMember: { handle: mockDeleteMemberHandle },
             updateMember: { handle: mockUpdateMemberHandle }
           } as never
@@ -118,6 +121,36 @@ describe('MemberDetailsDrawer', () => {
     )
   })
 
+  it('opens archive confirmation and archives through the application use case', async () => {
+    mockArchiveMemberHandle.mockResolvedValue(undefined)
+    const wrapper = mountDrawer('en')
+
+    expect(
+      wrapper
+        .get('[data-testid="member-archive-open"]')
+        .attributes('aria-label')
+    ).toBe('Archive member Anderson Silva')
+    expect(
+      wrapper.get('[data-testid="member-archive-open"]').find('svg').exists()
+    ).toBe(true)
+
+    await wrapper.get('[data-testid="member-archive-open"]').trigger('click')
+
+    expect(wrapper.text()).toContain('Archive member?')
+    expect(wrapper.get('[data-testid="member-archive-confirm"]').text()).toBe(
+      'Archive'
+    )
+
+    await wrapper.get('[data-testid="member-archive-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockArchiveMemberHandle).toHaveBeenCalledWith({
+      memberId: 'member-1'
+    })
+    expect(wrapper.emitted('archived')?.[0]).toEqual(['member-1'])
+    expect(wrapper.emitted('error')?.at(-1)?.[0]).toBe('')
+  })
+
   it('deletes a clean member through the application use case', async () => {
     mockDeleteMemberHandle.mockResolvedValue({
       membershipPaymentIds: [],
@@ -153,6 +186,23 @@ describe('MemberDetailsDrawer', () => {
     expect(wrapper.emitted('error')?.at(-1)?.[0]).toBe(
       'You cannot delete a member who has recorded payments.'
     )
+  })
+
+  it('keeps archive confirmation retryable when archiving fails', async () => {
+    mockArchiveMemberHandle.mockRejectedValue(new Error('write failed'))
+    const wrapper = mountDrawer('en')
+
+    await wrapper.get('[data-testid="member-archive-open"]').trigger('click')
+    await wrapper.get('[data-testid="member-archive-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.emitted('archived')).toBeUndefined()
+    expect(wrapper.text()).toContain('Archive member?')
+    expect(wrapper.text()).toContain('Try again. The member was not archived.')
+    expect(
+      wrapper.find('[data-testid="member-archive-confirm"]').exists()
+    ).toBe(true)
+    expect(wrapper.emitted('error')?.at(-1)?.[0]).toBe('')
   })
 
   it('shows attendance blocker info without deleting the member', async () => {

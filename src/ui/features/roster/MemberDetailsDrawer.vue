@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
+import ArchiveIconButton from '@/ui/components/ArchiveIconButton.vue'
 import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
 import ConfirmationModal, {
   type ConfirmationModalDetail
@@ -18,6 +19,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   deleted: [memberId: string]
+  archived: [memberId: string]
   error: [message: string]
   saved: [member: MemberRosterListItem]
 }>()
@@ -25,13 +27,34 @@ const emit = defineEmits<{
 const { useCases } = useAppServices()
 const { t } = useI18n({ useScope: 'local' })
 const isEditing = ref(false)
+const archiveModalVisible = ref(false)
 const deleteModalMode = ref<'confirm' | 'attendance-blocked' | null>(null)
+const isArchivingMember = ref(false)
 const isDeletingMember = ref(false)
+const archiveFailed = ref(false)
 const deleteFailed = ref(false)
 const attendanceBlockerCount = ref(0)
 
 const memberDisplayName = computed(
   () => `${props.member.firstName} ${props.member.lastName}`
+)
+const archiveModalDetails = computed<ConfirmationModalDetail[]>(() => [
+  {
+    label: t('archiveConfirmation.details.member'),
+    value: memberDisplayName.value
+  },
+  {
+    label: t('dateOfBirth'),
+    value: formatDisplayDate(props.member.dateOfBirth)
+  }
+])
+const archiveModalTitle = computed(() => t('archiveConfirmation.title'))
+const archiveModalBody = computed(() => t('archiveConfirmation.body'))
+const archiveModalConfirmLabel = computed(() =>
+  t('archiveConfirmation.actions.confirm')
+)
+const archiveModalErrorMessage = computed(() =>
+  archiveFailed.value ? t('archiveConfirmation.errors.submit') : ''
 )
 const deleteModalDetails = computed<ConfirmationModalDetail[]>(() => [
   {
@@ -67,6 +90,7 @@ watch(
   (isOpen) => {
     if (!isOpen) {
       isEditing.value = false
+      resetArchiveState()
       resetDeleteState()
       emit('error', '')
     }
@@ -77,10 +101,17 @@ watch(
   () => props.member.id,
   () => {
     isEditing.value = false
+    resetArchiveState()
     resetDeleteState()
     emit('error', '')
   }
 )
+
+function resetArchiveState() {
+  archiveModalVisible.value = false
+  isArchivingMember.value = false
+  archiveFailed.value = false
+}
 
 function resetDeleteState() {
   deleteModalMode.value = null
@@ -112,6 +143,7 @@ function toPhoneMessageHref(phoneNumber: string): string {
 
 function startEditing() {
   emit('error', '')
+  resetArchiveState()
   resetDeleteState()
   isEditing.value = true
 }
@@ -127,14 +159,72 @@ function finishMemberEdit(updatedMember: MemberRosterListItem) {
   emit('saved', updatedMember)
 }
 
+function openArchiveConfirmation() {
+  if (
+    isArchivingMember.value ||
+    isDeletingMember.value ||
+    archiveModalVisible.value ||
+    deleteModalMode.value !== null
+  ) {
+    return
+  }
+
+  emit('error', '')
+  archiveFailed.value = false
+  resetDeleteState()
+  archiveModalVisible.value = true
+}
+
+function closeArchiveModal() {
+  if (isArchivingMember.value) {
+    return
+  }
+
+  resetArchiveState()
+}
+
+function dismissArchiveError() {
+  archiveFailed.value = false
+}
+
+async function confirmArchiveMember() {
+  if (!archiveModalVisible.value || isArchivingMember.value) {
+    return
+  }
+
+  isArchivingMember.value = true
+  archiveFailed.value = false
+
+  try {
+    // What: keep archiving behind the application use case. Why: this drawer must preserve archive events and local-first persistence rules instead of mutating roster state directly.
+    await useCases.archiveMember.handle({
+      memberId: props.member.id
+    })
+
+    resetArchiveState()
+    emit('archived', props.member.id)
+  } catch (error) {
+    archiveFailed.value = true
+    console.error('Failed to archive member from roster details', error)
+  } finally {
+    isArchivingMember.value = false
+  }
+}
+
 function openDeleteConfirmation() {
-  if (isDeletingMember.value) {
+  if (
+    isDeletingMember.value ||
+    isArchivingMember.value ||
+    archiveModalVisible.value ||
+    deleteModalMode.value !== null
+  ) {
     return
   }
 
   emit('error', '')
   deleteFailed.value = false
   attendanceBlockerCount.value = 0
+  resetArchiveState()
   deleteModalMode.value = 'confirm'
 }
 
@@ -259,10 +349,37 @@ async function confirmDeleteMember() {
         v-if="!isEditing"
         variant="secondary"
         type="button"
+        :disabled="
+          isArchivingMember ||
+          isDeletingMember ||
+          archiveModalVisible ||
+          deleteModalMode !== null
+        "
         @click="startEditing"
       >
         {{ t('actions.openEdit') }}
       </AppButton>
+      <ArchiveIconButton
+        v-if="!isEditing"
+        data-testid="member-archive-open"
+        :disabled="
+          isArchivingMember ||
+          isDeletingMember ||
+          archiveModalVisible ||
+          deleteModalMode !== null
+        "
+        :aria-label="
+          t('actions.archiveMemberAria', {
+            name: memberDisplayName
+          })
+        "
+        :title="
+          t('actions.archiveMemberAria', {
+            name: memberDisplayName
+          })
+        "
+        @click="openArchiveConfirmation"
+      />
       <DeleteIconButton
         v-if="!isEditing"
         data-testid="member-delete-open"
@@ -276,7 +393,12 @@ async function confirmDeleteMember() {
             name: memberDisplayName
           })
         "
-        :disabled="isDeletingMember"
+        :disabled="
+          isDeletingMember ||
+          isArchivingMember ||
+          archiveModalVisible ||
+          deleteModalMode !== null
+        "
         @click="openDeleteConfirmation"
       />
     </div>
@@ -305,6 +427,24 @@ async function confirmDeleteMember() {
       @close="closeDeleteModal"
       @confirm="confirmDeleteMember"
       @dismiss-error="dismissDeleteError"
+    />
+    <ConfirmationModal
+      :body="archiveModalBody"
+      :cancel-label="t('archiveConfirmation.actions.cancel')"
+      cancel-test-id="member-archive-cancel"
+      :confirm-label="archiveModalConfirmLabel"
+      confirm-test-id="member-archive-confirm"
+      :details="archiveModalDetails"
+      :error-message="archiveModalErrorMessage"
+      :error-title="t('archiveConfirmation.errors.title')"
+      :is-pending="isArchivingMember"
+      :pending-label="t('archiveConfirmation.actions.pending')"
+      :title="archiveModalTitle"
+      :visible="archiveModalVisible"
+      backdrop-test-id="member-archive-backdrop"
+      @close="closeArchiveModal"
+      @confirm="confirmArchiveMember"
+      @dismiss-error="dismissArchiveError"
     />
   </div>
 </template>
@@ -377,8 +517,25 @@ async function confirmDeleteMember() {
     "actions": {
       "call": "zadzwoń",
       "msg": "sms",
+      "archiveMemberAria": "Zarchiwizuj członka {name}",
       "deleteMemberAria": "Usuń członka {name}",
       "openEdit": "Edytuj"
+    },
+    "archiveConfirmation": {
+      "title": "Zarchiwizować członka?",
+      "body": "Ta akcja przeniesie członka do archiwum. Będzie można go przywrócić później.",
+      "details": {
+        "member": "Członek"
+      },
+      "actions": {
+        "confirm": "Archiwizuj",
+        "pending": "Archiwizowanie...",
+        "cancel": "Anuluj"
+      },
+      "errors": {
+        "title": "Nie udało się zarchiwizować",
+        "submit": "Spróbuj ponownie. Członek nie został zarchiwizowany."
+      }
     },
     "deleteConfirmation": {
       "title": "Usunąć członka?",
@@ -413,8 +570,25 @@ async function confirmDeleteMember() {
     "actions": {
       "call": "call",
       "msg": "msg",
+      "archiveMemberAria": "Archive member {name}",
       "deleteMemberAria": "Delete member {name}",
       "openEdit": "Edit"
+    },
+    "archiveConfirmation": {
+      "title": "Archive member?",
+      "body": "This will move the member to the archived roster. You can restore them later.",
+      "details": {
+        "member": "Member"
+      },
+      "actions": {
+        "confirm": "Archive",
+        "pending": "Archiving...",
+        "cancel": "Cancel"
+      },
+      "errors": {
+        "title": "Archive failed",
+        "submit": "Try again. The member was not archived."
+      }
     },
     "deleteConfirmation": {
       "title": "Delete member?",

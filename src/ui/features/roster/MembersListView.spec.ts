@@ -7,12 +7,14 @@ import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import MembersListView from '@/ui/features/roster/MembersListView.vue'
 
 describe('MembersListView', () => {
+  const mockArchiveMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
   const mockObserveMembersForRosterHandle = vi.fn()
 
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-04-01T12:00:00Z'))
+    mockArchiveMemberHandle.mockReset()
     mockUpdateMemberHandle.mockReset()
     mockObserveMembersForRosterHandle.mockReset()
     mockObserveMembersForRosterHandle.mockReturnValue(createObservable([]))
@@ -39,6 +41,7 @@ describe('MembersListView', () => {
             }
           } as never,
           useCases: {
+            archiveMember: { handle: mockArchiveMemberHandle },
             updateMember: { handle: mockUpdateMemberHandle }
           } as never
         })
@@ -79,6 +82,40 @@ describe('MembersListView', () => {
     expect(wrapper.get('a[to="/member/new"]').attributes('to')).toBe(
       '/member/new'
     )
+  })
+
+  it('closes the open drawer after archiving the member', async () => {
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Anderson',
+          lastName: 'Silva',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
+    mockArchiveMemberHandle.mockResolvedValue(undefined)
+
+    const wrapper = mountView('en')
+    await flushPromises()
+
+    await wrapper.find('summary').trigger('click')
+    await wrapper.get('[data-testid="member-archive-open"]').trigger('click')
+    expect(wrapper.text()).toContain('Archive member?')
+    expect(wrapper.get('[data-testid="member-archive-confirm"]').text()).toBe(
+      'Archive'
+    )
+
+    await wrapper.get('[data-testid="member-archive-confirm"]').trigger('click')
+    await flushPromises()
+
+    expect(mockArchiveMemberHandle).toHaveBeenCalledWith({
+      memberId: 'member-1'
+    })
+    expect(wrapper.get('details').attributes('open')).toBeUndefined()
   })
 
   it('sorts members alphabetically by the visible full name', async () => {
