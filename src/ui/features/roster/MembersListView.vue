@@ -10,6 +10,9 @@ import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
 import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
 import RosterFilterSection from '@/ui/features/roster/RosterFilterSection.vue'
+import RosterTabs, {
+  type RosterTabOption
+} from '@/ui/features/roster/RosterTabs.vue'
 import { useRosterMemberFilters } from '@/ui/features/roster/useRosterMemberFilters'
 
 const { queries } = useAppServices()
@@ -21,6 +24,12 @@ const isArchivedMembersLoading = ref(true)
 const rosterTabs = ['active', 'archived'] as const
 type RosterTab = (typeof rosterTabs)[number]
 const selectedRosterTab = ref<RosterTab>('active')
+const rosterTabOptions = computed<readonly RosterTabOption<RosterTab>[]>(() =>
+  rosterTabs.map((tab) => ({
+    label: t(`tabs.${tab}`),
+    value: tab
+  }))
+)
 
 const openMemberId = ref<string | null>(null)
 const editError = ref('')
@@ -160,22 +169,11 @@ onBeforeUnmount(() => {
         v-model:member-sort-direction="memberSortDirection"
       />
 
-      <!-- Roster tabs -->
-      <nav class="members-list-view__tabs" :aria-label="t('tabs.label')">
-        <button
-          v-for="tab in rosterTabs"
-          :key="tab"
-          class="members-list-view__tab"
-          :class="{
-            'members-list-view__tab--active': selectedRosterTab === tab
-          }"
-          type="button"
-          :aria-pressed="selectedRosterTab === tab"
-          @click="selectedRosterTab = tab"
-        >
-          {{ t(`tabs.${tab}`) }}
-        </button>
-      </nav>
+      <RosterTabs
+        v-model="selectedRosterTab"
+        :label="t('tabs.label')"
+        :tabs="rosterTabOptions"
+      />
 
       <!-- Member Ledger List -->
       <div class="space-y-0 border-t-2 border-on-surface">
@@ -254,54 +252,6 @@ onBeforeUnmount(() => {
 .members-list-view {
   /* What: reserve space for the floating add action above the shell navigation. Why: the member ledger is a long local-first PWA screen, so the last rows must stay readable and tappable while the CTA remains pinned. */
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
-}
-
-.members-list-view__tabs {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 2px solid var(--color-on-surface);
-  border-bottom: 2px solid var(--color-on-surface);
-  background: var(--color-surface);
-}
-
-.members-list-view__tab {
-  min-height: 2.5rem;
-  border-bottom: 3px solid transparent;
-  border-left: 0;
-  border-right: 1px solid var(--color-outline-variant);
-  border-top: 0;
-  background: transparent;
-  color: var(--color-secondary);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  padding: 0.65rem 0.75rem 0.55rem;
-  text-transform: uppercase;
-  transition:
-    border-color 160ms ease,
-    color 160ms ease,
-    background-color 160ms ease;
-}
-
-.members-list-view__tab:hover,
-.members-list-view__tab:focus-visible {
-  background: var(--color-surface-container-low);
-  color: var(--color-on-surface);
-}
-
-.members-list-view__tab:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -4px;
-}
-
-.members-list-view__tab:last-child {
-  border-right: 0;
-}
-
-.members-list-view__tab--active {
-  border-bottom-color: var(--color-primary);
-  color: var(--color-on-surface);
 }
 </style>
 
