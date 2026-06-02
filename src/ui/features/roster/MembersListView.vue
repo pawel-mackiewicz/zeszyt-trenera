@@ -10,16 +10,7 @@ import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
 import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
 import RosterFilterSection from '@/ui/features/roster/RosterFilterSection.vue'
-import {
-  AGE_FILTER_MAX,
-  AGE_FILTER_MIN,
-  matchesAgeRange
-} from '@/ui/utils/ageRange'
-import {
-  sortMembers,
-  type MemberSortDirection,
-  type MemberSortField
-} from '@/ui/utils/memberSort'
+import { useRosterMemberFilters } from '@/ui/features/roster/useRosterMemberFilters'
 
 const { queries } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
@@ -27,11 +18,6 @@ const activeMembers = ref<MemberRosterListItem[]>([])
 const archivedMembers = ref<MemberRosterListItem[]>([])
 const isActiveMembersLoading = ref(true)
 const isArchivedMembersLoading = ref(true)
-const searchQuery = ref('')
-const maxAgeFilter = ref(AGE_FILTER_MAX)
-const minAgeFilter = ref(AGE_FILTER_MIN)
-const memberSortField = ref<MemberSortField>('firstName')
-const memberSortDirection = ref<MemberSortDirection>('asc')
 const rosterTabs = ['active', 'archived'] as const
 type RosterTab = (typeof rosterTabs)[number]
 const selectedRosterTab = ref<RosterTab>('active')
@@ -53,10 +39,14 @@ const isLoading = computed(() =>
 const membersCountLabel = computed(() =>
   t('summary.memberCount', { count: currentMembers.value.length })
 )
-
-function formatMemberName(member: MemberRosterListItem): string {
-  return `${member.firstName} ${member.lastName}`
-}
+const {
+  filteredMembers,
+  maxAgeFilter,
+  memberSortDirection,
+  memberSortField,
+  minAgeFilter,
+  searchQuery
+} = useRosterMemberFilters(currentMembers, locale)
 
 function subscribeToActiveMembers() {
   isActiveMembersLoading.value = true
@@ -93,27 +83,6 @@ function subscribeToArchivedMembers() {
       }
     })
 }
-
-const filteredMembers = computed(() => {
-  const visibleMembers = currentMembers.value.filter((member) => {
-    const fullName = formatMemberName(member).toLowerCase()
-    const matchesSearch = fullName.includes(searchQuery.value.toLowerCase())
-    const matchesAge = matchesAgeRange(
-      member.dateOfBirth,
-      minAgeFilter.value,
-      maxAgeFilter.value
-    )
-
-    return matchesSearch && matchesAge
-  })
-
-  // What: pass visible members into the shared sorter instead of keeping comparator internals in the view. Why: this screen should keep local-first filtering concerns while reusable utilities own ordering rules.
-  return sortMembers(visibleMembers, {
-    field: memberSortField.value,
-    direction: memberSortDirection.value,
-    locale: locale.value
-  })
-})
 
 function toggleDetails(id: string) {
   openMemberId.value = openMemberId.value === id ? null : id
