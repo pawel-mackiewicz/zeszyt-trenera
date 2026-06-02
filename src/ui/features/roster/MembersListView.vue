@@ -8,6 +8,7 @@ import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
+import MemberCounter from '@/ui/features/roster/MemberCounter.vue'
 import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
 import RosterFilterSection from '@/ui/features/roster/RosterFilterSection.vue'
 import RosterTabs, {
@@ -149,17 +150,7 @@ onBeforeUnmount(() => {
 
     <!-- What: keep the floating alert and the roster list inside one shared root container. Why: this mobile-first members screen needs balanced template structure so Vue can compile the view and still pin the global error surface above the scrollable content. -->
     <div class="members-list-view h-full pt-4">
-      <!-- Status Indicator / Stats -->
-      <div class="mb-12">
-        <div
-          class="inline-block bg-primary text-white px-4 py-2 border border-on-surface hide-empty hard-shadow"
-        >
-          <span
-            class="font-headline text-5xl font-black leading-none uppercase"
-            >{{ membersCountLabel }}</span
-          >
-        </div>
-      </div>
+      <MemberCounter :label="membersCountLabel" />
 
       <RosterFilterSection
         v-model:search-query="searchQuery"
