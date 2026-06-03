@@ -2,10 +2,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createAppServicesProvides } from '@/ui/appServices.ts'
-import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
+import MemberArchivedDetailsDrawer from './MemberArchivedDetailsDrawer.vue'
 import { createAppI18n } from '@/ui/i18n.ts'
 
-describe('ArchivedMemberDetailsDrawer', () => {
+describe('MemberArchivedDetailsDrawer', () => {
   const mockUnarchiveMemberHandle = vi.fn()
   const member = {
     id: 'member-1',
@@ -22,7 +22,7 @@ describe('ArchivedMemberDetailsDrawer', () => {
   })
 
   function mountDrawer(locale: 'pl' | 'en' = 'en') {
-    return mount(ArchivedMemberDetailsDrawer, {
+    return mount(MemberArchivedDetailsDrawer, {
       props: {
         isOpen: true,
         member

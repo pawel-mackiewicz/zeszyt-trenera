@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { ClubAlreadyExistsError } from '@/write/domain/model/Club'
 import { useAppServices } from '@/ui/appServices'
 import { createAppI18n } from '@/ui/i18n'
-import ClubSetupView from '@/ui/views/ClubSetupView.vue'
+import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

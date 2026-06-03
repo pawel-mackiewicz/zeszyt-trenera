@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 
-import type { PaidMembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
+import type { MembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 
 import BasePaymentSection from './BasePaymentSection.vue'
-import PaidRow from './PaidRow.vue'
-import type { MembershipPaymentDisplayMember } from './membershipPaymentActions'
+import UnpaidAttendedRow from './UnpaidAttendedRow.vue'
+import type { MembershipPaymentDisplayMember } from '../membershipPaymentActions'
 
 const props = defineProps<{
   formatAge: (member: MembershipPaymentDisplayMember) => string
   formatMemberName: (member: MembershipPaymentDisplayMember) => string
-  members: PaidMembershipPaymentStatusMemberListItem[]
+  members: MembershipPaymentStatusMemberListItem[]
 }>()
 
 const { t } = useI18n({ useScope: 'local' })
@@ -18,12 +18,12 @@ const { t } = useI18n({ useScope: 'local' })
 
 <template>
   <BasePaymentSection
-    :empty-message="t('sections.paid.empty')"
+    :empty-message="t('sections.unpaidAttended.empty')"
     :is-empty="props.members.length === 0"
-    :title="t('sections.paid.title')"
-    title-class="payments-ledger-section__title--paid"
+    :title="t('sections.unpaidAttended.title')"
+    title-class="payments-ledger-section__title--alert"
   >
-    <PaidRow
+    <UnpaidAttendedRow
       v-for="member in props.members"
       :key="member.id"
       :format-age="props.formatAge"
@@ -37,17 +37,17 @@ const { t } = useI18n({ useScope: 'local' })
 {
   "pl": {
     "sections": {
-      "paid": {
-        "title": "Opłacili",
-        "empty": "Brak opłaconych osób w tym miesiącu."
+      "unpaidAttended": {
+        "title": "Obecni i nieopłacili",
+        "empty": "Brak nieopłaconych osób z obecnościami w tym miesiącu."
       }
     }
   },
   "en": {
     "sections": {
-      "paid": {
-        "title": "Paid up",
-        "empty": "No paid members in this month."
+      "unpaidAttended": {
+        "title": "Attended and unpaid",
+        "empty": "No unpaid members with attendance in this month."
       }
     }
   }

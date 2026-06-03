@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { TrainerNotebookDb } from '@/db'
 import { createAppI18n } from '@/ui/i18n'
-import IndexedDbDebugView from '@/ui/views/IndexedDbDebugView.vue'
+import IndexedDbDebugView from '@/ui/views/debug/IndexedDbDebugView.vue'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`

@@ -5,13 +5,13 @@ import { useI18n } from 'vue-i18n'
 import type { MembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import AppButton from '@/ui/components/AppButton.vue'
 import ArchiveIconButton from '@/ui/components/ArchiveIconButton.vue'
-import MemberArchiveConfirmationModal from '../MemberArchiveConfirmationModal.vue'
+import MemberArchiveConfirmationModal from '@/ui/features/MemberArchiveConfirmationModal.vue'
 
 import BasePaymentRow from './BasePaymentRow.vue'
 import {
   type MembershipPaymentDisplayMember,
   useMembershipPaymentActionContext
-} from './membershipPaymentActions'
+} from '../membershipPaymentActions'
 
 const props = defineProps<{
   formatAge: (member: MembershipPaymentDisplayMember) => string

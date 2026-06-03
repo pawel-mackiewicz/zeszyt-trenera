@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { TrainerAlreadyExistsError } from '@/write/domain/model/Trainer'
 import { useAppServices } from '@/ui/appServices'
 import { createAppI18n } from '@/ui/i18n'
-import TrainerSetupView from '@/ui/views/TrainerSetupView.vue'
+import TrainerSetupView from '@/ui/views/setup/TrainerSetupView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

@@ -12,7 +12,7 @@ import { nextTick } from 'vue'
 
 import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber.ts'
 import { createAppI18n } from '@/ui/i18n.ts'
-import AddMemberView from '@/ui/features/roster/AddMemberView.vue'
+import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import { useRouter } from '@/ui/router/runtime.ts'
 import { useAppServices } from '@/ui/appServices.ts'
 

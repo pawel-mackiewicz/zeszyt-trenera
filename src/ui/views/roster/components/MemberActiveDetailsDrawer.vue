@@ -2,14 +2,14 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
+import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery.ts'
 import AppButton from '@/ui/components/AppButton.vue'
+import MemberDetailsBaseDrawer from './MemberDetailsBaseDrawer.vue'
 import ArchiveIconButton from '@/ui/components/ArchiveIconButton.vue'
 import DeleteIconButton from '@/ui/components/DeleteIconButton.vue'
+import MemberEditDrawer from './MemberEditDrawer.vue'
+import MemberDeleteConfirmationModal from '@/ui/features/MemberDeleteConfirmationModal.vue'
 import MemberArchiveConfirmationModal from '@/ui/features/MemberArchiveConfirmationModal.vue'
-import MemberDeleteConfirmationModal from '@/ui/features/roster/MemberDeleteConfirmationModal.vue'
-import MemberDetailsBaseDrawer from '@/ui/features/roster/MemberDetailsBaseDrawer.vue'
-import MemberEditDrawer from '@/ui/features/roster/MemberEditDrawer.vue'
 
 const props = defineProps<{
   isOpen: boolean

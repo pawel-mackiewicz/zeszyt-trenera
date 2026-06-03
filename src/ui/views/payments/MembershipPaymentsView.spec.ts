@@ -5,7 +5,7 @@ import { MembershipPaymentAlreadyExistsError } from '@/write/domain/model/Member
 import MonthSelector from '@/ui/components/MonthSelector.vue'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
-import MembershipPaymentsView from '@/ui/features/payment/MembershipPaymentsView.vue'
+import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

@@ -1,14 +1,14 @@
 import type { RouteRecordRaw } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
-import MembersListView from '@/ui/features/roster/MembersListView.vue'
-import AddMemberView from '@/ui/features/roster/AddMemberView.vue'
-import AttendanceEditView from '@/ui/features/attendance/AttendanceEditView.vue'
-import AttendanceListView from '@/ui/features/attendance/AttendanceListView.vue'
-import AttendanceHistoryView from '@/ui/features/attendance/AttendanceHistoryView.vue'
-import ClubSetupView from '@/ui/views/ClubSetupView.vue'
-import MembershipPaymentsView from '@/ui/features/payment/MembershipPaymentsView.vue'
-import TrainerSetupView from '@/ui/views/TrainerSetupView.vue'
+import RosterView from '@/ui/views/roster/RosterView.vue'
+import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
+import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
+import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
+import AttendanceHistoryView from '@/ui/views/attendance/AttendanceHistoryView.vue'
+import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
+import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
+import TrainerSetupView from '@/ui/views/setup/TrainerSetupView.vue'
 
 type AppRouteMeta = {
   showBack?: boolean
@@ -64,13 +64,13 @@ const baseRoutes = [
     path: MEMBERS_ROUTE_PATH,
     alias: '/',
     name: 'members-list',
-    component: MembersListView,
+    component: RosterView,
     meta: {}
   },
   {
     path: '/payments',
     name: 'membership-payments',
-    // What: route to the payment feature entry view. Why: `/payments` stays stable while the payment screen and its supporting UI live together.
+    // What: route to the payment view entry point. Why: `/payments` stays stable while the payment screen and its supporting UI live together.
     component: MembershipPaymentsView,
     meta: {}
   },
@@ -115,7 +115,7 @@ const baseRoutes = [
 const debugRoute = {
   path: '/debug/indexeddb',
   name: 'debug-indexeddb',
-  component: () => import('@/ui/views/IndexedDbDebugView.vue'),
+  component: () => import('@/ui/views/debug/IndexedDbDebugView.vue'),
   meta: {
     hideBottomNav: true,
     showBack: true,

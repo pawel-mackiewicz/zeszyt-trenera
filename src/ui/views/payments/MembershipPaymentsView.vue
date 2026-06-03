@@ -15,12 +15,12 @@ import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
 import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
 import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
 // What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
-import MembershipPaymentConfirmationModal from './MembershipPaymentConfirmationModal.vue'
-import MembershipPaymentDeleteConfirmationModal from './MembershipPaymentDeleteConfirmationModal.vue'
-import MembershipPaymentSummarySection from './MembershipPaymentSummarySection.vue'
-import PaidSection from './PaidSection.vue'
-import UnpaidAbsentSection from './UnpaidAbsentSection.vue'
-import UnpaidAttendedSection from './UnpaidAttendedSection.vue'
+import MembershipPaymentConfirmationModal from './components/MembershipPaymentConfirmationModal.vue'
+import MembershipPaymentDeleteConfirmationModal from './components/MembershipPaymentDeleteConfirmationModal.vue'
+import MembershipPaymentSummarySection from './components/MembershipPaymentSummarySection.vue'
+import PaidSection from './components/PaidSection.vue'
+import UnpaidAbsentSection from './components/UnpaidAbsentSection.vue'
+import UnpaidAttendedSection from './components/UnpaidAttendedSection.vue'
 import {
   membershipPaymentActionContextKey,
   type MembershipPaymentDisplayMember

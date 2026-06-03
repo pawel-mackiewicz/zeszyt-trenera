@@ -6,7 +6,7 @@ import { AttendanceListAlreadyExistsError } from '@/write/domain/model/Attendanc
 import { createAppI18n } from '@/ui/i18n.ts'
 import { useAppServices } from '@/ui/appServices.ts'
 import { useRouter } from '@/ui/router/runtime.ts'
-import AttendanceListView from '@/ui/features/attendance/AttendanceListView.vue'
+import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
 
 vi.mock('@/ui/router/runtime', () => ({
   useRouter: vi.fn()

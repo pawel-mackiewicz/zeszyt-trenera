@@ -4,9 +4,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAppI18n } from '@/ui/i18n.ts'
 import { createAppServicesProvides } from '@/ui/appServices.ts'
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
-import MembersListView from '@/ui/features/roster/MembersListView.vue'
+import RosterView from '@/ui/views/roster/RosterView.vue'
 
-describe('MembersListView', () => {
+describe('RosterView', () => {
   const mockArchiveMemberHandle = vi.fn()
   const mockUnarchiveMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
@@ -32,7 +32,7 @@ describe('MembersListView', () => {
   })
 
   function mountView(locale: 'pl' | 'en') {
-    return mount(MembersListView, {
+    return mount(RosterView, {
       global: {
         plugins: [createAppI18n(locale)],
         stubs: {

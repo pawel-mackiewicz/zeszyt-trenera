@@ -12,7 +12,7 @@ import {
 import { createAppI18n } from '@/ui/i18n.ts'
 import { useAppServices } from '@/ui/appServices.ts'
 import { useRoute, useRouter } from '@/ui/router/runtime.ts'
-import AttendanceEditView from '@/ui/features/attendance/AttendanceEditView.vue'
+import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()

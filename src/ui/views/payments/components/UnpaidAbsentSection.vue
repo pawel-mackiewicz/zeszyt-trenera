@@ -4,8 +4,8 @@ import { useI18n } from 'vue-i18n'
 import type { MembershipPaymentStatusMemberListItem } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 
 import BasePaymentSection from './BasePaymentSection.vue'
-import UnpaidAttendedRow from './UnpaidAttendedRow.vue'
-import type { MembershipPaymentDisplayMember } from './membershipPaymentActions'
+import UnpaidAbsentRow from './UnpaidAbsentRow.vue'
+import type { MembershipPaymentDisplayMember } from '../membershipPaymentActions'
 
 const props = defineProps<{
   formatAge: (member: MembershipPaymentDisplayMember) => string
@@ -18,12 +18,12 @@ const { t } = useI18n({ useScope: 'local' })
 
 <template>
   <BasePaymentSection
-    :empty-message="t('sections.unpaidAttended.empty')"
+    :empty-message="t('sections.unpaidAbsent.empty')"
     :is-empty="props.members.length === 0"
-    :title="t('sections.unpaidAttended.title')"
-    title-class="payments-ledger-section__title--alert"
+    :title="t('sections.unpaidAbsent.title')"
+    title-class="payments-ledger-section__title--quiet"
   >
-    <UnpaidAttendedRow
+    <UnpaidAbsentRow
       v-for="member in props.members"
       :key="member.id"
       :format-age="props.formatAge"
@@ -37,17 +37,17 @@ const { t } = useI18n({ useScope: 'local' })
 {
   "pl": {
     "sections": {
-      "unpaidAttended": {
-        "title": "Obecni i nieopłacili",
-        "empty": "Brak nieopłaconych osób z obecnościami w tym miesiącu."
+      "unpaidAbsent": {
+        "title": "Nieobecni i nieopłacili",
+        "empty": "Brak nieopłaconych nieobecnych w tym miesiącu."
       }
     }
   },
   "en": {
     "sections": {
-      "unpaidAttended": {
-        "title": "Attended and unpaid",
-        "empty": "No unpaid members with attendance in this month."
+      "unpaidAbsent": {
+        "title": "Absent and unpaid",
+        "empty": "No unpaid absent members in this month."
       }
     }
   }

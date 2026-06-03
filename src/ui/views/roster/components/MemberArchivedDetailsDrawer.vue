@@ -6,7 +6,7 @@ import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
-import MemberDetailsBaseDrawer from '@/ui/features/roster/MemberDetailsBaseDrawer.vue'
+import MemberDetailsBaseDrawer from './MemberDetailsBaseDrawer.vue'
 
 const props = defineProps<{
   isOpen: boolean

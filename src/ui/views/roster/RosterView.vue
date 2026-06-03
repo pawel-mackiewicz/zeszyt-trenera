@@ -7,14 +7,12 @@ import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import ArchivedMemberDetailsDrawer from '@/ui/features/roster/ArchivedMemberDetailsDrawer.vue'
-import MemberCounter from '@/ui/features/roster/MemberCounter.vue'
-import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
-import RosterFilterSection from '@/ui/features/roster/RosterFilterSection.vue'
-import RosterTabs, {
-  type RosterTabOption
-} from '@/ui/features/roster/RosterTabs.vue'
-import { useRosterMemberFilters } from '@/ui/features/roster/useRosterMemberFilters'
+import MemberArchivedDetailsDrawer from './components/MemberArchivedDetailsDrawer.vue'
+import MemberCounter from './components/MemberCounter.vue'
+import MemberActiveDetailsDrawer from './components/MemberActiveDetailsDrawer.vue'
+import RosterFilterSection from './components/RosterFilterSection.vue'
+import RosterTabs, { type RosterTabOption } from './components/RosterTabs.vue'
+import { useRosterMemberFilters } from '@/ui/views/roster/useRosterMemberFilters'
 
 const { queries } = useAppServices()
 const { t, locale } = useI18n({ useScope: 'local' })
@@ -208,7 +206,7 @@ onBeforeUnmount(() => {
                 name="expand_more"
               />
             </summary>
-            <MemberDetailsDrawer
+            <MemberActiveDetailsDrawer
               v-if="selectedRosterTab === 'active'"
               :is-open="openMemberId === member.id"
               :member="member"
@@ -217,7 +215,7 @@ onBeforeUnmount(() => {
               @error="showEditError"
               @saved="finishMemberEdit"
             />
-            <ArchivedMemberDetailsDrawer
+            <MemberArchivedDetailsDrawer
               v-else
               :is-open="openMemberId === member.id"
               :member="member"

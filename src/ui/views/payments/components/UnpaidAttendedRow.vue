@@ -9,7 +9,7 @@ import BasePaymentRow from './BasePaymentRow.vue'
 import {
   type MembershipPaymentDisplayMember,
   useMembershipPaymentActionContext
-} from './membershipPaymentActions'
+} from '../membershipPaymentActions'
 
 type UnpaidAttendedMember = MembershipPaymentStatusMemberListItem & {
   attendanceSessionIds?: string[]

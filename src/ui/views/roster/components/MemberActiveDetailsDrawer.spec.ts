@@ -2,10 +2,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { createAppServicesProvides } from '@/ui/appServices.ts'
-import MemberDetailsDrawer from '@/ui/features/roster/MemberDetailsDrawer.vue'
+import MemberActiveDetailsDrawer from '@/ui/views/roster/components/MemberActiveDetailsDrawer.vue'
 import { createAppI18n } from '@/ui/i18n.ts'
 
-describe('MemberDetailsDrawer', () => {
+describe('MemberActiveDetailsDrawer', () => {
   const mockDeleteMemberHandle = vi.fn()
   const mockArchiveMemberHandle = vi.fn()
   const mockUpdateMemberHandle = vi.fn()
@@ -29,7 +29,7 @@ describe('MemberDetailsDrawer', () => {
     locale: 'pl' | 'en' = 'en',
     memberOverrides: Partial<typeof member> = {}
   ) {
-    return mount(MemberDetailsDrawer, {
+    return mount(MemberActiveDetailsDrawer, {
       props: {
         isOpen: true,
         member: {
