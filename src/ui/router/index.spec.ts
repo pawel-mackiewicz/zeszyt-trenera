@@ -17,7 +17,7 @@ describe('router', () => {
       meta: {
         hideBottomNav: true,
         showBack: true,
-        backTo: '/member',
+        backTo: '/members',
         showInMenu: true
       }
     })
@@ -59,7 +59,7 @@ describe('router', () => {
       }
     })
     expect(membersListRoute).toMatchObject({
-      path: '/member',
+      path: '/members',
       alias: '/'
     })
     expect(membershipPaymentsRoute).toMatchObject({
@@ -67,11 +67,11 @@ describe('router', () => {
       meta: {}
     })
     expect(addMemberRoute).toMatchObject({
-      path: '/member/new',
+      path: '/members/new',
       meta: {
         showBack: true,
         hideBottomNav: true,
-        backTo: '/member'
+        backTo: '/members'
       }
     })
     expect(addMemberRoute).not.toHaveProperty('alias')

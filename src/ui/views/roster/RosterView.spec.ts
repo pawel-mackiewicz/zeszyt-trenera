@@ -181,8 +181,8 @@ describe('RosterView', () => {
     const wrapper = mountView('pl')
     await flushPromises()
 
-    expect(wrapper.get('a[to="/member/new"]').attributes('to')).toBe(
-      '/member/new'
+    expect(wrapper.get('a[to="/members/new"]').attributes('to')).toBe(
+      '/members/new'
     )
   })
 

@@ -42,7 +42,7 @@ export function resolveSetupRedirectTarget({
     return routeName === 'setup-trainer' ? null : '/setup/trainer'
   }
 
-  return isSetupRoute(routeName) ? '/member' : null
+  return isSetupRoute(routeName) ? '/members' : null
 }
 
 export function installSetupPhaseNavigation({

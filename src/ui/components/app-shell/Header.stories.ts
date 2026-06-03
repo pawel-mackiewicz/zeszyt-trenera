@@ -85,10 +85,10 @@ const meta: Meta<HeaderStoryArgs> = {
           return args.routeName
         },
         get path() {
-          return args.backTo || '/member'
+          return args.backTo || '/members'
         },
         get fullPath() {
-          return args.backTo || '/member'
+          return args.backTo || '/members'
         },
         get meta() {
           return {
@@ -173,13 +173,13 @@ export const BackTargetAction: Story = {
   args: {
     routeName: 'add-member',
     showBack: true,
-    backTo: '/member'
+    backTo: '/members'
   },
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement)
 
     await userEvent.click(canvas.getByTestId('shell-back-button'))
-    await expect(args.onPush).toHaveBeenCalledWith('/member')
+    await expect(args.onPush).toHaveBeenCalledWith('/members')
     await expect(args.onBack).not.toHaveBeenCalled()
   }
 }

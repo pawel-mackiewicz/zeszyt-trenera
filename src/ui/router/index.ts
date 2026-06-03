@@ -39,9 +39,9 @@ export type NavigationItem = {
   to: string
 }
 
-// What: keep the roster under `/member` while preserving the old root entry point only. Why: installed PWAs may still resume on `/`, but the add-member flow should now have exactly one canonical URL at `/member/new`.
-const MEMBERS_ROUTE_PATH = '/member'
-const NEW_MEMBER_ROUTE_PATH = '/member/new'
+// What: keep the roster under `/members` while preserving the old root entry point only. Why: installed PWAs may still resume on `/`, but the add-member flow should now have exactly one canonical URL at `/members/new`.
+const MEMBERS_ROUTE_PATH = '/members'
+const NEW_MEMBER_ROUTE_PATH = '/members/new'
 
 const baseRoutes = [
   {

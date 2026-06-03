@@ -40,7 +40,7 @@ describe('SidebarMenu', () => {
     vi.mocked(createNavigationItems).mockReturnValue([
       {
         name: 'members-list',
-        to: '/member'
+        to: '/members'
       }
     ])
     vi.mocked(useAppServices).mockReturnValue({
@@ -128,7 +128,7 @@ describe('SidebarMenu', () => {
       openSidebar(nextShellStore)
     })
 
-    await wrapper.get('a[href="/member"]').trigger('click')
+    await wrapper.get('a[href="/members"]').trigger('click')
 
     expect(shellStore.sidebarOpen).toBe(false)
   })

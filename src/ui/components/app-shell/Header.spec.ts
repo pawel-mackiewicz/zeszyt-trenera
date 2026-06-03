@@ -31,8 +31,8 @@ describe('Header', () => {
     mockRoute = reactive({
       meta: {},
       name: 'members-list',
-      path: '/member',
-      fullPath: '/member'
+      path: '/members',
+      fullPath: '/members'
     }) as MockRoute
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
@@ -98,14 +98,14 @@ describe('Header', () => {
   it('uses the explicit back target when the route defines one', async () => {
     mockRoute.meta = {
       showBack: true,
-      backTo: '/member'
+      backTo: '/members'
     }
 
     const { wrapper } = mountHeader()
 
     await wrapper.get('[data-testid="shell-back-button"]').trigger('click')
 
-    expect(mockRouterPush).toHaveBeenCalledWith('/member')
+    expect(mockRouterPush).toHaveBeenCalledWith('/members')
     expect(mockRouterBack).not.toHaveBeenCalled()
   })
 

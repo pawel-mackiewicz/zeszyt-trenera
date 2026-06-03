@@ -115,7 +115,7 @@ describe('AddMemberView', () => {
       dateOfBirth: new Date('1990-01-01T00:00:00Z')
     })
 
-    expect(mockRouterReplace).toHaveBeenCalledWith('/member')
+    expect(mockRouterReplace).toHaveBeenCalledWith('/members')
   })
 
   it('renders age and exact date inputs together by default', () => {

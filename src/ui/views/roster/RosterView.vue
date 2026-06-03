@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
         <!-- What: keep the add-member trigger floating in the viewport corner instead of the filter stack. Why: this long-scrolling roster needs one always-available entry into member creation without sending coaches back to the top controls. -->
         <AppButton
           as="router-link"
-          to="/member/new"
+          to="/members/new"
           :aria-label="t('actions.addMember')"
           :title="t('actions.addMember')"
           icon-only

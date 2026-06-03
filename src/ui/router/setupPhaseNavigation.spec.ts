@@ -34,7 +34,7 @@ describe('setup phase navigation', () => {
     setActivePinia(createPinia())
     currentRoute = ref({
       name: 'members-list',
-      fullPath: '/member'
+      fullPath: '/members'
     })
     mockRemoveGuard = vi.fn()
     mockReplace = vi.fn((target: string) => {
@@ -102,7 +102,7 @@ describe('setup phase navigation', () => {
     const routeName = path === '/setup/club' ? 'setup-club' : 'setup-trainer'
 
     return {
-      name: path === '/member' ? 'members-list' : routeName,
+      name: path === '/members' ? 'members-list' : routeName,
       fullPath: path
     }
   }
@@ -138,7 +138,7 @@ describe('setup phase navigation', () => {
         setupStatus: 'ready',
         routeName: 'setup-trainer'
       })
-    ).toBe('/member')
+    ).toBe('/members')
   })
 
   it('does not observe setup status before the app is ready', async () => {
@@ -172,7 +172,7 @@ describe('setup phase navigation', () => {
     expect(
       resolveGuardRedirect({
         name: 'members-list',
-        fullPath: '/member'
+        fullPath: '/members'
       })
     ).toBe('/setup/club')
   })
@@ -202,7 +202,7 @@ describe('setup phase navigation', () => {
     await nextTick()
     emitSetupStatus('ready')
 
-    expect(mockReplace).toHaveBeenCalledWith('/member')
+    expect(mockReplace).toHaveBeenCalledWith('/members')
   })
 
   it('blocks the app when the setup read model fails', async () => {

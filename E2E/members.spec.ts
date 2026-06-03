@@ -103,7 +103,7 @@ async function filterRosterByName(page: Page, name: string) {
 }
 
 async function openRosterAfterLocalWrites(page: Page) {
-  await page.goto('/member')
+  await page.goto('/members')
   await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
 }
 

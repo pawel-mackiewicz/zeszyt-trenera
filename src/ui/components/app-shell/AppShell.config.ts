@@ -41,7 +41,7 @@ export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationI
   [
     {
       id: 'members',
-      to: '/member',
+      to: '/members',
       icon: 'group',
       labelKey: 'bottomNav.members',
       activeRouteNames: ['members-list']

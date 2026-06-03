@@ -29,8 +29,8 @@ describe('BottomNavigation', () => {
     mockRoute = reactive({
       meta: {},
       name: 'members-list',
-      path: '/member',
-      fullPath: '/member'
+      path: '/members',
+      fullPath: '/members'
     }) as MockRoute
 
     vi.mocked(useRoute).mockReturnValue(
@@ -78,7 +78,7 @@ describe('BottomNavigation', () => {
   it('keeps the members tab active on the members screen', () => {
     const wrapper = mountBottomNavigation()
 
-    expectBottomNavTabState(wrapper, '/member', true)
+    expectBottomNavTabState(wrapper, '/members', true)
     expectBottomNavTabState(wrapper, '/payments', false)
     expectBottomNavTabState(wrapper, '/attendance', false)
   })
@@ -91,7 +91,7 @@ describe('BottomNavigation', () => {
     const wrapper = mountBottomNavigation()
 
     expectBottomNavTabState(wrapper, '/payments', true)
-    expectBottomNavTabState(wrapper, '/member', false)
+    expectBottomNavTabState(wrapper, '/members', false)
     expectBottomNavTabState(wrapper, '/attendance', false)
   })
 
@@ -109,7 +109,7 @@ describe('BottomNavigation', () => {
       const wrapper = mountBottomNavigation()
 
       expectBottomNavTabState(wrapper, '/attendance', true)
-      expectBottomNavTabState(wrapper, '/member', false)
+      expectBottomNavTabState(wrapper, '/members', false)
       expectBottomNavTabState(wrapper, '/payments', false)
     }
   )
