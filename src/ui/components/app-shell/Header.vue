@@ -1,22 +1,58 @@
 <script setup lang="ts">
-import AppIcon from '@/ui/components/AppIcon.vue'
-import LeaveDemoButton from '@/ui/features/demo/LeaveDemoButton.vue'
-import { useHeader } from './useHeader'
+import { storeToRefs } from 'pinia'
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
-const {
-  backButtonLabel,
-  menuButtonLabel,
-  offlineLabel,
-  showBack,
-  showOfflineBadge,
-  title,
-  handleBack,
-  handleToggleSidebar
-} = useHeader()
+import AppIcon from '@/ui/components/AppIcon.vue'
+import { resolveShellRouteTitle } from '@/ui/components/app-shell/AppShell.config'
+import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
+import LeaveDemoButton from '@/ui/features/demo/LeaveDemoButton.vue'
+import type { AppRouteName } from '@/ui/router'
+import { useRoute, useRouter } from '@/ui/router/runtime'
+import { useAppStore } from '@/ui/stores/app'
+import { useShellStore } from '@/ui/stores/shell.store'
+
+const route = useRoute()
+const router = useRouter()
+const appStore = useAppStore()
+const shellStore = useShellStore()
+const { isOnline } = storeToRefs(appStore)
+const { t } = useI18n({
+  useScope: 'local',
+  messages: APP_SHELL_MESSAGES
+})
+
+const currentRouteName = computed(() => {
+  return typeof route.name === 'string' ? (route.name as AppRouteName) : null
+})
+const title = computed(() =>
+  resolveShellRouteTitle({
+    routeName: currentRouteName.value,
+    fallbackTitle: t('app.name'),
+    translate: t
+  })
+)
+const backButtonLabel = computed(() => t('header.back'))
+const menuButtonLabel = computed(() => t('header.menu'))
+const offlineLabel = computed(() => t('network.offline'))
+const showBack = computed(() => Boolean(route.meta.showBack))
+const showOfflineBadge = computed(() => !isOnline.value)
+
+function handleBack() {
+  if (route.meta.backTo) {
+    router.push(route.meta.backTo as string)
+    return
+  }
+
+  router.back()
+}
+
+function handleToggleSidebar() {
+  shellStore.toggleSidebar()
+}
 </script>
 
 <template>
-  <!-- What: keep the shell header as the visible mobile-first chrome. Why: route, network, and sidebar decisions live in useHeader while the menu markup stays in its own shell component. -->
   <header class="app-shell-header">
     <div class="app-shell-header__leading">
       <button
@@ -44,7 +80,6 @@ const {
       </h1>
     </div>
     <div class="app-shell-header__actions">
-      <!-- What: render the demo exit CTA as a header action. Why: the merged header owns its chrome while demo modal state stays behind the dedicated feature store. -->
       <LeaveDemoButton />
       <span v-if="showOfflineBadge" class="app-shell-header__offline-badge">{{
         offlineLabel
