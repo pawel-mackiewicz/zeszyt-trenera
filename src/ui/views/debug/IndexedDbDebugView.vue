@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import { db, type TrainerNotebookDb } from '@/db'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import { useIndexedDbInspector } from '@/ui/composables/useIndexedDbInspector'
+import { useIndexedDbInspector } from '@/ui/views/debug/useIndexedDbInspector'
 
 const props = defineProps<{
   database?: TrainerNotebookDb

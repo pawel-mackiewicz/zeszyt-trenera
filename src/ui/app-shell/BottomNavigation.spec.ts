@@ -2,7 +2,7 @@ import { mount, type VueWrapper } from '@vue/test-utils'
 import { reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import BottomNavigation from '@/ui/components/app-shell/BottomNavigation.vue'
+import BottomNavigation from '@/ui/app-shell/BottomNavigation.vue'
 import { createAppI18n } from '@/ui/i18n'
 import type { AppRouteName } from '@/ui/router'
 import { useRoute } from '@/ui/router/runtime'

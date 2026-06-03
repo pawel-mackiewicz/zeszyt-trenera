@@ -9,11 +9,11 @@ import {
 } from '@/write/domain/model/AttendanceList'
 import { MemberNotFoundError } from '@/write/domain/model/Member'
 import { useAppServices } from '@/ui/appServices'
-import AttendanceSessionEditor from '@/ui/components/AttendanceSessionEditor.vue'
+import AttendanceSessionEditor from './AttendanceSessionEditor.vue'
 import {
   snapDateToSessionTimeGrid,
   useAttendanceEditor
-} from '@/ui/composables/useAttendanceEditor'
+} from '@/ui/views/attendance/useAttendanceEditor'
 import { useRouter } from '@/ui/router/runtime'
 
 type SubmitErrorKey =

@@ -6,7 +6,7 @@ import { TrainerAlreadyExistsError } from '@/write/domain/model/Trainer'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
+import SetupLayout from './SetupLayout.vue'
 
 type SubmitErrorKey = 'required' | 'alreadyExists' | 'submit'
 
@@ -60,7 +60,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <SetupStageLayout :step-label="t('step')" :title="t('title')">
+  <SetupLayout :step-label="t('step')" :title="t('title')">
     <!-- What: end setup with one direct trainer form. Why: the shell should unlock as soon as the final required identity is saved, without extra confirmation screens or branching. -->
     <form class="space-y-8" @submit.prevent="handleSubmit">
       <!-- What: reuse the floating error card during setup. Why: the final onboarding step should present save failures with the same top-level treatment as the rest of the app even though the shell header is hidden here. -->
@@ -97,7 +97,7 @@ async function handleSubmit() {
         </AppButton>
       </div>
     </form>
-  </SetupStageLayout>
+  </SetupLayout>
 </template>
 
 <i18n lang="json">

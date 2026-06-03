@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import RouteTransition from '@/ui/components/app-shell/RouteTransition.vue'
+import RouteTransition from '@/ui/app-shell/RouteTransition.vue'
 </script>
 
 <template>

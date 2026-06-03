@@ -4,7 +4,7 @@ import { defineComponent, nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { useAppServices } from '@/ui/appServices'
-import { useDatabaseBackup } from '@/ui/components/app-shell/useDatabaseBackup'
+import { useDatabaseBackup } from '@/ui/app-shell/useDatabaseBackup'
 import { createAppI18n } from '@/ui/i18n'
 import { useShellStore } from '@/ui/stores/shell.store'
 

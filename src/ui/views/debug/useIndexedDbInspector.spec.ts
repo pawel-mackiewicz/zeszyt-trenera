@@ -11,7 +11,7 @@ import {
   clearIndexedDbTable,
   inspectIndexedDb,
   useIndexedDbInspector
-} from '@/ui/composables/useIndexedDbInspector'
+} from '@/ui/views/debug/useIndexedDbInspector'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`

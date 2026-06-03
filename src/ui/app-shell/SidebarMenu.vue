@@ -8,9 +8,9 @@ import {
   SHELL_LOCALE_OPTIONS,
   SHELL_NAVIGATION_LABEL_KEYS,
   SHELL_ROUTE_TITLE_KEYS
-} from '@/ui/components/app-shell/AppShell.config'
-import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
-import { useDatabaseBackup } from '@/ui/components/app-shell/useDatabaseBackup'
+} from '@/ui/app-shell/AppShell.config'
+import { APP_SHELL_MESSAGES } from '@/ui/app-shell/AppShell.messages'
+import { useDatabaseBackup } from '@/ui/app-shell/useDatabaseBackup'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'

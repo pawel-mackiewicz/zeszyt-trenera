@@ -7,7 +7,7 @@ import {
   SESSION_TIME_STEP_SECONDS,
   buildSessionStart,
   type SessionField
-} from '@/ui/composables/useAttendanceEditor'
+} from './useAttendanceEditor'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
@@ -343,20 +343,20 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
         type="button"
         @click="emit('toggle-member', member.id)"
       >
-        <div class="min-w-0">
-          <p
-            class="truncate font-headline text-xl font-bold uppercase tracking-tight"
+        <span class="block min-w-0">
+          <span
+            class="block truncate font-headline text-xl font-bold uppercase tracking-tight"
           >
             {{ member.firstName }} {{ member.lastName }}
-          </p>
-          <p
-            class="mt-1 font-mono text-[0.6875rem] uppercase tracking-[0.16em]"
+          </span>
+          <span
+            class="mt-1 block font-mono text-[0.6875rem] uppercase tracking-[0.16em]"
           >
             {{ formatMemberAge(member) }}
-          </p>
-        </div>
+          </span>
+        </span>
 
-        <div class="flex items-center justify-end">
+        <span class="flex items-center justify-end">
           <span
             v-if="isSelected(member.id)"
             class="attendance-member-row__status attendance-member-row__status--selected"
@@ -366,7 +366,7 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
           <span v-else class="attendance-member-row__status">
             <AppIcon name="add" />
           </span>
-        </div>
+        </span>
       </button>
     </section>
 

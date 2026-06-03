@@ -4,7 +4,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
-import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
+import { APP_SHELL_MESSAGES } from '@/ui/app-shell/AppShell.messages'
 import { useAppStore } from '@/ui/stores/app'
 
 const appStore = useAppStore()

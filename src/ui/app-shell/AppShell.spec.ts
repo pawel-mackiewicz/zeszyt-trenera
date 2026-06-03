@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
 import { useAppServices } from '@/ui/appServices'
-import AppShell from '@/ui/components/AppShell.vue'
+import AppShell from '@/ui/app-shell/AppShell.vue'
 import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { createAppI18n } from '@/ui/i18n'

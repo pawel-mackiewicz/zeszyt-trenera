@@ -9,10 +9,10 @@ import {
 } from '@/write/domain/model/AttendanceList'
 import { MemberNotFoundError } from '@/write/domain/model/Member'
 import { useAppServices } from '@/ui/appServices'
-import AttendanceSessionEditor from '@/ui/components/AttendanceSessionEditor.vue'
+import AttendanceSessionEditor from './AttendanceSessionEditor.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import { useAttendanceEditor } from '@/ui/composables/useAttendanceEditor'
+import { useAttendanceEditor } from '@/ui/views/attendance/useAttendanceEditor'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 
 type SubmitErrorKey =

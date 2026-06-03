@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { reactive } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
-import Header from '@/ui/components/app-shell/Header.vue'
+import Header from '@/ui/app-shell/Header.vue'
 import { createAppI18n } from '@/ui/i18n'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import { useAppStore } from '@/ui/stores/app'

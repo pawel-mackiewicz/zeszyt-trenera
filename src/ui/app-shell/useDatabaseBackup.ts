@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import { useAppServices } from '@/ui/appServices'
-import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
+import { APP_SHELL_MESSAGES } from '@/ui/app-shell/AppShell.messages'
 import { useShellStore } from '@/ui/stores/shell.store'
 
 export function useDatabaseBackup() {

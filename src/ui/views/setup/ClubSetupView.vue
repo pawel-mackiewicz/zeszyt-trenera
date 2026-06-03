@@ -6,7 +6,7 @@ import { ClubAlreadyExistsError } from '@/write/domain/model/Club'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import SetupStageLayout from '@/ui/components/SetupStageLayout.vue'
+import SetupLayout from './SetupLayout.vue'
 
 type SubmitErrorKey = 'required' | 'invalidDate' | 'alreadyExists' | 'submit'
 
@@ -73,7 +73,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <SetupStageLayout :step-label="t('step')" :title="t('title')">
+  <SetupLayout :step-label="t('step')" :title="t('title')">
     <!-- What: keep the club setup form compact and single-purpose. Why: the first-run mobile flow should ask only for the minimum club identity required by the domain model. -->
     <form class="space-y-8" @submit.prevent="handleSubmit">
       <!-- What: reuse the floating error card during setup. Why: the first-run flow should announce recoverable write problems with the same top-level treatment as the rest of the app even though the shell header is hidden here. -->
@@ -125,7 +125,7 @@ async function handleSubmit() {
         </AppButton>
       </div>
     </form>
-  </SetupStageLayout>
+  </SetupLayout>
 </template>
 
 <i18n lang="json">

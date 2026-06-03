@@ -6,8 +6,8 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 import {
   SHELL_BOTTOM_NAVIGATION_ITEMS,
   type ShellBottomNavigationItem
-} from '@/ui/components/app-shell/AppShell.config'
-import { APP_SHELL_MESSAGES } from '@/ui/components/app-shell/AppShell.messages'
+} from '@/ui/app-shell/AppShell.config'
+import { APP_SHELL_MESSAGES } from '@/ui/app-shell/AppShell.messages'
 import type { AppRouteName } from '@/ui/router'
 import { RouterLink } from '@/ui/router/runtime'
 import { useRoute } from '@/ui/router/runtime'

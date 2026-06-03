@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { APP_LOCALE_STORAGE_KEY } from '@/appStorageKeys'
 import { useAppServices } from '@/ui/appServices'
-import SidebarMenu from '@/ui/components/app-shell/SidebarMenu.vue'
+import SidebarMenu from '@/ui/app-shell/SidebarMenu.vue'
 import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { createAppI18n } from '@/ui/i18n'
