@@ -169,7 +169,7 @@ a {
 /* What: keep viewport-anchored add actions available before any route-scoped CSS arrives. Why: Vite injects component-scoped styles after the route starts rendering on reload, so critical FAB positioning has to live in the bootstrap stylesheet to avoid a visible jump from document flow into fixed placement. */
 .app-floating-action {
   position: fixed;
-  right: max(1rem, calc((100vw - 64rem) / 2 + 1.5rem));
+  right: max(1rem, env(safe-area-inset-right));
   bottom: calc(5rem + env(safe-area-inset-bottom) + 1rem);
   z-index: 45;
 }

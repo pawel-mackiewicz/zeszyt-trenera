@@ -267,7 +267,7 @@ onMounted(() => {
       @dismiss-error="dismissDeleteError"
     />
 
-    <!-- What: keep the add action floating above the shell navigation on every scroll position. Why: the attendance recorder needs to stay reachable from the archive view without forcing coaches to return to the bottom of a long monthly list. -->
+    <!-- What: keep the add action pinned to the viewport edge. Why: when the desktop history view leaves side rail space, the CTA should float outside the ledger instead of covering rows. -->
     <div class="attendance-history__action-fab app-floating-action">
       <AppButton as="router-link" to="/attendance/new">
         {{ t('actions.newTraining') }}

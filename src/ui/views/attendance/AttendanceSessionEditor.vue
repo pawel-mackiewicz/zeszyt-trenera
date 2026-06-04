@@ -9,6 +9,7 @@ import {
   type SessionField
 } from './useAttendanceEditor'
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
+import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
@@ -388,25 +389,16 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
       </div>
     </section>
 
-    <section
-      class="sticky bottom-24 z-10 border border-on-surface bg-surface p-4 hard-shadow"
-    >
-      <div
-        class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+    <!-- What: pin the save action to the viewport edge like attendance history. Why: the roster should keep its compact scan flow without an explanatory sticky panel covering the lower content. -->
+    <div class="attendance-view__action-fab app-floating-action">
+      <AppButton
+        :disabled="submitBlocked"
+        type="button"
+        @click="emit('submit')"
       >
-        <p class="text-sm leading-6 text-secondary">
-          {{ t(`modes.${mode}.actions.help`) }}
-        </p>
-        <button
-          class="attendance-action-button attendance-action-button--primary w-full sm:w-auto"
-          :disabled="submitBlocked"
-          type="button"
-          @click="emit('submit')"
-        >
-          {{ submitLabel }}
-        </button>
-      </div>
-    </section>
+        {{ submitLabel }}
+      </AppButton>
+    </div>
   </div>
 </template>
 
