@@ -5,7 +5,7 @@ import { useI18n } from 'vue-i18n'
 import ConfirmationModal, {
   type ConfirmationModalDetail
 } from '@/ui/components/modals/ConfirmationModal.vue'
-import { Money, type MoneySnapshot } from '@/write/domain/model/vo/Money'
+import { Money, type MoneySnapshot } from '@/write/shared/vo/Money'
 import { MEMBERSHIP_PAYMENT_CONFIRMATION_MODAL_MESSAGES } from './MembershipPaymentConfirmationModal.messages'
 
 export type MembershipPaymentConfirmationModalMember = {

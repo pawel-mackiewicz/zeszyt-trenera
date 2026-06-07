@@ -8,8 +8,8 @@ import {
   InvalidMemberNameError,
   MemberAlreadyExistsError,
   MemberNotFoundError
-} from '@/write/domain/model/Member'
-import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
+} from '@/write/members/domain/Member'
+import { InvalidPhoneNumberError } from '@/write/shared/vo/PhoneNumber'
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'

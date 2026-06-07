@@ -4,9 +4,9 @@ import { useAppServices } from '@/ui/appServices'
 import {
   MemberPhoneNumberMissingError,
   PaymentReminderSenderMissingError
-} from '@/write/application/SendMembershipPaymentReminderUseCase'
-import { MemberNotFoundError } from '@/write/domain/model/Member'
-import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
+} from '@/write/memberships/application/SendMembershipPaymentReminderUseCase'
+import { MemberNotFoundError } from '@/write/members/domain/Member'
+import { toMembershipPaymentCoveredMonth } from '@/write/memberships/domain/MembershipPayment'
 
 type ReminderLocale = 'pl' | 'en'
 type CoveredMonth = ReturnType<typeof toMembershipPaymentCoveredMonth>

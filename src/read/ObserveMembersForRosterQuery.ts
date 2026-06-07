@@ -1,7 +1,7 @@
 import { liveQuery, type Observable } from 'dexie'
 
 import type { TrainerNotebookDb } from '@/db'
-import { copyDate, copyOptionalDate } from '@/write/domain/model/DateUtils'
+import { copyDate, copyOptionalDate } from '@/write/shared/DateUtils'
 
 export type MemberRosterListItem = {
   id: string

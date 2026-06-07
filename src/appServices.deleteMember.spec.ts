@@ -2,7 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { createAppServices } from '@/appServices'
 import { TrainerNotebookDb } from '@/db'
-import type { PersistedMember, PersistedMembershipPayment } from '@/write/infra'
+import type {
+  PersistedMember,
+  PersistedMembershipPayment
+} from '@/write/shared/infra'
 
 describe('deleteMember app service', () => {
   let database: TrainerNotebookDb

@@ -2,9 +2,9 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { defineComponent } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { Club } from '@/write/domain/model/Club'
-import { MembershipPayment } from '@/write/domain/model/MembershipPayment'
-import { Trainer } from '@/write/domain/model/Trainer'
+import { Club } from '@/write/business_profile/domain/Club'
+import { MembershipPayment } from '@/write/memberships/domain/MembershipPayment'
+import { Trainer } from '@/write/business_profile/domain/Trainer'
 import { TrainerNotebookDb } from '@/db'
 import {
   clearIndexedDb,

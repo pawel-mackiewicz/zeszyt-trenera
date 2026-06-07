@@ -10,7 +10,7 @@ import {
 } from 'vitest'
 import { nextTick } from 'vue'
 
-import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber.ts'
+import { InvalidPhoneNumberError } from '@/write/shared/vo/PhoneNumber.ts'
 import { createAppI18n } from '@/ui/i18n.ts'
 import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import { useRouter } from '@/ui/router/runtime.ts'

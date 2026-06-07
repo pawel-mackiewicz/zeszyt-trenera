@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { PersistedMember } from '@/write/infra'
+import type { PersistedMember } from '@/write/shared/infra'
 import { sortMembers } from '@/ui/utils/memberSort'
 
 describe('memberSort', () => {

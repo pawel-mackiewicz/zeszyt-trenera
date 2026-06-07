@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { InvalidPhoneNumberError } from '@/write/domain/model/vo/PhoneNumber'
+import { InvalidPhoneNumberError } from '@/write/shared/vo/PhoneNumber'
 import { createAppServicesProvides } from '@/ui/appServices.ts'
 import MemberEditDrawer from '@/ui/views/roster/components/MemberEditDrawer.vue'
 import { createAppI18n } from '@/ui/i18n.ts'

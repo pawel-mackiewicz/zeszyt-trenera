@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-import { TrainerAlreadyExistsError } from '@/write/domain/model/Trainer'
+import { TrainerAlreadyExistsError } from '@/write/business_profile/domain/Trainer'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'

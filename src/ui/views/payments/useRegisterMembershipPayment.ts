@@ -1,11 +1,11 @@
 import { ref } from 'vue'
 
 import { useAppServices } from '@/ui/appServices'
-import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
+import type { MoneySnapshot } from '@/write/shared/vo/Money'
 import {
   MembershipPaymentAlreadyExistsError,
   toMembershipPaymentCoveredMonth
-} from '@/write/domain/model/MembershipPayment'
+} from '@/write/memberships/domain/MembershipPayment'
 
 type CoveredMonth = ReturnType<typeof toMembershipPaymentCoveredMonth>
 

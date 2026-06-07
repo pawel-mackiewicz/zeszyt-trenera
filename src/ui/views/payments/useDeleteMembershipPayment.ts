@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 
 import { useAppServices } from '@/ui/appServices'
-import { MembershipPaymentNotFoundError } from '@/write/domain/model/MembershipPayment'
+import { MembershipPaymentNotFoundError } from '@/write/memberships/domain/MembershipPayment'
 
 export type DeletionErrorKey = 'missing' | 'submit' | null
 

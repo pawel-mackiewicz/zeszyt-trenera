@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import type { MembershipPaymentSummaryByMonthResult } from '@/read/ObserveMembershipPaymentSummaryByMonthQuery'
 import AppButton from '@/ui/components/AppButton.vue'
-import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
+import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 const props = defineProps<{
   isLoading: boolean

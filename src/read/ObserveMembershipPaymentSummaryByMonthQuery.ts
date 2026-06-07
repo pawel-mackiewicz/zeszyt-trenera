@@ -1,9 +1,9 @@
 import { liveQuery, type Observable } from 'dexie'
 
 import type { TrainerNotebookDb } from '@/db'
-import type { PersistedMembershipPayment } from '@/write/infra'
-import { toMembershipPaymentCoveredMonth } from '@/write/domain/model/MembershipPayment'
-import type { MoneySnapshot } from '@/write/domain/model/vo/Money'
+import type { PersistedMembershipPayment } from '@/write/shared/infra'
+import { toMembershipPaymentCoveredMonth } from '@/write/memberships/domain/MembershipPayment'
+import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 type PersistedMembershipPaymentWithAmount = PersistedMembershipPayment & {
   chargedAmount?: MoneySnapshot | null

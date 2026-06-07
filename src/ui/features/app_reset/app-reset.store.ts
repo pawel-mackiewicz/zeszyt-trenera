@@ -4,7 +4,7 @@ import { defineStore } from 'pinia'
 import {
   normalizeResetConfirmationPhrase,
   RESET_APPLICATION_CONFIRMATION_PHRASE
-} from '@/write/application/requests/ResetApplicationDataCommand'
+} from '@/system_management/app_reset/application/requests/ResetApplicationDataCommand'
 import {
   ResetDataModalStatus,
   type ResetDataModalStatusValue

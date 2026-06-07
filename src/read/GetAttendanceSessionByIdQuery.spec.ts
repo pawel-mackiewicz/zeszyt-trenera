@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { TrainerNotebookDb } from '@/db'
-import { AttendanceList } from '@/write/domain/model/AttendanceList'
+import { AttendanceList } from '@/write/attendance/domain/AttendanceList'
 import { GetAttendanceSessionByIdQuery } from '@/read/GetAttendanceSessionByIdQuery'
 
 function createTestDbName(prefix: string) {
