@@ -40,7 +40,7 @@ export async function createAttendanceSessionViaUi(
   await setAttendanceSessionDate(page, session.date)
   await setAttendanceSessionTime(page, session.time)
   await markAttendanceMembers(page, memberNames)
-  await saveNewAttendance(page)
+  await saveNewAttendance(page, session)
 }
 
 export async function setAttendanceSessionDate(page: Page, date: Date) {
@@ -63,14 +63,30 @@ export async function markAttendanceMembers(page: Page, memberNames: string[]) {
   }
 }
 
-export async function saveNewAttendance(page: Page) {
+export async function saveNewAttendance(
+  page: Page,
+  expectedSession?: AttendanceSessionExpectation
+) {
   await page.getByRole('button', { name: /^zapisz obecność$/i }).click()
   await expect(attendanceHistoryHeading(page)).toBeVisible()
+
+  if (expectedSession) {
+    // Why: the history route is visible before a month query proves the saved local-first attendance write is present in the persisted read model.
+    await expectAttendanceSessionInHistory(page, expectedSession)
+  }
 }
 
-export async function saveAttendanceEdits(page: Page) {
+export async function saveAttendanceEdits(
+  page: Page,
+  expectedSession?: AttendanceSessionExpectation
+) {
   await page.getByRole('button', { name: /^zapisz zmiany$/i }).click()
   await expect(attendanceHistoryHeading(page)).toBeVisible()
+
+  if (expectedSession) {
+    // Why: edit saves return to already-known history chrome, so the durable signal is the updated session row loaded through the attendance query.
+    await expectAttendanceSessionInHistory(page, expectedSession)
+  }
 }
 
 export async function navigateAttendanceHistoryToMonth(

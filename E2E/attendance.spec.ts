@@ -61,7 +61,11 @@ test('persists attendance after changing the training date', async ({
   await setAttendanceSessionDate(page, sessionDate)
   await setAttendanceSessionTime(page, sessionTime)
   await markAttendanceMembers(page, [ATTENDANCE_MEMBER_ONE])
-  await saveNewAttendance(page)
+  await saveNewAttendance(page, {
+    count: 1,
+    date: sessionDate,
+    time: sessionTime
+  })
 
   // Why: changing the date only matters if the saved session comes back through the monthly history query after reload.
   await reloadAttendanceHistoryAfterLocalWrites(page)
@@ -84,7 +88,11 @@ test('persists attendance after changing the training hour', async ({
   await openNewAttendanceFromHistory(page)
   await setAttendanceSessionTime(page, sessionTime)
   await markAttendanceMembers(page, [ATTENDANCE_MEMBER_ONE])
-  await saveNewAttendance(page)
+  await saveNewAttendance(page, {
+    count: 1,
+    date: sessionDate,
+    time: sessionTime
+  })
 
   // Why: the local-first hour edit must survive a full browser reload before the history row is trusted.
   await reloadAttendanceHistoryAfterLocalWrites(page)
@@ -108,7 +116,11 @@ test('shows persisted training with correct date, time, and attendance count', a
     ATTENDANCE_MEMBER_ONE,
     ATTENDANCE_MEMBER_TWO
   ])
-  await saveNewAttendance(page)
+  await saveNewAttendance(page, {
+    count: 2,
+    date: sessionDate,
+    time: sessionTime
+  })
 
   // Why: the count displayed in history is the read-model contract coaches use to audit a saved training at a glance.
   await reloadAttendanceHistoryAfterLocalWrites(page)
@@ -131,7 +143,11 @@ test('persists edits to an existing training', async ({ page }) => {
     ATTENDANCE_MEMBER_ONE,
     ATTENDANCE_MEMBER_TWO
   ])
-  await saveNewAttendance(page)
+  await saveNewAttendance(page, {
+    count: 2,
+    date: sessionDate,
+    time: originalTime
+  })
   await reloadAttendanceHistoryAfterLocalWrites(page)
   await expectAttendanceSessionInHistory(page, {
     count: 2,
@@ -147,7 +163,11 @@ test('persists edits to an existing training', async ({ page }) => {
 
   await setAttendanceSessionTime(page, updatedTime)
   await markAttendanceMembers(page, [ATTENDANCE_MEMBER_THREE])
-  await saveAttendanceEdits(page)
+  await saveAttendanceEdits(page, {
+    count: 3,
+    date: sessionDate,
+    time: updatedTime
+  })
 
   // Why: edit writes replace the stored training, so the old time must disappear after history reload while the new count is preserved.
   await reloadAttendanceHistoryAfterLocalWrites(page)

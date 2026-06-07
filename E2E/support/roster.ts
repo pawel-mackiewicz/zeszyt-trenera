@@ -117,13 +117,16 @@ export async function updateRosterMemberFirstName(
   fullName: string,
   firstName: string
 ) {
+  const lastName = fullName.replace(/^\S+\s+/, '')
+  const updatedFullName = `${firstName} ${lastName}`
+
   await openRosterMemberDetails(page, fullName)
   await page.getByRole('button', { name: /^edytuj$/i }).click()
   await page.getByLabel(/^imię$/i).fill(firstName)
   await page.getByRole('button', { name: /zapisz zmiany/i }).click()
 
-  // Why: edit specs should wait for the roster route before reloading so a save that writes but fails navigation is still caught.
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  // Why: the edit form is inline on the roster route, so waiting for the already-visible page heading does not prove the IndexedDB-backed roster projection observed the saved member.
+  await expectRosterMemberVisible(page, updatedFullName)
 }
 
 function escapeRegExp(value: string): string {

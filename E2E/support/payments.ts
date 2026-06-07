@@ -4,10 +4,10 @@ import { openDemoRoster } from './demo'
 import {
   type DemoPaymentMemberTarget,
   type DemoPaymentTargets
-} from '@/write/infra/demo/demoPaymentTargets'
+} from '@/system_management/demo/infra/seed/demoPaymentTargets'
 
 // Why: payments specs need deterministic demo actors without reading IndexedDB directly, so this keeps the test oracle aligned with the shared demo seed inputs while the app still performs every write.
-export { currentDemoPaymentTargets } from '@/write/infra/demo/demoPaymentTargets'
+export { currentDemoPaymentTargets } from '@/system_management/demo/infra/seed/demoPaymentTargets'
 export type { DemoPaymentMemberTarget, DemoPaymentTargets }
 
 export type PaymentConfirmationExpectation = {
