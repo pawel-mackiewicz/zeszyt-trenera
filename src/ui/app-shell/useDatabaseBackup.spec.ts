@@ -77,14 +77,17 @@ describe('useDatabaseBackup', () => {
     vi.mocked(useAppServices).mockReset()
     vi.mocked(useAppServices).mockReturnValue({
       queries: {} as never,
-      useCases: {
-        importDatabaseBackup: {
-          handle: mockImportDatabaseBackup
-        },
-        exportDatabaseBackup: {
-          handle: mockExportDatabaseBackup
+      system: {
+        backup: {
+          import: {
+            handle: mockImportDatabaseBackup
+          },
+          export: {
+            handle: mockExportDatabaseBackup
+          }
         }
-      } as never
+      } as never,
+      useCases: {} as never
     })
   })
 

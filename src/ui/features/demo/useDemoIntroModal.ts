@@ -19,7 +19,7 @@ type DemoExitStatusValue = (typeof DemoExitStatus)[keyof typeof DemoExitStatus]
 export function useDemoIntroModal() {
   const appStore = useAppStore()
   const demoStore = useDemoStore()
-  const { useCases } = useAppServices()
+  const { system } = useAppServices()
 
   const { appReadiness, setupStatus } = storeToRefs(appStore)
   const { demoIntroModalVisible, demoModeActive } = storeToRefs(demoStore)
@@ -88,7 +88,7 @@ export function useDemoIntroModal() {
 
     try {
       // What: route demo-exit writes through the application use case. Why: local-first data resets must stay behind the application layer instead of letting UI mutate persistence directly.
-      await useCases.leaveDemoMode.handle({})
+      await system.demo.leave.handle({})
       // todo window.location.reload() ?
       demoExitStatus.value = DemoExitStatus.Idle
       demoStore.dismissDemoIntroModal()

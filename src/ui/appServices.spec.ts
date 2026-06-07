@@ -49,10 +49,30 @@ describe('uiAppServices', () => {
           handle: observeHandle
         }
       },
-      useCases: {
-        bootstrapDemoMode: {
-          handle
+      system: {
+        backup: {
+          export: {
+            handle
+          },
+          import: {
+            handle
+          }
         },
+        demo: {
+          bootstrap: {
+            handle
+          },
+          leave: {
+            handle
+          }
+        },
+        reset: {
+          applicationData: {
+            handle
+          }
+        }
+      },
+      useCases: {
         archiveMember: {
           handle
         },
@@ -63,15 +83,6 @@ describe('uiAppServices', () => {
           handle
         },
         deleteMembershipPayment: {
-          handle
-        },
-        exportDatabaseBackup: {
-          handle
-        },
-        importDatabaseBackup: {
-          handle
-        },
-        leaveDemoMode: {
           handle
         },
         registerAttendanceList: {
@@ -87,9 +98,6 @@ describe('uiAppServices', () => {
           handle
         },
         registerTrainer: {
-          handle
-        },
-        resetApplicationData: {
           handle
         },
         sendMembershipPaymentReminder: {

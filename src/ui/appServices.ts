@@ -3,6 +3,7 @@ import { inject, type App, type InjectionKey } from 'vue'
 
 export type UiAppServices = {
   readonly queries: AppServices['queries']
+  readonly system: AppServices['system']
   readonly useCases: AppServices['useCases']
 }
 

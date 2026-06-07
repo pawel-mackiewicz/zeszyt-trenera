@@ -5,8 +5,9 @@ import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 import { TrainerNotebookDb } from '@/db'
 import { DexieMemberRepo } from '@/write/members/infra/db/DexieMemberRepo'
 import { DexieMembershipPaymentRepo } from '@/write/memberships/infra/db/DexieMembershipPaymentRepo'
-import {
+import type {
   PersistedAttendanceList,
+  PersistedMember,
   PersistedMembershipPayment
 } from '@/write/shared/infra'
 import { DexieAttendanceListRepo } from '@/write/attendance/infra/db/DexieAttendanceListRepo'

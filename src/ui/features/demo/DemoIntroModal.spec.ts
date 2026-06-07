@@ -63,11 +63,14 @@ describe('DemoIntroModal', () => {
         plugins: [pinia, i18n],
         provide: createAppServicesProvides({
           queries: {} as never,
-          useCases: {
-            leaveDemoMode: {
-              handle: mockLeaveDemoMode
+          system: {
+            demo: {
+              leave: {
+                handle: mockLeaveDemoMode
+              }
             }
-          } as never
+          } as never,
+          useCases: {} as never
         })
       }
     })

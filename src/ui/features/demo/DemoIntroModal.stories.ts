@@ -88,11 +88,14 @@ const meta: Meta<DemoIntroModalStoryArgs> = {
       // What: provide a story-local application service seam. Why: the smart modal now calls the leave-demo use case, but Storybook should not touch real local-first data.
       provide(appServicesKey, {
         queries: {} as never,
-        useCases: {
-          leaveDemoMode: {
-            handle: createLeaveDemoHandler(args)
+        system: {
+          demo: {
+            leave: {
+              handle: createLeaveDemoHandler(args)
+            }
           }
-        } as never
+        } as never,
+        useCases: {} as never
       })
     },
     template: '<DemoIntroModal />'

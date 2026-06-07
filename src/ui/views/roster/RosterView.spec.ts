@@ -50,6 +50,7 @@ describe('RosterView', () => {
               handle: mockObserveMembersForRosterHandle
             }
           } as never,
+          system: {} as never,
           useCases: {
             archiveMember: { handle: mockArchiveMemberHandle },
             unarchiveMember: { handle: mockUnarchiveMemberHandle },

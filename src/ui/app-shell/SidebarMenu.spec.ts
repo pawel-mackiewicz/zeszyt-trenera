@@ -45,14 +45,17 @@ describe('SidebarMenu', () => {
     ])
     vi.mocked(useAppServices).mockReturnValue({
       queries: {} as unknown,
-      useCases: {
-        importDatabaseBackup: {
-          handle: mockImportDatabaseBackup
-        },
-        exportDatabaseBackup: {
-          handle: mockExportDatabaseBackup
+      system: {
+        backup: {
+          import: {
+            handle: mockImportDatabaseBackup
+          },
+          export: {
+            handle: mockExportDatabaseBackup
+          }
         }
-      } as unknown
+      } as unknown,
+      useCases: {} as unknown
     } as unknown as ReturnType<typeof useAppServices>)
   })
 

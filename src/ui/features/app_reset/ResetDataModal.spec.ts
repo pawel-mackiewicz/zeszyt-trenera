@@ -56,11 +56,14 @@ describe('ResetDataModal', () => {
         plugins: [pinia, i18n],
         provide: createAppServicesProvides({
           queries: {} as never,
-          useCases: {
-            resetApplicationData: {
-              handle: resetApplicationData
+          system: {
+            reset: {
+              applicationData: {
+                handle: resetApplicationData
+              }
             }
-          } as never
+          } as never,
+          useCases: {} as never
         })
       }
     })

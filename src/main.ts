@@ -43,7 +43,7 @@ function bootstrap() {
     .then(async () => {
       appStore.setDbConnected(true)
 
-      const demoMode = await services.useCases.bootstrapDemoMode.handle({})
+      const demoMode = await services.system.demo.bootstrap.handle({})
 
       // What: consume the application result as a direct boolean flag. Why: the UI shell only needs to know whether demo mode is active, so bootstrap should not leak mode-string parsing into the entrypoint.
       demoStore.setDemoModeActive(demoMode.demoModeActive)

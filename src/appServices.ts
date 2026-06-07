@@ -102,27 +102,36 @@ import {
 } from '@/read/ObserveSetupStatusQuery'
 
 export type AppUseCases = {
-  readonly bootstrapDemoMode: UseCase<
-    BootstrapDemoModeCommand,
-    BootstrapDemoModeResult
-  >
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
   readonly archiveMember: UseCase<ArchiveMemberCommand>
   readonly deleteMembershipPayment: UseCase<DeleteMembershipPaymentCommand>
-  readonly exportDatabaseBackup: UseCase<ExportDatabaseBackupCommand>
-  readonly importDatabaseBackup: UseCase<ImportDatabaseBackupCommand>
-  readonly leaveDemoMode: UseCase<LeaveDemoModeCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
   readonly registerTrainer: UseCase<RegisterTrainerCommand>
-  readonly resetApplicationData: UseCase<ResetApplicationDataCommand>
   readonly sendMembershipPaymentReminder: UseCase<SendMembershipPaymentReminderCommand>
   readonly updateAttendanceList: UseCase<UpdateAttendanceListCommand>
   readonly updateMember: UseCase<UpdateMemberCommand>
   readonly unarchiveMember: UseCase<UnarchiveMemberCommand>
+}
+
+export type AppSystemUseCases = {
+  readonly backup: {
+    readonly export: UseCase<ExportDatabaseBackupCommand>
+    readonly import: UseCase<ImportDatabaseBackupCommand>
+  }
+  readonly demo: {
+    readonly bootstrap: UseCase<
+      BootstrapDemoModeCommand,
+      BootstrapDemoModeResult
+    >
+    readonly leave: UseCase<LeaveDemoModeCommand>
+  }
+  readonly reset: {
+    readonly applicationData: UseCase<ResetApplicationDataCommand>
+  }
 }
 
 export type AppQueries = {
@@ -163,6 +172,7 @@ export type AppQueries = {
 export type AppServices = {
   readonly database: TrainerNotebookDb
   readonly queries: AppQueries
+  readonly system: AppSystemUseCases
   readonly useCases: AppUseCases
 }
 
@@ -400,9 +410,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
-    get bootstrapDemoMode() {
-      return resolveBootstrapDemoMode()
-    },
     get deleteAttendanceList() {
       return resolveDeleteAttendanceList()
     },
@@ -414,15 +421,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get deleteMembershipPayment() {
       return resolveDeleteMembershipPayment()
-    },
-    get exportDatabaseBackup() {
-      return resolveExportDatabaseBackup()
-    },
-    get importDatabaseBackup() {
-      return resolveImportDatabaseBackup()
-    },
-    get leaveDemoMode() {
-      return resolveLeaveDemoMode()
     },
     get registerAttendanceList() {
       return resolveRegisterAttendanceList()
@@ -439,9 +437,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get registerTrainer() {
       return resolveRegisterTrainer()
     },
-    get resetApplicationData() {
-      return resolveResetApplicationData()
-    },
     get sendMembershipPaymentReminder() {
       return resolveSendMembershipPaymentReminder()
     },
@@ -453,6 +448,31 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get unarchiveMember() {
       return resolveUnarchiveMember()
+    }
+  }
+
+  const system: AppSystemUseCases = {
+    // System workflows manage whole-app lifecycle and local-first data ownership, so they stay out of domain write use cases.
+    backup: {
+      get export() {
+        return resolveExportDatabaseBackup()
+      },
+      get import() {
+        return resolveImportDatabaseBackup()
+      }
+    },
+    demo: {
+      get bootstrap() {
+        return resolveBootstrapDemoMode()
+      },
+      get leave() {
+        return resolveLeaveDemoMode()
+      }
+    },
+    reset: {
+      get applicationData() {
+        return resolveResetApplicationData()
+      }
     }
   }
 
@@ -487,6 +507,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   return {
     database,
     queries,
+    system,
     useCases
   }
 }

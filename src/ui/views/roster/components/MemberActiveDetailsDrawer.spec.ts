@@ -41,6 +41,7 @@ describe('MemberActiveDetailsDrawer', () => {
         plugins: [createAppI18n(locale)],
         provide: createAppServicesProvides({
           queries: {} as never,
+          system: {} as never,
           useCases: {
             archiveMember: { handle: mockArchiveMemberHandle },
             deleteMember: { handle: mockDeleteMemberHandle },

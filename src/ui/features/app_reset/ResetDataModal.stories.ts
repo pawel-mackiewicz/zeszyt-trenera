@@ -98,11 +98,14 @@ const meta: Meta<ResetDataModalStoryArgs> = {
       // What: provide a story-local application service seam. Why: reset stories must never touch the real local-first database while exercising the smart modal.
       provide(appServicesKey, {
         queries: {} as never,
-        useCases: {
-          resetApplicationData: {
-            handle: createResetHandler(args)
+        system: {
+          reset: {
+            applicationData: {
+              handle: createResetHandler(args)
+            }
           }
-        } as never
+        } as never,
+        useCases: {} as never
       })
     },
     template: '<ResetDataModalStory />'

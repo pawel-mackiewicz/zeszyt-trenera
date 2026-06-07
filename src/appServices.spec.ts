@@ -85,24 +85,16 @@ describe('appServices', () => {
     expect(services.queries.observeSetupStatus).toBe(
       services.queries.observeSetupStatus
     )
-    expect(services.useCases.bootstrapDemoMode).toBe(
-      services.useCases.bootstrapDemoMode
-    )
+    expect(services.system.demo.bootstrap).toBe(services.system.demo.bootstrap)
     expect(services.useCases.deleteAttendanceList).toBe(
       services.useCases.deleteAttendanceList
     )
     expect(services.useCases.deleteMembershipPayment).toBe(
       services.useCases.deleteMembershipPayment
     )
-    expect(services.useCases.exportDatabaseBackup).toBe(
-      services.useCases.exportDatabaseBackup
-    )
-    expect(services.useCases.importDatabaseBackup).toBe(
-      services.useCases.importDatabaseBackup
-    )
-    expect(services.useCases.leaveDemoMode).toBe(
-      services.useCases.leaveDemoMode
-    )
+    expect(services.system.backup.export).toBe(services.system.backup.export)
+    expect(services.system.backup.import).toBe(services.system.backup.import)
+    expect(services.system.demo.leave).toBe(services.system.demo.leave)
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
     )
@@ -116,8 +108,8 @@ describe('appServices', () => {
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
     )
-    expect(services.useCases.resetApplicationData).toBe(
-      services.useCases.resetApplicationData
+    expect(services.system.reset.applicationData).toBe(
+      services.system.reset.applicationData
     )
     expect(services.useCases.sendMembershipPaymentReminder).toBe(
       services.useCases.sendMembershipPaymentReminder
@@ -172,7 +164,7 @@ describe('appServices', () => {
       })
     )
 
-    await services.useCases.resetApplicationData.handle({
+    await services.system.reset.applicationData.handle({
       confirmationPhrase: 'DELETE ALL DATA'
     })
 
@@ -206,7 +198,7 @@ describe('appServices', () => {
       type: 'application/json'
     })
 
-    await services.useCases.resetApplicationData.handle({
+    await services.system.reset.applicationData.handle({
       confirmationPhrase: 'DELETE ALL DATA'
     })
 
@@ -215,7 +207,7 @@ describe('appServices', () => {
       foundingDate: new Date('1999-01-01T00:00:00Z')
     })
 
-    await services.useCases.importDatabaseBackup.handle({
+    await services.system.backup.import.handle({
       backupFile
     })
 
@@ -571,9 +563,7 @@ describe('appServices', () => {
     )
     const services = createAppServices(database)
 
-    await expect(
-      services.useCases.bootstrapDemoMode.handle({})
-    ).resolves.toEqual({
+    await expect(services.system.demo.bootstrap.handle({})).resolves.toEqual({
       demoModeActive: true,
       introModal: true
     })
@@ -648,9 +638,7 @@ describe('appServices', () => {
   it('keeps demo mode active after a refreshed boot while the seeded notebook still exists', async () => {
     const services = createAppServices(database)
 
-    await expect(
-      services.useCases.bootstrapDemoMode.handle({})
-    ).resolves.toEqual({
+    await expect(services.system.demo.bootstrap.handle({})).resolves.toEqual({
       demoModeActive: true,
       introModal: true
     })
@@ -658,7 +646,7 @@ describe('appServices', () => {
     const refreshedServices = createAppServices(database)
 
     await expect(
-      refreshedServices.useCases.bootstrapDemoMode.handle({})
+      refreshedServices.system.demo.bootstrap.handle({})
     ).resolves.toEqual({
       demoModeActive: true,
       introModal: false
@@ -675,9 +663,7 @@ describe('appServices', () => {
       dateOfBirth: createBirthDate('2012-05-01T00:00:00Z')
     })
 
-    await expect(
-      services.useCases.bootstrapDemoMode.handle({})
-    ).resolves.toEqual({
+    await expect(services.system.demo.bootstrap.handle({})).resolves.toEqual({
       demoModeActive: false,
       introModal: false
     })
@@ -689,8 +675,8 @@ describe('appServices', () => {
   it('assembles the leave-demo workflow that clears seeded data and suppresses future auto-demo boots', async () => {
     const services = createAppServices(database)
 
-    await services.useCases.bootstrapDemoMode.handle({})
-    await services.useCases.leaveDemoMode.handle({})
+    await services.system.demo.bootstrap.handle({})
+    await services.system.demo.leave.handle({})
 
     await expect(database.clubs.count()).resolves.toBe(0)
     await expect(database.trainers.count()).resolves.toBe(0)
@@ -702,9 +688,7 @@ describe('appServices', () => {
       'dismissed'
     )
     expect(window.localStorage.getItem(DEMO_MODE_ACTIVE_STORAGE_KEY)).toBeNull()
-    await expect(
-      services.useCases.bootstrapDemoMode.handle({})
-    ).resolves.toEqual({
+    await expect(services.system.demo.bootstrap.handle({})).resolves.toEqual({
       demoModeActive: false,
       introModal: false
     })

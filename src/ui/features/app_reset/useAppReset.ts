@@ -8,7 +8,7 @@ import { ResetDataModalStatus } from '@/ui/features/app_reset/ResetDataModal.con
 
 export function useAppReset() {
   const appResetStore = useAppResetStore()
-  const { useCases } = useAppServices()
+  const { system } = useAppServices()
   const {
     resetModalStatus,
     resetConfirmationPhrase,
@@ -35,7 +35,7 @@ export function useAppReset() {
     }
 
     try {
-      await useCases.resetApplicationData.handle({
+      await system.reset.applicationData.handle({
         confirmationPhrase: resetConfirmationInput.value
       })
       appResetStore.completeResetApplicationData()

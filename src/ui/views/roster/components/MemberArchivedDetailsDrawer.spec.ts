@@ -31,6 +31,7 @@ describe('MemberArchivedDetailsDrawer', () => {
         plugins: [createAppI18n(locale)],
         provide: createAppServicesProvides({
           queries: {} as never,
+          system: {} as never,
           useCases: {
             unarchiveMember: { handle: mockUnarchiveMemberHandle }
           } as never

@@ -113,20 +113,27 @@ describe('AppShell', () => {
     })
     vi.mocked(useAppServices).mockReturnValue({
       queries: {} as unknown,
-      useCases: {
-        importDatabaseBackup: {
-          handle: mockImportDatabaseBackup
+      system: {
+        backup: {
+          import: {
+            handle: mockImportDatabaseBackup
+          },
+          export: {
+            handle: mockExportDatabaseBackup
+          }
         },
-        exportDatabaseBackup: {
-          handle: mockExportDatabaseBackup
+        demo: {
+          leave: {
+            handle: mockLeaveDemoMode
+          }
         },
-        leaveDemoMode: {
-          handle: mockLeaveDemoMode
-        },
-        resetApplicationData: {
-          handle: mockResetApplicationData
+        reset: {
+          applicationData: {
+            handle: mockResetApplicationData
+          }
         }
-      } as unknown
+      } as unknown,
+      useCases: {} as unknown
     } as unknown as ReturnType<typeof useAppServices>)
     vi.mocked(createNavigationItems).mockReturnValue([])
   })

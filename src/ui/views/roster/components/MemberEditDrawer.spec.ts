@@ -32,6 +32,7 @@ describe('MemberEditDrawer', () => {
         plugins: [createAppI18n(locale)],
         provide: createAppServicesProvides({
           queries: {} as never,
+          system: {} as never,
           useCases: {
             updateMember: { handle: mockUpdateMemberHandle }
           } as never

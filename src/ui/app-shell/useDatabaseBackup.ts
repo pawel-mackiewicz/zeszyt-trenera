@@ -7,7 +7,7 @@ import { useShellStore } from '@/ui/stores/shell.store'
 
 export function useDatabaseBackup() {
   const shellStore = useShellStore()
-  const { useCases } = useAppServices()
+  const { system } = useAppServices()
   const { t } = useI18n({
     useScope: 'local',
     messages: APP_SHELL_MESSAGES
@@ -64,7 +64,7 @@ export function useDatabaseBackup() {
 
     try {
       // What: route backup restore through one dedicated application workflow. Why: destructive clear-and-import writes must stay behind the same application boundary as every other Dexie mutation.
-      await useCases.importDatabaseBackup.handle({
+      await system.backup.import.handle({
         backupFile: selectedBackupFile
       })
       reloadApplication()
@@ -92,7 +92,7 @@ export function useDatabaseBackup() {
 
     try {
       // What: route backup export through one dedicated application workflow. Why: database snapshot policy and delivery fallbacks should stay behind the same application boundary as other data workflows.
-      await useCases.exportDatabaseBackup.handle({})
+      await system.backup.export.handle({})
     } catch (error) {
       // What: attach technical browser error details to the shared export alert. Why: Android share/download failures are often browser-specific and impossible to diagnose from generic copy.
       backupExportErrorMessage.value = buildBackupExportErrorMessage(t, error)
