@@ -1,0 +1,1 @@
+- if using `Money` vo in tests - always separate cents -> `200_00`, not `20_000`
