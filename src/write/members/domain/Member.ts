@@ -1,4 +1,8 @@
 import { DomainEvent } from '@/write/shared/events/DomainEvent'
+import {
+  isStandardizableName,
+  standardizeName
+} from '@/write/shared/NameStandardization'
 import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 import { copyDate, copyOptionalDate } from '../../shared/DateUtils'
 
@@ -36,13 +40,9 @@ const assertValidJoinDate = (
 }
 
 const assertValidName = (name: string): void => {
-  if (!name || name.trim().length === 0 || !/^[\p{L}\s-]+$/u.test(name)) {
+  if (!isStandardizableName(name)) {
     throw new InvalidMemberNameError(name)
   }
-}
-
-const normalizeMemberName = (name: string): string => {
-  return name.trim().toLowerCase()
 }
 
 type ValidateMemberProfileInput = {
@@ -136,8 +136,8 @@ export class Member {
     id: string
   ): [Member, MemberCreatedDomainEvent] {
     validateMemberProfile(input)
-    const firstName = normalizeMemberName(input.firstName)
-    const lastName = normalizeMemberName(input.lastName)
+    const firstName = standardizeName(input.firstName)
+    const lastName = standardizeName(input.lastName)
     //
     // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
     const member = new Member({ ...input, firstName, lastName }, id)
@@ -180,8 +180,8 @@ export class Member {
 
     const updatedMember = new Member(
       {
-        firstName: normalizeMemberName(input.firstName),
-        lastName: normalizeMemberName(input.lastName),
+        firstName: standardizeName(input.firstName),
+        lastName: standardizeName(input.lastName),
         phoneNumber: input.phoneNumber,
         dateOfBirth: input.dateOfBirth,
         joinedAt: input.joinedAt,
