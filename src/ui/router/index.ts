@@ -6,6 +6,8 @@ import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/attendance/AttendanceHistoryView.vue'
+import CampNewPlaceholderView from '@/ui/views/camps/CampNewPlaceholderView.vue'
+import CampsListView from '@/ui/views/camps/CampsListView.vue'
 import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
 import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
 import TrainerSetupView from '@/ui/views/setup/TrainerSetupView.vue'
@@ -24,6 +26,8 @@ export type AppRouteName =
   | 'attendance-history'
   | 'attendance-record'
   | 'attendance-edit'
+  | 'camps-list'
+  | 'add-camp'
   | 'setup-club'
   | 'setup-trainer'
   | 'debug-indexeddb'
@@ -108,6 +112,22 @@ const baseRoutes = [
       showBack: true,
       hideBottomNav: true,
       backTo: '/attendance'
+    }
+  },
+  {
+    path: '/camps',
+    name: 'camps-list',
+    component: CampsListView,
+    meta: {}
+  },
+  {
+    path: '/camps/new',
+    name: 'add-camp',
+    component: CampNewPlaceholderView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps'
     }
   }
 ] satisfies AppRoute[]

@@ -12,9 +12,11 @@ type IconName =
   | 'calendar_today'
   | 'expand_more'
   | 'group'
+  | 'history'
   | 'menu'
   | 'payments'
   | 'search'
+  | 'terrain'
   | 'unarchive'
 
 // Keeping the icon set inline avoids the remote icon webfont that left the shell blank offline.
@@ -102,6 +104,16 @@ defineProps<{
       <path d="M16 13h.01" />
       <path d="M8 17h.01" />
       <path d="M12 17h.01" />
+    </template>
+    <template v-else-if="name === 'history'">
+      <path d="M3 12a9 9 0 1 0 3-6.7" />
+      <path d="M3 4v5h5" />
+      <path d="M12 7v5l3 2" />
+    </template>
+    <template v-else-if="name === 'terrain'">
+      <path d="M3 19h18" />
+      <path d="m4 19 5.5-12 4.2 8 2.1-3.5L21 19" />
+      <path d="m8.2 10.5 1.3 1.2 1.5-1.7" />
     </template>
   </svg>
 </template>

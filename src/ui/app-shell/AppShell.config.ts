@@ -2,10 +2,14 @@ import type { AppLocale } from '@/ui/i18n'
 import type { AppRouteName } from '@/ui/router'
 
 type ShellTitleTranslator = (key: string) => string
-type ShellBottomNavigationIconName = 'calendar_today' | 'group' | 'payments'
+type ShellBottomNavigationIconName =
+  | 'calendar_today'
+  | 'group'
+  | 'payments'
+  | 'terrain'
 
 export type ShellBottomNavigationItem = {
-  id: 'attendance' | 'members' | 'payments'
+  id: 'attendance' | 'camps' | 'members' | 'payments'
   to: string
   icon: ShellBottomNavigationIconName
   labelKey: string
@@ -25,6 +29,8 @@ export const SHELL_ROUTE_TITLE_KEYS = {
   'attendance-history': 'routes.attendanceHistory',
   'attendance-record': 'routes.attendanceRecord',
   'attendance-edit': 'routes.attendanceEdit',
+  'camps-list': 'routes.campsList',
+  'add-camp': 'routes.addCamp',
   'setup-club': 'routes.setupClub',
   'setup-trainer': 'routes.setupTrainer',
   'debug-indexeddb': 'routes.debugIndexedDb'
@@ -63,6 +69,13 @@ export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationI
         'attendance-record',
         'attendance-edit'
       ]
+    },
+    {
+      id: 'camps',
+      to: '/camps',
+      icon: 'terrain',
+      labelKey: 'bottomNav.camps',
+      activeRouteNames: ['camps-list', 'add-camp']
     }
   ]
 
