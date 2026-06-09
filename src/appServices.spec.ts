@@ -260,6 +260,7 @@ describe('appServices', () => {
       name: 'Summer camp',
       note: 'Advanced group',
       startDate: new Date('2099-07-01T08:00:00Z'),
+      finishDate: new Date('2099-07-08T08:00:00Z'),
       price: {
         amountMinor: 129900,
         currency: 'PLN'
@@ -277,6 +278,7 @@ describe('appServices', () => {
       name: 'Summer camp',
       note: 'Advanced group',
       startDate: new Date('2099-07-01T08:00:00Z'),
+      finishDate: new Date('2099-07-08T08:00:00Z'),
       price: {
         amountMinor: 129900,
         currency: 'PLN'
@@ -290,6 +292,7 @@ describe('appServices', () => {
         name: persistedCamp.name,
         note: persistedCamp.note,
         startDate: persistedCamp.startDate,
+        finishDate: persistedCamp.finishDate,
         price: persistedCamp.price,
         createdAt: persistedCamp.createdAt,
         updatedAt: persistedCamp.updatedAt

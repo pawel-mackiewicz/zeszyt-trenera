@@ -45,6 +45,7 @@ export type PersistedCamp = {
   name: string
   note: string
   startDate: Date
+  finishDate: Date
   price: MoneySnapshot
   createdAt: Date
   updatedAt: Date

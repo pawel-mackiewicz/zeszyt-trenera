@@ -29,6 +29,10 @@ class FakeIdGenerator implements IdGeneratorPort {
   }
 }
 
+const futureDate = () => new Date(Date.now() + 24 * 60 * 60 * 1000)
+const futureFinishDate = (startDate: Date) =>
+  new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
+
 describe('RegisterCampUseCase', () => {
   let uow: FakeUnitOfWork
   let campRepo: FakeCampRepo
@@ -48,10 +52,12 @@ describe('RegisterCampUseCase', () => {
   })
 
   it('registers a camp via UoW, saving the camp and related domain event', async () => {
+    const startDate = futureDate()
     const dto: RegisterCampCommand = {
       name: ' Summer camp ',
       note: '  Advanced group  ',
-      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      startDate,
+      finishDate: futureFinishDate(startDate),
       price: {
         amountMinor: 1299_00,
         currency: 'PLN'
@@ -69,6 +75,7 @@ describe('RegisterCampUseCase', () => {
     expect(savedCamp.name).toBe('Summer camp')
     expect(savedCamp.note).toBe('Advanced group')
     expect(savedCamp.startDate).toEqual(dto.startDate)
+    expect(savedCamp.finishDate).toEqual(dto.finishDate)
     expect(savedCamp.price.toSnapshot()).toEqual({
       amountMinor: 1299_00,
       currency: 'PLN'
@@ -84,10 +91,13 @@ describe('RegisterCampUseCase', () => {
   })
 
   it('rejects an empty camp name without saving', async () => {
+    const startDate = futureDate()
+
     await expect(
       useCase.handle({
         name: '   ',
-        startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        startDate,
+        finishDate: futureFinishDate(startDate),
         price: {
           amountMinor: 1299_00,
           currency: 'PLN'
@@ -106,6 +116,7 @@ describe('RegisterCampUseCase', () => {
       useCase.handle({
         name: 'Summer camp',
         startDate: new Date('2020-01-01T00:00:00Z'),
+        finishDate: futureDate(),
         price: {
           amountMinor: 1299_00,
           currency: 'PLN'
@@ -120,10 +131,13 @@ describe('RegisterCampUseCase', () => {
   })
 
   it('rejects an invalid money amount before generating an id', async () => {
+    const startDate = futureDate()
+
     await expect(
       useCase.handle({
         name: 'Summer camp',
-        startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        startDate,
+        finishDate: futureFinishDate(startDate),
         price: {
           amountMinor: -1,
           currency: 'PLN'
