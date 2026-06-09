@@ -67,6 +67,7 @@ describe('appServices', () => {
     expect(services.queries.listAttendanceSessionsByMonth).toBe(
       services.queries.listAttendanceSessionsByMonth
     )
+    expect(services.queries.listCamps).toBe(services.queries.listCamps)
     expect(services.queries.listMembersForAttendanceEditor).toBe(
       services.queries.listMembersForAttendanceEditor
     )

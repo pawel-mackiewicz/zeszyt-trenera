@@ -33,6 +33,9 @@ describe('uiAppServices', () => {
         listAttendanceSessionsByMonth: {
           handle
         },
+        listCamps: {
+          handle
+        },
         listMembersForAttendanceEditor: {
           handle
         },
