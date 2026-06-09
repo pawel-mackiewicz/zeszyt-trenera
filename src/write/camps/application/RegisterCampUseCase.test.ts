@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { FakeCampRepo } from '@/write/camps/application/CampRepoPort'
+import { FakeCampRepo } from '@/write/camps/application/ports/CampRepoPort'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import {

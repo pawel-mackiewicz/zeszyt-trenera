@@ -1,4 +1,4 @@
-import type { CampRepoPort } from '@/write/camps/application/CampRepoPort'
+import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import { Camp } from '@/write/camps/domain/Camp'
 import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'

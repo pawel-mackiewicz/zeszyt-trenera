@@ -1,5 +1,5 @@
 import type { TrainerNotebookDb } from '@/db'
-import type { CampRepoPort } from '@/write/camps/application/CampRepoPort'
+import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import { Camp } from '@/write/camps/domain/Camp'
 import type { PersistedCamp } from '@/write/shared/infra'
 
