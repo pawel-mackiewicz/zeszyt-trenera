@@ -53,7 +53,7 @@ describe('RegisterCampUseCase', () => {
       note: '  Advanced group  ',
       startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
       price: {
-        amountMinor: 129900,
+        amountMinor: 1299_00,
         currency: 'PLN'
       }
     }
@@ -70,7 +70,7 @@ describe('RegisterCampUseCase', () => {
     expect(savedCamp.note).toBe('Advanced group')
     expect(savedCamp.startDate).toEqual(dto.startDate)
     expect(savedCamp.price.toSnapshot()).toEqual({
-      amountMinor: 129900,
+      amountMinor: 1299_00,
       currency: 'PLN'
     })
 
@@ -89,7 +89,7 @@ describe('RegisterCampUseCase', () => {
         name: '   ',
         startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
         price: {
-          amountMinor: 129900,
+          amountMinor: 1299_00,
           currency: 'PLN'
         }
       })
@@ -107,7 +107,7 @@ describe('RegisterCampUseCase', () => {
         name: 'Summer camp',
         startDate: new Date('2020-01-01T00:00:00Z'),
         price: {
-          amountMinor: 129900,
+          amountMinor: 1299_00,
           currency: 'PLN'
         }
       })

@@ -10,6 +10,12 @@ export class DexieCampRepo implements CampRepoPort {
     await this.database.camps.add(this.toPersistedCamp(camp))
   }
 
+  public async existsById(campId: string): Promise<boolean> {
+    const persistedCamp = await this.database.camps.get(campId)
+
+    return persistedCamp != null
+  }
+
   private toPersistedCamp(camp: Camp): PersistedCamp {
     return camp.toSnapshot()
   }
