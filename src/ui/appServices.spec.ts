@@ -88,6 +88,9 @@ describe('uiAppServices', () => {
         registerAttendanceList: {
           handle
         },
+        registerCamp: {
+          handle
+        },
         registerClub: {
           handle
         },

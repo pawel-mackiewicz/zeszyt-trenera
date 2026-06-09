@@ -2,6 +2,7 @@ import Dexie, { type EntityTable } from 'dexie'
 
 import type {
   PersistedAttendanceList,
+  PersistedCamp,
   PersistedClub,
   PersistedDomainEvent,
   PersistedMember,
@@ -16,6 +17,7 @@ export class TrainerNotebookDb extends Dexie {
   public members!: EntityTable<PersistedMember, 'id'>
   public membershipPayments!: EntityTable<PersistedMembershipPayment, 'id'>
   public attendanceLists!: EntityTable<PersistedAttendanceList, 'id'>
+  public camps!: EntityTable<PersistedCamp, 'id'>
   public events!: EntityTable<PersistedDomainEvent<unknown>, 'eventId'>
 
   public constructor(databaseName = 'trainer-notebook') {
@@ -142,6 +144,20 @@ export class TrainerNotebookDb extends Dexie {
       membershipPayments: 'id, memberId, [memberId+coveredMonth], coveredMonth',
       // Why: member deletion must detect attendance dependencies by member id while preserving the duplicate-session start guard.
       attendanceLists: 'id, &start, *memberIds'
+    })
+
+    this.version(13).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // Why: duplicate member checks now use stable identity data instead of optional contact data, so local-first registration needs a name-plus-birth-date index.
+      members: 'id, [firstName+lastName+dateOfBirth]',
+      // Why: member deletion must detect payment dependencies by member id without scanning a full local ledger on a phone.
+      membershipPayments: 'id, memberId, [memberId+coveredMonth], coveredMonth',
+      // Why: member deletion must detect attendance dependencies by member id while preserving the duplicate-session start guard.
+      attendanceLists: 'id, &start, *memberIds',
+      // Camp registration stores local snapshots by id today; reads can add focused indexes when camp screens land.
+      camps: 'id'
     })
   }
 }

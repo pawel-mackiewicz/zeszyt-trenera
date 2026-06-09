@@ -8,7 +8,7 @@ function createTestDbName(prefix: string) {
 }
 
 describe('db', () => {
-  it('exposes a named Dexie instance with club, trainer, member, membership payment, attendance list, and event table schemas', () => {
+  it('exposes a named Dexie instance with club, trainer, member, membership payment, attendance list, camp, and event table schemas', () => {
     const clubsTable = db.tables.find((table) => table.name === 'clubs')
     const attendanceListsTable = db.tables.find(
       (table) => table.name === 'attendanceLists'
@@ -19,10 +19,11 @@ describe('db', () => {
     const membershipPaymentsTable = db.tables.find(
       (table) => table.name === 'membershipPayments'
     )
+    const campsTable = db.tables.find((table) => table.name === 'camps')
 
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(12)
-    expect(db.tables).toHaveLength(6)
+    expect(db.verno).toBe(13)
+    expect(db.tables).toHaveLength(7)
     expect(clubsTable?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
     expect(clubsTable?.schema.indexes.map((index) => index.name)).toEqual([])
@@ -46,6 +47,8 @@ describe('db', () => {
     expect(
       membershipPaymentsTable?.schema.indexes.map((index) => index.name)
     ).toEqual(['memberId', '[memberId+coveredMonth]', 'coveredMonth'])
+    expect(campsTable?.schema.primKey.name).toBe('id')
+    expect(campsTable?.schema.indexes.map((index) => index.name)).toEqual([])
   })
 
   afterEach(async () => {

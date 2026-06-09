@@ -15,6 +15,7 @@ import { ExportDatabaseBackupUseCase } from '@/system_management/database_backup
 import { ImportDatabaseBackupUseCase } from '@/system_management/database_backup/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/system_management/demo/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/write/attendance/application/RegisterAttendanceListUseCase'
+import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import { RegisterClubUseCase } from '@/write/business_profile/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/write/members/application/RegisterMemberUseCase'
 import { RegisterMembershipPaymentUseCase } from '@/write/memberships/application/RegisterMembershipPaymentUseCase'
@@ -33,6 +34,7 @@ import type { ImportDatabaseBackupCommand } from '@/system_management/database_b
 import type { LeaveDemoModeCommand } from '@/system_management/demo/application/requests/LeaveDemoModeCommand'
 import type { ArchiveMemberCommand } from '@/write/members/application/requests/ArchiveMemberCommand'
 import type { RegisterAttendanceListCommand } from '@/write/attendance/application/requests/RegisterAttendanceListCommand'
+import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import type { RegisterClubCommand } from '@/write/business_profile/application/commands/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/write/members/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/write/memberships/application/requests/RegisterMembershipPaymentCommand'
@@ -48,6 +50,7 @@ import { BrowserSmsComposer } from '@/write/memberships/infra/BrowserSmsComposer
 import { DemoSeedFactory } from '@/system_management/demo/infra/seed/DemoSeedFactory.ts'
 import { DexieAttendanceListRepo } from '@/write/attendance/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/system_management/app_reset/infra/db/DexieAppResetRepo'
+import { DexieCampRepo } from '@/write/camps/infra/db/DexieCampRepo'
 import { DexieDatabaseBackupExporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupExporter'
 import { DexieDatabaseBackupImporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupImporter'
 import { DexieClubRepo } from '@/write/business_profile/infra/db/DexieClubRepo'
@@ -107,6 +110,7 @@ export type AppUseCases = {
   readonly archiveMember: UseCase<ArchiveMemberCommand>
   readonly deleteMembershipPayment: UseCase<DeleteMembershipPaymentCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
+  readonly registerCamp: UseCase<RegisterCampCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
@@ -196,6 +200,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveAttendanceListRepo = lazy(
     () => new DexieAttendanceListRepo(database)
   )
+  const resolveCampRepo = lazy(() => new DexieCampRepo(database))
   const resolveAppResetRepo = lazy(() => new DexieAppResetRepo(database))
   const resolveAppStateReset = lazy(() => new LocalStorageAppStateResetter())
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
@@ -266,6 +271,15 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveMemberRepo(),
         resolveAttendanceListRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveRegisterCamp = lazy(
+    () =>
+      new RegisterCampUseCase(
+        resolveUnitOfWork(),
+        resolveCampRepo(),
         resolveEventRepo(),
         resolveIdGenerator()
       )
@@ -424,6 +438,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get registerAttendanceList() {
       return resolveRegisterAttendanceList()
+    },
+    get registerCamp() {
+      return resolveRegisterCamp()
     },
     get registerClub() {
       return resolveRegisterClub()

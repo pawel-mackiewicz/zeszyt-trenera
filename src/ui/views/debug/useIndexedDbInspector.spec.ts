@@ -100,11 +100,14 @@ describe('inspectIndexedDb', () => {
     const attendanceListsTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'attendanceLists'
     )
+    const campsTable = snapshot.tableSnapshots.find(
+      (table) => table.name === 'camps'
+    )
 
     expect(snapshot.databaseName).toBe(database.name)
     // What: pin the inspector to the current Dexie schema version. Why: the debug view should surface the exact schema revision the app is shipping, including the member-dependency lookup indexes.
-    expect(snapshot.schemaVersion).toBe(12)
-    expect(snapshot.tableSnapshots).toHaveLength(6)
+    expect(snapshot.schemaVersion).toBe(13)
+    expect(snapshot.tableSnapshots).toHaveLength(7)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       // The inspector should reflect that club writes no longer maintain an unused secondary index on local devices.
@@ -153,6 +156,12 @@ describe('inspectIndexedDb', () => {
       primaryKey: 'id',
       // The debug snapshot must include the attendance store so resets stay trustworthy after the latest offline schema expansion.
       indexes: ['start', 'memberIds'],
+      rowCount: 0,
+      columns: []
+    })
+    expect(campsTable).toMatchObject({
+      primaryKey: 'id',
+      indexes: [],
       rowCount: 0,
       columns: []
     })
@@ -227,7 +236,8 @@ describe('inspectIndexedDb', () => {
       { name: 'members', rowCount: 0 },
       { name: 'membershipPayments', rowCount: 0 },
       // What: assert the newest store survives a clear. Why: the debug view depends on complete schema visibility right after local resets.
-      { name: 'attendanceLists', rowCount: 0 }
+      { name: 'attendanceLists', rowCount: 0 },
+      { name: 'camps', rowCount: 0 }
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
@@ -235,7 +245,8 @@ describe('inspectIndexedDb', () => {
       'trainers',
       'members',
       'membershipPayments',
-      'attendanceLists'
+      'attendanceLists',
+      'camps'
     ])
   })
 

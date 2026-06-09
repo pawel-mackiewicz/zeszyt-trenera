@@ -1,4 +1,6 @@
 // These row contracts describe local Dexie storage, so every persistence adapter shares the same offline schema without routing them through the app entrypoint.
+import type { MoneySnapshot } from '@/write/shared/vo/Money'
+
 export type PersistedClub = {
   id: string
   name: string
@@ -36,6 +38,16 @@ export type PersistedAttendanceList = {
   memberIds: string[]
   start: Date
   createdAt: Date
+}
+
+export type PersistedCamp = {
+  id: string
+  name: string
+  note: string
+  startDate: Date
+  price: MoneySnapshot
+  createdAt: Date
+  updatedAt: Date
 }
 
 export type PersistedDomainEvent<TPayload> = {

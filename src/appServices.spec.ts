@@ -32,7 +32,7 @@ import {
 } from '@/write/business_profile/domain/Trainer'
 import { createAppServices } from '@/appServices'
 import { createDemoSeed } from '@/system_management/demo/infra/seed/createDemoSeed.ts'
-import type { PersistedDomainEvent } from '@/write/shared/infra'
+import type { PersistedCamp, PersistedDomainEvent } from '@/write/shared/infra'
 import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {
@@ -98,6 +98,7 @@ describe('appServices', () => {
     expect(services.useCases.registerAttendanceList).toBe(
       services.useCases.registerAttendanceList
     )
+    expect(services.useCases.registerCamp).toBe(services.useCases.registerCamp)
     expect(services.useCases.registerClub).toBe(services.useCases.registerClub)
     expect(services.useCases.registerMember).toBe(
       services.useCases.registerMember
@@ -248,6 +249,50 @@ describe('appServices', () => {
         name: persistedClub.name,
         foundingDate: persistedClub.foundingDate,
         createdAt: persistedClub.createdAt
+      }
+    })
+  })
+
+  it('assembles Dexie adapters that persist a camp and matching event row', async () => {
+    const services = createAppServices(database)
+
+    await services.useCases.registerCamp.handle({
+      name: 'Summer camp',
+      note: 'Advanced group',
+      startDate: new Date('2099-07-01T08:00:00Z'),
+      price: {
+        amountMinor: 129900,
+        currency: 'PLN'
+      }
+    })
+
+    const persistedCamps = await database.camps.toArray()
+    const persistedEvents = await database.events.toArray()
+    const persistedCamp = persistedCamps[0]
+    const persistedEvent =
+      persistedEvents[0] as PersistedDomainEvent<PersistedCamp>
+
+    expect(persistedCamps).toHaveLength(1)
+    expect(persistedCamp).toMatchObject({
+      name: 'Summer camp',
+      note: 'Advanced group',
+      startDate: new Date('2099-07-01T08:00:00Z'),
+      price: {
+        amountMinor: 129900,
+        currency: 'PLN'
+      }
+    })
+    expect(persistedEvents).toHaveLength(1)
+    expect(persistedEvent).toMatchObject({
+      eventName: 'camp.registered',
+      payload: {
+        id: persistedCamp.id,
+        name: persistedCamp.name,
+        note: persistedCamp.note,
+        startDate: persistedCamp.startDate,
+        price: persistedCamp.price,
+        createdAt: persistedCamp.createdAt,
+        updatedAt: persistedCamp.updatedAt
       }
     })
   })
