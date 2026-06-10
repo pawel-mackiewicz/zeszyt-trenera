@@ -75,13 +75,27 @@ export type PersistedCampParticipantDiscount = {
   createdAt: Date
 }
 
-export type PersistedCampParticipantFinancialTransaction = {
-  type: 'payment' | 'refund' | 'non_refundable_deposit'
+type PersistedCampParticipantFinancialTransactionFields<
+  TType extends
+    | 'payment'
+    | 'refund'
+    | 'non_refundable_deposit'
+    | 'non_refundable_deposit_reversal'
+> = {
+  type: TType
   id: string
   amount: MoneySnapshot
   note: string
   createdAt: Date
 }
+
+export type PersistedCampParticipantFinancialTransaction =
+  | PersistedCampParticipantFinancialTransactionFields<'payment'>
+  | PersistedCampParticipantFinancialTransactionFields<'refund'>
+  | PersistedCampParticipantFinancialTransactionFields<'non_refundable_deposit'>
+  | (PersistedCampParticipantFinancialTransactionFields<'non_refundable_deposit_reversal'> & {
+      reversedTransactionId: string
+    })
 
 export type PersistedCampParticipant = {
   id: string

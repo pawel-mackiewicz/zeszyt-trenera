@@ -8,7 +8,9 @@ import type {
   Discount,
   DiscountInput,
   FinancialTransaction,
+  NonRefundableDeposit,
   NonRefundableDepositInput,
+  NonRefundableDepositReversal,
   PaymentInput,
   RefundInput
 } from '@/write/shared/vo/FinancialTransaction'
@@ -17,6 +19,7 @@ import {
   copyFinancialTransaction,
   createDiscount,
   createNonRefundableDeposit,
+  createNonRefundableDepositReversal,
   createPayment,
   createRefund
 } from '@/write/shared/vo/FinancialTransaction'
@@ -148,11 +151,15 @@ const createMoneyInSameCurrency = (money: Money, amountMinor: number): Money =>
 
 /**
  * Returns the refundable balance in minor units.
- * Payments increase the participant balance; refunds and retained deposits decrease it.
+ * Payments and retained deposit reversals increase the participant balance;
+ * refunds and retained deposits decrease it.
  */
 const financialBalanceMinor = (transactions: FinancialTransaction[]): number =>
   transactions.reduce((sum, transaction) => {
-    if (transaction.type === 'payment') {
+    if (
+      transaction.type === 'payment' ||
+      transaction.type === 'non_refundable_deposit_reversal'
+    ) {
       return sum + transaction.amount.amountMinor
     }
 
@@ -194,6 +201,31 @@ const assertCanResign = (status: CampParticipantStatus): void => {
   if (status === 'RESIGNED' || status === 'REFUNDED') {
     throw new CampParticipantResignationNotAllowedError(status)
   }
+}
+
+const assertCanCancelResignation = (status: CampParticipantStatus): void => {
+  if (status !== 'RESIGNED' && status !== 'REFUNDED') {
+    throw new CampParticipantResignationCancellationNotAllowedError(status)
+  }
+}
+
+const unreversedNonRefundableDeposits = (
+  transactions: FinancialTransaction[]
+): NonRefundableDeposit[] => {
+  const reversedDepositIds = new Set(
+    transactions
+      .filter(
+        (transaction): transaction is NonRefundableDepositReversal =>
+          transaction.type === 'non_refundable_deposit_reversal'
+      )
+      .map((transaction) => transaction.reversedTransactionId)
+  )
+
+  return transactions.filter(
+    (transaction): transaction is NonRefundableDeposit =>
+      transaction.type === 'non_refundable_deposit' &&
+      !reversedDepositIds.has(transaction.id)
+  )
 }
 
 export class CampParticipant {
@@ -440,6 +472,65 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  public cancelResignation(
+    generateReversalId: (deposit: NonRefundableDeposit) => string
+  ): [CampParticipant, CampParticipantResignationCanceledDomainEvent] {
+    assertCanCancelResignation(this._status)
+
+    const depositReversals = unreversedNonRefundableDeposits(
+      this._financialTransactions
+    ).map((deposit) =>
+      createNonRefundableDepositReversal({
+        id: generateReversalId(deposit),
+        reversedTransactionId: deposit.id,
+        amount: deposit.amount,
+        note: ''
+      })
+    )
+
+    const financialTransactions = [
+      ...this._financialTransactions,
+      ...depositReversals
+    ]
+
+    const lastReversal = depositReversals[depositReversals.length - 1]
+    const updatedAt = lastReversal?.createdAt ?? new Date()
+
+    const updatedCampParticipant = new CampParticipant(
+      {
+        campId: this.campId,
+        person: this.person,
+        status: resolvePaymentStatus(
+          this._totalAmountDue,
+          financialBalanceMinor(financialTransactions)
+        ),
+        totalAmountDue: this._totalAmountDue,
+        discounts: this._discounts,
+        financialTransactions,
+        updatedAt
+      },
+      this.id,
+      this.addedAt
+    )
+
+    const event = new CampParticipantResignationCanceledDomainEvent(
+      updatedCampParticipant.toSnapshot()
+    )
+
+    return [updatedCampParticipant, event]
+  }
+
+  public remainingAmountToPay(): Money {
+    return createMoneyInSameCurrency(
+      this._totalAmountDue,
+      Math.max(
+        this._totalAmountDue.amountMinor -
+          financialBalanceMinor(this._financialTransactions),
+        0
+      )
+    )
+  }
+
   public toSnapshot(): CampParticipantSnapshot {
     return {
       id: this.id,
@@ -523,6 +614,14 @@ export class CampParticipantResignedDomainEvent extends DomainEvent<CampParticip
   }
 }
 
+export class CampParticipantResignationCanceledDomainEvent extends DomainEvent<CampParticipantSnapshot> {
+  public readonly eventName = 'camp.participant.resignation_canceled'
+
+  public constructor(campParticipant: CampParticipantSnapshot) {
+    super(campParticipant)
+  }
+}
+
 export class InvalidCampParticipantCampIdError extends Error {
   public constructor(campId: string) {
     super(`Camp participant camp id is invalid: ${campId}`)
@@ -585,6 +684,15 @@ export class CampParticipantResignationNotAllowedError extends Error {
   public constructor(status: CampParticipantStatus) {
     super(`Camp participant resignation is not allowed for status: ${status}`)
     this.name = 'CampParticipantResignationNotAllowedError'
+  }
+}
+
+export class CampParticipantResignationCancellationNotAllowedError extends Error {
+  public constructor(status: CampParticipantStatus) {
+    super(
+      `Camp participant resignation cancellation is not allowed for status: ${status}`
+    )
+    this.name = 'CampParticipantResignationCancellationNotAllowedError'
   }
 }
 

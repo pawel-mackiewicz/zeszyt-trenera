@@ -7,6 +7,7 @@ import type {
   PersistedCampParticipantDiscount,
   PersistedCampParticipantFinancialTransaction
 } from '@/write/shared/infra'
+import type { FinancialTransaction } from '@/write/shared/vo/FinancialTransaction'
 import { Money } from '@/write/shared/vo/Money'
 
 const createCampParticipantPersonKey = (
@@ -17,6 +18,50 @@ const createCampParticipantPersonKey = (
   }
 
   return JSON.stringify(['external', person.firstName, person.lastName])
+}
+
+const toDomainFinancialTransaction = (
+  transaction: PersistedCampParticipantFinancialTransaction
+): FinancialTransaction => {
+  const baseTransaction = {
+    id: transaction.id,
+    amount: Money.create(transaction.amount),
+    note: transaction.note,
+    createdAt: transaction.createdAt
+  }
+
+  return transaction.type === 'non_refundable_deposit_reversal'
+    ? {
+        ...baseTransaction,
+        type: transaction.type,
+        reversedTransactionId: transaction.reversedTransactionId
+      }
+    : {
+        ...baseTransaction,
+        type: transaction.type
+      }
+}
+
+const toPersistedFinancialTransaction = (
+  transaction: FinancialTransaction
+): PersistedCampParticipantFinancialTransaction => {
+  const baseTransaction = {
+    id: transaction.id,
+    amount: transaction.amount.toSnapshot(),
+    note: transaction.note,
+    createdAt: transaction.createdAt
+  }
+
+  return transaction.type === 'non_refundable_deposit_reversal'
+    ? {
+        ...baseTransaction,
+        type: transaction.type,
+        reversedTransactionId: transaction.reversedTransactionId
+      }
+    : {
+        ...baseTransaction,
+        type: transaction.type
+      }
 }
 
 export class DexieCampParticipantRepo implements CampParticipantRepoPort {
@@ -54,13 +99,7 @@ export class DexieCampParticipantRepo implements CampParticipantRepoPort {
         createdAt: discount.createdAt
       })),
       financialTransactions: persistedParticipant.financialTransactions.map(
-        (transaction) => ({
-          type: transaction.type,
-          id: transaction.id,
-          amount: Money.create(transaction.amount),
-          note: transaction.note,
-          createdAt: transaction.createdAt
-        })
+        toDomainFinancialTransaction
       ),
       addedAt: persistedParticipant.addedAt,
       updatedAt: persistedParticipant.updatedAt
@@ -100,13 +139,7 @@ export class DexieCampParticipantRepo implements CampParticipantRepoPort {
         })
       ),
       financialTransactions: snapshot.financialTransactions.map(
-        (transaction): PersistedCampParticipantFinancialTransaction => ({
-          type: transaction.type,
-          id: transaction.id,
-          amount: transaction.amount.toSnapshot(),
-          note: transaction.note,
-          createdAt: transaction.createdAt
-        })
+        toPersistedFinancialTransaction
       ),
       addedAt: snapshot.addedAt,
       updatedAt: snapshot.updatedAt

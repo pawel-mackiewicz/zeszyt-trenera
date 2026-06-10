@@ -13,6 +13,8 @@ import {
   CampParticipantRefundNotAllowedError,
   CampParticipantRefundRegisteredDomainEvent,
   CampParticipantRegisteredDomainEvent,
+  CampParticipantResignationCanceledDomainEvent,
+  CampParticipantResignationCancellationNotAllowedError,
   CampParticipantResignationNotAllowedError,
   CampParticipantResignedDomainEvent,
   InvalidCampParticipantCampIdError,
@@ -50,6 +52,16 @@ const money = (amountMinor: number, currency = 'PLN') =>
 
 const expectMoney = (actual: Money, amountMinor: number, currency = 'PLN') => {
   expect(actual.toSnapshot()).toEqual(money(amountMinor, currency).toSnapshot())
+}
+
+const expectRemainingAmountToPay = (
+  participant: CampParticipant,
+  amountMinor: number,
+  currency = 'PLN'
+) => {
+  expect(participant.remainingAmountToPay().toSnapshot()).toEqual(
+    money(amountMinor, currency).toSnapshot()
+  )
 }
 
 const expectParticipantEvent = (
@@ -137,6 +149,26 @@ const whenParticipantReceivesRefund = (
 
   return {
     refundedParticipant,
+    event
+  }
+}
+
+const whenParticipantCancelsResignation = (
+  participant: CampParticipant,
+  reversalIds = ['deposit-reversal-1']
+) => {
+  let nextReversalIdIndex = 0
+  const [activeParticipant, event] = participant.cancelResignation(() => {
+    const reversalId =
+      reversalIds[nextReversalIdIndex] ??
+      `deposit-reversal-${nextReversalIdIndex + 1}`
+    nextReversalIdIndex += 1
+
+    return reversalId
+  })
+
+  return {
+    activeParticipant,
     event
   }
 }
@@ -426,6 +458,78 @@ describe('CampParticipant', () => {
     })
   })
 
+  describe('amount to pay stories', () => {
+    it('shows the full camp price before the participant pays anything', () => {
+      const participant = givenRegisteredClubParticipant()
+
+      expectRemainingAmountToPay(participant, CAMP_PRICE)
+    })
+
+    it('subtracts payments and never asks for more money after overpayment', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant: partlyPaidParticipant } = whenParticipantPays(
+        participant,
+        500_00
+      )
+      const { paidParticipant: overpaidParticipant } = whenParticipantPays(
+        partlyPaidParticipant,
+        800_00,
+        {
+          id: 'payment-2'
+        }
+      )
+
+      expectRemainingAmountToPay(partlyPaidParticipant, 700_00)
+      expectRemainingAmountToPay(overpaidParticipant, 0)
+    })
+
+    it('uses the discounted amount due when calculating what remains to pay', () => {
+      const participant = givenRegisteredClubParticipant()
+      const [discountedParticipant] = participant.applyDiscount({
+        id: 'discount-1',
+        amount: money(200_00)
+      })
+      const { paidParticipant } = whenParticipantPays(
+        discountedParticipant,
+        400_00
+      )
+
+      expectRemainingAmountToPay(discountedParticipant, 1000_00)
+      expectRemainingAmountToPay(paidParticipant, 600_00)
+    })
+
+    it('adds retained deposits and refunds back to the amount still due', () => {
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+      const { resignedParticipant } = whenParticipantResigns(
+        fullyPaidParticipant,
+        {
+          amountMinor: 200_00
+        }
+      )
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        resignedParticipant,
+        300_00
+      )
+
+      expectRemainingAmountToPay(fullyPaidParticipant, 0)
+      expectRemainingAmountToPay(resignedParticipant, 200_00)
+      expectRemainingAmountToPay(refundedParticipant, 500_00)
+    })
+
+    it('subtracts deposit reversals from the amount still due', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant } = whenParticipantPays(participant, 500_00)
+      const { resignedParticipant } = whenParticipantResigns(paidParticipant, {
+        amountMinor: 200_00
+      })
+      const { activeParticipant } =
+        whenParticipantCancelsResignation(resignedParticipant)
+
+      expectRemainingAmountToPay(resignedParticipant, 900_00)
+      expectRemainingAmountToPay(activeParticipant, 700_00)
+    })
+  })
+
   describe('resignation stories', () => {
     it('a participant can resign without creating a refund transaction', () => {
       const participant = givenRegisteredClubParticipant()
@@ -554,6 +658,188 @@ describe('CampParticipant', () => {
 
       expect(refundedParticipant.status).toBe('REFUNDED')
       expect(refundedParticipant.financialTransactions).toHaveLength(3)
+    })
+  })
+
+  describe('resignation cancellation stories', () => {
+    it('returns a resigned participant without a retained deposit back to registered', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { resignedParticipant } = whenParticipantResigns(participant)
+      const storyStartedAt = new Date()
+
+      const { activeParticipant, event } =
+        whenParticipantCancelsResignation(resignedParticipant)
+
+      const storyFinishedAt = new Date()
+
+      expect(activeParticipant).not.toBe(resignedParticipant)
+      expect(resignedParticipant.status).toBe('RESIGNED')
+      expect(activeParticipant.status).toBe('REGISTERED')
+      expect(activeParticipant.financialTransactions).toEqual([])
+      expectRemainingAmountToPay(activeParticipant, CAMP_PRICE)
+      expect(activeParticipant.updatedAt.getTime()).toBeGreaterThanOrEqual(
+        storyStartedAt.getTime()
+      )
+      expect(activeParticipant.updatedAt.getTime()).toBeLessThanOrEqual(
+        storyFinishedAt.getTime()
+      )
+      expectParticipantEvent(
+        event,
+        CampParticipantResignationCanceledDomainEvent,
+        'camp.participant.resignation_canceled',
+        activeParticipant
+      )
+    })
+
+    it('keeps retained deposit history and appends a matching reversal', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant } = whenParticipantPays(participant, 500_00)
+      const { resignedParticipant } = whenParticipantResigns(paidParticipant, {
+        id: 'deposit-1',
+        amountMinor: 200_00,
+        note: 'Retained deposit'
+      })
+      const storyStartedAt = new Date()
+
+      const { activeParticipant, event } = whenParticipantCancelsResignation(
+        resignedParticipant,
+        ['deposit-reversal-1']
+      )
+
+      const storyFinishedAt = new Date()
+
+      expect(activeParticipant.status).toBe('REGISTERED')
+      expectRemainingAmountToPay(resignedParticipant, 900_00)
+      expectRemainingAmountToPay(activeParticipant, 700_00)
+      expect(
+        activeParticipant.financialTransactions.map((transaction) => ({
+          type: transaction.type,
+          id: transaction.id,
+          amount: transaction.amount.toSnapshot(),
+          note: transaction.note,
+          reversedTransactionId:
+            transaction.type === 'non_refundable_deposit_reversal'
+              ? transaction.reversedTransactionId
+              : undefined
+        }))
+      ).toEqual([
+        {
+          type: 'payment',
+          id: 'payment-1',
+          amount: {
+            amountMinor: 500_00,
+            currency: 'PLN'
+          },
+          note: '',
+          reversedTransactionId: undefined
+        },
+        {
+          type: 'non_refundable_deposit',
+          id: 'deposit-1',
+          amount: {
+            amountMinor: 200_00,
+            currency: 'PLN'
+          },
+          note: 'Retained deposit',
+          reversedTransactionId: undefined
+        },
+        {
+          type: 'non_refundable_deposit_reversal',
+          id: 'deposit-reversal-1',
+          amount: {
+            amountMinor: 200_00,
+            currency: 'PLN'
+          },
+          note: '',
+          reversedTransactionId: 'deposit-1'
+        }
+      ])
+      expect(
+        activeParticipant.financialTransactions[2].createdAt.getTime()
+      ).toBeGreaterThanOrEqual(storyStartedAt.getTime())
+      expect(activeParticipant.updatedAt.getTime()).toBeLessThanOrEqual(
+        storyFinishedAt.getTime()
+      )
+      expect(activeParticipant.updatedAt).toEqual(
+        activeParticipant.financialTransactions[2].createdAt
+      )
+      expectParticipantEvent(
+        event,
+        CampParticipantResignationCanceledDomainEvent,
+        'camp.participant.resignation_canceled',
+        activeParticipant
+      )
+    })
+
+    it('keeps refunds when the resignation is canceled so the participant can pay again', () => {
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+      const { resignedParticipant } = whenParticipantResigns(
+        fullyPaidParticipant,
+        {
+          amountMinor: 200_00
+        }
+      )
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        resignedParticipant,
+        300_00
+      )
+
+      const { activeParticipant } =
+        whenParticipantCancelsResignation(refundedParticipant)
+
+      expect(activeParticipant.status).toBe('REGISTERED')
+      expectRemainingAmountToPay(refundedParticipant, 500_00)
+      expectRemainingAmountToPay(activeParticipant, 300_00)
+      expect(
+        activeParticipant.financialTransactions.map(({ type }) => type)
+      ).toEqual([
+        'payment',
+        'non_refundable_deposit',
+        'refund',
+        'non_refundable_deposit_reversal'
+      ])
+    })
+
+    it('reactivates a fully refunded participant so they owe the refunded money again', () => {
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+      const { resignedParticipant } = whenParticipantResigns(
+        fullyPaidParticipant,
+        {
+          amountMinor: 200_00
+        }
+      )
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        resignedParticipant,
+        1000_00
+      )
+
+      const { activeParticipant } =
+        whenParticipantCancelsResignation(refundedParticipant)
+
+      expect(refundedParticipant.status).toBe('REFUNDED')
+      expect(activeParticipant.status).toBe('REGISTERED')
+      expectRemainingAmountToPay(refundedParticipant, CAMP_PRICE)
+      expectRemainingAmountToPay(activeParticipant, 1000_00)
+      expect(
+        activeParticipant.financialTransactions.map(({ type }) => type)
+      ).toEqual([
+        'payment',
+        'non_refundable_deposit',
+        'refund',
+        'non_refundable_deposit_reversal'
+      ])
+    })
+
+    it('returns a fully paid participant to fully paid when no money is missing', () => {
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+      const { resignedParticipant } =
+        whenParticipantResigns(fullyPaidParticipant)
+
+      const { activeParticipant } =
+        whenParticipantCancelsResignation(resignedParticipant)
+
+      expect(activeParticipant.status).toBe('FULLY_PAID')
+      expectRemainingAmountToPay(activeParticipant, 0)
     })
   })
 
@@ -744,6 +1030,9 @@ describe('CampParticipant', () => {
 
       expect(() => whenParticipantReceivesRefund(participant, 100_00)).toThrow(
         CampParticipantRefundNotAllowedError
+      )
+      expect(() => whenParticipantCancelsResignation(participant)).toThrow(
+        CampParticipantResignationCancellationNotAllowedError
       )
 
       const { resignedParticipant } = whenParticipantResigns(participant)
