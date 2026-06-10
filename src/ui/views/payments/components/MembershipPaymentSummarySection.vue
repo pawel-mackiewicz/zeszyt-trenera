@@ -109,8 +109,9 @@ function formatMoney(value: MoneySnapshot | null): string {
 <style scoped>
 .payment-summary {
   overflow: hidden;
-  border-top: 1px solid var(--color-on-surface);
-  border-bottom: 1px solid var(--color-outline-variant);
+  border-top: 2px solid var(--color-on-surface);
+  border-bottom: 2px solid var(--color-on-surface);
+  background: var(--color-surface);
 }
 
 .payment-summary__trigger {
@@ -121,18 +122,18 @@ function formatMoney(value: MoneySnapshot | null): string {
   gap: 1rem;
   border: 0;
   background: transparent;
-  padding: 0.75rem 1rem;
+  padding: 0.95rem 1rem;
   color: var(--color-on-surface);
   text-align: left;
 }
 
 .payment-summary__title {
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  color: var(--color-secondary);
+  color: var(--color-on-surface);
 }
 
 .payment-summary__chevron {
@@ -153,8 +154,7 @@ function formatMoney(value: MoneySnapshot | null): string {
 
 .payment-summary__details {
   display: grid;
-  border-top: 1px solid
-    color-mix(in srgb, var(--color-outline-variant) 78%, transparent);
+  border-top: 1px solid var(--color-on-surface);
 }
 
 .payment-summary__state {
@@ -182,7 +182,7 @@ function formatMoney(value: MoneySnapshot | null): string {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.85rem 1rem;
+  padding: 1rem;
   border-bottom: 1px solid var(--color-outline-variant);
 }
 
@@ -202,7 +202,7 @@ function formatMoney(value: MoneySnapshot | null): string {
 .payment-summary__item dd {
   margin: 0;
   font-family: var(--font-headline);
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.03em;

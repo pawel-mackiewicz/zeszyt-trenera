@@ -350,7 +350,7 @@ function handleMonthChange(month: Date) {
 <template>
   <div class="payments-view mx-auto max-w-4xl pt-4 pb-12">
     <section
-      class="payments-view__hero mb-8 flex flex-col gap-6 md:mb-12 md:flex-row md:items-end md:justify-between"
+      class="payments-view__hero mb-4 flex flex-col gap-6 md:mb-6 md:flex-row md:items-end md:justify-between"
     >
       <div class="max-w-2xl">
         <h2 class="payments-view__title">
@@ -382,7 +382,7 @@ function handleMonthChange(month: Date) {
     />
 
     <MembershipPaymentSummarySection
-      class="mb-4"
+      class="mb-8"
       :is-loading="isSummaryLoading"
       :load-failed="summaryLoadFailed"
       :summary="paymentSummary"
