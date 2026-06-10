@@ -5,6 +5,8 @@ import type {
 
 export interface CampParticipantRepoPort {
   save(participant: CampParticipant): Promise<void>
+  update(participant: CampParticipant): Promise<void>
+  findById(id: string): Promise<CampParticipant | null>
   existsByCampIdAndPerson(
     campId: string,
     person: CampParticipantPerson
@@ -45,6 +47,8 @@ const isExistingParticipant = (
 
 export class FakeCampParticipantRepo implements CampParticipantRepoPort {
   public readonly savedParticipants: CampParticipant[] = []
+  public readonly updatedParticipants: CampParticipant[] = []
+  private readonly participantsById = new Map<string, CampParticipant>()
   public readonly existsChecks: Array<{
     campId: string
     person: CampParticipantPerson
@@ -65,8 +69,23 @@ export class FakeCampParticipantRepo implements CampParticipantRepoPort {
     })
   }
 
+  public addParticipant(participant: CampParticipant): void {
+    this.participantsById.set(participant.id, participant)
+    this.addExistingParticipant(participant.campId, participant.person)
+  }
+
   async save(participant: CampParticipant): Promise<void> {
     this.savedParticipants.push(participant)
+    this.participantsById.set(participant.id, participant)
+  }
+
+  async update(participant: CampParticipant): Promise<void> {
+    this.updatedParticipants.push(participant)
+    this.participantsById.set(participant.id, participant)
+  }
+
+  async findById(id: string): Promise<CampParticipant | null> {
+    return this.participantsById.get(id) ?? null
   }
 
   async existsByCampIdAndPerson(
