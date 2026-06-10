@@ -40,7 +40,6 @@ export type Payment = FinancialTransactionFields<'payment'>
 
 export type RefundInput = NotedFinancialTransactionInputFields
 
-// todo not yet sure if we should allow for negative values in refunds
 export type Refund = FinancialTransactionFields<'refund'>
 
 export type NonRefundableDepositInput = NotedFinancialTransactionInputFields

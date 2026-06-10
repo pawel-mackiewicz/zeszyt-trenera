@@ -1,4 +1,5 @@
 import { copyDate } from '@/write/shared/DateUtils'
+import { CampParticipantLedger } from '@/write/camps/domain/CampParticipantLedger'
 import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import {
   isStandardizableName,
@@ -10,7 +11,6 @@ import type {
   FinancialTransaction,
   NonRefundableDeposit,
   NonRefundableDepositInput,
-  NonRefundableDepositReversal,
   PaymentInput,
   RefundInput
 } from '@/write/shared/vo/FinancialTransaction'
@@ -149,23 +149,6 @@ const createMoneyInSameCurrency = (money: Money, amountMinor: number): Money =>
     currency: money.currency
   })
 
-/**
- * Returns the refundable balance in minor units.
- * Payments and retained deposit reversals increase the participant balance;
- * refunds and retained deposits decrease it.
- */
-const financialBalanceMinor = (transactions: FinancialTransaction[]): number =>
-  transactions.reduce((sum, transaction) => {
-    if (
-      transaction.type === 'payment' ||
-      transaction.type === 'non_refundable_deposit_reversal'
-    ) {
-      return sum + transaction.amount.amountMinor
-    }
-
-    return sum - transaction.amount.amountMinor
-  }, 0)
-
 const resolvePaymentStatus = (
   totalAmountDue: Money,
   financialBalanceAmountMinor: number
@@ -207,25 +190,6 @@ const assertCanCancelResignation = (status: CampParticipantStatus): void => {
   if (status !== 'RESIGNED' && status !== 'REFUNDED') {
     throw new CampParticipantResignationCancellationNotAllowedError(status)
   }
-}
-
-const unreversedNonRefundableDeposits = (
-  transactions: FinancialTransaction[]
-): NonRefundableDeposit[] => {
-  const reversedDepositIds = new Set(
-    transactions
-      .filter(
-        (transaction): transaction is NonRefundableDepositReversal =>
-          transaction.type === 'non_refundable_deposit_reversal'
-      )
-      .map((transaction) => transaction.reversedTransactionId)
-  )
-
-  return transactions.filter(
-    (transaction): transaction is NonRefundableDeposit =>
-      transaction.type === 'non_refundable_deposit' &&
-      !reversedDepositIds.has(transaction.id)
-  )
 }
 
 export class CampParticipant {
@@ -329,7 +293,7 @@ export class CampParticipant {
         person: this.person,
         status: resolvePaymentStatus(
           totalAmountDue,
-          financialBalanceMinor(this._financialTransactions)
+          CampParticipantLedger.from(this._financialTransactions).balanceMinor()
         ),
         totalAmountDue,
         discounts: [...this._discounts, discount],
@@ -357,6 +321,7 @@ export class CampParticipant {
     assertMatchingCurrency(this._totalAmountDue, payment.amount)
 
     const financialTransactions = [...this._financialTransactions, payment]
+    const ledger = CampParticipantLedger.from(financialTransactions)
 
     const updatedCampParticipant = new CampParticipant(
       {
@@ -364,7 +329,7 @@ export class CampParticipant {
         person: this.person,
         status: resolvePaymentStatus(
           this._totalAmountDue,
-          financialBalanceMinor(financialTransactions)
+          ledger.balanceMinor()
         ),
         totalAmountDue: this._totalAmountDue,
         discounts: this._discounts,
@@ -391,24 +356,22 @@ export class CampParticipant {
 
     assertMatchingCurrency(this._totalAmountDue, refund.amount)
 
-    const currentFinancialBalanceMinor = financialBalanceMinor(
+    const currentLedger = CampParticipantLedger.from(
       this._financialTransactions
     )
 
-    if (refund.amount.amountMinor > currentFinancialBalanceMinor) {
+    if (refund.amount.amountMinor > currentLedger.balanceMinor()) {
       throw new CampParticipantRefundExceedsRefundableBalanceError()
     }
 
     const financialTransactions = [...this._financialTransactions, refund]
-    const financialBalanceAmountMinor = financialBalanceMinor(
-      financialTransactions
-    )
+    const ledger = CampParticipantLedger.from(financialTransactions)
 
     const updatedCampParticipant = new CampParticipant(
       {
         campId: this.campId,
         person: this.person,
-        status: resolveRefundStatus(financialBalanceAmountMinor),
+        status: resolveRefundStatus(ledger.balanceMinor()),
         totalAmountDue: this._totalAmountDue,
         discounts: this._discounts,
         financialTransactions,
@@ -439,7 +402,7 @@ export class CampParticipant {
 
       if (
         nonRefundableDeposit.amount.amountMinor >
-        financialBalanceMinor(this._financialTransactions)
+        CampParticipantLedger.from(this._financialTransactions).balanceMinor()
       ) {
         throw new CampParticipantNonRefundableDepositExceedsPaidBalanceError()
       }
@@ -477,21 +440,25 @@ export class CampParticipant {
   ): [CampParticipant, CampParticipantResignationCanceledDomainEvent] {
     assertCanCancelResignation(this._status)
 
-    const depositReversals = unreversedNonRefundableDeposits(
+    const currentLedger = CampParticipantLedger.from(
       this._financialTransactions
-    ).map((deposit) =>
-      createNonRefundableDepositReversal({
-        id: generateReversalId(deposit),
-        reversedTransactionId: deposit.id,
-        amount: deposit.amount,
-        note: ''
-      })
     )
+    const depositReversals = currentLedger
+      .unreversedNonRefundableDeposits()
+      .map((deposit) =>
+        createNonRefundableDepositReversal({
+          id: generateReversalId(deposit),
+          reversedTransactionId: deposit.id,
+          amount: deposit.amount,
+          note: ''
+        })
+      )
 
     const financialTransactions = [
       ...this._financialTransactions,
       ...depositReversals
     ]
+    const ledger = CampParticipantLedger.from(financialTransactions)
 
     const lastReversal = depositReversals[depositReversals.length - 1]
     const updatedAt = lastReversal?.createdAt ?? new Date()
@@ -502,7 +469,7 @@ export class CampParticipant {
         person: this.person,
         status: resolvePaymentStatus(
           this._totalAmountDue,
-          financialBalanceMinor(financialTransactions)
+          ledger.balanceMinor()
         ),
         totalAmountDue: this._totalAmountDue,
         discounts: this._discounts,
@@ -521,14 +488,9 @@ export class CampParticipant {
   }
 
   public remainingAmountToPay(): Money {
-    return createMoneyInSameCurrency(
-      this._totalAmountDue,
-      Math.max(
-        this._totalAmountDue.amountMinor -
-          financialBalanceMinor(this._financialTransactions),
-        0
-      )
-    )
+    return CampParticipantLedger.from(
+      this._financialTransactions
+    ).remainingAmountToPay(this._totalAmountDue)
   }
 
   public toSnapshot(): CampParticipantSnapshot {
