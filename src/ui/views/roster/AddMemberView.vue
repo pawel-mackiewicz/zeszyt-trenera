@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CalendarDays, Phone, UserRound } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -164,125 +165,143 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="max-w-2xl mx-auto pt-10 pb-32">
-    <!-- Form Section -->
-    <form class="space-y-10" @submit.prevent="handleSubmit">
-      <!-- What: route add-member failures through the shared floating alert. Why: this screen should announce recoverable save problems in the same place and with the same swipe-to-dismiss behavior as the rest of the app. -->
-      <FloatingErrorAlert
-        v-if="submitError"
-        :message="submitError"
-        top-offset="shell"
-        @dismiss="dismissSubmitError"
-      />
+  <main class="add-member-view">
+    <!-- What: route add-member failures through the shared floating alert. Why: this screen should announce recoverable save problems in the same place and with the same swipe-to-dismiss behavior as the rest of the app. -->
+    <FloatingErrorAlert
+      v-if="submitError"
+      :message="submitError"
+      top-offset="shell"
+      @dismiss="dismissSubmitError"
+    />
 
-      <!-- Personal Information Cluster -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-10">
-        <div class="relative group">
-          <!-- What: show a stronger required marker on every field the add-member flow refuses to save without. Why: coaches fill this form quickly on small screens, so the mandatory inputs must be obvious before they hit a validation alert. -->
-          <label
-            class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
-            for="firstName"
-            >{{ t('fields.firstName.label') }}
-            <span
-              aria-hidden="true"
-              class="ml-1 inline-block text-sm leading-none font-black text-danger"
-              >*</span
-            ></label
-          >
-          <input
-            id="firstName"
-            v-model="firstName"
-            class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
-            :placeholder="t('fields.firstName.placeholder')"
-            type="text"
-            required
-          />
-        </div>
-        <div class="relative group">
-          <label
-            class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
-            for="lastName"
-            >{{ t('fields.lastName.label') }}
-            <span
-              aria-hidden="true"
-              class="ml-1 inline-block text-sm leading-none font-black text-danger"
-              >*</span
-            ></label
-          >
-          <input
-            id="lastName"
-            v-model="lastName"
-            class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
-            :placeholder="t('fields.lastName.placeholder')"
-            type="text"
-            required
-          />
-        </div>
-        <div class="relative group md:col-span-2">
-          <label
-            class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
-            for="phoneCountryCode"
-            >{{ t('fields.phoneNumber.label') }}</label
-          >
-          <div
-            class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:gap-6"
-          >
-            <div class="relative group">
-              <label
-                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
-                for="phoneCountryCode"
-                >{{ t('fields.phoneNumber.countryCodeLabel') }}</label
+    <form class="add-member-view__form" @submit.prevent="handleSubmit">
+      <div class="app-section-label add-member-view__ledger-label">
+        {{ t('sections.details') }}
+      </div>
+
+      <div class="add-member-view__body">
+        <div class="add-member-view__grid">
+          <div class="add-member-view__field">
+            <!-- What: show a stronger required marker on every field the add-member flow refuses to save without. Why: coaches fill this form quickly on small screens, so the mandatory inputs must be obvious before they hit a validation alert. -->
+            <label
+              class="app-section-label add-member-view__label"
+              for="firstName"
+            >
+              <UserRound
+                class="add-member-view__label-icon"
+                aria-hidden="true"
+              />
+              {{ t('fields.firstName.label') }}
+              <span class="add-member-view__required" aria-hidden="true"
+                >*</span
               >
+            </label>
+            <input
+              id="firstName"
+              v-model="firstName"
+              autocomplete="given-name"
+              class="add-member-view__control"
+              :placeholder="t('fields.firstName.placeholder')"
+              type="text"
+              required
+            />
+          </div>
+          <div class="add-member-view__field">
+            <label
+              class="app-section-label add-member-view__label"
+              for="lastName"
+            >
+              <UserRound
+                class="add-member-view__label-icon"
+                aria-hidden="true"
+              />
+              {{ t('fields.lastName.label') }}
+              <span class="add-member-view__required" aria-hidden="true"
+                >*</span
+              >
+            </label>
+            <input
+              id="lastName"
+              v-model="lastName"
+              autocomplete="family-name"
+              class="add-member-view__control"
+              :placeholder="t('fields.lastName.placeholder')"
+              type="text"
+              required
+            />
+          </div>
+        </div>
+
+        <div class="add-member-view__field">
+          <label
+            class="app-section-label add-member-view__label"
+            for="phoneCountryCode"
+          >
+            <Phone class="add-member-view__label-icon" aria-hidden="true" />
+            {{ t('fields.phoneNumber.label') }}
+          </label>
+          <div class="add-member-view__inline-grid add-member-view__phone-grid">
+            <div class="add-member-view__field">
+              <label
+                class="app-section-label add-member-view__sub-label"
+                for="phoneCountryCode"
+              >
+                {{ t('fields.phoneNumber.countryCodeLabel') }}
+              </label>
               <input
                 id="phoneCountryCode"
                 v-model="countryCode"
-                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
+                autocomplete="tel-country-code"
+                class="add-member-view__control"
                 :placeholder="t('fields.phoneNumber.countryCodePlaceholder')"
                 type="tel"
               />
             </div>
-            <div class="relative group">
+            <div class="add-member-view__field">
               <label
-                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                class="app-section-label add-member-view__sub-label"
                 for="phoneNumberRest"
-                >{{ t('fields.phoneNumber.localNumberLabel') }}</label
               >
+                {{ t('fields.phoneNumber.localNumberLabel') }}
+              </label>
               <input
                 id="phoneNumberRest"
                 v-model="phoneNumberRest"
-                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm placeholder:text-outline-variant focus:border-primary transition-colors duration-200"
+                autocomplete="tel-national"
+                class="add-member-view__control"
                 :placeholder="t('fields.phoneNumber.localNumberPlaceholder')"
                 type="tel"
               />
             </div>
           </div>
         </div>
-        <div class="relative group md:col-span-2">
+
+        <div class="add-member-view__field">
           <!-- What: mark birth date as required on the section label while keeping age as the faster helper input. Why: the saved member profile now must always include one canonical birth date, but coaches can still reach it through the age shortcut. -->
           <label
-            class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
+            class="app-section-label add-member-view__label"
             for="dateOfBirth"
-            >{{ t('fields.dateOfBirth.label') }}
-            <span
+          >
+            <CalendarDays
+              class="add-member-view__label-icon"
               aria-hidden="true"
-              class="ml-1 inline-block text-sm leading-none font-black text-danger"
-              >*</span
-            ></label
-          >
+            />
+            {{ t('fields.dateOfBirth.label') }}
+            <span class="add-member-view__required" aria-hidden="true">*</span>
+          </label>
           <!-- What: keep the age shortcut and exact birth date in one inline row. Why: coaches should be able to compare and adjust both values without toggling modes or leaving the form rhythm used elsewhere in the app. -->
-          <div
-            class="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-4 md:grid-cols-[7rem_minmax(0,1fr)] md:gap-6"
-          >
-            <div class="relative group">
+          <div class="add-member-view__inline-grid add-member-view__birth-grid">
+            <div class="add-member-view__field">
               <label
-                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                class="app-section-label add-member-view__sub-label"
                 for="dateOfBirthAge"
-                >{{ t('fields.dateOfBirth.ageLabel') }}</label
               >
+                {{ t('fields.dateOfBirth.ageLabel') }}
+              </label>
               <select
                 id="dateOfBirthAge"
                 v-model="ageInputModel"
-                class="w-full appearance-none bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200"
+                class="add-member-view__control add-member-view__select"
               >
                 <option value="">
                   {{ t('fields.dateOfBirth.agePlaceholder') }}
@@ -296,53 +315,217 @@ async function handleSubmit() {
                 </option>
               </select>
             </div>
-            <div class="relative group">
+            <div class="add-member-view__field">
               <label
-                class="block font-mono text-[11px] font-bold tracking-widest text-outline mb-2 uppercase cursor-pointer"
+                class="app-section-label add-member-view__sub-label"
                 for="dateOfBirth"
-                >{{ t('fields.dateOfBirth.exactDateLabel') }}</label
               >
+                {{ t('fields.dateOfBirth.exactDateLabel') }}
+              </label>
               <input
                 id="dateOfBirth"
                 v-model="dateOfBirthInputModel"
-                class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200 uppercase"
+                class="add-member-view__control"
                 type="date"
                 required
               />
             </div>
           </div>
         </div>
-        <div class="relative group">
+
+        <div class="add-member-view__field">
           <label
-            class="block font-mono text-[11px] font-bold tracking-widest text-on-surface mb-2 uppercase cursor-pointer"
+            class="app-section-label add-member-view__label"
             for="joinedAt"
-            >{{ t('fields.joinedAt.label') }}</label
           >
-          <div class="relative">
-            <input
-              id="joinedAt"
-              v-model="joinedAt"
-              class="w-full bg-transparent border-t-0 border-x-0 border-b border-on-surface py-2 font-mono text-sm focus:border-primary transition-colors duration-200 uppercase"
-              type="date"
+            <CalendarDays
+              class="add-member-view__label-icon"
+              aria-hidden="true"
             />
-          </div>
+            {{ t('fields.joinedAt.label') }}
+          </label>
+          <input
+            id="joinedAt"
+            v-model="joinedAt"
+            class="add-member-view__control"
+            type="date"
+          />
+        </div>
+
+        <div class="add-member-view__actions">
+          <!-- What: keep the member form submit CTA on the shared primitive. Why: this screen should reuse the same button contract as setup and history while still owning its own form layout. -->
+          <AppButton
+            class="add-member-view__submit"
+            type="submit"
+            :disabled="isSubmitting"
+            variant="secondary"
+          >
+            {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
+          </AppButton>
         </div>
       </div>
-
-      <!-- Submit Action -->
-      <div class="pt-8 flex justify-end">
-        <!-- What: keep the member form submit CTA on the shared primitive. Why: this screen should reuse the same button contract as setup and history while still owning its own form layout. -->
-        <AppButton type="submit" :disabled="isSubmitting">
-          {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
-        </AppButton>
-      </div>
     </form>
-  </div>
+  </main>
 </template>
+
+<style scoped>
+.add-member-view {
+  min-height: 100%;
+  padding: 2rem 1rem 0;
+}
+
+.add-member-view__form {
+  max-width: 42rem;
+  margin: 0 auto;
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-surface);
+  box-shadow: 4px 4px 0 0 var(--color-on-surface);
+}
+
+.add-member-view__ledger-label {
+  margin: 0;
+  padding: 0.9rem 1rem;
+  border-block-end: 1px solid var(--color-on-surface);
+  background: var(--color-on-surface);
+  color: var(--color-on-primary);
+  font-size: 0.875rem;
+}
+
+.add-member-view__body {
+  display: grid;
+  gap: 1.5rem;
+  padding: 1.5rem 1rem;
+}
+
+.add-member-view__grid,
+.add-member-view__inline-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.add-member-view__phone-grid {
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr);
+}
+
+.add-member-view__birth-grid {
+  grid-template-columns: minmax(0, 5.5rem) minmax(0, 1fr);
+}
+
+.add-member-view__field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.add-member-view__label,
+.add-member-view__sub-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.add-member-view__label {
+  color: var(--color-on-surface);
+  font-size: 0.78125rem;
+}
+
+.add-member-view__sub-label {
+  color: var(--color-secondary);
+}
+
+.add-member-view__label-icon {
+  flex: 0 0 auto;
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--color-secondary);
+  stroke-width: 2.25;
+}
+
+.add-member-view__required {
+  color: var(--color-danger);
+}
+
+.add-member-view__control {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 0;
+  border-bottom: 1px solid var(--color-on-surface);
+  border-radius: 0;
+  background: transparent;
+  padding: 0.5rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-transform: none;
+  color: var(--color-on-surface);
+}
+
+.add-member-view__control::placeholder {
+  color: var(--color-secondary);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0;
+  opacity: 0.62;
+  text-transform: none;
+}
+
+.add-member-view__control:focus {
+  border-bottom-color: var(--color-primary);
+  border-bottom-width: 2px;
+  outline: 0;
+}
+
+.add-member-view__select {
+  appearance: none;
+}
+
+.add-member-view__actions {
+  padding-block-start: 2rem;
+  border-block-start: 1px dashed var(--color-on-surface);
+}
+
+.add-member-view__submit {
+  width: 100%;
+  min-height: 3.5rem;
+  box-shadow: 4px 4px 0 0 var(--color-on-surface);
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  letter-spacing: 0.22em;
+}
+
+@media (min-width: 48rem) {
+  .add-member-view {
+    padding-inline: 2rem;
+  }
+
+  .add-member-view__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .add-member-view__phone-grid {
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  }
+
+  .add-member-view__birth-grid {
+    grid-template-columns: minmax(0, 7rem) minmax(0, 1fr);
+  }
+
+  .add-member-view__body {
+    gap: 2rem;
+    padding: 2rem;
+  }
+}
+</style>
 
 <i18n lang="json">
 {
   "pl": {
+    "sections": {
+      "details": "Dane członka"
+    },
     "actions": {
       "submit": "Zapisz",
       "submitting": "Zapisywanie"
@@ -384,6 +567,9 @@ async function handleSubmit() {
     }
   },
   "en": {
+    "sections": {
+      "details": "Member details"
+    },
     "actions": {
       "submit": "Save",
       "submitting": "Saving"

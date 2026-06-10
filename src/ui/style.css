@@ -141,6 +141,16 @@ a {
   border: 0;
 }
 
+.app-section-label {
+  font-family: var(--app-section-label-font-family);
+  font-size: var(--app-section-label-font-size);
+  font-weight: var(--app-section-label-font-weight);
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
+}
+
 .message-banner {
   display: grid;
   gap: 0.3rem;
