@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
 
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import MembersSortTool from '@/ui/components/MembersSortTool.vue'
@@ -12,22 +11,23 @@ import type {
 } from '@/ui/utils/memberSort'
 
 const props = defineProps<{
-  searchQuery: string
-  minAgeFilter: number
   maxAgeFilter: number
-  memberSortField: MemberSortField
   memberSortDirection: MemberSortDirection
+  memberSortField: MemberSortField
+  minAgeFilter: number
+  searchInputId: string
+  searchLabel: string
+  searchPlaceholder: string
+  searchQuery: string
 }>()
 
 const emit = defineEmits<{
-  (event: 'update:searchQuery', value: string): void
-  (event: 'update:minAgeFilter', value: number): void
   (event: 'update:maxAgeFilter', value: number): void
-  (event: 'update:memberSortField', value: MemberSortField): void
   (event: 'update:memberSortDirection', value: MemberSortDirection): void
+  (event: 'update:memberSortField', value: MemberSortField): void
+  (event: 'update:minAgeFilter', value: number): void
+  (event: 'update:searchQuery', value: string): void
 }>()
-
-const { t } = useI18n({ useScope: 'local' })
 
 const searchQueryModel = computed({
   get: () => props.searchQuery,
@@ -66,64 +66,49 @@ const memberSortDirectionModel = computed({
 </script>
 
 <template>
-  <div class="roster-filter-section">
-    <section class="roster-filter-section__utility">
+  <section class="member-filter-sort-section">
+    <div class="member-filter-sort-section__primary">
       <SearchBar
         v-model="searchQueryModel"
-        input-id="members-search"
-        :input-label="t('search.label')"
-        :placeholder="t('search.placeholder')"
+        :input-id="searchInputId"
+        :input-label="searchLabel"
+        :placeholder="searchPlaceholder"
       />
 
       <MembersSortTool
-        v-model:sort-field="memberSortFieldModel"
         v-model:sort-direction="memberSortDirectionModel"
+        v-model:sort-field="memberSortFieldModel"
       />
-    </section>
+    </div>
 
-    <section class="roster-filter-section__additional">
+    <div class="member-filter-sort-section__secondary">
       <AgeRangeFilter
-        v-model:min-value="minAgeFilterModel"
         v-model:max-value="maxAgeFilterModel"
+        v-model:min-value="minAgeFilterModel"
         :max-bound="AGE_FILTER_MAX"
         :min-bound="AGE_FILTER_MIN"
       />
-    </section>
-  </div>
+    </div>
+  </section>
 </template>
 
 <style scoped>
-.roster-filter-section {
+.member-filter-sort-section {
   display: grid;
   gap: 0;
+  margin-bottom: 2rem;
 }
 
-.roster-filter-section__utility {
-  margin-bottom: 3rem;
+.member-filter-sort-section__primary {
+  display: grid;
+  gap: 1rem;
   border-bottom: 2px solid var(--color-on-surface);
   padding-bottom: 1rem;
 }
 
-.roster-filter-section__additional {
-  margin-bottom: 2rem;
+.member-filter-sort-section__secondary {
   border-bottom: 2px solid var(--color-on-surface);
+  padding-top: 1rem;
   padding-bottom: 1.5rem;
 }
 </style>
-
-<i18n lang="json">
-{
-  "pl": {
-    "search": {
-      "label": "Szukaj w rejestrze",
-      "placeholder": "Wpisz imię i nazwisko"
-    }
-  },
-  "en": {
-    "search": {
-      "label": "Search the register",
-      "placeholder": "Enter first and last name"
-    }
-  }
-}
-</i18n>

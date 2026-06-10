@@ -35,6 +35,8 @@ const {
   loadFailed: membersLoadFailed,
   loadSavedMembers,
   maxAgeFilter,
+  memberSortDirection,
+  memberSortField,
   minAgeFilter,
   savedMembers,
   searchQuery,
@@ -121,6 +123,14 @@ function updateMinAgeFilter(value: number) {
 
 function updateMaxAgeFilter(value: number) {
   maxAgeFilter.value = value
+}
+
+function updateMemberSortField(value: typeof memberSortField.value) {
+  memberSortField.value = value
+}
+
+function updateMemberSortDirection(value: typeof memberSortDirection.value) {
+  memberSortDirection.value = value
 }
 
 function updateSessionDate(value: string) {
@@ -237,6 +247,8 @@ onMounted(() => {
     :is-submitting="isSubmitting"
     :load-failed="membersLoadFailed"
     :max-age-filter="maxAgeFilter"
+    :member-sort-direction="memberSortDirection"
+    :member-sort-field="memberSortField"
     :min-age-filter="minAgeFilter"
     :saved-members="savedMembers"
     :search-query="searchQuery"
@@ -253,6 +265,8 @@ onMounted(() => {
     @toggle-member="handleToggleMember"
     @toggle-session-field="handleToggleSessionField"
     @update:max-age-filter="updateMaxAgeFilter"
+    @update:member-sort-direction="updateMemberSortDirection"
+    @update:member-sort-field="updateMemberSortField"
     @update:min-age-filter="updateMinAgeFilter"
     @update:search-query="updateSearchQuery"
     @update:session-date="updateSessionDate"

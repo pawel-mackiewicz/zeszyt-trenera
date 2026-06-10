@@ -2,6 +2,10 @@ import { computed, ref, type Ref } from 'vue'
 
 import type { AttendanceEditorMemberListItem } from '@/read/ListMembersForAttendanceEditorQuery'
 import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
+import type {
+  MemberSortDirection,
+  MemberSortField
+} from '@/ui/utils/memberSort'
 
 export type SessionField = 'date' | 'time'
 
@@ -83,6 +87,8 @@ export function useAttendanceEditor(
   const searchQuery = ref('')
   const maxAgeFilter = ref(AGE_FILTER_MAX)
   const minAgeFilter = ref(AGE_FILTER_MIN)
+  const memberSortField = ref<MemberSortField>('firstName')
+  const memberSortDirection = ref<MemberSortDirection>('asc')
   const selectedMemberIds = ref<string[]>([])
   const sessionDate = ref('')
   const sessionTime = ref('')
@@ -163,6 +169,8 @@ export function useAttendanceEditor(
     loadFailed,
     loadSavedMembers,
     maxAgeFilter,
+    memberSortDirection,
+    memberSortField,
     minAgeFilter,
     resetAttendanceSelection,
     savedMembers,

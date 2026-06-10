@@ -8,16 +8,16 @@ import {
   buildSessionStart,
   type SessionField
 } from './useAttendanceEditor'
-import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
-import SearchBar from '@/ui/components/SearchBar.vue'
-import {
-  AGE_FILTER_MAX,
-  AGE_FILTER_MIN,
-  matchesAgeValueRange
-} from '@/ui/utils/ageRange'
+import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
+import { matchesAgeValueRange } from '@/ui/utils/ageRange'
+import type {
+  MemberSortDirection,
+  MemberSortField
+} from '@/ui/utils/memberSort'
+import { sortMemberListItems } from '@/ui/utils/sortMemberListItems'
 
 type AttendanceEditorMode = 'create' | 'edit'
 
@@ -29,6 +29,8 @@ const props = withDefaults(
     isSubmitting: boolean
     loadFailed: boolean
     maxAgeFilter: number
+    memberSortDirection: MemberSortDirection
+    memberSortField: MemberSortField
     minAgeFilter: number
     mode: AttendanceEditorMode
     recoveryPromptVisible?: boolean
@@ -55,6 +57,8 @@ const emit = defineEmits<{
   'toggle-session-field': [field: SessionField]
   'update:activeSessionField': [value: SessionField | null]
   'update:maxAgeFilter': [value: number]
+  'update:memberSortDirection': [value: MemberSortDirection]
+  'update:memberSortField': [value: MemberSortField]
   'update:minAgeFilter': [value: number]
   'update:searchQuery': [value: string]
   'update:selectedMemberIds': [value: string[]]
@@ -79,6 +83,14 @@ const maxAgeFilterModel = computed({
   get: () => props.maxAgeFilter,
   set: (value: number) => emit('update:maxAgeFilter', value)
 })
+const memberSortFieldModel = computed({
+  get: () => props.memberSortField,
+  set: (value: MemberSortField) => emit('update:memberSortField', value)
+})
+const memberSortDirectionModel = computed({
+  get: () => props.memberSortDirection,
+  set: (value: MemberSortDirection) => emit('update:memberSortDirection', value)
+})
 const sessionDateModel = computed({
   get: () => props.sessionDate,
   set: (value: string) => emit('update:sessionDate', value)
@@ -93,26 +105,30 @@ const sessionStart = computed(() =>
   buildSessionStart(props.sessionDate, props.sessionTime)
 )
 const filteredMembers = computed(() => {
-  return props.savedMembers
-    .filter((member) => {
-      const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
-      const matchesSearch = fullName.includes(props.searchQuery.toLowerCase())
-      // What: filter attendance rows by precomputed age from the read model. Why: this screen now consumes a least-privilege roster payload that omits raw birth dates.
-      const matchesAge = matchesAgeValueRange(
-        member.age,
-        props.minAgeFilter,
-        props.maxAgeFilter
-      )
+  const matchingMembers = props.savedMembers.filter((member) => {
+    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase()
+    const matchesSearch = fullName.includes(props.searchQuery.toLowerCase())
+    // What: filter attendance rows by precomputed age from the read model. Why: this screen now consumes a least-privilege roster payload that omits raw birth dates.
+    const matchesAge = matchesAgeValueRange(
+      member.age,
+      props.minAgeFilter,
+      props.maxAgeFilter
+    )
 
-      return matchesSearch && matchesAge
-    })
-    .sort((left, right) => {
-      // What: keep checked-in members at the top in both create and edit. Why: the coach needs immediate confirmation of the marked roster without losing alphabetical scanning inside each group.
-      const leftSelected = Number(isSelected(left.id))
-      const rightSelected = Number(isSelected(right.id))
+    return matchesSearch && matchesAge
+  })
 
-      return rightSelected - leftSelected
-    })
+  return sortMemberListItems(matchingMembers, {
+    direction: props.memberSortDirection,
+    field: props.memberSortField,
+    locale: locale.value
+  }).sort((left, right) => {
+    // What: keep checked-in members at the top in both create and edit. Why: the coach needs immediate confirmation of the marked roster without losing alphabetical scanning inside each group.
+    const leftSelected = Number(isSelected(left.id))
+    const rightSelected = Number(isSelected(right.id))
+
+    return rightSelected - leftSelected
+  })
 })
 const emptyStateKey = computed(() => {
   if (props.loadFailed) {
@@ -290,24 +306,16 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
     />
 
     <!-- What: keep filters and the roster in one continuous surface across attendance create and edit. Why: coaches should relearn this phone-sized scanning pattern only once even though one route creates a session and the other updates it. -->
-    <section class="mb-4 pb-2">
-      <div class="flex flex-col gap-2">
-        <AgeRangeFilter
-          v-model:min-value="minAgeFilterModel"
-          v-model:max-value="maxAgeFilterModel"
-          :max-bound="AGE_FILTER_MAX"
-          :min-bound="AGE_FILTER_MIN"
-        />
-        <div class="mt-6">
-          <SearchBar
-            v-model="searchQueryModel"
-            input-id="attendance-search"
-            :input-label="t('search.label')"
-            :placeholder="t('search.placeholder')"
-          />
-        </div>
-      </div>
-    </section>
+    <MemberFilterSortSection
+      v-model:search-query="searchQueryModel"
+      v-model:min-age-filter="minAgeFilterModel"
+      v-model:max-age-filter="maxAgeFilterModel"
+      v-model:member-sort-field="memberSortFieldModel"
+      v-model:member-sort-direction="memberSortDirectionModel"
+      search-input-id="attendance-search"
+      :search-label="t('search.label')"
+      :search-placeholder="t('search.placeholder')"
+    />
 
     <section class="mb-10">
       <div class="border-b border-outline-variant px-4 py-3">

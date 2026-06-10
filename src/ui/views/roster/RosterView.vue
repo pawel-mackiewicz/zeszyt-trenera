@@ -7,10 +7,10 @@ import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
 import MemberArchivedDetailsDrawer from './components/MemberArchivedDetailsDrawer.vue'
 import MemberCounter from './components/MemberCounter.vue'
 import MemberActiveDetailsDrawer from './components/MemberActiveDetailsDrawer.vue'
-import RosterFilterSection from './components/RosterFilterSection.vue'
 import RosterTabs, { type RosterTabOption } from './components/RosterTabs.vue'
 import { useRosterMemberFilters } from '@/ui/views/roster/useRosterMemberFilters'
 
@@ -150,12 +150,15 @@ onBeforeUnmount(() => {
     <div class="members-list-view h-full pt-4">
       <MemberCounter :label="membersCountLabel" />
 
-      <RosterFilterSection
+      <MemberFilterSortSection
         v-model:search-query="searchQuery"
         v-model:min-age-filter="minAgeFilter"
         v-model:max-age-filter="maxAgeFilter"
         v-model:member-sort-field="memberSortField"
         v-model:member-sort-direction="memberSortDirection"
+        search-input-id="members-search"
+        :search-label="t('search.label')"
+        :search-placeholder="t('search.placeholder')"
       />
 
       <RosterTabs
@@ -275,6 +278,10 @@ onBeforeUnmount(() => {
     "summary": {
       "memberCount": "{count} członków"
     },
+    "search": {
+      "label": "Szukaj w rejestrze",
+      "placeholder": "Wpisz imię i nazwisko"
+    },
     "tabs": {
       "label": "Zakres rejestru",
       "active": "Aktywni",
@@ -292,6 +299,10 @@ onBeforeUnmount(() => {
     },
     "summary": {
       "memberCount": "{count} members"
+    },
+    "search": {
+      "label": "Search the register",
+      "placeholder": "Enter first and last name"
     },
     "tabs": {
       "label": "Roster scope",

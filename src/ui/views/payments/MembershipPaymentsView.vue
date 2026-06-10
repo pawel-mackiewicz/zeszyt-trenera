@@ -6,12 +6,15 @@ import type {
   MembershipPaymentStatusMemberListItem,
   PaidMembershipPaymentStatusMemberListItem
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
-import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
 import MonthSelector from '@/ui/components/MonthSelector.vue'
-import SearchBar from '@/ui/components/SearchBar.vue'
 import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
+import type {
+  MemberSortDirection,
+  MemberSortField
+} from '@/ui/utils/memberSort'
 import { toMembershipPaymentCoveredMonth } from '@/write/memberships/domain/MembershipPayment'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 // What: keep the confirmation dialog inside the payment feature package. Why: payment-specific UI should move with the ledger instead of remaining in shared components.
@@ -69,6 +72,8 @@ const activeMonth = ref(startOfMonth(new Date()))
 const searchQuery = ref('')
 const minAgeFilter = ref(AGE_FILTER_MIN)
 const maxAgeFilter = ref(AGE_FILTER_MAX)
+const memberSortField = ref<MemberSortField>('firstName')
+const memberSortDirection = ref<MemberSortDirection>('asc')
 const paymentFormatters = createMembershipPaymentFormatters({ locale, t })
 const {
   formatAge: formatAgeFromFormatters,
@@ -88,6 +93,8 @@ const {
   activeMonth,
   locale,
   maxAgeFilter,
+  memberSortDirection,
+  memberSortField,
   minAgeFilter,
   searchQuery
 })
@@ -383,24 +390,16 @@ function handleMonthChange(month: Date) {
     />
 
     <!-- What: keep filters directly below the summary and above the grouped ledger. Why: payments should reuse the same continuous scan-and-filter rhythm as attendance while the monthly totals remain visible before narrowing the list. -->
-    <section class="mb-4 pb-2">
-      <div class="flex flex-col gap-2">
-        <AgeRangeFilter
-          v-model:min-value="minAgeFilter"
-          v-model:max-value="maxAgeFilter"
-          :max-bound="AGE_FILTER_MAX"
-          :min-bound="AGE_FILTER_MIN"
-        />
-        <div class="mt-6">
-          <SearchBar
-            v-model="searchQuery"
-            input-id="payments-search"
-            :input-label="t('search.label')"
-            :placeholder="t('search.placeholder')"
-          />
-        </div>
-      </div>
-    </section>
+    <MemberFilterSortSection
+      v-model:search-query="searchQuery"
+      v-model:min-age-filter="minAgeFilter"
+      v-model:max-age-filter="maxAgeFilter"
+      v-model:member-sort-field="memberSortField"
+      v-model:member-sort-direction="memberSortDirection"
+      search-input-id="payments-search"
+      :search-label="t('search.label')"
+      :search-placeholder="t('search.placeholder')"
+    />
 
     <section
       v-if="isLoading"

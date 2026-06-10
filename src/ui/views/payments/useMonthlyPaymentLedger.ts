@@ -7,6 +7,11 @@ import {
   type MembershipPaymentStatusMemberListItem
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
 import { matchesAgeRange } from '@/ui/utils/ageRange'
+import type {
+  MemberSortDirection,
+  MemberSortField
+} from '@/ui/utils/memberSort'
+import { sortMemberListItems } from '@/ui/utils/sortMemberListItems'
 
 import { createMembershipPaymentFormatters } from './membershipPaymentFormatters'
 
@@ -18,6 +23,8 @@ type UseMonthlyPaymentLedgerOptions = {
   activeMonth: Ref<Date>
   locale: Ref<string>
   maxAgeFilter: Ref<number>
+  memberSortDirection: Ref<MemberSortDirection>
+  memberSortField: Ref<MemberSortField>
   minAgeFilter: Ref<number>
   searchQuery: Ref<string>
 }
@@ -26,6 +33,8 @@ export function useMonthlyPaymentLedger({
   activeMonth,
   locale,
   maxAgeFilter,
+  memberSortDirection,
+  memberSortField,
   minAgeFilter,
   searchQuery
 }: UseMonthlyPaymentLedgerOptions) {
@@ -88,11 +97,11 @@ export function useMonthlyPaymentLedger({
   function sortMembers<T extends MembershipPaymentStatusMemberListItem>(
     members: T[]
   ): T[] {
-    return [...members].sort((left, right) =>
-      paymentFormatters
-        .formatMemberName(left)
-        .localeCompare(paymentFormatters.formatMemberName(right), locale.value)
-    )
+    return sortMemberListItems(members, {
+      direction: memberSortDirection.value,
+      field: memberSortField.value,
+      locale: locale.value
+    })
   }
 
   function filterAndSortMembers<

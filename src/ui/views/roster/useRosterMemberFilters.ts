@@ -7,10 +7,10 @@ import {
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 import {
-  sortMembers,
   type MemberSortDirection,
   type MemberSortField
 } from '@/ui/utils/memberSort'
+import { sortMemberListItems } from '@/ui/utils/sortMemberListItems'
 
 function formatMemberName(member: MemberRosterListItem): string {
   return `${member.firstName} ${member.lastName}`
@@ -40,7 +40,7 @@ export function useRosterMemberFilters(
     })
 
     // What: keep roster filtering and ordering behind a feature composable. Why: the list view should orchestrate local-first subscriptions and UI state, while reusable member filtering rules stay testable outside the component.
-    return sortMembers(visibleMembers, {
+    return sortMemberListItems(visibleMembers, {
       field: memberSortField.value,
       direction: memberSortDirection.value,
       locale: locale.value
