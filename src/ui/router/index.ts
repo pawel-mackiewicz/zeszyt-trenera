@@ -6,7 +6,7 @@ import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/attendance/AttendanceHistoryView.vue'
-import CampNewPlaceholderView from '@/ui/views/camps/CampNewPlaceholderView.vue'
+import CampNewView from '@/ui/views/camps/CampNewView.vue'
 import CampsListView from '@/ui/views/camps/CampsListView.vue'
 import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
 import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
@@ -123,7 +123,7 @@ const baseRoutes = [
   {
     path: '/camps/new',
     name: 'add-camp',
-    component: CampNewPlaceholderView,
+    component: CampNewView,
     meta: {
       showBack: true,
       hideBottomNav: true,
