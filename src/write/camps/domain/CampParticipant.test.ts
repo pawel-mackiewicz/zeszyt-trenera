@@ -5,9 +5,16 @@ import {
   CampParticipantCurrencyMismatchError,
   CampParticipantDiscountAppliedDomainEvent,
   CampParticipantDiscountExceedsAmountDueError,
+  CampParticipantDiscountNotAllowedError,
+  CampParticipantNonRefundableDepositExceedsPaidBalanceError,
   CampParticipantPaymentRegisteredDomainEvent,
+  CampParticipantPaymentNotAllowedError,
   CampParticipantRegisteredDomainEvent,
+  CampParticipantRefundExceedsRefundableBalanceError,
   CampParticipantRefundRegisteredDomainEvent,
+  CampParticipantRefundNotAllowedError,
+  CampParticipantResignedDomainEvent,
+  CampParticipantResignationNotAllowedError,
   InvalidCampParticipantCampIdError,
   InvalidCampParticipantMemberIdError,
   InvalidExternalCampParticipantNameError
@@ -36,6 +43,76 @@ const registerClubParticipant = () =>
     },
     'participant-1'
   )
+
+const givenRegisteredClubParticipant = (): CampParticipant => {
+  const [participant] = registerClubParticipant()
+
+  return participant
+}
+
+const payParticipant = (
+  participant: CampParticipant,
+  amountMinor: number,
+  input: {
+    id?: string
+    note?: string
+    currency?: string
+  } = {}
+): CampParticipant => {
+  const [paidParticipant] = participant.registerPayment({
+    id: input.id ?? 'payment-1',
+    amount: money(amountMinor, input.currency),
+    note: input.note
+  })
+
+  return paidParticipant
+}
+
+const resignParticipant = (
+  participant: CampParticipant,
+  deposit?: {
+    id?: string
+    amountMinor: number
+    note?: string
+    currency?: string
+  }
+) => {
+  const [resignedParticipant, event] = participant.resign(
+    deposit
+      ? {
+          id: deposit.id ?? 'deposit-1',
+          amount: money(deposit.amountMinor, deposit.currency),
+          note: deposit.note
+        }
+      : undefined
+  )
+
+  return {
+    resignedParticipant,
+    event
+  }
+}
+
+const refundParticipant = (
+  participant: CampParticipant,
+  amountMinor: number,
+  input: {
+    id?: string
+    note?: string
+    currency?: string
+  } = {}
+) => {
+  const [refundedParticipant, event] = participant.registerRefund({
+    id: input.id ?? 'refund-1',
+    amount: money(amountMinor, input.currency),
+    note: input.note
+  })
+
+  return {
+    refundedParticipant,
+    event
+  }
+}
 
 describe('CampParticipant', () => {
   it('registers a club participant with required properties and emits an event', () => {
@@ -204,25 +281,93 @@ describe('CampParticipant', () => {
     expect(discountedParticipant.financialTransactions).toHaveLength(1)
   })
 
-  it('registers refunds and recalculates payment status from net balance', () => {
-    const [participant] = registerClubParticipant()
-    const [fullyPaidParticipant] = participant.registerPayment({
-      id: 'payment-1',
-      amount: money(1200_00),
+  it('resigns a participant without creating a refund', () => {
+    const participant = givenRegisteredClubParticipant()
+    const beforeResignation = new Date()
+
+    const { resignedParticipant, event } = resignParticipant(participant)
+
+    const afterResignation = new Date()
+
+    expect(resignedParticipant).not.toBe(participant)
+    expect(participant.status).toBe('REGISTERED')
+    expect(resignedParticipant.status).toBe('RESIGNED')
+    expect(resignedParticipant.financialTransactions).toEqual([])
+    expect(resignedParticipant.updatedAt.getTime()).toBeGreaterThanOrEqual(
+      beforeResignation.getTime()
+    )
+    expect(resignedParticipant.updatedAt.getTime()).toBeLessThanOrEqual(
+      afterResignation.getTime()
+    )
+
+    expect(event).toBeInstanceOf(CampParticipantResignedDomainEvent)
+    expect(event.eventName).toBe('camp.participant.resigned')
+    expect(event.payload).toEqual(resignedParticipant.toSnapshot())
+  })
+
+  it('resigns a participant and records a retained non-refundable deposit', () => {
+    const participant = givenRegisteredClubParticipant()
+    const paidParticipant = payParticipant(participant, 500_00, {
+      note: 'Deposit payment'
+    })
+    const beforeResignation = new Date()
+
+    const { resignedParticipant, event } = resignParticipant(paidParticipant, {
+      id: '  deposit-1  ',
+      amountMinor: 200_00,
+      note: '  Retained deposit  '
+    })
+
+    const afterResignation = new Date()
+
+    expect(resignedParticipant).not.toBe(paidParticipant)
+    expect(paidParticipant.status).toBe('REGISTERED')
+    expect(paidParticipant.financialTransactions).toHaveLength(1)
+    expect(resignedParticipant.status).toBe('RESIGNED')
+    expect(resignedParticipant.financialTransactions).toHaveLength(2)
+    expect(resignedParticipant.financialTransactions[1]).toMatchObject({
+      type: 'non_refundable_deposit',
+      id: 'deposit-1',
+      amount: money(200_00),
+      note: 'Retained deposit'
+    })
+    expect(
+      resignedParticipant.financialTransactions[1].createdAt.getTime()
+    ).toBeGreaterThanOrEqual(beforeResignation.getTime())
+    expect(resignedParticipant.updatedAt.getTime()).toBeLessThanOrEqual(
+      afterResignation.getTime()
+    )
+    expect(resignedParticipant.updatedAt).toEqual(
+      resignedParticipant.financialTransactions[1].createdAt
+    )
+
+    expect(event).toBeInstanceOf(CampParticipantResignedDomainEvent)
+    expect(event.eventName).toBe('camp.participant.resigned')
+    expect(event.payload).toEqual(resignedParticipant.toSnapshot())
+  })
+
+  it('registers refunds only after resignation and keeps the participant resigned until fully refunded', () => {
+    const participant = givenRegisteredClubParticipant()
+    const fullyPaidParticipant = payParticipant(participant, 1200_00, {
       note: 'Paid in full'
     })
     expect(fullyPaidParticipant.status).toBe('FULLY_PAID')
+    const { resignedParticipant } = resignParticipant(fullyPaidParticipant)
 
-    const [refundedParticipant, event] = fullyPaidParticipant.registerRefund({
-      id: '  refund-1  ',
-      amount: money(200_00),
-      note: '  Partial refund  '
-    })
+    const { refundedParticipant, event } = refundParticipant(
+      resignedParticipant,
+      200_00,
+      {
+        id: '  refund-1  ',
+        note: '  Partial refund  '
+      }
+    )
 
-    expect(refundedParticipant).not.toBe(fullyPaidParticipant)
+    expect(refundedParticipant).not.toBe(resignedParticipant)
     expect(fullyPaidParticipant.status).toBe('FULLY_PAID')
-    expect(fullyPaidParticipant.financialTransactions).toHaveLength(1)
-    expect(refundedParticipant.status).toBe('REGISTERED')
+    expect(resignedParticipant.status).toBe('RESIGNED')
+    expect(resignedParticipant.financialTransactions).toHaveLength(1)
+    expect(refundedParticipant.status).toBe('RESIGNED')
     expect(refundedParticipant.financialTransactions).toHaveLength(2)
     expect(refundedParticipant.financialTransactions[1]).toMatchObject({
       type: 'refund',
@@ -237,6 +382,22 @@ describe('CampParticipant', () => {
     expect(event).toBeInstanceOf(CampParticipantRefundRegisteredDomainEvent)
     expect(event.eventName).toBe('camp.participant.refund_registered')
     expect(event.payload).toEqual(refundedParticipant.toSnapshot())
+  })
+
+  it('marks a resigned participant refunded when no refundable balance remains', () => {
+    const participant = givenRegisteredClubParticipant()
+    const paidParticipant = payParticipant(participant, 1200_00)
+    const { resignedParticipant } = resignParticipant(paidParticipant, {
+      amountMinor: 200_00
+    })
+
+    const { refundedParticipant } = refundParticipant(
+      resignedParticipant,
+      1000_00
+    )
+
+    expect(refundedParticipant.status).toBe('REFUNDED')
+    expect(refundedParticipant.financialTransactions).toHaveLength(3)
   })
 
   it('keeps person, dates, money, discounts, and transactions immutable', () => {
@@ -261,13 +422,17 @@ describe('CampParticipant', () => {
       id: 'payment-1',
       amount: money(300_00)
     })
+    const [resignedParticipant] = paidParticipant.resign({
+      id: 'deposit-1',
+      amount: money(100_00)
+    })
 
     person.firstName = 'Changed'
 
-    const exposedPerson = paidParticipant.person
-    const exposedDiscounts = paidParticipant.discounts
-    const exposedTransactions = paidParticipant.financialTransactions
-    const snapshot = paidParticipant.toSnapshot()
+    const exposedPerson = resignedParticipant.person
+    const exposedDiscounts = resignedParticipant.discounts
+    const exposedTransactions = resignedParticipant.financialTransactions
+    const snapshot = resignedParticipant.toSnapshot()
 
     if (exposedPerson.type === 'external') {
       exposedPerson.firstName = 'Changed again'
@@ -277,34 +442,41 @@ describe('CampParticipant', () => {
     exposedDiscounts[0].createdAt.setUTCFullYear(2040)
     exposedTransactions[0].note = 'Changed note'
     exposedTransactions[0].createdAt.setUTCFullYear(2041)
+    exposedTransactions[1].note = 'Changed deposit note'
+    exposedTransactions[1].createdAt.setUTCFullYear(2042)
     snapshot.addedAt.setUTCFullYear(2042)
     snapshot.updatedAt.setUTCFullYear(2043)
 
-    expect(paidParticipant.person).toEqual({
+    expect(resignedParticipant.person).toEqual({
       type: 'external',
       firstName: 'anna',
       lastName: 'kowalska'
     })
-    expect(paidParticipant.totalAmountDue.toSnapshot()).toEqual(
+    expect(resignedParticipant.totalAmountDue.toSnapshot()).toEqual(
       money(1000_00).toSnapshot()
     )
-    expect(paidParticipant.discounts[0].reason).toBe('')
-    expect(paidParticipant.discounts[0].createdAt).not.toEqual(
+    expect(resignedParticipant.discounts[0].reason).toBe('')
+    expect(resignedParticipant.discounts[0].createdAt).not.toEqual(
       exposedDiscounts[0].createdAt
     )
-    expect(paidParticipant.financialTransactions[0].note).toBe('')
-    expect(paidParticipant.financialTransactions[0].createdAt).not.toEqual(
+    expect(resignedParticipant.financialTransactions[0].note).toBe('')
+    expect(resignedParticipant.financialTransactions[0].createdAt).not.toEqual(
       exposedTransactions[0].createdAt
     )
-    expect(paidParticipant.addedAt).not.toEqual(snapshot.addedAt)
-    expect(paidParticipant.updatedAt).not.toEqual(snapshot.updatedAt)
+    expect(resignedParticipant.financialTransactions[1].note).toBe('')
+    expect(resignedParticipant.financialTransactions[1].createdAt).not.toEqual(
+      exposedTransactions[1].createdAt
+    )
+    expect(resignedParticipant.addedAt).not.toEqual(snapshot.addedAt)
+    expect(resignedParticipant.updatedAt).not.toEqual(snapshot.updatedAt)
   })
 
-  it('rehydrates a participant snapshot with payments and refunds', () => {
+  it('rehydrates a participant snapshot with payments, retained deposits, and refunds', () => {
     const addedAt = new Date('2026-03-01T10:00:00Z')
     const updatedAt = new Date('2026-03-02T10:00:00Z')
     const discountCreatedAt = new Date('2026-03-01T11:00:00Z')
     const paymentCreatedAt = new Date('2026-03-01T12:00:00Z')
+    const depositCreatedAt = new Date('2026-03-01T12:30:00Z')
     const refundCreatedAt = new Date('2026-03-01T13:00:00Z')
     const participant = CampParticipant.rehydrate({
       id: 'participant-1',
@@ -313,7 +485,7 @@ describe('CampParticipant', () => {
         type: 'club',
         memberId: 'member-1'
       },
-      status: 'REGISTERED',
+      status: 'RESIGNED',
       totalAmountDue: money(1000_00),
       discounts: [
         {
@@ -332,6 +504,13 @@ describe('CampParticipant', () => {
           createdAt: paymentCreatedAt
         },
         {
+          type: 'non_refundable_deposit',
+          id: 'deposit-1',
+          amount: money(100_00),
+          note: 'Retained deposit',
+          createdAt: depositCreatedAt
+        },
+        {
           type: 'refund',
           id: 'refund-1',
           amount: money(200_00),
@@ -347,6 +526,7 @@ describe('CampParticipant', () => {
     updatedAt.setUTCFullYear(2041)
     discountCreatedAt.setUTCFullYear(2042)
     paymentCreatedAt.setUTCFullYear(2043)
+    depositCreatedAt.setUTCFullYear(2044)
     refundCreatedAt.setUTCFullYear(2044)
 
     expect(participant.toSnapshot()).toEqual({
@@ -356,7 +536,7 @@ describe('CampParticipant', () => {
         type: 'club',
         memberId: 'member-1'
       },
-      status: 'REGISTERED',
+      status: 'RESIGNED',
       totalAmountDue: money(1000_00),
       discounts: [
         {
@@ -373,6 +553,13 @@ describe('CampParticipant', () => {
           amount: money(1000_00),
           note: 'Paid in full',
           createdAt: new Date('2026-03-01T12:00:00Z')
+        },
+        {
+          type: 'non_refundable_deposit',
+          id: 'deposit-1',
+          amount: money(100_00),
+          note: 'Retained deposit',
+          createdAt: new Date('2026-03-01T12:30:00Z')
         },
         {
           type: 'refund',
@@ -448,7 +635,7 @@ describe('CampParticipant', () => {
   })
 
   it('rejects invalid financial transaction details', () => {
-    const [participant] = registerClubParticipant()
+    const participant = givenRegisteredClubParticipant()
 
     expect(() =>
       participant.registerPayment({
@@ -471,16 +658,21 @@ describe('CampParticipant', () => {
       })
     ).toThrow(CampParticipantCurrencyMismatchError)
 
+    const paidParticipant = payParticipant(participant, 100_00, {
+      id: 'payment-0'
+    })
+    const { resignedParticipant } = resignParticipant(paidParticipant)
+
     expect(() =>
-      participant.registerRefund({
+      refundParticipant(resignedParticipant, 100_00, {
         id: 'refund-1',
-        amount: money(100_00, 'EUR')
+        currency: 'EUR'
       })
     ).toThrow(CampParticipantCurrencyMismatchError)
   })
 
   it('rejects discounts that exceed the current amount due', () => {
-    const [participant] = registerClubParticipant()
+    const participant = givenRegisteredClubParticipant()
 
     expect(() =>
       participant.applyDiscount({
@@ -488,5 +680,66 @@ describe('CampParticipant', () => {
         amount: money(1300_00)
       })
     ).toThrow(CampParticipantDiscountExceedsAmountDueError)
+  })
+
+  it('rejects lifecycle operations that are not allowed for the current status', () => {
+    const participant = givenRegisteredClubParticipant()
+
+    expect(() => refundParticipant(participant, 100_00)).toThrow(
+      CampParticipantRefundNotAllowedError
+    )
+
+    const { resignedParticipant } = resignParticipant(participant)
+
+    expect(() => payParticipant(resignedParticipant, 100_00)).toThrow(
+      CampParticipantPaymentNotAllowedError
+    )
+
+    expect(() =>
+      resignedParticipant.applyDiscount({
+        id: 'discount-1',
+        amount: money(100_00)
+      })
+    ).toThrow(CampParticipantDiscountNotAllowedError)
+
+    expect(() => resignedParticipant.resign()).toThrow(
+      CampParticipantResignationNotAllowedError
+    )
+  })
+
+  it('rejects retained deposits and refunds that exceed the available balance', () => {
+    const participant = givenRegisteredClubParticipant()
+
+    expect(() =>
+      resignParticipant(participant, {
+        amountMinor: 100_00
+      })
+    ).toThrow(CampParticipantNonRefundableDepositExceedsPaidBalanceError)
+
+    const paidParticipant = payParticipant(participant, 500_00)
+    const { resignedParticipant } = resignParticipant(paidParticipant, {
+      amountMinor: 200_00
+    })
+
+    expect(() => refundParticipant(resignedParticipant, 301_00)).toThrow(
+      CampParticipantRefundExceedsRefundableBalanceError
+    )
+  })
+
+  it('rejects refunds after a participant is fully refunded', () => {
+    const participant = givenRegisteredClubParticipant()
+    const paidParticipant = payParticipant(participant, 500_00)
+    const { resignedParticipant } = resignParticipant(paidParticipant)
+    const { refundedParticipant } = refundParticipant(
+      resignedParticipant,
+      500_00
+    )
+
+    expect(refundedParticipant.status).toBe('REFUNDED')
+    expect(() =>
+      refundParticipant(refundedParticipant, 100_00, {
+        id: 'refund-2'
+      })
+    ).toThrow(CampParticipantRefundNotAllowedError)
   })
 })

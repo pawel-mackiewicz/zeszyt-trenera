@@ -8,6 +8,7 @@ import type {
   Discount,
   DiscountInput,
   FinancialTransaction,
+  NonRefundableDepositInput,
   PaymentInput,
   RefundInput
 } from '@/write/shared/vo/FinancialTransaction'
@@ -15,6 +16,7 @@ import {
   copyDiscount,
   copyFinancialTransaction,
   createDiscount,
+  createNonRefundableDeposit,
   createPayment,
   createRefund
 } from '@/write/shared/vo/FinancialTransaction'
@@ -145,8 +147,8 @@ const createMoneyInSameCurrency = (money: Money, amountMinor: number): Money =>
   })
 
 /**
- * Returns the net amount paid in minor units.
- * Payments increase the participant balance; refunds decrease it.
+ * Returns the refundable balance in minor units.
+ * Payments increase the participant balance; refunds and retained deposits decrease it.
  */
 const financialBalanceMinor = (transactions: FinancialTransaction[]): number =>
   transactions.reduce((sum, transaction) => {
@@ -164,6 +166,35 @@ const resolvePaymentStatus = (
   financialBalanceAmountMinor >= totalAmountDue.amountMinor
     ? 'FULLY_PAID'
     : 'REGISTERED'
+
+const resolveRefundStatus = (
+  financialBalanceAmountMinor: number
+): CampParticipantStatus =>
+  financialBalanceAmountMinor === 0 ? 'REFUNDED' : 'RESIGNED'
+
+const assertCanApplyDiscount = (status: CampParticipantStatus): void => {
+  if (status === 'RESIGNED' || status === 'REFUNDED') {
+    throw new CampParticipantDiscountNotAllowedError(status)
+  }
+}
+
+const assertCanRegisterPayment = (status: CampParticipantStatus): void => {
+  if (status === 'RESIGNED' || status === 'REFUNDED') {
+    throw new CampParticipantPaymentNotAllowedError(status)
+  }
+}
+
+const assertCanRegisterRefund = (status: CampParticipantStatus): void => {
+  if (status !== 'RESIGNED') {
+    throw new CampParticipantRefundNotAllowedError(status)
+  }
+}
+
+const assertCanResign = (status: CampParticipantStatus): void => {
+  if (status === 'RESIGNED' || status === 'REFUNDED') {
+    throw new CampParticipantResignationNotAllowedError(status)
+  }
+}
 
 export class CampParticipant {
   public readonly id: string
@@ -242,6 +273,8 @@ export class CampParticipant {
   public applyDiscount(
     input: DiscountInput
   ): [CampParticipant, CampParticipantDiscountAppliedDomainEvent] {
+    assertCanApplyDiscount(this._status)
+
     const discount = createDiscount(input)
 
     assertMatchingCurrency(this._totalAmountDue, discount.amount)
@@ -285,6 +318,8 @@ export class CampParticipant {
   public registerPayment(
     input: PaymentInput
   ): [CampParticipant, CampParticipantPaymentRegisteredDomainEvent] {
+    assertCanRegisterPayment(this._status)
+
     const payment = createPayment(input)
 
     assertMatchingCurrency(this._totalAmountDue, payment.amount)
@@ -318,20 +353,30 @@ export class CampParticipant {
   public registerRefund(
     input: RefundInput
   ): [CampParticipant, CampParticipantRefundRegisteredDomainEvent] {
+    assertCanRegisterRefund(this._status)
+
     const refund = createRefund(input)
 
     assertMatchingCurrency(this._totalAmountDue, refund.amount)
 
+    const currentFinancialBalanceMinor = financialBalanceMinor(
+      this._financialTransactions
+    )
+
+    if (refund.amount.amountMinor > currentFinancialBalanceMinor) {
+      throw new CampParticipantRefundExceedsRefundableBalanceError()
+    }
+
     const financialTransactions = [...this._financialTransactions, refund]
+    const financialBalanceAmountMinor = financialBalanceMinor(
+      financialTransactions
+    )
 
     const updatedCampParticipant = new CampParticipant(
       {
         campId: this.campId,
         person: this.person,
-        status: resolvePaymentStatus(
-          this._totalAmountDue,
-          financialBalanceMinor(financialTransactions)
-        ),
+        status: resolveRefundStatus(financialBalanceAmountMinor),
         totalAmountDue: this._totalAmountDue,
         discounts: this._discounts,
         financialTransactions,
@@ -342,6 +387,53 @@ export class CampParticipant {
     )
 
     const event = new CampParticipantRefundRegisteredDomainEvent(
+      updatedCampParticipant.toSnapshot()
+    )
+
+    return [updatedCampParticipant, event]
+  }
+
+  public resign(
+    input?: NonRefundableDepositInput
+  ): [CampParticipant, CampParticipantResignedDomainEvent] {
+    assertCanResign(this._status)
+
+    const nonRefundableDeposit = input
+      ? createNonRefundableDeposit(input)
+      : undefined
+
+    if (nonRefundableDeposit) {
+      assertMatchingCurrency(this._totalAmountDue, nonRefundableDeposit.amount)
+
+      if (
+        nonRefundableDeposit.amount.amountMinor >
+        financialBalanceMinor(this._financialTransactions)
+      ) {
+        throw new CampParticipantNonRefundableDepositExceedsPaidBalanceError()
+      }
+    }
+
+    const financialTransactions = nonRefundableDeposit
+      ? [...this._financialTransactions, nonRefundableDeposit]
+      : this._financialTransactions
+
+    const updatedAt = nonRefundableDeposit?.createdAt ?? new Date()
+
+    const updatedCampParticipant = new CampParticipant(
+      {
+        campId: this.campId,
+        person: this.person,
+        status: 'RESIGNED',
+        totalAmountDue: this._totalAmountDue,
+        discounts: this._discounts,
+        financialTransactions,
+        updatedAt
+      },
+      this.id,
+      this.addedAt
+    )
+
+    const event = new CampParticipantResignedDomainEvent(
       updatedCampParticipant.toSnapshot()
     )
 
@@ -423,6 +515,14 @@ export class CampParticipantRefundRegisteredDomainEvent extends DomainEvent<Camp
   }
 }
 
+export class CampParticipantResignedDomainEvent extends DomainEvent<CampParticipantSnapshot> {
+  public readonly eventName = 'camp.participant.resigned'
+
+  public constructor(campParticipant: CampParticipantSnapshot) {
+    super(campParticipant)
+  }
+}
+
 export class InvalidCampParticipantCampIdError extends Error {
   public constructor(campId: string) {
     super(`Camp participant camp id is invalid: ${campId}`)
@@ -457,5 +557,47 @@ export class CampParticipantDiscountExceedsAmountDueError extends Error {
   public constructor() {
     super('Camp participant discount exceeds amount due')
     this.name = 'CampParticipantDiscountExceedsAmountDueError'
+  }
+}
+
+export class CampParticipantDiscountNotAllowedError extends Error {
+  public constructor(status: CampParticipantStatus) {
+    super(`Camp participant discount is not allowed for status: ${status}`)
+    this.name = 'CampParticipantDiscountNotAllowedError'
+  }
+}
+
+export class CampParticipantPaymentNotAllowedError extends Error {
+  public constructor(status: CampParticipantStatus) {
+    super(`Camp participant payment is not allowed for status: ${status}`)
+    this.name = 'CampParticipantPaymentNotAllowedError'
+  }
+}
+
+export class CampParticipantRefundNotAllowedError extends Error {
+  public constructor(status: CampParticipantStatus) {
+    super(`Camp participant refund is not allowed for status: ${status}`)
+    this.name = 'CampParticipantRefundNotAllowedError'
+  }
+}
+
+export class CampParticipantResignationNotAllowedError extends Error {
+  public constructor(status: CampParticipantStatus) {
+    super(`Camp participant resignation is not allowed for status: ${status}`)
+    this.name = 'CampParticipantResignationNotAllowedError'
+  }
+}
+
+export class CampParticipantRefundExceedsRefundableBalanceError extends Error {
+  public constructor() {
+    super('Camp participant refund exceeds refundable balance')
+    this.name = 'CampParticipantRefundExceedsRefundableBalanceError'
+  }
+}
+
+export class CampParticipantNonRefundableDepositExceedsPaidBalanceError extends Error {
+  public constructor() {
+    super('Camp participant non-refundable deposit exceeds paid balance')
+    this.name = 'CampParticipantNonRefundableDepositExceedsPaidBalanceError'
   }
 }

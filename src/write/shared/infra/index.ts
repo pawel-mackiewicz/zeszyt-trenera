@@ -76,7 +76,7 @@ export type PersistedCampParticipantDiscount = {
 }
 
 export type PersistedCampParticipantFinancialTransaction = {
-  type: 'payment' | 'refund'
+  type: 'payment' | 'refund' | 'non_refundable_deposit'
   id: string
   amount: MoneySnapshot
   note: string

@@ -1,7 +1,9 @@
 import { copyDate } from '@/write/shared/DateUtils'
 import { Money } from '@/write/shared/vo/Money'
 
-type FinancialTransactionFields<TType extends 'payment' | 'refund'> = {
+type FinancialTransactionFields<
+  TType extends 'payment' | 'refund' | 'non_refundable_deposit'
+> = {
   type: TType
   id: string
   amount: Money
@@ -37,13 +39,21 @@ export type RefundInput = NotedFinancialTransactionInputFields
 // todo not yet sure if we should allow for negative values in refunds
 export type Refund = FinancialTransactionFields<'refund'>
 
+export type NonRefundableDepositInput = NotedFinancialTransactionInputFields
+
+export type NonRefundableDeposit =
+  FinancialTransactionFields<'non_refundable_deposit'>
+
 export type Discount = DiscountFields
 
 export type DiscountInput = DiscountInputFields
 
-export type FinancialTransaction = Payment | Refund
+export type FinancialTransaction = Payment | Refund | NonRefundableDeposit
 
-export type FinancialTransactionInput = PaymentInput | RefundInput
+export type FinancialTransactionInput =
+  | PaymentInput
+  | RefundInput
+  | NonRefundableDepositInput
 
 const assertValidTransactionId = (transactionId: string): string => {
   const normalizedTransactionId = transactionId.trim()
@@ -91,6 +101,17 @@ export const createRefund = (
   createdAt: Date = new Date()
 ): Refund => ({
   type: 'refund',
+  id: assertValidTransactionId(input.id),
+  amount: assertPositiveAmount(input.amount),
+  note: trimOptionalText(input.note),
+  createdAt: copyDate(createdAt)
+})
+
+export const createNonRefundableDeposit = (
+  input: NonRefundableDepositInput,
+  createdAt: Date = new Date()
+): NonRefundableDeposit => ({
+  type: 'non_refundable_deposit',
   id: assertValidTransactionId(input.id),
   amount: assertPositiveAmount(input.amount),
   note: trimOptionalText(input.note),
