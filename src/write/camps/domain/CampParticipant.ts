@@ -50,6 +50,7 @@ export type RegisterCampParticipantInput = {
 }
 
 export type CampParticipantSnapshot = {
+  id: string
   campId: string
   person: CampParticipantPersonSnapshot
   status: CampParticipantStatus
@@ -165,6 +166,7 @@ const resolvePaymentStatus = (
     : 'REGISTERED'
 
 export class CampParticipant {
+  public readonly id: string
   public readonly campId: string
 
   private _person: CampParticipantPerson
@@ -177,8 +179,10 @@ export class CampParticipant {
 
   private constructor(
     input: CampParticipantStateInput,
+    id: string,
     addedAt: Date = new Date()
   ) {
+    this.id = id
     this.campId = input.campId
     this._person = copyPerson(input.person)
     this._status = input.status
@@ -192,7 +196,8 @@ export class CampParticipant {
   }
 
   public static register(
-    input: RegisterCampParticipantInput
+    input: RegisterCampParticipantInput,
+    id: string
   ): [CampParticipant, CampParticipantRegisteredDomainEvent] {
     const addedAt = new Date()
     const totalAmountDue = Money.create(input.totalAmountDue.toSnapshot())
@@ -206,6 +211,7 @@ export class CampParticipant {
         financialTransactions: [],
         updatedAt: addedAt
       },
+      id,
       addedAt
     )
     const event = new CampParticipantRegisteredDomainEvent(
@@ -228,6 +234,7 @@ export class CampParticipant {
         ),
         updatedAt: snapshot.updatedAt
       },
+      snapshot.id,
       snapshot.addedAt
     )
   }
@@ -264,6 +271,7 @@ export class CampParticipant {
         financialTransactions: this._financialTransactions,
         updatedAt: discount.createdAt
       },
+      this.id,
       this.addedAt
     )
 
@@ -296,6 +304,7 @@ export class CampParticipant {
         financialTransactions,
         updatedAt: payment.createdAt
       },
+      this.id,
       this.addedAt
     )
 
@@ -328,6 +337,7 @@ export class CampParticipant {
         financialTransactions,
         updatedAt: refund.createdAt
       },
+      this.id,
       this.addedAt
     )
 
@@ -340,6 +350,7 @@ export class CampParticipant {
 
   public toSnapshot(): CampParticipantSnapshot {
     return {
+      id: this.id,
       campId: this.campId,
       person: this.person,
       status: this.status,

@@ -21,11 +21,7 @@ export class RegisterCampParticipantUseCase implements UseCase<RegisterCampParti
   public async handle(dto: RegisterCampParticipantCommand): Promise<void> {
     await this.uow.execute(async () => {
       // eslint-disable-next-line prefer-const
-      let [participant, registeredEvent] = CampParticipant.register({
-        campId: dto.campId,
-        person: dto.person,
-        totalAmountDue: Money.create(dto.totalAmountDue)
-      })
+      let [participant, registeredEvent] = this.registerParticipant(dto)
       const events: DomainEvent[] = [registeredEvent]
 
       await this.ensureCampExists(participant.campId)
@@ -63,6 +59,18 @@ export class RegisterCampParticipantUseCase implements UseCase<RegisterCampParti
         await this.eventRepo.save(event)
       }
     })
+  }
+
+  private registerParticipant(dto: RegisterCampParticipantCommand) {
+    // Keep command conversion and ID allocation in the application layer.
+    return CampParticipant.register(
+      {
+        campId: dto.campId,
+        person: dto.person,
+        totalAmountDue: Money.create(dto.totalAmountDue)
+      },
+      this.idGenerator.generate()
+    )
   }
 
   private async ensureCampExists(campId: string): Promise<void> {

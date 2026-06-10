@@ -25,31 +25,38 @@ const money = (amountMinor: number, currency = 'PLN') =>
   })
 
 const registerClubParticipant = () =>
-  CampParticipant.register({
-    campId: 'camp-1',
-    person: {
-      type: 'club',
-      memberId: 'member-1'
+  CampParticipant.register(
+    {
+      campId: 'camp-1',
+      person: {
+        type: 'club',
+        memberId: 'member-1'
+      },
+      totalAmountDue: money(1200_00)
     },
-    totalAmountDue: money(1200_00)
-  })
+    'participant-1'
+  )
 
 describe('CampParticipant', () => {
   it('registers a club participant with required properties and emits an event', () => {
     const totalAmountDue = money(1200_00)
     const beforeRegistration = new Date()
 
-    const [participant, event] = CampParticipant.register({
-      campId: '  camp-1  ',
-      person: {
-        type: 'club',
-        memberId: '  member-1  '
+    const [participant, event] = CampParticipant.register(
+      {
+        campId: '  camp-1  ',
+        person: {
+          type: 'club',
+          memberId: '  member-1  '
+        },
+        totalAmountDue
       },
-      totalAmountDue
-    })
+      'participant-1'
+    )
 
     const afterRegistration = new Date()
 
+    expect(participant.id).toBe('participant-1')
     expect(participant.campId).toBe('camp-1')
     expect(participant.person).toEqual({
       type: 'club',
@@ -75,15 +82,18 @@ describe('CampParticipant', () => {
   })
 
   it('registers an external participant and standardizes their name', () => {
-    const [participant] = CampParticipant.register({
-      campId: 'camp-1',
-      person: {
-        type: 'external',
-        firstName: '  Anna  ',
-        lastName: '  Kowalska-Nowak  '
+    const [participant] = CampParticipant.register(
+      {
+        campId: 'camp-1',
+        person: {
+          type: 'external',
+          firstName: '  Anna  ',
+          lastName: '  Kowalska-Nowak  '
+        },
+        totalAmountDue: money(1200_00)
       },
-      totalAmountDue: money(1200_00)
-    })
+      'participant-1'
+    )
 
     expect(participant.person).toEqual({
       type: 'external',
@@ -235,11 +245,14 @@ describe('CampParticipant', () => {
       firstName: 'Anna',
       lastName: 'Kowalska'
     }
-    const [participant] = CampParticipant.register({
-      campId: 'camp-1',
-      person,
-      totalAmountDue: money(1200_00)
-    })
+    const [participant] = CampParticipant.register(
+      {
+        campId: 'camp-1',
+        person,
+        totalAmountDue: money(1200_00)
+      },
+      'participant-1'
+    )
     const [discountedParticipant] = participant.applyDiscount({
       id: 'discount-1',
       amount: money(200_00)
@@ -294,6 +307,7 @@ describe('CampParticipant', () => {
     const paymentCreatedAt = new Date('2026-03-01T12:00:00Z')
     const refundCreatedAt = new Date('2026-03-01T13:00:00Z')
     const participant = CampParticipant.rehydrate({
+      id: 'participant-1',
       campId: 'camp-1',
       person: {
         type: 'club',
@@ -336,6 +350,7 @@ describe('CampParticipant', () => {
     refundCreatedAt.setUTCFullYear(2044)
 
     expect(participant.toSnapshot()).toEqual({
+      id: 'participant-1',
       campId: 'camp-1',
       person: {
         type: 'club',
@@ -374,49 +389,61 @@ describe('CampParticipant', () => {
 
   it('rejects invalid participant identity', () => {
     expect(() =>
-      CampParticipant.register({
-        campId: '  ',
-        person: {
-          type: 'club',
-          memberId: 'member-1'
+      CampParticipant.register(
+        {
+          campId: '  ',
+          person: {
+            type: 'club',
+            memberId: 'member-1'
+          },
+          totalAmountDue: money(1200_00)
         },
-        totalAmountDue: money(1200_00)
-      })
+        'participant-1'
+      )
     ).toThrow(InvalidCampParticipantCampIdError)
 
     expect(() =>
-      CampParticipant.register({
-        campId: 'camp-1',
-        person: {
-          type: 'club',
-          memberId: '  '
+      CampParticipant.register(
+        {
+          campId: 'camp-1',
+          person: {
+            type: 'club',
+            memberId: '  '
+          },
+          totalAmountDue: money(1200_00)
         },
-        totalAmountDue: money(1200_00)
-      })
+        'participant-1'
+      )
     ).toThrow(InvalidCampParticipantMemberIdError)
 
     expect(() =>
-      CampParticipant.register({
-        campId: 'camp-1',
-        person: {
-          type: 'external',
-          firstName: 'Anna',
-          lastName: ''
+      CampParticipant.register(
+        {
+          campId: 'camp-1',
+          person: {
+            type: 'external',
+            firstName: 'Anna',
+            lastName: ''
+          },
+          totalAmountDue: money(1200_00)
         },
-        totalAmountDue: money(1200_00)
-      })
+        'participant-1'
+      )
     ).toThrow(InvalidExternalCampParticipantNameError)
 
     expect(() =>
-      CampParticipant.register({
-        campId: 'camp-1',
-        person: {
-          type: 'external',
-          firstName: 'Anna!',
-          lastName: 'Kowalska'
+      CampParticipant.register(
+        {
+          campId: 'camp-1',
+          person: {
+            type: 'external',
+            firstName: 'Anna!',
+            lastName: 'Kowalska'
+          },
+          totalAmountDue: money(1200_00)
         },
-        totalAmountDue: money(1200_00)
-      })
+        'participant-1'
+      )
     ).toThrow(InvalidExternalCampParticipantNameError)
   })
 

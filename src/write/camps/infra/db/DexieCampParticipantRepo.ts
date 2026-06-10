@@ -1,15 +1,22 @@
 import type { TrainerNotebookDb } from '@/db'
-import {
-  createCampParticipantIdentityKey,
-  createCampParticipantPersonKey,
-  type CampParticipantRepoPort
-} from '@/write/camps/application/ports/CampParticipantRepoPort'
+import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { CampParticipant } from '@/write/camps/domain/CampParticipant'
+import type { CampParticipantPerson } from '@/write/camps/domain/CampParticipant'
 import type {
   PersistedCampParticipant,
   PersistedCampParticipantDiscount,
   PersistedCampParticipantFinancialTransaction
 } from '@/write/shared/infra'
+
+const createCampParticipantPersonKey = (
+  person: CampParticipantPerson
+): string => {
+  if (person.type === 'club') {
+    return JSON.stringify(['club', person.memberId])
+  }
+
+  return JSON.stringify(['external', person.firstName, person.lastName])
+}
 
 export class DexieCampParticipantRepo implements CampParticipantRepoPort {
   public constructor(private readonly database: TrainerNotebookDb) {}
@@ -38,7 +45,7 @@ export class DexieCampParticipantRepo implements CampParticipantRepoPort {
     const snapshot = participant.toSnapshot()
 
     return {
-      id: createCampParticipantIdentityKey(snapshot.campId, snapshot.person),
+      id: snapshot.id,
       campId: snapshot.campId,
       personKey: createCampParticipantPersonKey(snapshot.person),
       person: snapshot.person,

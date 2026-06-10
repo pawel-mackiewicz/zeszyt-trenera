@@ -22,18 +22,21 @@ describe('DexieCampParticipantRepo', () => {
   it('saves a participant and finds it by camp and normalized person identity', async () => {
     database = new TrainerNotebookDb(createTestDbName('camp-participants'))
     const repo = new DexieCampParticipantRepo(database)
-    const [participant] = CampParticipant.register({
-      campId: ' camp-1 ',
-      person: {
-        type: 'external',
-        firstName: ' jane ',
-        lastName: ' doe '
+    const [participant] = CampParticipant.register(
+      {
+        campId: ' camp-1 ',
+        person: {
+          type: 'external',
+          firstName: ' jane ',
+          lastName: ' doe '
+        },
+        totalAmountDue: Money.create({
+          amountMinor: 100000,
+          currency: 'PLN'
+        })
       },
-      totalAmountDue: Money.create({
-        amountMinor: 100000,
-        currency: 'PLN'
-      })
-    })
+      'participant-1'
+    )
 
     expect(
       await repo.existsByCampIdAndPerson('camp-1', participant.person)
@@ -47,6 +50,7 @@ describe('DexieCampParticipantRepo', () => {
     const persistedRows = await database.campParticipants.toArray()
     expect(persistedRows).toHaveLength(1)
     expect(persistedRows[0]).toMatchObject({
+      id: 'participant-1',
       campId: 'camp-1',
       person: {
         type: 'external',

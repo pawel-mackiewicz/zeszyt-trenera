@@ -11,28 +11,59 @@ export interface CampParticipantRepoPort {
   ): Promise<boolean>
 }
 
-export const createCampParticipantPersonKey = (
-  person: CampParticipantPerson
-): string => {
-  if (person.type === 'club') {
-    return JSON.stringify(['club', person.memberId])
+const areSameParticipantPerson = (
+  left: CampParticipantPerson,
+  right: CampParticipantPerson
+): boolean => {
+  if (left.type !== right.type) {
+    return false
   }
 
-  return JSON.stringify(['external', person.firstName, person.lastName])
+  if (left.type === 'club' && right.type === 'club') {
+    return left.memberId === right.memberId
+  }
+
+  if (left.type === 'external' && right.type === 'external') {
+    return (
+      left.firstName === right.firstName && left.lastName === right.lastName
+    )
+  }
+
+  return false
 }
 
-export const createCampParticipantIdentityKey = (
+const isExistingParticipant = (
   campId: string,
-  person: CampParticipantPerson
-): string => JSON.stringify([campId, createCampParticipantPersonKey(person)])
+  person: CampParticipantPerson,
+  participant: {
+    campId: string
+    person: CampParticipantPerson
+  }
+): boolean =>
+  campId === participant.campId &&
+  areSameParticipantPerson(person, participant.person)
 
 export class FakeCampParticipantRepo implements CampParticipantRepoPort {
   public readonly savedParticipants: CampParticipant[] = []
-  public readonly existingKeys = new Set<string>()
   public readonly existsChecks: Array<{
     campId: string
     person: CampParticipantPerson
   }> = []
+
+  private readonly existingParticipants: Array<{
+    campId: string
+    person: CampParticipantPerson
+  }> = []
+
+  public addExistingParticipant(
+    campId: string,
+    person: CampParticipantPerson
+  ): void {
+    this.existingParticipants.push({
+      campId,
+      person
+    })
+  }
 
   async save(participant: CampParticipant): Promise<void> {
     this.savedParticipants.push(participant)
@@ -47,16 +78,12 @@ export class FakeCampParticipantRepo implements CampParticipantRepoPort {
       person
     })
 
-    const identityKey = createCampParticipantIdentityKey(campId, person)
-
     return (
-      this.existingKeys.has(identityKey) ||
-      this.savedParticipants.some(
-        (participant) =>
-          createCampParticipantIdentityKey(
-            participant.campId,
-            participant.person
-          ) === identityKey
+      this.existingParticipants.some((participant) =>
+        isExistingParticipant(campId, person, participant)
+      ) ||
+      this.savedParticipants.some((participant) =>
+        isExistingParticipant(campId, person, participant)
       )
     )
   }

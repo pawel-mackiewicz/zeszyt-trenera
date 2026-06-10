@@ -1,10 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { FakeCampRepo } from '@/write/camps/application/ports/CampRepoPort'
-import {
-  createCampParticipantIdentityKey,
-  FakeCampParticipantRepo
-} from '@/write/camps/application/ports/CampParticipantRepoPort'
+import { FakeCampParticipantRepo } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { RegisterCampParticipantCommand } from '@/write/camps/application/requests/RegisterCampParticipantCommand'
 import {
   CampNotFoundForParticipantRegistrationError,
@@ -94,6 +91,7 @@ describe('RegisterCampParticipantUseCase', () => {
     ])
     expect(campParticipantRepo.savedParticipants).toHaveLength(1)
     const savedParticipant = campParticipantRepo.savedParticipants[0]
+    expect(savedParticipant.id).toBe('generated-id-1')
     expect(savedParticipant.campId).toBe('camp-1')
     expect(savedParticipant.person).toEqual({
       type: 'external',
@@ -105,6 +103,8 @@ describe('RegisterCampParticipantUseCase', () => {
       currency: 'PLN'
     })
     expect(savedParticipant.status).toBe('REGISTERED')
+
+    expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
 
     expect(eventRepo.savedEvents).toHaveLength(1)
     const savedEvent = eventRepo.savedEvents[0]
@@ -151,7 +151,7 @@ describe('RegisterCampParticipantUseCase', () => {
     })
     expect(savedParticipant.discounts).toMatchObject([
       {
-        id: 'generated-id-1',
+        id: 'generated-id-2',
         reason: 'Sibling'
       }
     ])
@@ -162,7 +162,7 @@ describe('RegisterCampParticipantUseCase', () => {
     expect(savedParticipant.financialTransactions).toMatchObject([
       {
         type: 'payment',
-        id: 'generated-id-2',
+        id: 'generated-id-3',
         note: 'Cash'
       }
     ])
@@ -179,7 +179,8 @@ describe('RegisterCampParticipantUseCase', () => {
     ])
     expect(idGenerator.generatedIds).toEqual([
       'generated-id-1',
-      'generated-id-2'
+      'generated-id-2',
+      'generated-id-3'
     ])
   })
 
@@ -201,16 +202,14 @@ describe('RegisterCampParticipantUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
-    expect(idGenerator.generatedIds).toHaveLength(0)
+    expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
   })
 
   it('rejects a duplicate participant in the same camp without saving', async () => {
-    campParticipantRepo.existingKeys.add(
-      createCampParticipantIdentityKey('camp-1', {
-        type: 'club',
-        memberId: 'member-1'
-      })
-    )
+    campParticipantRepo.addExistingParticipant('camp-1', {
+      type: 'club',
+      memberId: 'member-1'
+    })
 
     await expect(
       useCase.handle({
@@ -228,7 +227,7 @@ describe('RegisterCampParticipantUseCase', () => {
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
     expect(eventRepo.savedEvents).toHaveLength(0)
-    expect(idGenerator.generatedIds).toHaveLength(0)
+    expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
   })
 
   it('propagates invalid participant input without saving', async () => {
