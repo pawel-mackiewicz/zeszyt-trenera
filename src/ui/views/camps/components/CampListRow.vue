@@ -36,7 +36,11 @@ const iconName = computed(() =>
     </div>
     <div class="camp-list-row__meta">
       <span class="camp-list-row__range">{{ dateRange }}</span>
-      <AppIcon class="camp-list-row__icon" :name="iconName" />
+      <AppIcon
+        class="camp-list-row__icon"
+        :name="iconName"
+        aria-hidden="true"
+      />
     </div>
   </li>
 </template>
