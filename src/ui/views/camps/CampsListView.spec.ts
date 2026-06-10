@@ -124,6 +124,7 @@ describe('CampsListView', () => {
     expect(wrapper.get('a[to="/camps/new"]').attributes('aria-label')).toBe(
       'Dodaj obóz'
     )
+    expect(wrapper.get('a[to="/camps/new"]').text()).toBe('Dodaj obóz')
   })
 
   it('shows a recoverable error state with retry', async () => {

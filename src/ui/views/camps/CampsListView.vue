@@ -2,7 +2,6 @@
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
-import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import CampListSection from '@/ui/views/camps/components/CampListSection.vue'
 import { useCampList } from '@/ui/views/camps/useCampList'
@@ -86,12 +85,11 @@ const { clearError, isLoading, loadError, past, present, reload } =
     <div class="camps-list-view__action app-floating-action">
       <AppButton
         as="router-link"
-        icon-only
         to="/camps/new"
         :aria-label="t('actions.addCamp')"
         :title="t('actions.addCamp')"
       >
-        <AppIcon name="add" />
+        {{ t('actions.addCamp') }}
       </AppButton>
     </div>
   </div>

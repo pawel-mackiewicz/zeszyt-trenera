@@ -116,13 +116,13 @@ const submitError = computed(() =>
     />
 
     <form class="camp-new-view__form" @submit.prevent="submit">
-      <div class="camp-new-view__ledger-label">
+      <div class="app-section-label camp-new-view__ledger-label">
         {{ t('sections.details') }}
       </div>
 
       <div class="camp-new-view__body">
         <div class="camp-new-view__field">
-          <label class="camp-new-view__label" for="campName">
+          <label class="app-section-label camp-new-view__label" for="campName">
             <Tag class="camp-new-view__label-icon" aria-hidden="true" />
             {{ t('fields.name.label') }}
             <span class="camp-new-view__required" aria-hidden="true">*</span>
@@ -140,7 +140,10 @@ const submitError = computed(() =>
 
         <div class="camp-new-view__grid">
           <div class="camp-new-view__field">
-            <label class="camp-new-view__label" for="campStartDate">
+            <label
+              class="app-section-label camp-new-view__label"
+              for="campStartDate"
+            >
               <CalendarDays
                 class="camp-new-view__label-icon"
                 aria-hidden="true"
@@ -157,7 +160,10 @@ const submitError = computed(() =>
             />
           </div>
           <div class="camp-new-view__field">
-            <label class="camp-new-view__label" for="campFinishDate">
+            <label
+              class="app-section-label camp-new-view__label"
+              for="campFinishDate"
+            >
               <CalendarDays
                 class="camp-new-view__label-icon"
                 aria-hidden="true"
@@ -176,7 +182,7 @@ const submitError = computed(() =>
         </div>
 
         <div class="camp-new-view__field">
-          <label class="camp-new-view__label" for="campPrice">
+          <label class="app-section-label camp-new-view__label" for="campPrice">
             <Banknote class="camp-new-view__label-icon" aria-hidden="true" />
             {{ t('fields.price.label') }}
             <span class="camp-new-view__currency">PLN</span>
@@ -194,7 +200,7 @@ const submitError = computed(() =>
         </div>
 
         <div class="camp-new-view__field">
-          <label class="camp-new-view__label" for="campNote">
+          <label class="app-section-label camp-new-view__label" for="campNote">
             <NotebookPen class="camp-new-view__label-icon" aria-hidden="true" />
             {{ t('fields.note.label') }}
           </label>
@@ -232,21 +238,6 @@ const submitError = computed(() =>
   margin: 0 auto;
 }
 
-.camp-new-view__ledger-label,
-.camp-new-view__label {
-  font-family: var(--font-mono);
-  font-weight: 700;
-  text-transform: uppercase;
-}
-
-.camp-new-view__ledger-label {
-  margin: 0 0 0.65rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.24em;
-  line-height: 1.2;
-  color: var(--color-secondary);
-}
-
 .camp-new-view__form {
   border: 1px solid var(--color-on-surface);
   background: var(--color-surface);
@@ -259,6 +250,7 @@ const submitError = computed(() =>
   border-block-end: 1px solid var(--color-on-surface);
   background: var(--color-on-surface);
   color: var(--color-on-primary);
+  font-size: 0.875rem;
 }
 
 .camp-new-view__body {
@@ -281,9 +273,7 @@ const submitError = computed(() =>
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.68rem;
-  letter-spacing: 0.16em;
-  line-height: 1.3;
+  font-size: 0.78125rem;
   color: var(--color-on-surface);
 }
 
