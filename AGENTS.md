@@ -1,6 +1,6 @@
 - after each task, tell me what have you done and why.
 - this app is pwa, local-first, mobile-first
-- after each plan completion change app version (e.g. 0.1.5 -> 0.1.6)
+- after each plan completion change app version (e.g. 0.1.5 -> 0.1.6) (./package.json)
 - all write operations must go through application layer
 - dont check more than 10 files, ask if you need more information
 - if you work on the UI, then keep Vue best practices as:
