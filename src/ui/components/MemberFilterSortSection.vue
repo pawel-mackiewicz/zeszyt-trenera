@@ -103,12 +103,12 @@ const memberSortDirectionModel = computed({
   display: grid;
   gap: 1rem;
   border-bottom: 2px solid var(--color-on-surface);
-  padding-bottom: 1rem;
+  padding-bottom: 0.5rem;
 }
 
 .member-filter-sort-section__secondary {
   border-bottom: 2px solid var(--color-on-surface);
-  padding-top: 1rem;
+  padding-top: 0.5rem;
   padding-bottom: 1.5rem;
 }
 </style>

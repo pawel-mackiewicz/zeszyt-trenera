@@ -90,7 +90,6 @@ function toggleSortDirection() {
   align-items: end;
   justify-content: space-between;
   gap: 0.75rem;
-  margin-top: 1.5rem;
 }
 
 .members-sort-tool__copy {
@@ -101,12 +100,14 @@ function toggleSortDirection() {
 }
 
 .members-sort-tool__caption {
-  font-family: var(--font-label);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
+  display: block;
+  font-family: var(--app-section-label-font-family);
+  font-size: var(--app-section-label-font-size);
+  font-weight: var(--app-section-label-font-weight);
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
 }
 
 .members-sort-tool__row {
@@ -117,10 +118,13 @@ function toggleSortDirection() {
 }
 
 .members-sort-tool__prefix {
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-family: var(--app-section-label-font-family);
+  font-size: var(--app-section-label-font-size);
+  font-weight: var(--app-section-label-font-weight);
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
 }
 
 .members-sort-tool__field-select {

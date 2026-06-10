@@ -96,12 +96,13 @@ input[type='range'] {
 
 .age-range-filter__label {
   display: block;
-  font-family: var(--font-mono);
-  font-size: 0.875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--color-secondary);
+  font-family: var(--app-section-label-font-family);
+  font-size: var(--app-section-label-font-size);
+  font-weight: var(--app-section-label-font-weight);
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
 }
 
 .age-range-filter__value {
@@ -119,10 +120,13 @@ input[type='range'] {
 }
 
 .age-range-filter__bound {
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--color-secondary);
+  font-family: var(--app-section-label-font-family);
+  font-size: var(--app-section-label-font-size);
+  font-weight: var(--app-section-label-font-weight);
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
 }
 
 .age-range-filter__slider {

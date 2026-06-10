@@ -58,6 +58,13 @@
   --speed-fast: 180ms;
   --speed-base: 320ms;
   --ease-standard: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --app-section-label-font-family: var(--font-mono);
+  --app-section-label-font-size: 0.75rem;
+  --app-section-label-font-weight: 700;
+  --app-section-label-line-height: 1.2;
+  --app-section-label-letter-spacing: 0.08em;
+  --app-section-label-text-transform: uppercase;
+  --app-section-label-color: var(--color-secondary);
 }
 
 *,
