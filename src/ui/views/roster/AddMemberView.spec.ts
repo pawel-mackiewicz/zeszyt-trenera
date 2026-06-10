@@ -227,14 +227,7 @@ describe('AddMemberView', () => {
     ).toStrictEqual(['First name *', 'Last name *', 'Date of birth *'])
     expect(requiredMarkers).toHaveLength(3)
     expect(requiredMarkers[0]?.classes()).toEqual(
-      expect.arrayContaining([
-        'ml-1',
-        'inline-block',
-        'text-sm',
-        'leading-none',
-        'font-black',
-        'text-danger'
-      ])
+      expect.arrayContaining(['add-member-view__required'])
     )
 
     expect(wrapper.get('input[id="firstName"]').attributes('required')).toBe('')
