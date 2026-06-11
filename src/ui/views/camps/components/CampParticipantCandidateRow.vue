@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import type { CampParticipantCandidateViewItem } from '@/ui/views/camps/useCampParticipantCandidates'
 
-defineProps<{
+const props = defineProps<{
   addLabel: string
   formatAge: (age: number) => string
   member: CampParticipantCandidateViewItem
   signedButtonLabel: string
   signedLabel: string
 }>()
+
+const emit = defineEmits<{
+  select: [member: CampParticipantCandidateViewItem]
+}>()
+
+function selectMember() {
+  if (!props.member.alreadySigned) {
+    emit('select', props.member)
+  }
+}
 </script>
 
 <template>
@@ -18,6 +27,12 @@ defineProps<{
     :class="{
       'camp-participant-candidate-row--signed': member.alreadySigned
     }"
+    :aria-disabled="member.alreadySigned"
+    :tabindex="member.alreadySigned ? -1 : 0"
+    role="button"
+    @click="selectMember"
+    @keydown.enter.prevent="selectMember"
+    @keydown.space.prevent="selectMember"
   >
     <span class="block min-w-0">
       <span
@@ -38,19 +53,21 @@ defineProps<{
       </span>
     </span>
 
-    <span class="flex items-center justify-end">
-      <AppButton
-        disabled
-        icon-only
-        size="compact"
+    <span class="flex items-center justify-end" @click.stop>
+      <button
+        class="camp-participant-candidate-row__status"
+        :class="{
+          'camp-participant-candidate-row__status--signed': member.alreadySigned
+        }"
+        :disabled="member.alreadySigned"
         type="button"
         :aria-label="member.alreadySigned ? signedButtonLabel : addLabel"
         :title="member.alreadySigned ? signedButtonLabel : addLabel"
-        :variant="member.alreadySigned ? 'secondary' : 'primary'"
+        @click.stop="selectMember"
       >
         <AppIcon v-if="member.alreadySigned" name="check_circle" />
         <AppIcon v-else name="add" />
-      </AppButton>
+      </button>
     </span>
   </li>
 </template>
@@ -58,6 +75,7 @@ defineProps<{
 <style scoped>
 .camp-participant-candidate-row {
   background: color-mix(in srgb, var(--color-surface) 78%, white);
+  cursor: pointer;
 }
 
 .camp-participant-candidate-row:hover {
@@ -66,6 +84,7 @@ defineProps<{
 
 .camp-participant-candidate-row--signed {
   color: var(--color-secondary);
+  cursor: default;
   background: var(--color-surface-container-low);
 }
 
@@ -79,5 +98,36 @@ defineProps<{
   line-height: 1.2;
   text-transform: uppercase;
   color: var(--color-primary);
+}
+
+.camp-participant-candidate-row__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgba(16, 59, 55, 0.18);
+  color: var(--color-primary);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.camp-participant-candidate-row__status:not(:disabled) {
+  cursor: pointer;
+}
+
+.camp-participant-candidate-row__status:not(:disabled):hover {
+  background: var(--color-surface-container-low);
+}
+
+.camp-participant-candidate-row__status:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 3px;
+}
+
+.camp-participant-candidate-row__status--signed {
+  border-color: rgba(16, 59, 55, 0.18);
+  color: var(--color-secondary);
+  background: rgba(255, 255, 255, 0.7);
+  opacity: 1;
 }
 </style>

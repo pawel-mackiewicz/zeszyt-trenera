@@ -4,9 +4,12 @@ import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
-import { useRoute } from '@/ui/router/runtime'
+import { useRoute, useRouter } from '@/ui/router/runtime'
 import CampParticipantCandidateRow from './components/CampParticipantCandidateRow.vue'
-import { useCampParticipantCandidates } from './useCampParticipantCandidates'
+import {
+  useCampParticipantCandidates,
+  type CampParticipantCandidateViewItem
+} from './useCampParticipantCandidates'
 
 const messages = {
   pl: {
@@ -64,6 +67,7 @@ const messages = {
 } as const
 
 const route = useRoute()
+const router = useRouter()
 const { t, locale } = useI18n({
   useScope: 'local',
   messages
@@ -95,6 +99,16 @@ const emptyState = computed(() =>
 
 function formatAge(age: number): string {
   return t('table.age', { age })
+}
+
+function selectMember(member: CampParticipantCandidateViewItem) {
+  if (member.alreadySigned) {
+    return
+  }
+
+  void router.push(
+    `/camps/${encodeURIComponent(campId.value)}/participants/new/club/${encodeURIComponent(member.id)}`
+  )
 }
 </script>
 
@@ -160,6 +174,7 @@ function formatAge(age: number): string {
             :member="member"
             :signed-button-label="t('actions.signedButton')"
             :signed-label="t('table.signed')"
+            @select="selectMember"
           />
         </ul>
       </section>

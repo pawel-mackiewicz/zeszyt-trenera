@@ -15,6 +15,7 @@ type MockRoute = {
   name: string
   path: string
   fullPath: string
+  params: Record<string, string | string[]>
 }
 
 vi.mock('@/ui/router/runtime', () => ({
@@ -32,7 +33,8 @@ describe('Header', () => {
       meta: {},
       name: 'members-list',
       path: '/members',
-      fullPath: '/members'
+      fullPath: '/members',
+      params: {}
     }) as MockRoute
     mockRouterPush = vi.fn()
     mockRouterBack = vi.fn()
@@ -106,6 +108,25 @@ describe('Header', () => {
     await wrapper.get('[data-testid="shell-back-button"]').trigger('click')
 
     expect(mockRouterPush).toHaveBeenCalledWith('/members')
+    expect(mockRouterBack).not.toHaveBeenCalled()
+  })
+
+  it('fills route params in the explicit back target before routing', async () => {
+    mockRoute.meta = {
+      showBack: true,
+      backTo: '/camps/:campId/participants/new'
+    }
+    mockRoute.params = {
+      campId: 'camp winter 2026'
+    }
+
+    const { wrapper } = mountHeader()
+
+    await wrapper.get('[data-testid="shell-back-button"]').trigger('click')
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      '/camps/camp%20winter%202026/participants/new'
+    )
     expect(mockRouterBack).not.toHaveBeenCalled()
   })
 

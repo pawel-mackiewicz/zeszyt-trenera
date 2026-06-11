@@ -33,6 +33,9 @@ describe('uiAppServices', () => {
         getCampDetails: {
           handle
         },
+        getClubCampParticipantRegistrationContext: {
+          handle
+        },
         listAttendanceSessionsByMonth: {
           handle
         },

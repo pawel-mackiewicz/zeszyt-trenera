@@ -11,7 +11,7 @@ import {
 
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
-import { useRoute } from '@/ui/router/runtime'
+import { useRoute, useRouter } from '@/ui/router/runtime'
 import CampParticipantListView from '@/ui/views/camps/CampParticipantListView.vue'
 
 vi.mock('@/ui/appServices', () => ({
@@ -19,20 +19,26 @@ vi.mock('@/ui/appServices', () => ({
 }))
 
 vi.mock('@/ui/router/runtime', () => ({
-  useRoute: vi.fn()
+  useRoute: vi.fn(),
+  useRouter: vi.fn()
 }))
 
 describe('CampParticipantListView', () => {
   let mockListCandidatesHandle: Mock
   let mockRegisterCampParticipantHandle: Mock
+  let mockRouterPush: Mock
 
   beforeEach(() => {
     mockListCandidatesHandle = vi.fn().mockResolvedValue(createCandidates())
     mockRegisterCampParticipantHandle = vi.fn()
+    mockRouterPush = vi.fn()
     vi.useFakeTimers({ toFake: ['Date'] })
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
+        getClubCampParticipantRegistrationContext: {
+          handle: vi.fn()
+        },
         listCampParticipantCandidates: {
           handle: mockListCandidatesHandle
         }
@@ -48,6 +54,9 @@ describe('CampParticipantListView', () => {
         campId: 'camp-winter-2026'
       }
     } as unknown as ReturnType<typeof useRoute>)
+    vi.mocked(useRouter).mockReturnValue({
+      push: mockRouterPush
+    } as unknown as ReturnType<typeof useRouter>)
   })
 
   afterEach(() => {
@@ -99,7 +108,27 @@ describe('CampParticipantListView', () => {
     expect(wrapper.text()).not.toContain('Royce Gracie')
   })
 
-  it('does not register camp participants from the display-only list', async () => {
+  it('routes a coach to the club registration flow after tapping an unsigned member row', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.findAll('li')[0].trigger('click')
+
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      '/camps/camp-winter-2026/participants/new/club/member-amanda'
+    )
+  })
+
+  it('does not route a coach from an already signed member row', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.findAll('li')[2].trigger('click')
+
+    expect(mockRouterPush).not.toHaveBeenCalled()
+  })
+
+  it('routes a coach from the enabled add button without directly registering the participant', async () => {
     const wrapper = mountView()
     await flushPromises()
 
@@ -109,6 +138,9 @@ describe('CampParticipantListView', () => {
       .trigger('click')
 
     expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      '/camps/camp-winter-2026/participants/new/club/member-amanda'
+    )
   })
 })
 

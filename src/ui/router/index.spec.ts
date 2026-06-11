@@ -52,6 +52,9 @@ describe('router', () => {
     const addCampParticipantRoute = routes.find(
       (route) => route.name === 'add-camp-participant'
     )
+    const addClubCampParticipantRoute = routes.find(
+      (route) => route.name === 'add-club-camp-participant'
+    )
     const addCampRoute = routes.find((route) => route.name === 'add-camp')
 
     expect(clubSetupRoute).toMatchObject({
@@ -119,7 +122,15 @@ describe('router', () => {
       meta: {
         showBack: true,
         hideBottomNav: true,
-        backTo: '/camps'
+        backTo: '/camps/:campId'
+      }
+    })
+    expect(addClubCampParticipantRoute).toMatchObject({
+      path: '/camps/:campId/participants/new/club/:memberId',
+      meta: {
+        showBack: true,
+        hideBottomNav: true,
+        backTo: '/camps/:campId/participants/new'
       }
     })
     expect(addCampRoute).toMatchObject({

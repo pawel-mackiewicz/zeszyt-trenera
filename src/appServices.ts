@@ -81,6 +81,11 @@ import {
   type GetCampDetailsQueryInput
 } from '@/read/GetCampDetailsQuery'
 import {
+  GetClubCampParticipantRegistrationContextQuery,
+  type ClubCampParticipantRegistrationContext,
+  type GetClubCampParticipantRegistrationContextQueryInput
+} from '@/read/GetClubCampParticipantRegistrationContextQuery'
+import {
   ListCampParticipantCandidatesQuery,
   type CampParticipantCandidateListItem,
   type ListCampParticipantCandidatesQueryInput
@@ -161,6 +166,11 @@ export type AppQueries = {
   }
   readonly getCampDetails: {
     handle(input: GetCampDetailsQueryInput): Promise<CampDetails | null>
+  }
+  readonly getClubCampParticipantRegistrationContext: {
+    handle(
+      input: GetClubCampParticipantRegistrationContextQueryInput
+    ): Promise<ClubCampParticipantRegistrationContext | null>
   }
   readonly listAttendanceSessionsByMonth: {
     handle(
@@ -372,6 +382,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new GetAttendanceSessionByIdQuery(database)
   )
   const resolveGetCampDetails = lazy(() => new GetCampDetailsQuery(database))
+  const resolveGetClubCampParticipantRegistrationContext = lazy(
+    () => new GetClubCampParticipantRegistrationContextQuery(database)
+  )
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
   )
@@ -549,6 +562,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get getCampDetails() {
       return resolveGetCampDetails()
+    },
+    get getClubCampParticipantRegistrationContext() {
+      return resolveGetClubCampParticipantRegistrationContext()
     },
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()

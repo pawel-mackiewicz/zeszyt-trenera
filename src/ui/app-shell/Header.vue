@@ -39,12 +39,35 @@ const showBack = computed(() => Boolean(route.meta.showBack))
 const showOfflineBadge = computed(() => !isOnline.value)
 
 function handleBack() {
-  if (route.meta.backTo) {
-    router.push(route.meta.backTo as string)
+  const backTo =
+    typeof route.meta.backTo === 'string'
+      ? resolveBackTarget(route.meta.backTo)
+      : null
+
+  if (backTo) {
+    router.push(backTo)
     return
   }
 
   router.back()
+}
+
+function resolveBackTarget(backTo: string): string | null {
+  let hasMissingParam = false
+
+  const resolvedBackTo = backTo.replace(/:([A-Za-z0-9_]+)/g, (_, key) => {
+    const param = route.params[key]
+    const value = Array.isArray(param) ? param[0] : param
+
+    if (!value) {
+      hasMissingParam = true
+      return ''
+    }
+
+    return encodeURIComponent(String(value))
+  })
+
+  return hasMissingParam ? null : resolvedBackTo
 }
 
 function handleToggleSidebar() {
