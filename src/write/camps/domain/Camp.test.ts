@@ -14,6 +14,9 @@ import { Money } from '@/write/shared/vo/Money'
 const futureDate = () => new Date(Date.now() + 24 * 60 * 60 * 1000)
 const futureFinishDate = (startDate: Date) =>
   new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
+const pastDate = () => new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+const pastFinishDate = (startDate: Date) =>
+  new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
 
 const campPrice = () =>
   Money.create({
@@ -74,6 +77,24 @@ describe('Camp', () => {
     )
 
     expect(camp.note).toBe('')
+  })
+
+  it('registers a completed camp for historical records', () => {
+    const startDate = pastDate()
+    const finishDate = pastFinishDate(startDate)
+
+    const [camp] = Camp.register(
+      {
+        name: 'Spring camp',
+        startDate,
+        finishDate,
+        price: campPrice()
+      },
+      'camp-1'
+    )
+
+    expect(camp.startDate).toEqual(startDate)
+    expect(camp.finishDate).toEqual(finishDate)
   })
 
   it('keeps dates and money immutable when callers mutate shared references', () => {
@@ -192,7 +213,7 @@ describe('Camp', () => {
     ).toThrow(InvalidCampNameError)
   })
 
-  it('rejects invalid and past start dates', () => {
+  it('rejects invalid start dates', () => {
     const validFinishDate = futureFinishDate(futureDate())
 
     expect(() =>
@@ -200,18 +221,6 @@ describe('Camp', () => {
         {
           name: 'Summer camp',
           startDate: new Date('invalid'),
-          finishDate: validFinishDate,
-          price: campPrice()
-        },
-        'camp-1'
-      )
-    ).toThrow(InvalidCampStartDateError)
-
-    expect(() =>
-      Camp.register(
-        {
-          name: 'Summer camp',
-          startDate: new Date(Date.now() - 1),
           finishDate: validFinishDate,
           price: campPrice()
         },
@@ -273,7 +282,7 @@ describe('Camp', () => {
       Camp.update(camp, {
         campId: 'camp-1',
         name: 'Summer camp',
-        startDate: new Date(Date.now() - 1),
+        startDate: new Date('invalid'),
         finishDate: futureDate()
       })
     ).toThrow(InvalidCampStartDateError)

@@ -15,13 +15,7 @@ const assertValidName = (name: string): string => {
 const assertValidNote = (note: string): string => note.trim()
 
 const assertValidStartDate = (startDate: Date): Date => {
-  const now = new Date()
-
-  if (
-    !(startDate instanceof Date) ||
-    Number.isNaN(startDate.getTime()) ||
-    startDate <= now
-  ) {
+  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
     throw new InvalidCampStartDateError()
   }
 
@@ -81,7 +75,7 @@ export class Camp {
 
   private _name: string
   private _note: string
-  private _startDate: Date
+  private _startDate: Date //past start dates are allowed
   private _finishDate: Date
   private _price: Money
   private _createdAt: Date

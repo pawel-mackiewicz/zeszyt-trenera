@@ -619,12 +619,20 @@ describe('appServices', () => {
     await expect(database.clubs.count()).resolves.toBe(1)
     await expect(database.trainers.count()).resolves.toBe(1)
     await expect(database.members.count()).resolves.toBe(60)
+    await expect(database.camps.count()).resolves.toBe(
+      expectedDemoSeed.camps.length
+    )
+    await expect(database.campParticipants.count()).resolves.toBe(
+      expectedDemoSeed.campParticipants.length
+    )
 
     const currentMonthStatus = await waitForFirstEmission(
       services.queries.observeMembershipPaymentStatusByMonth.handle({
         month: now
       })
     )
+    const campParticipants = await database.campParticipants.toArray()
+    const camps = await services.queries.listCamps.handle()
     const currentMonthSessions =
       await services.queries.listAttendanceSessionsByMonth.handle({
         month: now
@@ -645,6 +653,39 @@ describe('appServices', () => {
     expect(currentMonthStatus.unpaidAttendedMembers.length).toBeLessThanOrEqual(
       3
     )
+    expect(
+      campParticipants.some((participant) => participant.person.type === 'club')
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.person.type === 'external'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.status === 'FULLY_PAID'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.status === 'REGISTERED'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) => participant.discounts.length > 0)
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) => participant.status === 'RESIGNED')
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) =>
+        participant.financialTransactions.some(
+          (transaction) => transaction.type === 'non_refundable_deposit'
+        )
+      )
+    ).toBe(true)
+    expect(camps.past).toHaveLength(2)
+    expect(camps.present).toHaveLength(expectedDemoSeed.camps.length - 2)
     if (currentMonthStatus.unpaidAttendedMembers.length > 1) {
       expect(
         new Set(

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { BootstrapDemoModeUseCase } from '@/system_management/demo/application/BootstrapDemoModeUseCase'
 import type { DemoSeedFactoryPort } from '@/system_management/demo/application/ports/DemoSeedFactoryPort'
@@ -15,6 +15,8 @@ import type { TrainerRepoPort } from '@/write/business_profile/application/ports
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { AppResetRepoPort } from '@/system_management/app_reset/application/ports/AppResetRepoPort'
 import type { AttendanceListRepoPort } from '@/write/attendance/application/ports/AttendanceListRepoPort'
+import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
+import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import type { ClockPort } from '@/write/shared/ClockPort'
 import type { ClubRepoPort } from '@/write/business_profile/application/ports/ClubRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
@@ -28,6 +30,8 @@ describe('BootstrapDemoModeUseCase', () => {
   let memberRepo: MemberRepoPort
   let membershipPaymentRepo: MembershipPaymentRepoPort
   let attendanceListRepo: AttendanceListRepoPort
+  let campRepo: CampRepoPort
+  let campParticipantRepo: CampParticipantRepoPort
   let eventRepo: EventRepoPort
   let notebookBootstrapStateRepo: NotebookBootstrapStatePort
   let idGenerator: IdGeneratorPort
@@ -36,6 +40,9 @@ describe('BootstrapDemoModeUseCase', () => {
   let demoLifecycleStore: DemoLifecycleStorePort
 
   beforeEach(() => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 3, 9, 12, 0, 0))
+
     let generatedIdIndex = 0
     let notebookBootstrapState: NotebookBootstrapState =
       NOTEBOOK_BOOTSTRAP_STATES.EMPTY
@@ -86,6 +93,16 @@ describe('BootstrapDemoModeUseCase', () => {
       delete: vi.fn(),
       existsByStart: vi.fn().mockResolvedValue(false)
     }
+    campRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+      existsById: vi.fn().mockResolvedValue(false)
+    }
+    campParticipantRepo = {
+      save: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      findById: vi.fn().mockResolvedValue(null),
+      existsByCampIdAndPerson: vi.fn().mockResolvedValue(false)
+    }
     eventRepo = {
       save: vi.fn().mockResolvedValue(undefined)
     }
@@ -107,6 +124,10 @@ describe('BootstrapDemoModeUseCase', () => {
     }
   })
 
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
   it('seeds demo data on the first clean launch and opens the intro modal once', async () => {
     const expectedDemoSeed = createDemoSeed(new Date(2026, 3, 9, 12, 0, 0))
     const useCase = new BootstrapDemoModeUseCase(
@@ -118,6 +139,8 @@ describe('BootstrapDemoModeUseCase', () => {
       memberRepo,
       membershipPaymentRepo,
       attendanceListRepo,
+      campRepo,
+      campParticipantRepo,
       eventRepo,
       idGenerator,
       demoSeedFactory,
@@ -139,12 +162,70 @@ describe('BootstrapDemoModeUseCase', () => {
     expect(attendanceListRepo.save).toHaveBeenCalledTimes(
       expectedDemoSeed.attendanceLists.length
     )
+    expect(campRepo.save).toHaveBeenCalledTimes(expectedDemoSeed.camps.length)
+    expect(campParticipantRepo.save).toHaveBeenCalledTimes(
+      expectedDemoSeed.campParticipants.length
+    )
+    const expectedCampParticipantEventCount =
+      expectedDemoSeed.campParticipants.reduce(
+        (eventCount, participantSeed) =>
+          eventCount +
+          1 +
+          (participantSeed.initialDiscount ? 1 : 0) +
+          (participantSeed.initialPayment ? 1 : 0) +
+          (participantSeed.resignation ? 1 : 0),
+        0
+      )
+
     expect(eventRepo.save).toHaveBeenCalledTimes(
       2 +
         expectedDemoSeed.members.length +
         expectedDemoSeed.membershipPayments.length +
-        expectedDemoSeed.attendanceLists.length
+        expectedDemoSeed.attendanceLists.length +
+        expectedDemoSeed.camps.length +
+        expectedCampParticipantEventCount
     )
+    const savedCampParticipants = vi
+      .mocked(campParticipantRepo.save)
+      .mock.calls.map(([participant]) => participant)
+
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.person.type === 'club'
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.person.type === 'external'
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.status === 'FULLY_PAID'
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.status === 'REGISTERED'
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.discounts.length > 0
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some(
+        (participant) => participant.status === 'RESIGNED'
+      )
+    ).toBe(true)
+    expect(
+      savedCampParticipants.some((participant) =>
+        participant.financialTransactions.some(
+          (transaction) => transaction.type === 'non_refundable_deposit'
+        )
+      )
+    ).toBe(true)
     expect(demoLifecycleStore.writeState).not.toHaveBeenCalled()
     expect(demoLifecycleStore.writeDemoModeActive).toHaveBeenCalledWith(true)
   })
@@ -160,6 +241,8 @@ describe('BootstrapDemoModeUseCase', () => {
       memberRepo,
       membershipPaymentRepo,
       attendanceListRepo,
+      campRepo,
+      campParticipantRepo,
       eventRepo,
       idGenerator,
       demoSeedFactory,
@@ -175,6 +258,8 @@ describe('BootstrapDemoModeUseCase', () => {
     expect(clubRepo.save).not.toHaveBeenCalled()
     expect(trainerRepo.save).not.toHaveBeenCalled()
     expect(memberRepo.save).not.toHaveBeenCalled()
+    expect(campRepo.save).not.toHaveBeenCalled()
+    expect(campParticipantRepo.save).not.toHaveBeenCalled()
     expect(demoLifecycleStore.writeState).not.toHaveBeenCalled()
     expect(demoLifecycleStore.writeDemoModeActive).not.toHaveBeenCalled()
   })
@@ -193,6 +278,8 @@ describe('BootstrapDemoModeUseCase', () => {
       memberRepo,
       membershipPaymentRepo,
       attendanceListRepo,
+      campRepo,
+      campParticipantRepo,
       eventRepo,
       idGenerator,
       demoSeedFactory,
@@ -225,6 +312,8 @@ describe('BootstrapDemoModeUseCase', () => {
       memberRepo,
       membershipPaymentRepo,
       attendanceListRepo,
+      campRepo,
+      campParticipantRepo,
       eventRepo,
       idGenerator,
       demoSeedFactory,
@@ -253,6 +342,8 @@ describe('BootstrapDemoModeUseCase', () => {
       memberRepo,
       membershipPaymentRepo,
       attendanceListRepo,
+      campRepo,
+      campParticipantRepo,
       eventRepo,
       idGenerator,
       demoSeedFactory,
@@ -267,6 +358,8 @@ describe('BootstrapDemoModeUseCase', () => {
     expect(appResetRepo.clearAllData).not.toHaveBeenCalled()
     expect(clubRepo.save).not.toHaveBeenCalled()
     expect(trainerRepo.save).not.toHaveBeenCalled()
+    expect(campRepo.save).not.toHaveBeenCalled()
+    expect(campParticipantRepo.save).not.toHaveBeenCalled()
     expect(demoLifecycleStore.writeDemoModeActive).not.toHaveBeenCalled()
   })
 })

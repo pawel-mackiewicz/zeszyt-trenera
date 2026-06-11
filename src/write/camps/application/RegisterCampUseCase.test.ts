@@ -5,8 +5,7 @@ import type { RegisterCampCommand } from '@/write/camps/application/requests/Reg
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import {
   CampRegisteredDomainEvent,
-  InvalidCampNameError,
-  InvalidCampStartDateError
+  InvalidCampNameError
 } from '@/write/camps/domain/Camp'
 import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
@@ -111,23 +110,25 @@ describe('RegisterCampUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
-  it('rejects a past start date without saving', async () => {
-    await expect(
-      useCase.handle({
-        name: 'Summer camp',
-        startDate: new Date('2020-01-01T00:00:00Z'),
-        finishDate: futureDate(),
-        price: {
-          amountMinor: 1299_00,
-          currency: 'PLN'
-        }
-      })
-    ).rejects.toThrow(InvalidCampStartDateError)
+  it('registers a past camp for a completed camp record', async () => {
+    const dto: RegisterCampCommand = {
+      name: 'Spring camp',
+      startDate: new Date('2020-01-01T00:00:00Z'),
+      finishDate: new Date('2020-01-07T00:00:00Z'),
+      price: {
+        amountMinor: 1299_00,
+        currency: 'PLN'
+      }
+    }
+
+    await useCase.handle(dto)
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toEqual(['camp-generated-by-test'])
-    expect(campRepo.savedCamps).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
+    expect(campRepo.savedCamps).toHaveLength(1)
+    expect(campRepo.savedCamps[0].startDate).toEqual(dto.startDate)
+    expect(campRepo.savedCamps[0].finishDate).toEqual(dto.finishDate)
+    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects an invalid money amount before generating an id', async () => {

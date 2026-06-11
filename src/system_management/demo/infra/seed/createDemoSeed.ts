@@ -1,8 +1,11 @@
 import type {
   DemoAttendanceListSeed,
+  DemoCampParticipantSeed,
+  DemoCampSeed,
   DemoMemberSeed,
   DemoSeed
 } from '@/system_management/demo/application/ports/DemoSeedFactoryPort.ts'
+import type { MoneySnapshot } from '@/write/shared/vo/Money'
 import { toMembershipPaymentCoveredMonth } from '@/write/memberships/domain/MembershipPayment.ts'
 import {
   DEMO_MEMBER_PROFILES,
@@ -70,6 +73,7 @@ export function createDemoSeed(now: Date): DemoSeed {
       previousMonthCategories.unpaidAttendedMemberIndexes,
     sessionStarts: previousSessions
   })
+  const campSeed = createDemoCamps(currentMonthStart)
 
   return {
     club: {
@@ -94,6 +98,8 @@ export function createDemoSeed(now: Date): DemoSeed {
       ...previousMonthAttendanceLists,
       ...currentMonthAttendanceLists
     ],
+    camps: campSeed.camps,
+    campParticipants: campSeed.campParticipants,
     summary: {
       currentCoveredMonth,
       previousCoveredMonth,
@@ -110,6 +116,232 @@ export function createDemoSeed(now: Date): DemoSeed {
       previousUnpaidAttendedMemberIndexes:
         previousMonthCategories.unpaidAttendedMemberIndexes
     }
+  }
+}
+
+function createDemoCamps(currentMonthStart: Date): {
+  camps: DemoCampSeed[]
+  campParticipants: DemoCampParticipantSeed[]
+} {
+  const springCampPrice = pln(850_00)
+  const summerCampPrice = pln(1_450_00)
+  const fundamentalsCampPrice = pln(950_00)
+  const competitionCampPrice = pln(1_250_00)
+  const kidsCampPrice = pln(650_00)
+
+  const camps: DemoCampSeed[] = [
+    {
+      name: 'Spring fundamentals camp',
+      note: 'Completed technical camp kept as a payment and roster reference.',
+      startDate: campDate(currentMonthStart, -3, 11, 9),
+      finishDate: campDate(currentMonthStart, -3, 13, 15),
+      price: springCampPrice
+    },
+    {
+      name: 'Summer sparring camp',
+      note: 'Finished away camp with a larger mixed roster.',
+      startDate: campDate(currentMonthStart, -1, 2, 10),
+      finishDate: campDate(currentMonthStart, -1, 7, 16),
+      price: summerCampPrice
+    },
+    {
+      name: 'Fundamentals weekend camp',
+      note: 'Beginner-friendly technical block with two mat sessions per day.',
+      startDate: campDate(currentMonthStart, 1, 8, 9),
+      finishDate: campDate(currentMonthStart, 1, 10, 15),
+      price: fundamentalsCampPrice
+    },
+    {
+      name: 'Competition preparation camp',
+      note: 'Small group camp for athletes preparing for the autumn tournament run.',
+      startDate: campDate(currentMonthStart, 3, 3, 10),
+      finishDate: campDate(currentMonthStart, 3, 8, 16),
+      price: competitionCampPrice
+    },
+    {
+      name: 'Kids winter mat camp',
+      note: 'Short school-break camp with games, movement work, and sparring rounds.',
+      startDate: campDate(currentMonthStart, 5, 15, 9),
+      finishDate: campDate(currentMonthStart, 5, 19, 14),
+      price: kidsCampPrice
+    }
+  ]
+
+  return {
+    camps,
+    campParticipants: [
+      {
+        campIndex: 0,
+        person: { type: 'member', memberIndex: 8 },
+        totalAmountDue: springCampPrice,
+        initialPayment: {
+          amount: springCampPrice,
+          note: 'Settled after camp'
+        }
+      },
+      {
+        campIndex: 0,
+        person: { type: 'member', memberIndex: 15 },
+        totalAmountDue: springCampPrice,
+        initialPayment: {
+          amount: pln(400_00),
+          note: 'Deposit kept on account'
+        },
+        resignation: {
+          nonRefundableDeposit: {
+            amount: pln(200_00),
+            note: 'Administration and mat booking cost'
+          }
+        }
+      },
+      {
+        campIndex: 0,
+        person: {
+          type: 'external',
+          firstName: 'Kacper',
+          lastName: 'Wisniewski'
+        },
+        totalAmountDue: springCampPrice,
+        initialDiscount: {
+          amount: pln(100_00),
+          reason: 'Returning guest'
+        },
+        initialPayment: {
+          amount: pln(750_00),
+          note: 'Paid after discount'
+        }
+      },
+      {
+        campIndex: 1,
+        person: { type: 'member', memberIndex: 21 },
+        totalAmountDue: summerCampPrice,
+        initialPayment: {
+          amount: summerCampPrice,
+          note: 'Full payment'
+        }
+      },
+      {
+        campIndex: 1,
+        person: { type: 'member', memberIndex: 29 },
+        totalAmountDue: summerCampPrice,
+        initialPayment: {
+          amount: pln(700_00),
+          note: 'Partial payment'
+        }
+      },
+      {
+        campIndex: 1,
+        person: {
+          type: 'external',
+          firstName: 'Natalia',
+          lastName: 'Kaczmarek'
+        },
+        totalAmountDue: summerCampPrice
+      },
+      {
+        campIndex: 2,
+        person: { type: 'member', memberIndex: 4 },
+        totalAmountDue: fundamentalsCampPrice,
+        initialPayment: {
+          amount: fundamentalsCampPrice,
+          note: 'Paid in full during registration'
+        }
+      },
+      {
+        campIndex: 2,
+        person: { type: 'member', memberIndex: 12 },
+        totalAmountDue: fundamentalsCampPrice,
+        initialPayment: {
+          amount: pln(400_00),
+          note: 'Deposit'
+        }
+      },
+      {
+        campIndex: 2,
+        person: {
+          type: 'external',
+          firstName: 'Ola',
+          lastName: 'Nowak'
+        },
+        totalAmountDue: fundamentalsCampPrice,
+        initialDiscount: {
+          amount: pln(150_00),
+          reason: 'Sibling discount'
+        },
+        initialPayment: {
+          amount: pln(800_00),
+          note: 'Paid after discount'
+        }
+      },
+      {
+        campIndex: 2,
+        person: { type: 'member', memberIndex: 18 },
+        totalAmountDue: fundamentalsCampPrice
+      },
+      {
+        campIndex: 3,
+        person: { type: 'member', memberIndex: 24 },
+        totalAmountDue: competitionCampPrice,
+        initialPayment: {
+          amount: competitionCampPrice,
+          note: 'Full transfer'
+        }
+      },
+      {
+        campIndex: 3,
+        person: { type: 'member', memberIndex: 31 },
+        totalAmountDue: competitionCampPrice,
+        initialDiscount: {
+          amount: pln(250_00),
+          reason: 'Coach invitation'
+        },
+        initialPayment: {
+          amount: pln(500_00),
+          note: 'First installment'
+        }
+      },
+      {
+        campIndex: 3,
+        person: {
+          type: 'external',
+          firstName: 'Piotr',
+          lastName: 'Lewandowski'
+        },
+        totalAmountDue: competitionCampPrice,
+        resignation: {}
+      },
+      {
+        campIndex: 4,
+        person: { type: 'member', memberIndex: 0 },
+        totalAmountDue: kidsCampPrice,
+        initialPayment: {
+          amount: kidsCampPrice,
+          note: 'Parent paid in full'
+        }
+      },
+      {
+        campIndex: 4,
+        person: { type: 'member', memberIndex: 3 },
+        totalAmountDue: kidsCampPrice,
+        initialPayment: {
+          amount: pln(200_00),
+          note: 'Reservation deposit'
+        }
+      },
+      {
+        campIndex: 4,
+        person: {
+          type: 'external',
+          firstName: 'Maja',
+          lastName: 'Zielinska'
+        },
+        totalAmountDue: kidsCampPrice,
+        initialDiscount: {
+          amount: pln(100_00),
+          reason: 'Early signup'
+        }
+      }
+    ]
   }
 }
 
@@ -131,6 +363,29 @@ function createDemoMembers(now: Date): DemoMemberSeed[] {
       phoneNumber: `+48${String(500000000 + index).padStart(9, '0')}`
     }
   })
+}
+
+function pln(amountMinor: number): MoneySnapshot {
+  return {
+    amountMinor,
+    currency: 'PLN'
+  }
+}
+
+function campDate(
+  currentMonthStart: Date,
+  monthOffset: number,
+  day: number,
+  hour: number
+): Date {
+  return new Date(
+    currentMonthStart.getFullYear(),
+    currentMonthStart.getMonth() + monthOffset,
+    day,
+    hour,
+    0,
+    0
+  )
 }
 
 function buildCurrentMonthAttendanceLists({

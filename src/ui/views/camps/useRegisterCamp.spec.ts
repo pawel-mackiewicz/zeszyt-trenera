@@ -58,6 +58,30 @@ describe('useRegisterCamp', () => {
     expect(registration.submitErrorKey.value).toBeNull()
   })
 
+  it('submits a completed camp through the application layer', async () => {
+    const registration = useRegisterCamp()
+
+    registration.form.name = 'Spring camp'
+    registration.form.startDate = '2020-01-10'
+    registration.form.finishDate = '2020-01-17'
+    registration.form.price = '850'
+
+    await registration.submit()
+
+    expect(handleRegisterCamp).toHaveBeenCalledWith({
+      name: 'Spring camp',
+      startDate: new Date('2020-01-10T00:00:00Z'),
+      finishDate: new Date('2020-01-17T00:00:00Z'),
+      price: {
+        amountMinor: 85_000,
+        currency: 'PLN'
+      },
+      note: undefined
+    })
+    expect(replace).toHaveBeenCalledWith('/camps')
+    expect(registration.submitErrorKey.value).toBeNull()
+  })
+
   it('requires all mandatory fields before writing', async () => {
     const registration = useRegisterCamp()
 

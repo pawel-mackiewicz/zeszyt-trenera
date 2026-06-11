@@ -258,6 +258,8 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveMemberRepo(),
         resolveMembershipPaymentRepo(),
         resolveAttendanceListRepo(),
+        resolveCampRepo(),
+        resolveCampParticipantRepo(),
         resolveEventRepo(),
         resolveIdGenerator(),
         resolveDemoSeedFactory(),

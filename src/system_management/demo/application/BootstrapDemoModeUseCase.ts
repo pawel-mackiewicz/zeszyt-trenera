@@ -1,6 +1,8 @@
 import type { UseCase } from '@/write/shared/UseCase'
 import type { AppResetRepoPort } from '@/system_management/app_reset/application/ports/AppResetRepoPort'
 import type { AttendanceListRepoPort } from '@/write/attendance/application/ports/AttendanceListRepoPort'
+import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
+import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import type { ClockPort } from '@/write/shared/ClockPort'
 import type {
   DemoSeed,
@@ -25,9 +27,15 @@ import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { BootstrapDemoModeCommand } from '@/system_management/demo/application/requests/BootstrapDemoModeCommand'
 import { AttendanceList } from '@/write/attendance/domain/AttendanceList'
 import { Club } from '@/write/business_profile/domain/Club'
+import { Camp } from '@/write/camps/domain/Camp'
+import {
+  CampParticipant,
+  type CampParticipantPerson
+} from '@/write/camps/domain/CampParticipant'
 import { MembershipPayment } from '@/write/memberships/domain/MembershipPayment'
 import { Member } from '@/write/members/domain/Member'
 import { Trainer } from '@/write/business_profile/domain/Trainer'
+import type { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { Money } from '@/write/shared/vo/Money'
 import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 
@@ -60,6 +68,8 @@ export class BootstrapDemoModeUseCase implements UseCase<
     private readonly memberRepo: MemberRepoPort,
     private readonly membershipPaymentRepo: MembershipPaymentRepoPort,
     private readonly attendanceListRepo: AttendanceListRepoPort,
+    private readonly campRepo: CampRepoPort,
+    private readonly campParticipantRepo: CampParticipantRepoPort,
     private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort,
     // Why: demo data shape generation belongs to an injected policy so the use case stays independent from infra module locations.
@@ -193,6 +203,13 @@ export class BootstrapDemoModeUseCase implements UseCase<
       memberIds
     )
     await this.persistDemoAttendanceLists(demoSeed.attendanceLists, memberIds)
+    const campIds = await this.persistDemoCamps(demoSeed.camps)
+
+    await this.persistDemoCampParticipants(
+      demoSeed.campParticipants,
+      campIds,
+      memberIds
+    )
   }
 
   private async persistDemoClub(clubSeed: DemoSeed['club']): Promise<void> {
@@ -280,6 +297,117 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
       await this.attendanceListRepo.save(attendanceList)
       await this.eventRepo.save(attendanceEvent)
+    }
+  }
+
+  private async persistDemoCamps(
+    campSeeds: DemoSeed['camps']
+  ): Promise<string[]> {
+    const campIds: string[] = []
+
+    for (const campSeed of campSeeds) {
+      const [camp, campEvent] = Camp.register(
+        {
+          name: campSeed.name,
+          note: campSeed.note,
+          startDate: campSeed.startDate,
+          finishDate: campSeed.finishDate,
+          price: Money.create(campSeed.price)
+        },
+        this.idGenerator.generate()
+      )
+
+      campIds.push(camp.id)
+      await this.campRepo.save(camp)
+      await this.eventRepo.save(campEvent)
+    }
+
+    return campIds
+  }
+
+  private async persistDemoCampParticipants(
+    participantSeeds: DemoSeed['campParticipants'],
+    campIds: string[],
+    memberIds: string[]
+  ): Promise<void> {
+    for (const participantSeed of participantSeeds) {
+      // eslint-disable-next-line prefer-const
+      let [participant, registeredEvent] = CampParticipant.register(
+        {
+          campId: campIds[participantSeed.campIndex] as string,
+          person: this.resolveCampParticipantPerson(
+            participantSeed.person,
+            memberIds
+          ),
+          totalAmountDue: Money.create(participantSeed.totalAmountDue)
+        },
+        this.idGenerator.generate()
+      )
+      const events: DomainEvent[] = [registeredEvent]
+
+      if (participantSeed.initialDiscount) {
+        const [discountedParticipant, discountEvent] =
+          participant.applyDiscount({
+            id: this.idGenerator.generate(),
+            amount: Money.create(participantSeed.initialDiscount.amount),
+            reason: participantSeed.initialDiscount.reason
+          })
+
+        participant = discountedParticipant
+        events.push(discountEvent)
+      }
+
+      if (participantSeed.initialPayment) {
+        const [paidParticipant, paymentEvent] = participant.registerPayment({
+          id: this.idGenerator.generate(),
+          amount: Money.create(participantSeed.initialPayment.amount),
+          note: participantSeed.initialPayment.note
+        })
+
+        participant = paidParticipant
+        events.push(paymentEvent)
+      }
+
+      if (participantSeed.resignation) {
+        const nonRefundableDeposit =
+          participantSeed.resignation.nonRefundableDeposit
+        const [resignedParticipant, resignationEvent] = participant.resign(
+          nonRefundableDeposit
+            ? {
+                id: this.idGenerator.generate(),
+                amount: Money.create(nonRefundableDeposit.amount),
+                note: nonRefundableDeposit.note
+              }
+            : undefined
+        )
+
+        participant = resignedParticipant
+        events.push(resignationEvent)
+      }
+
+      await this.campParticipantRepo.save(participant)
+
+      for (const event of events) {
+        await this.eventRepo.save(event)
+      }
+    }
+  }
+
+  private resolveCampParticipantPerson(
+    personSeed: DemoSeed['campParticipants'][number]['person'],
+    memberIds: string[]
+  ): CampParticipantPerson {
+    if (personSeed.type === 'member') {
+      return {
+        type: 'club',
+        memberId: memberIds[personSeed.memberIndex] as string
+      }
+    }
+
+    return {
+      type: 'external',
+      firstName: personSeed.firstName,
+      lastName: personSeed.lastName
     }
   }
 }

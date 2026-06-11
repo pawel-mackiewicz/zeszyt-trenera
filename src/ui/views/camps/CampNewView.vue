@@ -41,7 +41,7 @@ const messages = {
     errors: {
       required: 'Uzupełnij wymagane pola.',
       invalidName: 'Podaj poprawną nazwę obozu.',
-      invalidStartDate: 'Data rozpoczęcia musi być w przyszłości.',
+      invalidStartDate: 'Podaj poprawną datę rozpoczęcia.',
       invalidFinishDate:
         'Data zakończenia musi być późniejsza niż data rozpoczęcia.',
       invalidPrice: 'Podaj poprawny koszt obozu w PLN.',
@@ -81,7 +81,7 @@ const messages = {
     errors: {
       required: 'Complete the required fields.',
       invalidName: 'Enter a valid camp name.',
-      invalidStartDate: 'The start date must be in the future.',
+      invalidStartDate: 'Enter a valid start date.',
       invalidFinishDate: 'The finish date must be after the start date.',
       invalidPrice: 'Enter a valid camp cost in PLN.',
       submit: 'The camp could not be saved.'
