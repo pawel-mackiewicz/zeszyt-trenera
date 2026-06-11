@@ -126,11 +126,7 @@ function toParticipantListItem(
   )
   const snapshot = participant.toSnapshot()
   const amountDue = snapshot.totalAmountDue.toSnapshot()
-  const remainingAmountToPay = participant.remainingAmountToPay().toSnapshot()
-  const paidAmount = createMoneySnapshot(
-    amountDue,
-    Math.max(amountDue.amountMinor - remainingAmountToPay.amountMinor, 0)
-  )
+  const paidAmount = participant.financialBalance().toSnapshot()
 
   return {
     status: snapshot.status,
@@ -242,16 +238,6 @@ function calculateAge(value: Date, now: Date): number | null {
   }
 
   return age
-}
-
-function createMoneySnapshot(
-  money: MoneySnapshot,
-  amountMinor: number
-): MoneySnapshot {
-  return {
-    amountMinor,
-    currency: money.currency
-  }
 }
 
 function resolvePaymentProgressPercent(
