@@ -12,6 +12,7 @@ import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
+import AttendanceMemberRow from './components/AttendanceMemberRow.vue'
 import { matchesAgeValueRange } from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
@@ -340,43 +341,16 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
         {{ t(emptyStateKey) }}
       </div>
 
-      <button
+      <AttendanceMemberRow
         v-for="member in filteredMembers"
         v-else
         :key="member.id"
-        class="attendance-member-row grid w-full grid-cols-[1fr_auto] items-center gap-4 border-b border-outline-variant px-4 py-4 text-left transition-colors"
         :disabled="interactionLocked"
-        :class="{
-          'attendance-member-row--selected': isSelected(member.id)
-        }"
-        type="button"
-        @click="emit('toggle-member', member.id)"
-      >
-        <span class="block min-w-0">
-          <span
-            class="block truncate font-headline text-xl font-bold uppercase tracking-tight"
-          >
-            {{ member.firstName }} {{ member.lastName }}
-          </span>
-          <span
-            class="mt-1 block font-mono text-[0.6875rem] uppercase tracking-[0.16em]"
-          >
-            {{ formatMemberAge(member) }}
-          </span>
-        </span>
-
-        <span class="flex items-center justify-end">
-          <span
-            v-if="isSelected(member.id)"
-            class="attendance-member-row__status attendance-member-row__status--selected"
-          >
-            <AppIcon name="check_circle" />
-          </span>
-          <span v-else class="attendance-member-row__status">
-            <AppIcon name="add" />
-          </span>
-        </span>
-      </button>
+        :format-age="formatMemberAge"
+        :member="member"
+        :selected="isSelected(member.id)"
+        @toggle="emit('toggle-member', $event)"
+      />
     </section>
 
     <section
@@ -535,48 +509,6 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
 
 .attendance-age-filter__input::-webkit-slider-thumb {
   pointer-events: auto;
-}
-
-.attendance-member-row {
-  background: color-mix(in srgb, var(--color-surface) 78%, white);
-}
-
-.attendance-member-row:hover {
-  background: var(--color-surface-container-low);
-}
-
-.attendance-member-row--selected {
-  background: linear-gradient(
-    135deg,
-    rgba(174, 20, 23, 0.96),
-    rgba(185, 29, 29, 0.92)
-  );
-  color: white;
-}
-
-.attendance-member-row--selected:hover {
-  background: linear-gradient(
-    135deg,
-    rgba(174, 20, 23, 1),
-    rgba(185, 29, 29, 0.96)
-  );
-}
-
-.attendance-member-row__status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgba(16, 59, 55, 0.18);
-  color: var(--color-primary);
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.attendance-member-row__status--selected {
-  border-color: rgba(255, 255, 255, 0.35);
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .attendance-summary-card {
