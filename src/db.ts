@@ -177,6 +177,22 @@ export class TrainerNotebookDb extends Dexie {
       // The camp/person compound key keeps local duplicate participant checks deterministic without scanning all camp rosters.
       campParticipants: 'id, [campId+personKey]'
     })
+
+    this.version(15).stores({
+      clubs: 'id',
+      events: 'eventId, eventName, occurredAt',
+      trainers: 'id',
+      // Why: duplicate member checks now use stable identity data instead of optional contact data, so local-first registration needs a name-plus-birth-date index.
+      members: 'id, [firstName+lastName+dateOfBirth]',
+      // Why: member deletion must detect payment dependencies by member id without scanning a full local ledger on a phone.
+      membershipPayments: 'id, memberId, [memberId+coveredMonth], coveredMonth',
+      // Why: member deletion must detect attendance dependencies by member id while preserving the duplicate-session start guard.
+      attendanceLists: 'id, &start, *memberIds',
+      // Camp registration stores local snapshots by id today; reads can add focused indexes when camp screens land.
+      camps: 'id',
+      // Camp details need camp-level roster reads, while the compound key still keeps duplicate participant checks deterministic.
+      campParticipants: 'id, campId, [campId+personKey]'
+    })
   }
 }
 

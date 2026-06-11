@@ -76,6 +76,11 @@ import {
   type GetAttendanceSessionByIdQueryInput
 } from '@/read/GetAttendanceSessionByIdQuery'
 import {
+  GetCampDetailsQuery,
+  type CampDetails,
+  type GetCampDetailsQueryInput
+} from '@/read/GetCampDetailsQuery'
+import {
   ListAttendanceSessionsByMonthQuery,
   type AttendanceSessionListItem,
   type ListAttendanceSessionsByMonthQueryInput
@@ -148,6 +153,9 @@ export type AppQueries = {
     handle(
       input: GetAttendanceSessionByIdQueryInput
     ): Promise<AttendanceSessionDetails | null>
+  }
+  readonly getCampDetails: {
+    handle(input: GetCampDetailsQueryInput): Promise<CampDetails | null>
   }
   readonly listAttendanceSessionsByMonth: {
     handle(
@@ -351,6 +359,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveGetAttendanceSessionById = lazy(
     () => new GetAttendanceSessionByIdQuery(database)
   )
+  const resolveGetCampDetails = lazy(() => new GetCampDetailsQuery(database))
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
   )
@@ -522,6 +531,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping reads in the shared service bag lets local-first screens stay off raw Dexie APIs while still resolving one stable query instance per app lifetime.
     get getAttendanceSessionById() {
       return resolveGetAttendanceSessionById()
+    },
+    get getCampDetails() {
+      return resolveGetCampDetails()
     },
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()

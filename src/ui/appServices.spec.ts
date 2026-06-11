@@ -30,6 +30,9 @@ describe('uiAppServices', () => {
         getAttendanceSessionById: {
           handle
         },
+        getCampDetails: {
+          handle
+        },
         listAttendanceSessionsByMonth: {
           handle
         },
