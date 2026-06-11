@@ -194,6 +194,9 @@ describe('GetCampDetailsQuery', () => {
         registered: [
           {
             id: 'participant-1',
+            addedAt: new Date('2026-06-01T00:00:00Z'),
+            firstName: 'Amanda',
+            lastName: 'Nunes',
             displayName: 'Amanda Nunes',
             age: 35,
             amountDue: {
@@ -211,6 +214,9 @@ describe('GetCampDetailsQuery', () => {
         fullyPaid: [
           {
             id: 'participant-2',
+            addedAt: new Date('2026-06-01T00:00:00Z'),
+            firstName: 'royce',
+            lastName: 'gracie',
             displayName: 'royce gracie',
             age: null,
             amountDue: {
@@ -228,6 +234,9 @@ describe('GetCampDetailsQuery', () => {
         resigned: [
           {
             id: 'participant-3',
+            addedAt: new Date('2026-06-01T00:00:00Z'),
+            firstName: 'jane',
+            lastName: 'doe',
             displayName: 'jane doe',
             age: null,
             amountToRefund: {
@@ -237,6 +246,9 @@ describe('GetCampDetailsQuery', () => {
           },
           {
             id: 'participant-4',
+            addedAt: new Date('2026-06-01T00:00:00Z'),
+            firstName: 'jane',
+            lastName: 'doe',
             displayName: 'jane doe',
             age: null,
             amountToRefund: {

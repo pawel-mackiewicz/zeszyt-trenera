@@ -77,6 +77,9 @@ describe('CampsListView', () => {
     expect(wrapper.text()).toContain('01.02.2026 - 11.02.2026')
     expect(wrapper.text()).toContain('16.06.2026 - 25.06.2026')
     expect(wrapper.text()).toContain('16.06.2025 - 25.06.2025')
+    expect(
+      wrapper.get('a[to="/camps/camp-winter-2026"]').attributes('to')
+    ).toBe('/camps/camp-winter-2026')
   })
 
   it('keeps the query order instead of sorting camps again in the UI', async () => {

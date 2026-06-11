@@ -26,6 +26,9 @@ export type CampDetailsCamp = {
 
 export type CampDetailsParticipantListItem = {
   id: string
+  addedAt: Date
+  firstName: string
+  lastName: string
   displayName: string
   age: number | null
 }
@@ -148,9 +151,13 @@ function toParticipantListItem(
     toCampParticipantSnapshot(persistedParticipant)
   )
   const snapshot = participant.toSnapshot()
+  const identity = resolveParticipantIdentity(persistedParticipant, membersById)
   const baseParticipant = {
     id: snapshot.id,
-    displayName: resolveDisplayName(persistedParticipant, membersById),
+    addedAt: snapshot.addedAt,
+    firstName: identity.firstName,
+    lastName: identity.lastName,
+    displayName: identity.displayName,
     age: resolveAge(persistedParticipant, membersById, now)
   }
   const financialBalance = participant.financialBalance().toSnapshot()
@@ -229,19 +236,37 @@ function toFinancialTransaction(
   }
 }
 
-function resolveDisplayName(
+function resolveParticipantIdentity(
   participant: PersistedCampParticipant,
   membersById: MemberById
-): string {
+): {
+  displayName: string
+  firstName: string
+  lastName: string
+} {
   if (participant.person.type === 'external') {
-    return `${participant.person.firstName} ${participant.person.lastName}`
+    return {
+      displayName: `${participant.person.firstName} ${participant.person.lastName}`,
+      firstName: participant.person.firstName,
+      lastName: participant.person.lastName
+    }
   }
 
   const member = membersById.get(participant.person.memberId)
 
-  return member
-    ? `${member.firstName} ${member.lastName}`
-    : participant.person.memberId
+  if (!member) {
+    return {
+      displayName: participant.person.memberId,
+      firstName: participant.person.memberId,
+      lastName: ''
+    }
+  }
+
+  return {
+    displayName: `${member.firstName} ${member.lastName}`,
+    firstName: member.firstName,
+    lastName: member.lastName
+  }
 }
 
 function resolveAge(

@@ -30,6 +30,7 @@ export const SHELL_ROUTE_TITLE_KEYS = {
   'attendance-record': 'routes.attendanceRecord',
   'attendance-edit': 'routes.attendanceEdit',
   'camps-list': 'routes.campsList',
+  'camp-details': 'routes.campsList',
   'add-camp': 'routes.addCamp',
   'setup-club': 'routes.setupClub',
   'setup-trainer': 'routes.setupTrainer',
@@ -75,7 +76,7 @@ export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationI
       to: '/camps',
       icon: 'terrain',
       labelKey: 'bottomNav.camps',
-      activeRouteNames: ['camps-list', 'add-camp']
+      activeRouteNames: ['camps-list', 'camp-details', 'add-camp']
     }
   ]
 

@@ -6,6 +6,7 @@ import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/attendance/AttendanceHistoryView.vue'
+import CampDetailsView from '@/ui/views/camps/CampDetailsView.vue'
 import CampNewView from '@/ui/views/camps/CampNewView.vue'
 import CampsListView from '@/ui/views/camps/CampsListView.vue'
 import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
@@ -27,6 +28,7 @@ export type AppRouteName =
   | 'attendance-record'
   | 'attendance-edit'
   | 'camps-list'
+  | 'camp-details'
   | 'add-camp'
   | 'setup-club'
   | 'setup-trainer'
@@ -119,6 +121,15 @@ const baseRoutes = [
     name: 'camps-list',
     component: CampsListView,
     meta: {}
+  },
+  {
+    path: '/camps/:campId',
+    name: 'camp-details',
+    component: CampDetailsView,
+    meta: {
+      showBack: true,
+      backTo: '/camps'
+    }
   },
   {
     path: '/camps/new',

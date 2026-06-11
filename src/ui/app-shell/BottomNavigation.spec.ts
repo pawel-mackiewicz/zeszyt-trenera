@@ -119,6 +119,7 @@ describe('BottomNavigation', () => {
 
   it.each([
     ['camps-list', '/camps'],
+    ['camp-details', '/camps/camp-1'],
     ['add-camp', '/camps/new']
   ] satisfies Array<[AppRouteName, string]>)(
     'keeps the camps tab active on the %s route',

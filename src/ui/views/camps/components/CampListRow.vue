@@ -26,22 +26,29 @@ const dateRange = computed(
 const iconName = computed(() =>
   props.variant === 'past' ? 'history' : 'chevron_right'
 )
+const detailsRoute = computed(() => `/camps/${props.camp.id}`)
 </script>
 
 <template>
-  <li class="camp-list-row" :class="`camp-list-row--${variant}`">
-    <div class="camp-list-row__identity">
-      <span class="camp-list-row__name">{{ camp.name }}</span>
-      <span class="camp-list-row__range-inline">{{ dateRange }}</span>
-    </div>
-    <div class="camp-list-row__meta">
-      <span class="camp-list-row__range">{{ dateRange }}</span>
-      <AppIcon
-        class="camp-list-row__icon"
-        :name="iconName"
-        aria-hidden="true"
-      />
-    </div>
+  <li>
+    <RouterLink
+      class="camp-list-row"
+      :class="`camp-list-row--${variant}`"
+      :to="detailsRoute"
+    >
+      <div class="camp-list-row__identity">
+        <span class="camp-list-row__name">{{ camp.name }}</span>
+        <span class="camp-list-row__range-inline">{{ dateRange }}</span>
+      </div>
+      <div class="camp-list-row__meta">
+        <span class="camp-list-row__range">{{ dateRange }}</span>
+        <AppIcon
+          class="camp-list-row__icon"
+          :name="iconName"
+          aria-hidden="true"
+        />
+      </div>
+    </RouterLink>
   </li>
 </template>
 
@@ -53,6 +60,18 @@ const iconName = computed(() =>
   padding: 1rem;
   border-bottom: 1px solid var(--color-outline-variant);
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  text-decoration: none;
+  transition: background-color 75ms ease;
+}
+
+.camp-list-row:hover,
+.camp-list-row:focus-visible {
+  background: var(--color-surface-container-low);
+}
+
+.camp-list-row:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: -2px;
 }
 
 .camp-list-row__identity {
