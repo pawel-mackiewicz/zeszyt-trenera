@@ -53,7 +53,7 @@ describe('GetCampDetailsQuery', () => {
     await expect(query.handle({ campId: 'missing-camp' })).resolves.toBeNull()
   })
 
-  it('returns camp details with participant rows grouped for the camp details view', async () => {
+  it('returns camp details with active payment rows and resigned refund rows for the camp details view', async () => {
     database = new TrainerNotebookDb(createTestDbName('camp-details'))
     const query = new GetCampDetailsQuery(
       database,
@@ -156,7 +156,19 @@ describe('GetCampDetailsQuery', () => {
       createCampParticipantRow({
         id: 'participant-3',
         campId: 'camp-1',
-        status: 'RESIGNED'
+        status: 'RESIGNED',
+        financialTransactions: [
+          {
+            type: 'payment',
+            id: 'payment-3',
+            amount: {
+              amountMinor: 50000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-03T00:00:00Z')
+          }
+        ]
       }),
       createCampParticipantRow({
         id: 'participant-4',
@@ -218,31 +230,19 @@ describe('GetCampDetailsQuery', () => {
             id: 'participant-3',
             displayName: 'jane doe',
             age: null,
-            amountDue: {
-              amountMinor: 100000,
+            amountToRefund: {
+              amountMinor: 50000,
               currency: 'PLN'
-            },
-            paidAmount: {
-              amountMinor: 0,
-              currency: 'PLN'
-            },
-            paymentProgressPercent: 0,
-            hasDiscount: false
+            }
           },
           {
             id: 'participant-4',
             displayName: 'jane doe',
             age: null,
-            amountDue: {
-              amountMinor: 100000,
-              currency: 'PLN'
-            },
-            paidAmount: {
+            amountToRefund: {
               amountMinor: 0,
               currency: 'PLN'
-            },
-            paymentProgressPercent: 0,
-            hasDiscount: false
+            }
           }
         ]
       }

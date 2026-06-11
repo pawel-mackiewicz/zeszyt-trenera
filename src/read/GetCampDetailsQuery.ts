@@ -28,16 +28,25 @@ export type CampDetailsParticipantListItem = {
   id: string
   displayName: string
   age: number | null
-  amountDue: MoneySnapshot
-  paidAmount: MoneySnapshot
-  paymentProgressPercent: number
-  hasDiscount: boolean
 }
 
+export type CampDetailsActiveParticipantListItem =
+  CampDetailsParticipantListItem & {
+    amountDue: MoneySnapshot
+    paidAmount: MoneySnapshot
+    paymentProgressPercent: number
+    hasDiscount: boolean
+  }
+
+export type CampDetailsResignedParticipantListItem =
+  CampDetailsParticipantListItem & {
+    amountToRefund: MoneySnapshot
+  }
+
 export type CampDetailsParticipantGroups = {
-  registered: CampDetailsParticipantListItem[]
-  fullyPaid: CampDetailsParticipantListItem[]
-  resigned: CampDetailsParticipantListItem[]
+  registered: CampDetailsActiveParticipantListItem[]
+  fullyPaid: CampDetailsActiveParticipantListItem[]
+  resigned: CampDetailsResignedParticipantListItem[]
 }
 
 export type CampDetails = {
@@ -46,6 +55,23 @@ export type CampDetails = {
 }
 
 type MemberById = Map<string, PersistedMember>
+type CampDetailsActiveStatus = Extract<
+  CampParticipantStatus,
+  'REGISTERED' | 'FULLY_PAID'
+>
+type CampDetailsResignedStatus = Exclude<
+  CampParticipantStatus,
+  CampDetailsActiveStatus
+>
+type GroupedCampDetailsParticipant =
+  | {
+      status: CampDetailsActiveStatus
+      participant: CampDetailsActiveParticipantListItem
+    }
+  | {
+      status: CampDetailsResignedStatus
+      participant: CampDetailsResignedParticipantListItem
+    }
 
 export class GetCampDetailsQuery {
   public constructor(
@@ -117,28 +143,39 @@ function toParticipantListItem(
   persistedParticipant: PersistedCampParticipant,
   membersById: MemberById,
   now: Date
-): {
-  status: CampParticipantStatus
-  participant: CampDetailsParticipantListItem
-} {
+): GroupedCampDetailsParticipant {
   const participant = CampParticipant.rehydrate(
     toCampParticipantSnapshot(persistedParticipant)
   )
   const snapshot = participant.toSnapshot()
+  const baseParticipant = {
+    id: snapshot.id,
+    displayName: resolveDisplayName(persistedParticipant, membersById),
+    age: resolveAge(persistedParticipant, membersById, now)
+  }
+  const financialBalance = participant.financialBalance().toSnapshot()
+
+  if (snapshot.status !== 'REGISTERED' && snapshot.status !== 'FULLY_PAID') {
+    return {
+      status: snapshot.status,
+      participant: {
+        ...baseParticipant,
+        amountToRefund: financialBalance
+      }
+    }
+  }
+
   const amountDue = snapshot.totalAmountDue.toSnapshot()
-  const paidAmount = participant.financialBalance().toSnapshot()
 
   return {
     status: snapshot.status,
     participant: {
-      id: snapshot.id,
-      displayName: resolveDisplayName(persistedParticipant, membersById),
-      age: resolveAge(persistedParticipant, membersById, now),
+      ...baseParticipant,
       amountDue,
-      paidAmount,
+      paidAmount: financialBalance,
       paymentProgressPercent: resolvePaymentProgressPercent(
         amountDue.amountMinor,
-        paidAmount.amountMinor
+        financialBalance.amountMinor
       ),
       hasDiscount: snapshot.discounts.length > 0
     }
@@ -252,19 +289,21 @@ function resolvePaymentProgressPercent(
 }
 
 function groupParticipants(
-  participants: Array<{
-    status: CampParticipantStatus
-    participant: CampDetailsParticipantListItem
-  }>
+  participants: GroupedCampDetailsParticipant[]
 ): CampDetailsParticipantGroups {
   return participants.reduce<CampDetailsParticipantGroups>(
     (groups, participant) => {
-      if (participant.status === 'REGISTERED') {
-        groups.registered.push(participant.participant)
-      } else if (participant.status === 'FULLY_PAID') {
-        groups.fullyPaid.push(participant.participant)
-      } else {
-        groups.resigned.push(participant.participant)
+      switch (participant.status) {
+        case 'REGISTERED':
+          groups.registered.push(participant.participant)
+          break
+        case 'FULLY_PAID':
+          groups.fullyPaid.push(participant.participant)
+          break
+        case 'RESIGNED':
+        case 'REFUNDED':
+          groups.resigned.push(participant.participant)
+          break
       }
 
       return groups
