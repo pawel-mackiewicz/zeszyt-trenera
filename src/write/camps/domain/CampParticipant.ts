@@ -493,6 +493,16 @@ export class CampParticipant {
     ).remainingAmountToPay(this._totalAmountDue)
   }
 
+  public financialBalance(): Money {
+    return createMoneyInSameCurrency(
+      this._totalAmountDue,
+      Math.max(
+        CampParticipantLedger.from(this._financialTransactions).balanceMinor(),
+        0
+      )
+    )
+  }
+
   public toSnapshot(): CampParticipantSnapshot {
     return {
       id: this.id,

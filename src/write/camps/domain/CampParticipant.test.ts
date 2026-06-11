@@ -64,6 +64,16 @@ const expectRemainingAmountToPay = (
   )
 }
 
+const expectFinancialBalance = (
+  participant: CampParticipant,
+  amountMinor: number,
+  currency = 'PLN'
+) => {
+  expect(participant.financialBalance().toSnapshot()).toEqual(
+    money(amountMinor, currency).toSnapshot()
+  )
+}
+
 const expectParticipantEvent = (
   event: CampParticipantEvent,
   expectedEvent: new (participant: CampParticipantSnapshot) => object,
@@ -527,6 +537,23 @@ describe('CampParticipant', () => {
 
       expectRemainingAmountToPay(resignedParticipant, 900_00)
       expectRemainingAmountToPay(activeParticipant, 700_00)
+    })
+
+    it('calculates the participant financial balance story', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant } = whenParticipantPays(participant, 700_00)
+      const { resignedParticipant } = whenParticipantResigns(paidParticipant, {
+        amountMinor: 200_00
+      })
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        resignedParticipant,
+        300_00
+      )
+
+      expectFinancialBalance(participant, 0)
+      expectFinancialBalance(paidParticipant, 700_00)
+      expectFinancialBalance(resignedParticipant, 500_00)
+      expectFinancialBalance(refundedParticipant, 200_00)
     })
   })
 
