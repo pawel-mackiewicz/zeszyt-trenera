@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent } from 'vue'
 import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 
 import { createAppI18n } from '@/ui/i18n'
@@ -36,7 +37,19 @@ describe('CampDetailsView', () => {
   function mountView(locale: 'pl' | 'en' = 'pl') {
     return mount(CampDetailsView, {
       global: {
-        plugins: [createAppI18n(locale)]
+        components: {
+          RouterLink: defineComponent({
+            props: {
+              to: {
+                type: String,
+                required: true
+              }
+            },
+            template: '<a :href="to"><slot /></a>'
+          })
+        },
+        plugins: [createAppI18n(locale)],
+        stubs: {}
       }
     })
   }
@@ -91,15 +104,17 @@ describe('CampDetailsView', () => {
     expect(wrapper.text()).toContain('Obóz zimowy')
   })
 
-  it('keeps adding participants disabled until the application workflow exists', async () => {
+  it('links coaches to the camp participant member list', async () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const addButton = wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Dodaj uczestnika')
+    const addLink = wrapper
+      .findAll('a')
+      .find((link) => link.text() === 'Dodaj uczestnika')
 
-    expect(addButton?.attributes('disabled')).toBeDefined()
+    expect(addLink?.attributes('href')).toBe(
+      '/camps/camp-winter-2026/participants/new'
+    )
   })
 })
 

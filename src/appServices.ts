@@ -81,6 +81,11 @@ import {
   type GetCampDetailsQueryInput
 } from '@/read/GetCampDetailsQuery'
 import {
+  ListCampParticipantCandidatesQuery,
+  type CampParticipantCandidateListItem,
+  type ListCampParticipantCandidatesQueryInput
+} from '@/read/ListCampParticipantCandidatesQuery'
+import {
   ListAttendanceSessionsByMonthQuery,
   type AttendanceSessionListItem,
   type ListAttendanceSessionsByMonthQueryInput
@@ -164,6 +169,11 @@ export type AppQueries = {
   }
   readonly listCamps: {
     handle(): Promise<CampListResult>
+  }
+  readonly listCampParticipantCandidates: {
+    handle(
+      input: ListCampParticipantCandidatesQueryInput
+    ): Promise<CampParticipantCandidateListItem[]>
   }
   readonly listMembersForAttendanceEditor: {
     handle(): Promise<AttendanceEditorMemberListItem[]>
@@ -366,6 +376,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new ListAttendanceSessionsByMonthQuery(database)
   )
   const resolveListCamps = lazy(() => new ListCampsQuery(database))
+  const resolveListCampParticipantCandidates = lazy(
+    () => new ListCampParticipantCandidatesQuery(database)
+  )
   const resolveListMembersForAttendanceEditor = lazy(
     () => new ListMembersForAttendanceEditorQuery(database)
   )
@@ -542,6 +555,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get listCamps() {
       return resolveListCamps()
+    },
+    get listCampParticipantCandidates() {
+      return resolveListCampParticipantCandidates()
     },
     get listMembersForAttendanceEditor() {
       return resolveListMembersForAttendanceEditor()

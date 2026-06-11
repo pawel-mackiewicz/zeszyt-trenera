@@ -128,6 +128,11 @@ const dateRange = computed(() => {
     finish: dateFormatter.value.format(camp.value.finishDate)
   })
 })
+const addParticipantTo = computed(() =>
+  camp.value === null
+    ? ''
+    : `/camps/${encodeURIComponent(camp.value.id)}/participants/new`
+)
 const moneyFormatter = computed(() => {
   return new Intl.NumberFormat(locale.value, {
     currency: 'PLN',
@@ -238,7 +243,7 @@ function formatMoney(money: MoneySnapshot): string {
 
       <div class="camp-details-view__action app-floating-action">
         <!-- What: keep the participant CTA aligned with roster desktop placement. Why: camp details use the same long-ledger pattern, so the action should sit outside the content column instead of stretching under it. -->
-        <AppButton disabled type="button">
+        <AppButton as="router-link" :to="addParticipantTo">
           {{ t('actions.addParticipant') }}
         </AppButton>
       </div>

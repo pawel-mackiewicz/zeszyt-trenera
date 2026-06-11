@@ -39,6 +39,9 @@ describe('uiAppServices', () => {
         listCamps: {
           handle
         },
+        listCampParticipantCandidates: {
+          handle
+        },
         listMembersForAttendanceEditor: {
           handle
         },
