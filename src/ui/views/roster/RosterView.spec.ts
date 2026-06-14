@@ -82,7 +82,12 @@ describe('RosterView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Brak zapisanych członków.')
-    expect(wrapper.text()).toContain('0 członków')
+    expect(wrapper.text()).toContain('Razem')
+    expect(wrapper.text()).toContain('Widoczni')
+    expect(wrapper.get('[data-testid="member-counter-total"]').text()).toBe('0')
+    expect(wrapper.get('[data-testid="member-counter-displayed"]').text()).toBe(
+      '0'
+    )
   })
 
   it('renders active and archived tabs between filters and the member ledger', async () => {
@@ -117,6 +122,7 @@ describe('RosterView', () => {
       'Archived'
     ])
     expect(tabButtons[0]?.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('Active members')
     expect(wrapper.text()).toContain('Active Member')
     expect(wrapper.text()).not.toContain('Archived Member')
 
@@ -125,6 +131,7 @@ describe('RosterView', () => {
 
     expect(mockObserveArchivedMembersForRosterHandle).toHaveBeenCalledOnce()
     expect(tabButtons[1]?.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.text()).toContain('Archived members')
     expect(wrapper.text()).toContain('Archived Member')
     expect(wrapper.text()).not.toContain('Active Member')
   })
@@ -439,6 +446,10 @@ describe('RosterView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Mystery Member')
+    expect(wrapper.get('[data-testid="member-counter-total"]').text()).toBe('3')
+    expect(wrapper.get('[data-testid="member-counter-displayed"]').text()).toBe(
+      '3'
+    )
 
     const sliders = wrapper.findAll('input[type="range"]')
     await sliders[0].setValue('60')
@@ -448,6 +459,10 @@ describe('RosterView', () => {
     expect(wrapper.text()).toContain('Anderson Silva')
     expect(wrapper.text()).toContain('Royce Gracie')
     expect(wrapper.text()).not.toContain('Mystery Member')
+    expect(wrapper.get('[data-testid="member-counter-total"]').text()).toBe('3')
+    expect(wrapper.get('[data-testid="member-counter-displayed"]').text()).toBe(
+      '2'
+    )
   })
 
   it('submits member updates through the application layer use case', async () => {

@@ -97,5 +97,6 @@ const memberSortDirectionModel = computed({
   border-bottom: 2px solid var(--color-on-surface);
   padding-top: 1rem;
   padding-bottom: 1rem;
+  //background: var(--color-surface);
 }
 </style>

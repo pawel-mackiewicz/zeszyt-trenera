@@ -44,9 +44,6 @@ const isLoading = computed(() =>
     ? isActiveMembersLoading.value
     : isArchivedMembersLoading.value
 )
-const membersCountLabel = computed(() =>
-  t('summary.memberCount', { count: currentMembers.value.length })
-)
 const {
   filteredMembers,
   maxAgeFilter,
@@ -137,8 +134,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="h-full pt-4 pb-12">
-    <!-- What: surface roster edit failures through the shared floating error card. Why: member updates should announce recoverable write problems in the same top-level location as the rest of the app instead of only inside one expanded row. -->
+  <div class="h-full pb-12">
     <FloatingErrorAlert
       v-if="editError"
       :message="editError"
@@ -146,9 +142,19 @@ onBeforeUnmount(() => {
       @dismiss="dismissEditError"
     />
 
-    <!-- What: keep the floating alert and the roster list inside one shared root container. Why: this mobile-first members screen needs balanced template structure so Vue can compile the view and still pin the global error surface above the scrollable content. -->
-    <div class="members-list-view h-full pt-4">
-      <MemberCounter :label="membersCountLabel" />
+    <div class="members-list-view h-full">
+      <header class="members-list-view__summary-heading">
+        <h1 class="members-list-view__summary-title">
+          {{ t(`summary.${selectedRosterTab}`) }}
+        </h1>
+      </header>
+
+      <MemberCounter
+        :displayed-count="filteredMembers.length"
+        :displayed-label="t('summary.displayedMembers')"
+        :total-count="currentMembers.length"
+        :total-label="t('summary.totalMembers')"
+      />
 
       <MemberFilterSortSection
         v-model:search-query="searchQuery"
@@ -247,6 +253,24 @@ onBeforeUnmount(() => {
   padding-bottom: max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
 }
 
+.members-list-view__summary-heading {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1rem;
+}
+
+.members-list-view__summary-title {
+  margin: 0;
+  color: var(--color-on-surface);
+  font-family: var(--font-headline);
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
 .roster-tab-ledger-enter-active,
 .roster-tab-ledger-leave-active {
   transition: opacity 240ms var(--ease-standard);
@@ -273,7 +297,10 @@ onBeforeUnmount(() => {
       "addMemberAria": "Dodaj członka"
     },
     "summary": {
-      "memberCount": "{count} członków"
+      "active": "Aktywni członkowie",
+      "archived": "Archiwum członków",
+      "displayedMembers": "Widoczni",
+      "totalMembers": "Razem"
     },
     "search": {
       "label": "Szukaj w rejestrze",
@@ -295,7 +322,10 @@ onBeforeUnmount(() => {
       "addMemberAria": "Add member"
     },
     "summary": {
-      "memberCount": "{count} members"
+      "active": "Active members",
+      "archived": "Archived members",
+      "displayedMembers": "Displayed",
+      "totalMembers": "Total"
     },
     "search": {
       "label": "Search the register",
