@@ -22,7 +22,7 @@ describe('AgeRangeFilter', () => {
     })
   }
 
-  it('renders the shared age copy and normalizes the displayed range', () => {
+  it('renders the shared age copy, bounds, and editable values', () => {
     const wrapper = mountFilter({
       minBound: 5,
       maxBound: 80,
@@ -31,7 +31,14 @@ describe('AgeRangeFilter', () => {
     })
 
     expect(wrapper.text()).toContain('Zakres wieku')
-    expect(wrapper.text()).toContain('30 - 60 lat')
+    expect(
+      wrapper.findAll('.age-range-filter__bound').map((bound) => bound.text())
+    ).toEqual(['5', '80'])
+    expect(
+      wrapper
+        .findAll('input[type="number"]')
+        .map((input) => (input.element as HTMLInputElement).value)
+    ).toEqual(['60', '30'])
   })
 
   it('emits numeric updates for both slider handles', async () => {
@@ -52,5 +59,29 @@ describe('AgeRangeFilter', () => {
 
     expect(wrapper.emitted('update:minValue')).toEqual([[12]])
     expect(wrapper.emitted('update:maxValue')).toEqual([[70]])
+  })
+
+  it('emits in-range number edits and clamps committed number values', async () => {
+    const wrapper = mountFilter(
+      {
+        minBound: 5,
+        maxBound: 80,
+        minValue: 20,
+        maxValue: 70
+      },
+      'en'
+    )
+
+    const numberInputs = wrapper.findAll('input[type="number"]')
+    const minNumberInput = numberInputs[0].element as HTMLInputElement
+
+    minNumberInput.value = '30'
+    await numberInputs[0].trigger('input')
+    minNumberInput.value = '2'
+    await numberInputs[0].trigger('input')
+    await numberInputs[0].trigger('blur')
+
+    expect(wrapper.emitted('update:minValue')).toEqual([[30], [5]])
+    expect(minNumberInput.value).toBe('5')
   })
 })

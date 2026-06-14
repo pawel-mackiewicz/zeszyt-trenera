@@ -7,6 +7,10 @@ import {
   type AttendanceSessionExpectation
 } from './support/attendance'
 import {
+  expectAgeRangeFilterValues,
+  setAgeRangeFilter
+} from './support/ageRangeFilter'
+import {
   confirmPayment,
   currentDemoPaymentTargets,
   expectPaymentWritePersistedAsPaid,
@@ -175,8 +179,7 @@ async function filterRosterByAgeRange(
     minAge: string
   }
 ) {
-  await page.getByLabel(/minimalny wiek/i).fill(minAge)
-  await page.getByLabel(/maksymalny wiek/i).fill(maxAge)
+  await setAgeRangeFilter(page, { minAge, maxAge })
 }
 
 async function expectSortcaseRows(page: Page, expectedRows: string[]) {
@@ -237,7 +240,7 @@ test('filters roster members by age range', async ({ page }) => {
     maxAge: '75'
   })
 
-  await expect(page.getByText(/70 - 75 lat/i)).toBeVisible()
+  await expectAgeRangeFilterValues(page, { minAge: '70', maxAge: '75' })
   await expect(page.getByText(/^henry cejudo$/i)).toBeVisible()
   await expect(page.getByText(/^royce gracie$/i)).not.toBeVisible()
 })

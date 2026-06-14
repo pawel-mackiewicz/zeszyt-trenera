@@ -20,6 +20,10 @@ import {
   setAttendanceSessionTime,
   startOfToday
 } from './support/attendance'
+import {
+  expectAgeRangeFilterValues,
+  setAgeRangeFilter
+} from './support/ageRangeFilter'
 
 const ATTENDANCE_MEMBER_ONE = 'Anderson Silva'
 const ATTENDANCE_MEMBER_TWO = 'Amanda Nunes'
@@ -42,10 +46,9 @@ test('filters attendance members by first name, surname, and age range', async (
   await expect(page.getByText(/^anderson silva$/i)).not.toBeVisible()
 
   await page.getByLabel(/^filtr$/i).fill('')
-  await page.getByLabel(/minimalny wiek/i).fill('70')
-  await page.getByLabel(/maksymalny wiek/i).fill('75')
+  await setAgeRangeFilter(page, { minAge: '70', maxAge: '75' })
 
-  await expect(page.getByText(/70 - 75 lat/i)).toBeVisible()
+  await expectAgeRangeFilterValues(page, { minAge: '70', maxAge: '75' })
   await expect(page.getByText(/^henry cejudo$/i)).toBeVisible()
   await expect(page.getByText(/^royce gracie$/i)).not.toBeVisible()
 })
