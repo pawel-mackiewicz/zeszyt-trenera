@@ -232,7 +232,7 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="add-member-view__field">
+        <div class="add-member-view__field add-member-view__field--group">
           <label
             class="app-section-label add-member-view__label"
             for="phoneCountryCode"
@@ -276,7 +276,7 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="add-member-view__field">
+        <div class="add-member-view__field add-member-view__field--group">
           <!-- What: mark birth date as required on the section label while keeping age as the faster helper input. Why: the saved member profile now must always include one canonical birth date, but coaches can still reach it through the age shortcut. -->
           <label
             class="app-section-label add-member-view__label"
@@ -413,7 +413,11 @@ async function handleSubmit() {
 
 .add-member-view__field {
   display: grid;
-  gap: 0.5rem;
+  gap: 0.125rem;
+}
+
+.add-member-view__field--group {
+  gap: 1rem;
 }
 
 .add-member-view__label,
