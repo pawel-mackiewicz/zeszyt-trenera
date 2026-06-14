@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
+
+import AppIcon from '@/ui/components/AppIcon.vue'
 
 const props = defineProps<{
   modelValue: Date
@@ -11,6 +13,7 @@ const emit = defineEmits<{
 }>()
 
 const { t, locale } = useI18n({ useScope: 'local' })
+const monthLabelId = useId()
 
 function startOfMonth(value: Date): Date {
   return new Date(value.getFullYear(), value.getMonth(), 1)
@@ -35,26 +38,40 @@ function changeMonth(offset: number) {
 </script>
 
 <template>
-  <section class="month-selector" aria-live="polite">
-    <div class="month-selector__controls">
+  <section class="month-selector" :aria-label="t('period.selector')">
+    <div
+      class="month-selector__controls"
+      role="group"
+      :aria-labelledby="monthLabelId"
+    >
       <button
         class="month-selector__button"
+        :aria-describedby="monthLabelId"
         :aria-label="t('period.previous')"
         type="button"
         @click="changeMonth(-1)"
       >
-        <span aria-hidden="true">‹</span>
+        <AppIcon
+          class="month-selector__icon month-selector__icon--previous"
+          name="chevron_right"
+        />
       </button>
-      <p class="month-selector__label">
+      <p
+        :id="monthLabelId"
+        aria-atomic="true"
+        aria-live="polite"
+        class="month-selector__label"
+      >
         {{ monthLabel }}
       </p>
       <button
         class="month-selector__button"
+        :aria-describedby="monthLabelId"
         :aria-label="t('period.next')"
         type="button"
         @click="changeMonth(1)"
       >
-        <span aria-hidden="true">›</span>
+        <AppIcon class="month-selector__icon" name="chevron_right" />
       </button>
     </div>
   </section>
@@ -62,67 +79,86 @@ function changeMonth(offset: number) {
 
 <style scoped>
 .month-selector {
-  --month-selector-shadow: 2px 2px 0 0 rgba(23, 48, 45, 0.92);
-  width: min(100%, 22rem);
+  width: min(100%, 24rem);
   min-width: 0;
-  padding: 1rem 1.1rem;
-  border: 1px solid rgba(16, 59, 55, 0.2);
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  box-shadow: var(--month-selector-shadow);
+  padding-block: 0.875rem;
+  border-top: 1px solid var(--color-on-surface);
+  border-bottom: 1px solid var(--color-on-surface);
 }
 
 .month-selector__controls {
   /* What: keep the month switcher locked to button / label / button columns. Why: both mobile-first ledger views need a stable label position while coaches flick through adjacent months. */
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  gap: 0.625rem;
   align-items: center;
 }
 
 .month-selector__label {
   margin: 0;
   min-width: 0;
-  padding-inline: 0.25rem;
+  padding-inline: 0.5rem;
+  color: var(--color-on-surface);
   text-align: center;
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-size: 0.9375rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  line-height: 1.25;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .month-selector__button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: 2.75rem;
   height: 2.75rem;
-  border: 1px solid rgba(16, 59, 55, 0.15);
-  background: var(--color-surface);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--color-primary);
-  box-shadow: var(--month-selector-shadow);
-  transition:
-    transform 75ms ease,
-    box-shadow 75ms ease,
-    background-color 160ms ease;
+}
+
+.month-selector__button::after {
+  position: absolute;
+  right: 0.72rem;
+  bottom: 0.52rem;
+  left: 0.72rem;
+  height: 0.125rem;
+  background: currentColor;
+  content: '';
+  transform: scaleX(0) rotate(-2deg);
+  transform-origin: left center;
+  transition: transform 140ms ease;
 }
 
 .month-selector__button:hover,
 .month-selector__button:focus-visible {
-  background: var(--color-surface-container-low);
-  transform: translate(2px, 2px);
-  box-shadow: none;
+  color: var(--color-on-surface);
 }
 
 .month-selector__button:focus-visible {
-  outline: none;
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 2px;
 }
 
-.month-selector__button span {
-  font-family: var(--font-headline);
-  font-size: 1.8rem;
-  line-height: 1;
+.month-selector__button:hover::after,
+.month-selector__button:focus-visible::after {
+  transform: scaleX(1) rotate(-2deg);
+}
+
+.month-selector__button:active::after {
+  transform: scaleX(0.82) rotate(-2deg);
+}
+
+.month-selector__icon {
+  width: 1.45rem;
+  height: 1.45rem;
+}
+
+.month-selector__icon--previous {
+  transform: rotate(180deg);
 }
 
 @media (max-width: 767px) {
@@ -136,7 +172,7 @@ function changeMonth(offset: number) {
   }
 
   .month-selector__label {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
   }
 }
 </style>
@@ -145,12 +181,14 @@ function changeMonth(offset: number) {
 {
   "pl": {
     "period": {
+      "selector": "Wybór miesiąca",
       "previous": "Poprzedni miesiąc",
       "next": "Następny miesiąc"
     }
   },
   "en": {
     "period": {
+      "selector": "Month selector",
       "previous": "Previous month",
       "next": "Next month"
     }
