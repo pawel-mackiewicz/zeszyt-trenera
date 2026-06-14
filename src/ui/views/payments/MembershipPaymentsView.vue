@@ -348,7 +348,7 @@ function handleMonthChange(month: Date) {
 </script>
 
 <template>
-  <div class="payments-view mx-auto max-w-4xl pt-4 pb-12">
+  <div class="mx-auto max-w-4xl pt-4 pb-12">
     <section
       class="payments-view__hero mb-4 flex flex-col gap-6 md:mb-6 md:flex-row md:items-end md:justify-between"
     >
@@ -483,11 +483,6 @@ function handleMonthChange(month: Date) {
 </template>
 
 <style scoped>
-.payments-view {
-  /* What: keep the last payment rows visible above the shell navigation. Why: the monthly ledger is a long-scrolling PWA screen and the fixed bottom nav permanently occupies the lower viewport edge. */
-  padding-bottom: max(8.5rem, calc(5rem + env(safe-area-inset-bottom) + 4rem));
-}
-
 .payments-view__hero {
   position: relative;
 }
