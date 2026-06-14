@@ -125,7 +125,8 @@ function getInRangeInputValue(rawValue: string) {
           <!-- What: name each stacked slider by the boundary it changes. Why: the mobile custom rail visually merges two native controls, so non-visual users and E2E flows need explicit targets. -->
           <input
             v-model.number="minValueModel"
-            :aria-label="t('minLabel')"
+            :aria-label="t('minSliderLabel')"
+            :aria-valuetext="t('valueText', { value: minValue })"
             class="age-range-filter__input"
             :max="maxBound"
             :min="minBound"
@@ -133,7 +134,8 @@ function getInRangeInputValue(rawValue: string) {
           />
           <input
             v-model.number="maxValueModel"
-            :aria-label="t('maxLabel')"
+            :aria-label="t('maxSliderLabel')"
+            :aria-valuetext="t('valueText', { value: maxValue })"
             class="age-range-filter__input"
             :max="maxBound"
             :min="minBound"
@@ -142,7 +144,7 @@ function getInRangeInputValue(rawValue: string) {
           <div class="age-range-filter__rail"></div>
           <input
             v-model="minInputValue"
-            :aria-label="t('minLabel')"
+            :aria-label="t('minInputLabel')"
             class="age-range-filter__value"
             :max="maxBound"
             :min="minBound"
@@ -154,7 +156,7 @@ function getInRangeInputValue(rawValue: string) {
           />
           <input
             v-model="maxInputValue"
-            :aria-label="t('maxLabel')"
+            :aria-label="t('maxInputLabel')"
             class="age-range-filter__value"
             :max="maxBound"
             :min="minBound"
@@ -317,13 +319,19 @@ input[type='range']::-moz-range-track {
 {
   "pl": {
     "label": "Zakres wieku",
-    "minLabel": "Minimalny wiek",
-    "maxLabel": "Maksymalny wiek"
+    "minInputLabel": "Minimalny wiek, wartość",
+    "maxInputLabel": "Maksymalny wiek, wartość",
+    "minSliderLabel": "Minimalny wiek, suwak",
+    "maxSliderLabel": "Maksymalny wiek, suwak",
+    "valueText": "{value} lat"
   },
   "en": {
     "label": "Age range",
-    "minLabel": "Minimum age",
-    "maxLabel": "Maximum age"
+    "minInputLabel": "Minimum age, value",
+    "maxInputLabel": "Maximum age, value",
+    "minSliderLabel": "Minimum age, slider",
+    "maxSliderLabel": "Maximum age, slider",
+    "valueText": "{value} years"
   }
 }
 </i18n>

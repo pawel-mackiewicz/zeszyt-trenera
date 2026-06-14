@@ -11,6 +11,10 @@ import {
   setAgeRangeFilter
 } from './support/ageRangeFilter'
 import {
+  setMembersSortField,
+  toggleMembersSortDirection
+} from './support/membersSortTool'
+import {
   confirmPayment,
   currentDemoPaymentTargets,
   expectPaymentWritePersistedAsPaid,
@@ -262,35 +266,35 @@ test('sorts roster members by first name, surname, join date, and direction', as
     'zoja sortcase beta'
   ])
 
-  await page.getByRole('button', { name: /kierunek: rosnąco/i }).click()
+  await toggleMembersSortDirection(page)
   await expectSortcaseRows(page, [
     'zoja sortcase beta',
     'marta sortcase alpha',
     'adam sortcase zulu'
   ])
 
-  await page.getByLabel(/opcje sortowania/i).selectOption('lastName')
+  await setMembersSortField(page, 'lastName')
   await expectSortcaseRows(page, [
     'adam sortcase zulu',
     'zoja sortcase beta',
     'marta sortcase alpha'
   ])
 
-  await page.getByRole('button', { name: /kierunek: malejąco/i }).click()
+  await toggleMembersSortDirection(page)
   await expectSortcaseRows(page, [
     'marta sortcase alpha',
     'zoja sortcase beta',
     'adam sortcase zulu'
   ])
 
-  await page.getByLabel(/opcje sortowania/i).selectOption('joinedAt')
+  await setMembersSortField(page, 'joinedAt')
   await expectSortcaseRows(page, [
     'adam sortcase zulu',
     'zoja sortcase beta',
     'marta sortcase alpha'
   ])
 
-  await page.getByRole('button', { name: /kierunek: rosnąco/i }).click()
+  await toggleMembersSortDirection(page)
   await expectSortcaseRows(page, [
     'marta sortcase alpha',
     'zoja sortcase beta',

@@ -39,6 +39,16 @@ describe('AgeRangeFilter', () => {
         .findAll('input[type="number"]')
         .map((input) => (input.element as HTMLInputElement).value)
     ).toEqual(['60', '30'])
+    expect(
+      wrapper
+        .findAll('input[type="range"]')
+        .map((input) => input.attributes('aria-label'))
+    ).toEqual(['Minimalny wiek, suwak', 'Maksymalny wiek, suwak'])
+    expect(
+      wrapper
+        .findAll('input[type="number"]')
+        .map((input) => input.attributes('aria-label'))
+    ).toEqual(['Minimalny wiek, wartość', 'Maksymalny wiek, wartość'])
   })
 
   it('emits numeric updates for both slider handles', async () => {

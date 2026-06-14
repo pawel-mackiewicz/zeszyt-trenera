@@ -1,16 +1,11 @@
 import { expect, type Locator, type Page } from 'playwright/test'
 
-const MIN_AGE_INPUT_SELECTOR =
-  '.age-range-filter input[type="number"][aria-label="Minimalny wiek"]'
-const MAX_AGE_INPUT_SELECTOR =
-  '.age-range-filter input[type="number"][aria-label="Maksymalny wiek"]'
-
 export function minimumAgeInput(page: Page): Locator {
-  return page.locator(MIN_AGE_INPUT_SELECTOR)
+  return page.getByRole('spinbutton', { name: /minimalny wiek, wartość/i })
 }
 
 export function maximumAgeInput(page: Page): Locator {
-  return page.locator(MAX_AGE_INPUT_SELECTOR)
+  return page.getByRole('spinbutton', { name: /maksymalny wiek, wartość/i })
 }
 
 export async function setAgeRangeFilter(
