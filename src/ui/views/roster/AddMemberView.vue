@@ -371,12 +371,10 @@ async function handleSubmit() {
 <style scoped>
 .add-member-view {
   min-height: 100%;
-  padding: 2rem 1rem 0;
+  padding: 2rem 0 0;
 }
 
 .add-member-view__form {
-  max-width: 42rem;
-  margin: 0 auto;
   border: 1px solid var(--color-on-surface);
   background: var(--color-surface);
   box-shadow: 4px 4px 0 0 var(--color-on-surface);
@@ -500,10 +498,6 @@ async function handleSubmit() {
 }
 
 @media (min-width: 48rem) {
-  .add-member-view {
-    padding-inline: 2rem;
-  }
-
   .add-member-view__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

@@ -273,7 +273,7 @@ onMounted(() => {
     @update:session-time="updateSessionTime"
   />
 
-  <div v-else class="mx-auto max-w-4xl pt-4 pb-12">
+  <div v-else class="pt-4 pb-12">
     <section class="border border-on-surface bg-surface px-5 py-6 hard-shadow">
       <!-- What: keep edit-load failures on the shared floating alert surface. Why: even non-dismissable recovery errors should read from the same top-level location as the rest of the app so coaches know where to look first. -->
       <FloatingErrorAlert

@@ -348,7 +348,7 @@ function handleMonthChange(month: Date) {
 </script>
 
 <template>
-  <div class="mx-auto max-w-4xl pt-4 pb-12">
+  <div class="pt-4 pb-12">
     <section
       class="payments-view__hero mb-4 flex flex-col gap-6 md:mb-6 md:flex-row md:items-end md:justify-between"
     >

@@ -180,7 +180,7 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
 </script>
 
 <template>
-  <div class="attendance-view mx-auto max-w-4xl pt-4 pb-12">
+  <div class="attendance-view pt-4 pb-12">
     <div
       v-if="recoveryPromptVisible"
       class="attendance-recovery-dialog-backdrop"
