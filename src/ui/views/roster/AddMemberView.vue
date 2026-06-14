@@ -425,7 +425,6 @@ async function handleSubmit() {
 
 .add-member-view__label {
   color: var(--color-on-surface);
-  font-size: 0.78125rem;
 }
 
 .add-member-view__sub-label {

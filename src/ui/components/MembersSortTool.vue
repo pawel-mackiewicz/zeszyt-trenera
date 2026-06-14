@@ -132,12 +132,10 @@ function toggleSortDirection() {
   min-width: 0;
   max-width: 16rem;
   appearance: none;
-  border: 0;
-  border-bottom: 0;
+  border-width: 0;
   background: transparent;
-  padding: 0 0 0.125rem;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--color-primary);
