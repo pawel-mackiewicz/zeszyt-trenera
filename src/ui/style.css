@@ -12,8 +12,10 @@
   --color-error: #ba1a1a;
   --color-surface-tint: #b91d1d;
   --color-surface-container-low: #f3f3f3;
-  --color-background: #f9f9f9;
-  --color-surface: #f9f9f9;
+  --color-background: #fbfaf6;
+  --color-surface: #fbfaf6;
+  --color-paper-crease: #e6dfd4;
+  --color-paper-fiber: #cfc6b8;
   --color-danger: #ba1a1a;
   --font-headline: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
@@ -117,11 +119,25 @@ a {
 /* The app canvas lives here so the PWA shell and browser fallback share one background source of truth. */
 .app-canvas {
   background-color: var(--color-surface);
-  background-image: radial-gradient(
-    var(--color-outline-variant) 1px,
-    transparent 1px
-  );
-  background-size: 20px 20px;
+  background-image:
+    radial-gradient(
+      circle at 24% 18%,
+      rgb(from var(--color-paper-crease) r g b / 0.32),
+      transparent 18rem
+    ),
+    radial-gradient(
+      circle at 76% 82%,
+      rgb(from var(--color-surface-container-low) r g b / 0.72),
+      transparent 16rem
+    ),
+    radial-gradient(
+      rgb(from var(--color-paper-fiber) r g b / 0.22) 0.45px,
+      transparent 0.8px
+    );
+  background-size:
+    100% 100%,
+    100% 100%,
+    14px 16px;
 }
 
 /* Safe-area padding keeps the fixed bottom nav reachable in standalone mobile installs. */
