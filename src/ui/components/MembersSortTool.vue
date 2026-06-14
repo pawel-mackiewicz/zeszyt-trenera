@@ -51,11 +51,13 @@ function toggleSortDirection() {
 <template>
   <div class="members-sort-tool">
     <div class="members-sort-tool__copy">
-      <label class="members-sort-tool__caption" for="members-sort-field">
+      <span class="members-sort-tool__caption">
         {{ t('optionsLabel') }}
-      </label>
+      </span>
       <div class="members-sort-tool__row">
-        <span class="members-sort-tool__prefix">{{ t('fieldLabel') }}:</span>
+        <label class="members-sort-tool__prefix" for="members-sort-field">
+          {{ t('fieldLabel') }}:
+        </label>
         <select
           id="members-sort-field"
           v-model="sortFieldModel"
@@ -95,7 +97,7 @@ function toggleSortDirection() {
 .members-sort-tool__copy {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.375rem;
   min-width: 0;
 }
 
@@ -115,16 +117,20 @@ function toggleSortDirection() {
   align-items: center;
   gap: 0.5rem;
   min-width: 0;
+  margin-left: 0.125rem;
+  padding-left: 0.625rem;
+  border-left: 2px solid var(--color-outline-variant);
 }
 
 .members-sort-tool__prefix {
   font-family: var(--app-section-label-font-family);
-  font-size: var(--app-section-label-font-size);
-  font-weight: var(--app-section-label-font-weight);
+  font-size: 0.6875rem;
+  font-weight: 700;
   line-height: var(--app-section-label-line-height);
   letter-spacing: var(--app-section-label-letter-spacing);
   text-transform: var(--app-section-label-text-transform);
   color: var(--app-section-label-color);
+  white-space: nowrap;
 }
 
 .members-sort-tool__field-select {
@@ -135,7 +141,7 @@ function toggleSortDirection() {
   border-width: 0;
   background: transparent;
   font-family: var(--font-mono);
-  font-size: 0.75rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--color-primary);

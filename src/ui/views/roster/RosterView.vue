@@ -169,10 +169,7 @@ onBeforeUnmount(() => {
 
       <!-- Member Ledger List -->
       <Transition name="roster-tab-ledger" mode="out-in">
-        <div
-          :key="selectedRosterTab"
-          class="roster-tab-ledger space-y-0 border-t-2 border-on-surface"
-        >
+        <div :key="selectedRosterTab" class="roster-tab-ledger space-y-0">
           <div
             v-if="isLoading"
             class="p-8 text-center font-mono text-secondary uppercase animate-pulse"

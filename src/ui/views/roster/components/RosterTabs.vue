@@ -39,7 +39,6 @@ function selectTab(value: TValue) {
 .roster-tabs {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  border-top: 2px solid var(--color-on-surface);
   border-bottom: 2px solid var(--color-on-surface);
   background: var(--color-surface);
 }

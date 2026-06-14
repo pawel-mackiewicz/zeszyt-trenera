@@ -66,49 +66,36 @@ const memberSortDirectionModel = computed({
 </script>
 
 <template>
-  <section class="member-filter-sort-section">
-    <div class="member-filter-sort-section__primary">
-      <SearchBar
-        v-model="searchQueryModel"
-        :input-id="searchInputId"
-        :input-label="searchLabel"
-        :placeholder="searchPlaceholder"
-      />
+  <div class="member-filter-sort-section">
+    <SearchBar
+      v-model="searchQueryModel"
+      :input-id="searchInputId"
+      :input-label="searchLabel"
+      :placeholder="searchPlaceholder"
+    />
 
-      <MembersSortTool
-        v-model:sort-direction="memberSortDirectionModel"
-        v-model:sort-field="memberSortFieldModel"
-      />
-    </div>
+    <MembersSortTool
+      v-model:sort-direction="memberSortDirectionModel"
+      v-model:sort-field="memberSortFieldModel"
+    />
+  </div>
 
-    <div class="member-filter-sort-section__secondary">
-      <AgeRangeFilter
-        v-model:max-value="maxAgeFilterModel"
-        v-model:min-value="minAgeFilterModel"
-        :max-bound="AGE_FILTER_MAX"
-        :min-bound="AGE_FILTER_MIN"
-      />
-    </div>
-  </section>
+  <div class="member-filter-sort-section">
+    <AgeRangeFilter
+      v-model:max-value="maxAgeFilterModel"
+      v-model:min-value="minAgeFilterModel"
+      :max-bound="AGE_FILTER_MAX"
+      :min-bound="AGE_FILTER_MIN"
+    />
+  </div>
 </template>
 
 <style scoped>
 .member-filter-sort-section {
   display: grid;
-  gap: 0;
-  margin-bottom: 2rem;
-}
-
-.member-filter-sort-section__primary {
-  display: grid;
   gap: 1rem;
   border-bottom: 2px solid var(--color-on-surface);
-  padding-bottom: 0.5rem;
-}
-
-.member-filter-sort-section__secondary {
-  border-bottom: 2px solid var(--color-on-surface);
-  padding-top: 0.5rem;
-  padding-bottom: 1.5rem;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
 }
 </style>
