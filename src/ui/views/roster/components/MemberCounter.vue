@@ -35,7 +35,6 @@ defineProps<{
   margin-bottom: 2rem;
   border-top: 1px solid var(--color-outline-variant);
   border-bottom: 1px solid var(--color-outline-variant);
-  background: var(--color-surface);
 }
 
 .member-counter__metric {

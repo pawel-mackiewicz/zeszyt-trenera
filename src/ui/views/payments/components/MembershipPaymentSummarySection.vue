@@ -111,7 +111,6 @@ function formatMoney(value: MoneySnapshot | null): string {
   overflow: hidden;
   border-top: 2px solid var(--color-on-surface);
   border-bottom: 2px solid var(--color-on-surface);
-  background: var(--color-surface);
 }
 
 .payment-summary__trigger {
