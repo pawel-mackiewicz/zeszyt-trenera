@@ -113,7 +113,7 @@ function selectMember(member: CampParticipantCandidateViewItem) {
 </script>
 
 <template>
-  <div class="camp-participant-list-view mx-auto max-w-4xl pt-4 pb-12">
+  <div class="camp-participant-list-view pt-4 pb-12">
     <section class="camp-participant-list-view__hero mb-6">
       <h2 class="camp-participant-list-view__title">{{ t('title') }}</h2>
     </section>

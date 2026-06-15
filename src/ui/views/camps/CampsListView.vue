@@ -98,19 +98,13 @@ const { clearError, isLoading, loadError, past, present, reload } =
 <style scoped>
 .camps-list-view {
   min-height: 100%;
-  padding: 2rem 1rem
+  padding-block: 2rem
     max(9rem, calc(5rem + env(safe-area-inset-bottom) + 5.5rem));
-}
-
-.camps-list-view__ledger {
-  max-width: 64rem;
-  margin: 0 auto;
 }
 
 .camps-list-view__state,
 .camps-list-view__retry {
-  max-width: 64rem;
-  margin: 0 auto 1rem;
+  margin: 0 0 1rem;
 }
 
 .camps-list-view__state {
@@ -128,11 +122,5 @@ const { clearError, isLoading, loadError, past, present, reload } =
 .camps-list-view__retry {
   display: flex;
   justify-content: flex-start;
-}
-
-@media (min-width: 48rem) {
-  .camps-list-view {
-    padding-inline: 2rem;
-  }
 }
 </style>

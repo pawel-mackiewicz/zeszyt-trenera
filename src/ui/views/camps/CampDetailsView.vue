@@ -152,7 +152,7 @@ function formatMoney(money: MoneySnapshot): string {
 </script>
 
 <template>
-  <div class="camp-details-view mx-auto max-w-4xl pt-4 pb-12">
+  <div class="camp-details-view pt-4 pb-12">
     <section v-if="camp" class="camp-details-view__hero mb-6">
       <p class="camp-details-view__eyebrow">{{ dateRange }}</p>
       <h2 class="camp-details-view__title">{{ camp.name }}</h2>
