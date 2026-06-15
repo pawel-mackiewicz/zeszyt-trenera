@@ -38,7 +38,7 @@ describe('RosterView', () => {
         stubs: {
           RouterLink: {
             props: ['to'],
-            template: '<a :href="to" :to="to" v-bind="$attrs"><slot /></a>'
+            template: '<a :href="to" v-bind="$attrs"><slot /></a>'
           }
         },
         provide: createAppServicesProvides({
