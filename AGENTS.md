@@ -2,7 +2,7 @@
 - this app is pwa, local-first, mobile-first
 - after each plan completion change app version (e.g. 0.1.5 -> 0.1.6) (./package.json)
 - all write operations must go through application layer
-- dont check more than 10 files, ask if you need more information
+- don't check too much files - ask if clarification is needed
 - if you work on the UI, then keep Vue best practices as:
   - divide UI into components. If we can talk about an part of UI and reason about it - then probably it should be separate component
   - create domain composables
