@@ -10,6 +10,7 @@ import CampDetailsView from '@/ui/views/camps/CampDetailsView.vue'
 import CampNewView from '@/ui/views/camps/CampNewView.vue'
 import CampClubMembersListView from '@/ui/views/camps/CampClubMembersListView.vue'
 import RegisterClubCampParticipantView from '@/ui/views/camps/RegisterClubCampParticipantView.vue'
+import RegisterExternalCampParticipantView from '@/ui/views/camps/RegisterExternalCampParticipantView.vue'
 import CampsListView from '@/ui/views/camps/CampsListView.vue'
 import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
 import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
@@ -33,6 +34,7 @@ export type AppRouteName =
   | 'camp-details'
   | 'add-camp-participant'
   | 'add-club-camp-participant'
+  | 'add-external-camp-participant'
   | 'add-camp'
   | 'setup-club'
   | 'setup-trainer'
@@ -149,6 +151,16 @@ const baseRoutes = [
     path: '/camps/:campId/participants/new/club/:memberId',
     name: 'add-club-camp-participant',
     component: RegisterClubCampParticipantView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps/:campId/participants/new'
+    }
+  },
+  {
+    path: '/camps/:campId/participants/new/external',
+    name: 'add-external-camp-participant',
+    component: RegisterExternalCampParticipantView,
     meta: {
       showBack: true,
       hideBottomNav: true,

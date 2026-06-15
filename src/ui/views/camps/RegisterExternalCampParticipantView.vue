@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BadgePercent, Banknote, Tent, UserRound } from '@lucide/vue'
+import { BadgePercent, Banknote, IdCard, Tent, UserRound } from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -7,22 +7,23 @@ import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import { useRoute, useRouter } from '@/ui/router/runtime'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
-import { useRegisterClubCampParticipant } from './useRegisterClubCampParticipant'
+import { useRegisterExternalCampParticipant } from './useRegisterExternalCampParticipant'
 
 const route = useRoute()
 const router = useRouter()
 const { locale, t } = useI18n({ useScope: 'local' })
 
 const campId = computed(() => getRouteParam(route.params.campId))
-const memberId = computed(() => getRouteParam(route.params.memberId))
 const {
   amountYetToPay,
   context,
   discountAmount,
   discountEnabled,
   dismissSubmitError,
+  firstName,
   isLoading,
   isSubmitting,
+  lastName,
   loadError,
   overpaymentAmount,
   paymentAmount,
@@ -30,9 +31,8 @@ const {
   reload,
   submit,
   submitError
-} = useRegisterClubCampParticipant({
-  campId,
-  memberId
+} = useRegisterExternalCampParticipant({
+  campId
 })
 type OverpaymentWarningField = 'discount' | 'payment'
 
@@ -97,7 +97,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <main class="register-club-camp-participant-view">
+  <main class="register-external-camp-participant-view">
     <FloatingErrorAlert
       v-if="submitErrorMessage"
       :message="submitErrorMessage"
@@ -107,18 +107,18 @@ async function handleSubmit() {
 
     <section
       v-if="isLoading || loadError || !context"
-      class="register-club-camp-participant-view__form"
+      class="register-external-camp-participant-view__form"
     >
       <div
-        class="app-section-label register-club-camp-participant-view__label-bar"
+        class="app-section-label register-external-camp-participant-view__label-bar"
       >
         {{ t('sections.registration') }}
       </div>
-      <div class="register-club-camp-participant-view__body">
-        <p class="register-club-camp-participant-view__state">
+      <div class="register-external-camp-participant-view__body">
+        <p class="register-external-camp-participant-view__state">
           {{ isLoading ? t('states.loading') : t('states.loadError') }}
         </p>
-        <div class="register-club-camp-participant-view__actions">
+        <div class="register-external-camp-participant-view__actions">
           <AppButton
             v-if="loadError"
             type="button"
@@ -136,80 +136,112 @@ async function handleSubmit() {
 
     <form
       v-else
-      class="register-club-camp-participant-view__form"
+      class="register-external-camp-participant-view__form"
       @submit.prevent="handleSubmit"
     >
       <div
-        class="app-section-label register-club-camp-participant-view__label-bar"
+        class="app-section-label register-external-camp-participant-view__label-bar"
       >
         {{ t('sections.registration') }}
       </div>
 
-      <div class="register-club-camp-participant-view__body">
-        <div class="register-club-camp-participant-view__summary">
-          <div class="register-club-camp-participant-view__summary-item">
+      <div class="register-external-camp-participant-view__body">
+        <div class="register-external-camp-participant-view__summary">
+          <div class="register-external-camp-participant-view__summary-item">
             <span
-              class="app-section-label register-club-camp-participant-view__summary-label"
-            >
-              <UserRound
-                class="register-club-camp-participant-view__label-icon"
-                aria-hidden="true"
-              />
-              {{ t('fields.member.label') }}
-            </span>
-            <span class="register-club-camp-participant-view__summary-value">
-              {{ context.member.firstName }} {{ context.member.lastName }}
-            </span>
-          </div>
-          <div class="register-club-camp-participant-view__summary-item">
-            <span
-              class="app-section-label register-club-camp-participant-view__summary-label"
+              class="app-section-label register-external-camp-participant-view__summary-label"
             >
               <Tent
-                class="register-club-camp-participant-view__label-icon"
+                class="register-external-camp-participant-view__label-icon"
                 aria-hidden="true"
               />
               {{ t('fields.camp.label') }}
             </span>
-            <span class="register-club-camp-participant-view__summary-value">
+            <span
+              class="register-external-camp-participant-view__summary-value"
+            >
               {{ context.camp.name }}
             </span>
           </div>
         </div>
 
-        <div class="register-club-camp-participant-view__field">
+        <div class="register-external-camp-participant-view__identity">
+          <div class="register-external-camp-participant-view__field">
+            <label
+              class="app-section-label register-external-camp-participant-view__field-label"
+              for="externalCampParticipantFirstName"
+            >
+              <UserRound
+                class="register-external-camp-participant-view__label-icon"
+                aria-hidden="true"
+              />
+              {{ t('fields.firstName.label') }}
+            </label>
+            <input
+              id="externalCampParticipantFirstName"
+              v-model="firstName"
+              class="register-external-camp-participant-view__control"
+              :placeholder="t('fields.firstName.placeholder')"
+              required
+              type="text"
+            />
+          </div>
+
+          <div class="register-external-camp-participant-view__field">
+            <label
+              class="app-section-label register-external-camp-participant-view__field-label"
+              for="externalCampParticipantLastName"
+            >
+              <IdCard
+                class="register-external-camp-participant-view__label-icon"
+                aria-hidden="true"
+              />
+              {{ t('fields.lastName.label') }}
+            </label>
+            <input
+              id="externalCampParticipantLastName"
+              v-model="lastName"
+              class="register-external-camp-participant-view__control"
+              :placeholder="t('fields.lastName.placeholder')"
+              required
+              type="text"
+            />
+          </div>
+        </div>
+
+        <div class="register-external-camp-participant-view__field">
           <span
-            id="campParticipantPriceLabel"
-            class="app-section-label register-club-camp-participant-view__field-label"
+            id="externalCampParticipantPriceLabel"
+            class="app-section-label register-external-camp-participant-view__field-label"
           >
             <Banknote
-              class="register-club-camp-participant-view__label-icon"
+              class="register-external-camp-participant-view__label-icon"
               aria-hidden="true"
             />
             {{ t('fields.price.label') }}
           </span>
           <output
-            id="campParticipantPrice"
-            aria-labelledby="campParticipantPriceLabel"
-            class="register-club-camp-participant-view__display-value"
+            id="externalCampParticipantPrice"
+            aria-labelledby="externalCampParticipantPriceLabel"
+            class="register-external-camp-participant-view__display-value"
           >
             {{ formatMoney(context.camp.price) }}
           </output>
         </div>
 
-        <div class="register-club-camp-participant-view__toggle-group">
+        <div class="register-external-camp-participant-view__toggle-group">
           <label
-            class="app-section-label register-club-camp-participant-view__toggle-label"
-            for="campParticipantDiscountEnabled"
+            class="app-section-label register-external-camp-participant-view__toggle-label"
+            for="externalCampParticipantDiscountEnabled"
           >
             <input
-              id="campParticipantDiscountEnabled"
+              id="externalCampParticipantDiscountEnabled"
               v-model="discountEnabled"
-              class="register-club-camp-participant-view__checkbox"
+              class="register-external-camp-participant-view__checkbox"
               type="checkbox"
             />
             <BadgePercent
-              class="register-club-camp-participant-view__label-icon"
+              class="register-external-camp-participant-view__label-icon"
               aria-hidden="true"
             />
             {{ t('fields.discount.enabledLabel') }}
@@ -217,18 +249,18 @@ async function handleSubmit() {
 
           <div
             v-if="discountEnabled"
-            class="register-club-camp-participant-view__field"
+            class="register-external-camp-participant-view__field"
           >
             <label
-              class="app-section-label register-club-camp-participant-view__sub-label"
-              for="campParticipantDiscountAmount"
+              class="app-section-label register-external-camp-participant-view__sub-label"
+              for="externalCampParticipantDiscountAmount"
             >
               {{ t('fields.discount.amountLabel') }}
             </label>
             <input
-              id="campParticipantDiscountAmount"
+              id="externalCampParticipantDiscountAmount"
               v-model="discountAmount"
-              class="register-club-camp-participant-view__control"
+              class="register-external-camp-participant-view__control"
               inputmode="decimal"
               :placeholder="t('fields.money.placeholder')"
               type="text"
@@ -237,8 +269,8 @@ async function handleSubmit() {
             />
             <p
               v-if="overpaymentWarningField === 'discount' && overpaymentAmount"
-              id="campParticipantDiscountOverpaymentWarning"
-              class="register-club-camp-participant-view__amount-warning"
+              id="externalCampParticipantDiscountOverpaymentWarning"
+              class="register-external-camp-participant-view__amount-warning"
               role="alert"
             >
               {{
@@ -250,19 +282,19 @@ async function handleSubmit() {
           </div>
         </div>
 
-        <div class="register-club-camp-participant-view__toggle-group">
+        <div class="register-external-camp-participant-view__toggle-group">
           <label
-            class="app-section-label register-club-camp-participant-view__toggle-label"
-            for="campParticipantPaymentEnabled"
+            class="app-section-label register-external-camp-participant-view__toggle-label"
+            for="externalCampParticipantPaymentEnabled"
           >
             <input
-              id="campParticipantPaymentEnabled"
+              id="externalCampParticipantPaymentEnabled"
               v-model="paymentEnabled"
-              class="register-club-camp-participant-view__checkbox"
+              class="register-external-camp-participant-view__checkbox"
               type="checkbox"
             />
             <Banknote
-              class="register-club-camp-participant-view__label-icon"
+              class="register-external-camp-participant-view__label-icon"
               aria-hidden="true"
             />
             {{ t('fields.payment.enabledLabel') }}
@@ -270,18 +302,18 @@ async function handleSubmit() {
 
           <div
             v-if="paymentEnabled"
-            class="register-club-camp-participant-view__field"
+            class="register-external-camp-participant-view__field"
           >
             <label
-              class="app-section-label register-club-camp-participant-view__sub-label"
-              for="campParticipantPaymentAmount"
+              class="app-section-label register-external-camp-participant-view__sub-label"
+              for="externalCampParticipantPaymentAmount"
             >
               {{ t('fields.payment.amountLabel') }}
             </label>
             <input
-              id="campParticipantPaymentAmount"
+              id="externalCampParticipantPaymentAmount"
               v-model="paymentAmount"
-              class="register-club-camp-participant-view__control"
+              class="register-external-camp-participant-view__control"
               inputmode="decimal"
               :placeholder="t('fields.money.placeholder')"
               type="text"
@@ -290,8 +322,8 @@ async function handleSubmit() {
             />
             <p
               v-if="overpaymentWarningField === 'payment' && overpaymentAmount"
-              id="campParticipantPaymentOverpaymentWarning"
-              class="register-club-camp-participant-view__amount-warning"
+              id="externalCampParticipantPaymentOverpaymentWarning"
+              class="register-external-camp-participant-view__amount-warning"
               role="alert"
             >
               {{
@@ -305,31 +337,31 @@ async function handleSubmit() {
 
         <div
           v-if="amountYetToPay"
-          class="register-club-camp-participant-view__amount-yet-to-pay"
+          class="register-external-camp-participant-view__amount-yet-to-pay"
           aria-live="polite"
         >
           <span
-            id="campParticipantAmountYetToPayLabel"
-            class="app-section-label register-club-camp-participant-view__field-label"
+            id="externalCampParticipantAmountYetToPayLabel"
+            class="app-section-label register-external-camp-participant-view__field-label"
           >
             <Banknote
-              class="register-club-camp-participant-view__label-icon"
+              class="register-external-camp-participant-view__label-icon"
               aria-hidden="true"
             />
             {{ t('fields.amountYetToPay.label') }}
           </span>
           <output
-            id="campParticipantAmountYetToPay"
-            aria-labelledby="campParticipantAmountYetToPayLabel"
-            class="register-club-camp-participant-view__amount-yet-to-pay-value"
+            id="externalCampParticipantAmountYetToPay"
+            aria-labelledby="externalCampParticipantAmountYetToPayLabel"
+            class="register-external-camp-participant-view__amount-yet-to-pay-value"
           >
             {{ formatMoney(amountYetToPay) }}
           </output>
         </div>
 
-        <div class="register-club-camp-participant-view__actions">
+        <div class="register-external-camp-participant-view__actions">
           <AppButton
-            class="register-club-camp-participant-view__submit"
+            class="register-external-camp-participant-view__submit"
             type="submit"
             :disabled="isSubmitting"
             variant="secondary"
@@ -346,12 +378,12 @@ async function handleSubmit() {
 </template>
 
 <style scoped>
-.register-club-camp-participant-view {
+.register-external-camp-participant-view {
   min-height: 100%;
   padding: 2rem 1rem 0;
 }
 
-.register-club-camp-participant-view__form {
+.register-external-camp-participant-view__form {
   max-width: 42rem;
   margin: 0 auto;
   border: 1px solid var(--color-on-surface);
@@ -359,7 +391,7 @@ async function handleSubmit() {
   box-shadow: 4px 4px 0 0 var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__label-bar {
+.register-external-camp-participant-view__label-bar {
   margin: 0;
   padding: 0.9rem 1rem;
   border-block-end: 1px solid var(--color-on-surface);
@@ -368,47 +400,48 @@ async function handleSubmit() {
   font-size: 0.875rem;
 }
 
-.register-club-camp-participant-view__body {
+.register-external-camp-participant-view__body {
   display: grid;
   gap: 1.5rem;
   padding: 1.5rem 1rem;
 }
 
-.register-club-camp-participant-view__summary {
+.register-external-camp-participant-view__summary,
+.register-external-camp-participant-view__identity {
   display: grid;
   gap: 1rem;
   padding-block-end: 1.5rem;
   border-block-end: 1px dashed var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__summary-item,
-.register-club-camp-participant-view__field,
-.register-club-camp-participant-view__amount-yet-to-pay,
-.register-club-camp-participant-view__toggle-group {
+.register-external-camp-participant-view__summary-item,
+.register-external-camp-participant-view__field,
+.register-external-camp-participant-view__amount-yet-to-pay,
+.register-external-camp-participant-view__toggle-group {
   display: grid;
   gap: 0.5rem;
 }
 
-.register-club-camp-participant-view__summary-label,
-.register-club-camp-participant-view__field-label,
-.register-club-camp-participant-view__sub-label,
-.register-club-camp-participant-view__toggle-label {
+.register-external-camp-participant-view__summary-label,
+.register-external-camp-participant-view__field-label,
+.register-external-camp-participant-view__sub-label,
+.register-external-camp-participant-view__toggle-label {
   display: flex;
   align-items: center;
   gap: 0.35rem;
 }
 
-.register-club-camp-participant-view__summary-label,
-.register-club-camp-participant-view__field-label,
-.register-club-camp-participant-view__toggle-label {
+.register-external-camp-participant-view__summary-label,
+.register-external-camp-participant-view__field-label,
+.register-external-camp-participant-view__toggle-label {
   color: var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__sub-label {
+.register-external-camp-participant-view__sub-label {
   color: var(--color-secondary);
 }
 
-.register-club-camp-participant-view__label-icon {
+.register-external-camp-participant-view__label-icon {
   flex: 0 0 auto;
   width: 0.9rem;
   height: 0.9rem;
@@ -416,7 +449,7 @@ async function handleSubmit() {
   stroke-width: 2.25;
 }
 
-.register-club-camp-participant-view__summary-value {
+.register-external-camp-participant-view__summary-value {
   overflow-wrap: anywhere;
   font-family: var(--font-headline);
   font-size: 1.35rem;
@@ -426,11 +459,11 @@ async function handleSubmit() {
   color: var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__amount-yet-to-pay {
+.register-external-camp-participant-view__amount-yet-to-pay {
   padding-block: 1rem;
 }
 
-.register-club-camp-participant-view__amount-yet-to-pay-value {
+.register-external-camp-participant-view__amount-yet-to-pay-value {
   overflow-wrap: anywhere;
   font-family: var(--font-headline);
   font-size: 1.35rem;
@@ -440,7 +473,7 @@ async function handleSubmit() {
   color: var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__amount-warning {
+.register-external-camp-participant-view__amount-warning {
   margin: 0.25rem 0 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
@@ -451,7 +484,7 @@ async function handleSubmit() {
   color: var(--color-danger);
 }
 
-.register-club-camp-participant-view__display-value {
+.register-external-camp-participant-view__display-value {
   overflow-wrap: anywhere;
   font-family: var(--font-mono);
   font-size: 0.95rem;
@@ -461,7 +494,7 @@ async function handleSubmit() {
   color: var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__control {
+.register-external-camp-participant-view__control {
   width: 100%;
   min-height: 2.75rem;
   border: 0;
@@ -479,7 +512,7 @@ async function handleSubmit() {
   color: var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__control::placeholder {
+.register-external-camp-participant-view__control::placeholder {
   color: var(--color-secondary);
   font-style: italic;
   font-weight: 400;
@@ -487,19 +520,19 @@ async function handleSubmit() {
   opacity: 0.62;
 }
 
-.register-club-camp-participant-view__control:focus {
+.register-external-camp-participant-view__control:focus {
   border-bottom-color: var(--color-primary);
   border-bottom-width: 2px;
   outline: 0;
 }
 
-.register-club-camp-participant-view__checkbox {
+.register-external-camp-participant-view__checkbox {
   width: 1rem;
   height: 1rem;
   accent-color: var(--color-primary);
 }
 
-.register-club-camp-participant-view__state {
+.register-external-camp-participant-view__state {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.78rem;
@@ -510,14 +543,14 @@ async function handleSubmit() {
   color: var(--color-secondary);
 }
 
-.register-club-camp-participant-view__actions {
+.register-external-camp-participant-view__actions {
   display: grid;
   gap: 0.75rem;
   padding-block-start: 2rem;
   border-block-start: 1px dashed var(--color-on-surface);
 }
 
-.register-club-camp-participant-view__submit {
+.register-external-camp-participant-view__submit {
   width: 100%;
   min-height: 3.5rem;
   box-shadow: 4px 4px 0 0 var(--color-on-surface);
@@ -527,16 +560,16 @@ async function handleSubmit() {
 }
 
 @media (min-width: 48rem) {
-  .register-club-camp-participant-view {
+  .register-external-camp-participant-view {
     padding-inline: 2rem;
   }
 
-  .register-club-camp-participant-view__body {
+  .register-external-camp-participant-view__body {
     gap: 2rem;
     padding: 2rem;
   }
 
-  .register-club-camp-participant-view__summary {
+  .register-external-camp-participant-view__identity {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -546,7 +579,7 @@ async function handleSubmit() {
 {
   "pl": {
     "sections": {
-      "registration": "Zapis na obóz"
+      "registration": "Dodaj spoza klubu"
     },
     "actions": {
       "cancel": "Anuluj",
@@ -559,11 +592,12 @@ async function handleSubmit() {
       "loadError": "Nie udało się wczytać danych zapisu."
     },
     "errors": {
-      "alreadySigned": "Ten klubowicz jest już zapisany na ten obóz.",
+      "alreadySigned": "Ten uczestnik jest już zapisany na ten obóz.",
       "invalidDiscount": "Podaj dodatnią kwotę zniżki.",
+      "invalidName": "Podaj imię i nazwisko uczestnika.",
       "invalidPayment": "Podaj dodatnią kwotę wpłaty.",
       "load": "Nie udało się wczytać danych zapisu.",
-      "missingContext": "Nie znaleziono obozu albo klubowicza.",
+      "missingContext": "Nie znaleziono obozu.",
       "submit": "Nie udało się zapisać uczestnika. Sprawdź dane i spróbuj ponownie."
     },
     "fields": {
@@ -578,8 +612,13 @@ async function handleSubmit() {
         "enabledLabel": "Przyznaj zniżkę",
         "overpaymentWarning": "Zniżka powoduje nadpłatę: {amount}"
       },
-      "member": {
-        "label": "Klubowicz"
+      "firstName": {
+        "label": "Imię",
+        "placeholder": "Wpisz imię"
+      },
+      "lastName": {
+        "label": "Nazwisko",
+        "placeholder": "Wpisz nazwisko"
       },
       "money": {
         "placeholder": "0,00"
@@ -596,7 +635,7 @@ async function handleSubmit() {
   },
   "en": {
     "sections": {
-      "registration": "Camp registration"
+      "registration": "Add outside club"
     },
     "actions": {
       "cancel": "Cancel",
@@ -609,11 +648,12 @@ async function handleSubmit() {
       "loadError": "The registration data could not be loaded."
     },
     "errors": {
-      "alreadySigned": "This club member is already signed to this camp.",
+      "alreadySigned": "This participant is already signed to this camp.",
       "invalidDiscount": "Enter a positive discount amount.",
+      "invalidName": "Enter participant first and last name.",
       "invalidPayment": "Enter a positive payment amount.",
       "load": "The registration data could not be loaded.",
-      "missingContext": "The camp or club member could not be found.",
+      "missingContext": "The camp could not be found.",
       "submit": "The participant could not be saved. Check the details and try again."
     },
     "fields": {
@@ -628,8 +668,13 @@ async function handleSubmit() {
         "enabledLabel": "Grant discount",
         "overpaymentWarning": "Discount causes overpayment: {amount}"
       },
-      "member": {
-        "label": "Club member"
+      "firstName": {
+        "label": "First name",
+        "placeholder": "Enter first name"
+      },
+      "lastName": {
+        "label": "Last name",
+        "placeholder": "Enter last name"
       },
       "money": {
         "placeholder": "0.00"

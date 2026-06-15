@@ -36,6 +36,9 @@ describe('CampClubMembersListView', () => {
     vi.setSystemTime(new Date('2026-06-01T00:00:00Z'))
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
+        getExternalCampParticipantRegistrationContext: {
+          handle: vi.fn()
+        },
         getClubCampParticipantRegistrationContext: {
           handle: vi.fn()
         },
@@ -140,6 +143,21 @@ describe('CampClubMembersListView', () => {
     expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()
     expect(mockRouterPush).toHaveBeenCalledWith(
       '/camps/camp-winter-2026/participants/new/club/member-amanda'
+    )
+  })
+
+  it('routes a coach from the outside club CTA to the external registration flow', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text().includes('Dodaj spoza klubu'))!
+      .trigger('click')
+
+    expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()
+    expect(mockRouterPush).toHaveBeenCalledWith(
+      '/camps/camp-winter-2026/participants/new/external'
     )
   })
 })

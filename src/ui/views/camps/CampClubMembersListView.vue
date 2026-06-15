@@ -110,6 +110,12 @@ function selectMember(member: CampParticipantCandidateViewItem) {
     `/camps/${encodeURIComponent(campId.value)}/participants/new/club/${encodeURIComponent(member.id)}`
   )
 }
+
+function addExternalParticipant() {
+  void router.push(
+    `/camps/${encodeURIComponent(campId.value)}/participants/new/external`
+  )
+}
 </script>
 
 <template>
@@ -180,7 +186,11 @@ function selectMember(member: CampParticipantCandidateViewItem) {
       </section>
 
       <div class="camp-club-members-list-view__action app-floating-action">
-        <AppButton disabled type="button">
+        <AppButton
+          type="button"
+          :aria-label="t('actions.addExternal')"
+          @click="addExternalParticipant"
+        >
           {{ t('actions.addExternal') }}
         </AppButton>
       </div>

@@ -33,6 +33,7 @@ export const SHELL_ROUTE_TITLE_KEYS = {
   'camp-details': 'routes.campsList',
   'add-camp-participant': 'routes.campsList',
   'add-club-camp-participant': 'routes.campsList',
+  'add-external-camp-participant': 'routes.campsList',
   'add-camp': 'routes.addCamp',
   'setup-club': 'routes.setupClub',
   'setup-trainer': 'routes.setupTrainer',
@@ -83,6 +84,7 @@ export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationI
         'camp-details',
         'add-camp-participant',
         'add-club-camp-participant',
+        'add-external-camp-participant',
         'add-camp'
       ]
     }
