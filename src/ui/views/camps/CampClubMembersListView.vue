@@ -113,16 +113,16 @@ function selectMember(member: CampParticipantCandidateViewItem) {
 </script>
 
 <template>
-  <div class="camp-participant-list-view pt-4 pb-12">
-    <section class="camp-participant-list-view__hero mb-6">
-      <h2 class="camp-participant-list-view__title">{{ t('title') }}</h2>
+  <div class="camp-club-members-list-view pt-4 pb-12">
+    <section class="camp-club-members-list-view__hero mb-6">
+      <h2 class="camp-club-members-list-view__title">{{ t('title') }}</h2>
     </section>
 
     <section
       v-if="loadError"
-      class="camp-participant-list-view__state mb-10 px-5 py-6"
+      class="camp-club-members-list-view__state mb-10 px-5 py-6"
     >
-      <p class="camp-participant-list-view__state-copy">
+      <p class="camp-club-members-list-view__state-copy">
         {{ t('states.loadError') }}
       </p>
       <AppButton variant="secondary" type="button" @click="reload">
@@ -165,7 +165,7 @@ function selectMember(member: CampParticipantCandidateViewItem) {
           {{ emptyState }}
         </div>
 
-        <ul v-else class="camp-participant-list-view__members">
+        <ul v-else class="camp-club-members-list-view__members">
           <CampParticipantCandidateRow
             v-for="member in filteredMembers"
             :key="member.id"
@@ -179,7 +179,7 @@ function selectMember(member: CampParticipantCandidateViewItem) {
         </ul>
       </section>
 
-      <div class="camp-participant-list-view__action app-floating-action">
+      <div class="camp-club-members-list-view__action app-floating-action">
         <AppButton disabled type="button">
           {{ t('actions.addExternal') }}
         </AppButton>
@@ -189,16 +189,16 @@ function selectMember(member: CampParticipantCandidateViewItem) {
 </template>
 
 <style scoped>
-.camp-participant-list-view {
+.camp-club-members-list-view {
   padding-bottom: max(8.5rem, calc(5rem + env(safe-area-inset-bottom) + 4rem));
 }
 
-.camp-participant-list-view__hero {
+.camp-club-members-list-view__hero {
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--color-on-surface);
 }
 
-.camp-participant-list-view__title {
+.camp-club-members-list-view__title {
   margin: 0;
   overflow-wrap: anywhere;
   font-family: var(--font-headline);
@@ -210,7 +210,7 @@ function selectMember(member: CampParticipantCandidateViewItem) {
   color: var(--color-on-surface);
 }
 
-.camp-participant-list-view__state {
+.camp-club-members-list-view__state {
   display: grid;
   gap: 1rem;
   justify-items: start;
@@ -226,11 +226,11 @@ function selectMember(member: CampParticipantCandidateViewItem) {
   color: var(--color-secondary);
 }
 
-.camp-participant-list-view__state-copy {
+.camp-club-members-list-view__state-copy {
   margin: 0;
 }
 
-.camp-participant-list-view__members {
+.camp-club-members-list-view__members {
   margin: 0;
   padding: 0;
   list-style: none;

@@ -12,7 +12,7 @@ import {
 import { createAppI18n } from '@/ui/i18n'
 import { useAppServices } from '@/ui/appServices'
 import { useRoute, useRouter } from '@/ui/router/runtime'
-import CampParticipantListView from '@/ui/views/camps/CampParticipantListView.vue'
+import CampClubMembersListView from '@/ui/views/camps/CampClubMembersListView.vue'
 
 vi.mock('@/ui/appServices', () => ({
   useAppServices: vi.fn()
@@ -23,7 +23,7 @@ vi.mock('@/ui/router/runtime', () => ({
   useRouter: vi.fn()
 }))
 
-describe('CampParticipantListView', () => {
+describe('CampClubMembersListView', () => {
   let mockListCandidatesHandle: Mock
   let mockRegisterCampParticipantHandle: Mock
   let mockRouterPush: Mock
@@ -64,7 +64,7 @@ describe('CampParticipantListView', () => {
   })
 
   function mountView(locale: 'pl' | 'en' = 'pl') {
-    return mount(CampParticipantListView, {
+    return mount(CampClubMembersListView, {
       global: {
         plugins: [createAppI18n(locale)]
       }
