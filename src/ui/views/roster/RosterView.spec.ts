@@ -306,7 +306,7 @@ describe('RosterView', () => {
 
     expect(
       wrapper
-        .findAll('summary .font-headline')
+        .findAll('summary .roster-member-row__name')
         .map((summaryName) => summaryName.text())
     ).toStrictEqual(['Adam Alpha', 'Adam Zulu', 'Zane Beta'])
   })
@@ -373,7 +373,7 @@ describe('RosterView', () => {
 
     const renderedNames = () =>
       wrapper
-        .findAll('summary .font-headline')
+        .findAll('summary .roster-member-row__name')
         .map((summaryName) => summaryName.text())
 
     expect(renderedNames()).toStrictEqual([

@@ -5,12 +5,10 @@ import { useI18n } from 'vue-i18n'
 import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import { useAppServices } from '@/ui/appServices'
 import AppButton from '@/ui/components/AppButton.vue'
-import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
-import MemberArchivedDetailsDrawer from './components/MemberArchivedDetailsDrawer.vue'
 import MemberCounter from './components/MemberCounter.vue'
-import MemberActiveDetailsDrawer from './components/MemberActiveDetailsDrawer.vue'
+import RosterMemberRow from './components/RosterMemberRow.vue'
 import RosterTabs, { type RosterTabOption } from './components/RosterTabs.vue'
 import { useRosterMemberFilters } from '@/ui/views/roster/useRosterMemberFilters'
 
@@ -189,46 +187,19 @@ onBeforeUnmount(() => {
             {{ t('states.empty') }}
           </div>
 
-          <details
+          <RosterMemberRow
             v-for="member in filteredMembers"
             :key="member.id"
-            class="group"
-            :open="openMemberId === member.id"
-          >
-            <!-- What: keep expand and collapse bound to the summary row only. Why: the details body contains edit actions and form fields that must remain tappable in this mobile-first list without collapsing on every interaction. -->
-            <summary
-              class="list-none cursor-pointer flex justify-between items-center p-4 bg-surface/40 hover:bg-surface-container-low transition-colors border-b border-outline-variant"
-              @click.prevent="toggleDetails(member.id)"
-            >
-              <span class="flex flex-col">
-                <span
-                  class="font-headline font-bold text-xl uppercase tracking-tight group-hover:text-primary transition-colors"
-                  >{{ member.firstName }} {{ member.lastName }}</span
-                >
-              </span>
-              <AppIcon
-                class="expand-icon transition-transform duration-200 text-secondary"
-                :class="{ 'rotate-180': openMemberId === member.id }"
-                name="expand_more"
-              />
-            </summary>
-            <MemberActiveDetailsDrawer
-              v-if="selectedRosterTab === 'active'"
-              :is-open="openMemberId === member.id"
-              :member="member"
-              @archived="finishMemberMutation"
-              @deleted="finishMemberMutation"
-              @error="showEditError"
-              @saved="finishMemberEdit"
-            />
-            <MemberArchivedDetailsDrawer
-              v-else
-              :is-open="openMemberId === member.id"
-              :member="member"
-              @error="showEditError"
-              @unarchived="finishMemberMutation"
-            />
-          </details>
+            :is-open="openMemberId === member.id"
+            :member="member"
+            :variant="selectedRosterTab"
+            @archived="finishMemberMutation"
+            @deleted="finishMemberMutation"
+            @error="showEditError"
+            @saved="finishMemberEdit"
+            @toggle="toggleDetails"
+            @unarchived="finishMemberMutation"
+          />
         </div>
       </Transition>
     </div>

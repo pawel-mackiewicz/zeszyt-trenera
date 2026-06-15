@@ -31,19 +31,18 @@ function toPhoneMessageHref(phoneNumber: string): string {
 </script>
 
 <template>
-  <div
-    v-show="isOpen"
-    class="p-4 bg-white/60 backdrop-blur-sm border-b border-outline-variant grid grid-cols-2 md:grid-cols-4 gap-4"
-  >
-    <div class="flex flex-col">
-      <span class="font-label text-[0.6rem] text-secondary uppercase font-bold">
+  <div v-show="isOpen" class="member-details-base-drawer">
+    <div class="member-details-base-drawer__field">
+      <span class="member-details-base-drawer__label">
         {{ t('phoneNumber') }}
       </span>
       <div
         v-if="member.phoneNumber?.trim()"
         class="member-details-base-drawer__phone-actions"
       >
-        <span class="font-mono text-sm">{{ member.phoneNumber }}</span>
+        <span class="member-details-base-drawer__value">
+          {{ member.phoneNumber }}
+        </span>
         <div class="member-details-base-drawer__phone-actions-row">
           <a
             class="member-details-base-drawer__phone-action"
@@ -63,27 +62,27 @@ function toPhoneMessageHref(phoneNumber: string): string {
           </a>
         </div>
       </div>
-      <span v-else class="font-mono text-sm">{{ t('missing') }}</span>
+      <span v-else class="member-details-base-drawer__value">
+        {{ t('missing') }}
+      </span>
     </div>
-    <div class="flex flex-col">
-      <span class="font-label text-[0.6rem] text-secondary uppercase font-bold">
+    <div class="member-details-base-drawer__field">
+      <span class="member-details-base-drawer__label">
         {{ t('dateOfBirth') }}
       </span>
-      <span class="font-mono text-sm">
+      <span class="member-details-base-drawer__value">
         {{ formatDisplayDate(member.dateOfBirth) }}
       </span>
     </div>
-    <div class="flex flex-col">
-      <span class="font-label text-[0.6rem] text-secondary uppercase font-bold">
+    <div class="member-details-base-drawer__field">
+      <span class="member-details-base-drawer__label">
         {{ t('joinedAt') }}
       </span>
-      <span class="font-mono text-sm">
+      <span class="member-details-base-drawer__value">
         {{ formatOptionalDisplayDate(member.joinedAt) }}
       </span>
     </div>
-    <div
-      class="col-span-2 md:col-span-4 flex justify-end gap-3 border-t border-outline-variant pt-3"
-    >
+    <div class="member-details-base-drawer__actions">
       <slot name="actions" />
     </div>
     <slot />
@@ -91,6 +90,49 @@ function toPhoneMessageHref(phoneNumber: string): string {
 </template>
 
 <style scoped>
+.member-details-base-drawer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: color-mix(in srgb, var(--color-surface) 40%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.member-details-base-drawer__field {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+.member-details-base-drawer__label {
+  color: var(--color-secondary);
+  font-family: var(--font-label);
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.member-details-base-drawer__value {
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--color-on-surface);
+}
+
+.member-details-base-drawer__actions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--color-outline-variant);
+}
+
 .member-details-base-drawer__phone-actions {
   display: grid;
   gap: 0.45rem;
@@ -144,6 +186,12 @@ function toPhoneMessageHref(phoneNumber: string): string {
 .member-details-base-drawer__phone-action:focus-visible {
   outline: 2px solid var(--color-on-surface);
   outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .member-details-base-drawer {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 </style>
 
