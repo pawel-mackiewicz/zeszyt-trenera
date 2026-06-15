@@ -222,6 +222,11 @@ export class CampParticipant {
     this._updatedAt = copyDate(input.updatedAt ?? addedAt)
   }
 
+  /**
+   * Creates a new camp participant.
+   * It checks the camp id and person data, starts with no discounts or
+   * payments, and returns the created participant with its domain event.
+   */
   public static register(
     input: RegisterCampParticipantInput,
     id: string
@@ -248,6 +253,10 @@ export class CampParticipant {
     return [campParticipant, event]
   }
 
+  /**
+   * Rebuilds a participant from saved data.
+   * It copies nested values so the new object owns its state.
+   */
   public static rehydrate(snapshot: CampParticipantSnapshot): CampParticipant {
     return new CampParticipant(
       {
@@ -266,6 +275,12 @@ export class CampParticipant {
     )
   }
 
+  /**
+   * Adds a discount to an active participant.
+   * It checks that the participant can still receive discounts, uses the same
+   * currency as the camp price and does not reduce the amount due below zero.
+   * The returned participant has a recalculated payment status.
+   */
   public applyDiscount(
     input: DiscountInput
   ): [CampParticipant, CampParticipantDiscountAppliedDomainEvent] {
@@ -311,6 +326,11 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  /**
+   * Registers a payment for an active participant.
+   * It checks the payment currency, adds the payment to the ledger and updates
+   * the status to fully paid when the balance covers the amount due.
+   */
   public registerPayment(
     input: PaymentInput
   ): [CampParticipant, CampParticipantPaymentRegisteredDomainEvent] {
@@ -347,6 +367,12 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  /**
+   * Registers a refund after a participant has resigned.
+   * It checks that the refund uses the camp currency and does not exceed the
+   * current refundable balance. After the refund, the status becomes refunded
+   * only when the balance is zero.
+   */
   public registerRefund(
     input: RefundInput
   ): [CampParticipant, CampParticipantRefundRegisteredDomainEvent] {
@@ -388,6 +414,11 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  /**
+   * Marks the participant as resigned.
+   * An optional non-refundable deposit can be kept from the paid balance. The
+   * deposit must use the camp currency and cannot be higher than what was paid.
+   */
   public resign(
     input?: NonRefundableDepositInput
   ): [CampParticipant, CampParticipantResignedDomainEvent] {
@@ -435,6 +466,12 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  /**
+   * Cancels a resignation.
+   * It reverses every active non-refundable deposit, adds those reversals to
+   * the ledger and then recalculates whether the participant is registered or
+   * fully paid.
+   */
   public cancelResignation(
     generateReversalId: (deposit: NonRefundableDeposit) => string
   ): [CampParticipant, CampParticipantResignationCanceledDomainEvent] {
@@ -487,12 +524,21 @@ export class CampParticipant {
     return [updatedCampParticipant, event]
   }
 
+  /**
+   * Shows how much the participant still needs to pay.
+   * It delegates the calculation to the participant ledger.
+   */
   public remainingAmountToPay(): Money {
     return CampParticipantLedger.from(
       this._financialTransactions
     ).remainingAmountToPay(this._totalAmountDue)
   }
 
+  /**
+   * Shows the participant's current positive balance.
+   * Negative ledger values are returned as zero because this method is meant to
+   * show money available on the participant account.
+   */
   public financialBalance(): Money {
     return createMoneyInSameCurrency(
       this._totalAmountDue,
@@ -503,6 +549,10 @@ export class CampParticipant {
     )
   }
 
+  /**
+   * Creates a saved copy of the participant.
+   * Getters are used so nested values are copied before leaving the aggregate.
+   */
   public toSnapshot(): CampParticipantSnapshot {
     return {
       id: this.id,

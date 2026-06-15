@@ -33,12 +33,22 @@ const copyNonRefundableDeposit = (
 export class CampParticipantLedger {
   private constructor(private readonly transactions: FinancialTransaction[]) {}
 
+  /**
+   * Builds a ledger from existing transactions.
+   * It copies every transaction so later changes outside the ledger cannot
+   * change the ledger result.
+   */
   public static from(
     transactions: FinancialTransaction[]
   ): CampParticipantLedger {
     return new CampParticipantLedger(transactions.map(copyFinancialTransaction))
   }
 
+  /**
+   * Counts the current paid balance in minor units.
+   * Payments and reversed deposits add money back to the balance. Refunds,
+   * discounts and non-refundable deposits lower it.
+   */
   public balanceMinor(): number {
     return this.transactions.reduce(
       (balance, transaction) =>
@@ -47,6 +57,11 @@ export class CampParticipantLedger {
     )
   }
 
+  /**
+   * Shows how much still needs to be paid.
+   * It subtracts the ledger balance from the total amount due and never returns
+   * a value below zero.
+   */
   public remainingAmountToPay(totalAmountDue: Money): Money {
     return Money.create({
       amountMinor: Math.max(
@@ -57,6 +72,10 @@ export class CampParticipantLedger {
     })
   }
 
+  /**
+   * Returns non-refundable deposits that are still active.
+   * A deposit is skipped when there is a reversal transaction pointing to it.
+   */
   public unreversedNonRefundableDeposits(): NonRefundableDeposit[] {
     const reversedDepositIds = new Set(
       this.transactions
