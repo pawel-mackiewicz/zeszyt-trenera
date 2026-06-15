@@ -109,6 +109,9 @@ describe('uiAppServices', () => {
         registerCampParticipant: {
           handle
         },
+        registerCampParticipantDiscount: {
+          handle
+        },
         registerClub: {
           handle
         },
