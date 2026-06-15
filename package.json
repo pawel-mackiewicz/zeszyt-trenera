@@ -1,6 +1,6 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.7.152",
+  "version": "0.7.153",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.4.0",
