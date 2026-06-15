@@ -2,6 +2,8 @@ import { expect, type Locator, type Page } from 'playwright/test'
 
 import { expectActiveRosterHeading } from './rosterAssertions'
 
+const DEMO_STARTUP_TIMEOUT_MS = 5_000
+
 export function demoIntroDialog(page: Page): Locator {
   return page.getByRole('dialog', {
     name: /sprawdź apkę/i
@@ -11,8 +13,10 @@ export function demoIntroDialog(page: Page): Locator {
 export async function openDemoIntro(page: Page) {
   await page.goto('/')
 
-  // Why: demo-mode specs should prove the real startup bootstrap opened the onboarding modal instead of assuming seeded state already exists.
-  await expect(demoIntroDialog(page)).toBeVisible()
+  // Why: demo-mode specs should prove the real startup bootstrap opened the onboarding modal, and mobile Chromium can need more than the default assertion timeout while Dexie seeds the local-first notebook.
+  await expect(demoIntroDialog(page)).toBeVisible({
+    timeout: DEMO_STARTUP_TIMEOUT_MS
+  })
 }
 
 export async function continueDemo(page: Page) {
