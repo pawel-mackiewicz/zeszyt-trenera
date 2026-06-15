@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Zeszyt View From Mockup'
+  short_description: 'Build repo views from HTML mockups'
+  default_prompt: 'Use $zeszyt-view-from-mockup to implement a Vue view from a mockup in this repository.'
