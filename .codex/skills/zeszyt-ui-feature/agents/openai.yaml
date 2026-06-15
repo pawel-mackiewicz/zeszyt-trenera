@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Zeszyt UI Feature'
+  short_description: 'Build repo UI features without mockups'
+  default_prompt: 'Use $zeszyt-ui-feature to add a mobile-first UI feature in the zeszyt-trenera app.'
