@@ -1,5 +1,7 @@
 import { expect, type Locator, type Page } from 'playwright/test'
 
+import { expectActiveRosterHeading } from './rosterAssertions'
+
 export function demoIntroDialog(page: Page): Locator {
   return page.getByRole('dialog', {
     name: /sprawdź apkę/i
@@ -17,9 +19,7 @@ export async function continueDemo(page: Page) {
   await demoIntroDialog(page)
     .getByRole('button', { name: /sprawdzam!/i })
     .click()
-  await expect(
-    page.getByRole('heading', { name: /^aktywni członkowie$/i })
-  ).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 export async function openDemoRoster(page: Page) {

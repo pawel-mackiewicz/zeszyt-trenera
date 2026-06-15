@@ -1,7 +1,10 @@
 import { expect, test, type Page } from 'playwright/test'
 
 import { leaveDemoForSetup, openDemoIntro } from './support/demo'
-import { expectActiveRosterHeading } from './support/roster'
+import {
+  expectActiveRosterHeading,
+  expectRosterTotalCount
+} from './support/roster'
 
 type FakeBeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -41,7 +44,7 @@ test('completes first-run setup with a sample club and trainer', async ({
   await page.reload()
   await exposeNativeInstallPrompt(page)
   await expectActiveRosterHeading(page)
-  await expect(page.getByTestId('member-counter-total')).toHaveText('0')
+  await expectRosterTotalCount(page, 0)
 
   // Why: once the automatic prompt has been shown, another install event during a fresh boot must not interrupt the same local-first notebook again.
   await expect(installDialog).not.toBeVisible()

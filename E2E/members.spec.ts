@@ -26,6 +26,7 @@ import {
   addRosterMemberViaUi,
   addRosterMembersViaUi,
   expectActiveRosterHeading,
+  expectRosterTotalCount,
   expectRosterMemberHidden,
   expectRosterMemberVisible,
   openDemoRoster,
@@ -316,7 +317,7 @@ test('updates the roster member counter after a persisted add', async ({
 
   await reloadRosterAfterLocalWrites(page)
 
-  await expect(page.getByTestId('member-counter-total')).toHaveText('61')
+  await expectRosterTotalCount(page, 61)
   await expectRosterMemberVisible(page, 'Licznik Rosterowy')
 })
 

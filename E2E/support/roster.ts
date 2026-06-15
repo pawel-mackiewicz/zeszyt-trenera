@@ -2,6 +2,12 @@ import { expect, type Locator, type Page } from 'playwright/test'
 
 // Why: roster helpers keep exporting the demo entry point for existing specs, while the actual modal workflow lives in one demo-focused helper module.
 export { openDemoRoster } from './demo'
+export {
+  expectActiveRosterHeading,
+  expectRosterTotalCount,
+  expectRosterTotalCounterHidden
+} from './rosterAssertions'
+import { expectActiveRosterHeading } from './rosterAssertions'
 
 export type RosterMemberDraft = {
   firstName: string
@@ -75,16 +81,6 @@ export async function openRosterAfterLocalWrites(page: Page) {
 
   // Why: cross-feature member writes should be verified from a fresh roster projection, not from the route that performed the write.
   await reloadRosterAfterLocalWrites(page)
-}
-
-export async function expectActiveRosterHeading(
-  page: Page,
-  locale: 'pl' | 'en' = 'pl'
-) {
-  const headingName =
-    locale === 'pl' ? /^aktywni członkowie$/i : /^active members$/i
-
-  await expect(page.getByRole('heading', { name: headingName })).toBeVisible()
 }
 
 export async function openRosterTab(page: Page, tabName: string) {

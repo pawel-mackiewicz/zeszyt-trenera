@@ -12,7 +12,11 @@ import {
   filterPaymentsByMember,
   paymentsHeading
 } from './support/payments'
-import { expectActiveRosterHeading } from './support/roster'
+import {
+  expectActiveRosterHeading,
+  expectRosterTotalCount,
+  expectRosterTotalCounterHidden
+} from './support/roster'
 
 test('starts with demo data persisted across roster, trainings, and payments', async ({
   page
@@ -25,7 +29,7 @@ test('starts with demo data persisted across roster, trainings, and payments', a
   // Why: demo bootstrap is an application-layer write, so the visible seed counts must survive a browser reload before the rest of the demo assertions can trust them.
   await page.reload()
   await expectActiveRosterHeading(page)
-  await expect(page.getByTestId('member-counter-total')).toHaveText('60')
+  await expectRosterTotalCount(page, 60)
 
   await page.goto('/attendance')
   await expect(
@@ -52,5 +56,5 @@ test('leaves demo through the intro modal and opens setup on reload', async ({
   await page.reload()
   await expect(page.getByRole('heading', { name: /dodaj klub/i })).toBeVisible()
   await expect(demoIntroDialog(page)).not.toBeVisible()
-  await expect(page.getByTestId('member-counter-total')).not.toBeVisible()
+  await expectRosterTotalCounterHidden(page)
 })
