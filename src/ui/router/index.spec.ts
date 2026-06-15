@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { createAppRoutes, createNavigationItems } from '@/ui/router'
+import {
+  createAppRoutes,
+  createNavigationItems,
+  scrollToRouteTop
+} from '@/ui/router'
 
 describe('router', () => {
   it('omits the IndexedDB debug route outside development mode', () => {
@@ -151,6 +155,22 @@ describe('router', () => {
     expect(createNavigationItems(true)).toContainEqual({
       name: 'debug-indexeddb',
       to: '/debug/indexeddb'
+    })
+  })
+
+  it('starts a fresh route at the top while preserving browser history scroll restores', () => {
+    expect(scrollToRouteTop({} as never, {} as never, null)).toEqual({
+      left: 0,
+      top: 0
+    })
+    expect(
+      scrollToRouteTop({} as never, {} as never, {
+        left: 0,
+        top: 420
+      })
+    ).toEqual({
+      left: 0,
+      top: 420
     })
   })
 })

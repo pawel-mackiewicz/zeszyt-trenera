@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from '@/ui/router/runtime'
+import type { RouteRecordRaw, RouterOptions } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
 import RosterView from '@/ui/views/roster/RosterView.vue'
@@ -201,10 +201,17 @@ export function createNavigationItems(
   })
 }
 
+export const scrollToRouteTop: NonNullable<RouterOptions['scrollBehavior']> = (
+  _to,
+  _from,
+  savedPosition
+) => savedPosition ?? { left: 0, top: 0 }
+
 export function createAppRouter(debugEnabled = import.meta.env.DEV) {
   return createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    routes: createAppRoutes(debugEnabled)
+    routes: createAppRoutes(debugEnabled),
+    scrollBehavior: scrollToRouteTop
   })
 }
 
