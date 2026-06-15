@@ -19,3 +19,4 @@
   - prefer separate style section over inline css
 - if something is not clear - ask
 - when you write tests, it should be written like a story. Create helpers if necessary.
+- dont update app version if on feature branch
