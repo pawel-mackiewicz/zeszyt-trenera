@@ -16,5 +16,6 @@
     - section labels are usually small uppercase mono text with wide letter spacing
     - avoid decorative gradients, oversized hero typography, nested cards, and non-domain explanatory copy inside feature UI
   - always add aria labels for best UX
+  - prefer separate style section over inline css
 - if something is not clear - ask
 - when you write tests, it should be written like a story. Create helpers if necessary.
