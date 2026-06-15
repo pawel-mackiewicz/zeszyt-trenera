@@ -7,6 +7,7 @@ import {
 } from './support/demo'
 import {
   addRosterMemberViaUi,
+  expectActiveRosterHeading,
   expectRosterMemberHidden,
   expectRosterMemberVisible,
   type RosterMemberDraft
@@ -70,11 +71,11 @@ async function completeSetupForms(
   await page.getByLabel(/^imię$/i).fill(trainerName)
   await page.getByRole('button', { name: /^zapisz trenera$/i }).click()
 
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 
   // Why: every sidebar scenario below must start outside demo from persisted local setup, not from transient setup-form state.
   await page.reload()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 async function addRosterMemberAndReload(page: Page, member: RosterMemberDraft) {
@@ -103,7 +104,7 @@ async function resetApplicationFromSidebar(page: Page) {
 
   // Why: reset must wipe both IndexedDB and app-owned shell flags, so the next boot should recreate the demo intro before any follow-up restore flow starts.
   await expect(demoIntroDialog(page)).toBeVisible()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 async function expectOutsideDemoSidebarActions(page: Page) {
@@ -127,14 +128,14 @@ async function expectOutsideDemoSidebarActions(page: Page) {
 async function switchSidebarLanguageToEnglish(page: Page) {
   await page.getByRole('button', { name: /^en$/i }).click()
   await expect(page.getByText(/^language$/i)).toBeVisible()
-  await expect(page.getByRole('heading', { name: /^members$/i })).toBeVisible()
+  await expectActiveRosterHeading(page, 'en')
 }
 
 async function expectEnglishLocaleAfterReload(page: Page) {
   // Why: locale is stored outside IndexedDB so the language switch must survive a cold shell reload before it can be trusted on mobile.
   await page.reload()
   await expect(page.getByRole('button', { name: /^open menu$/i })).toBeVisible()
-  await expect(page.getByRole('heading', { name: /^members$/i })).toBeVisible()
+  await expectActiveRosterHeading(page, 'en')
 }
 
 async function exportBackupFromSidebar(
@@ -168,7 +169,7 @@ async function restoreBackupFromSidebar(page: Page, backupPath: string) {
   await fileChooser.setFiles(backupPath)
 
   // Why: restore triggers a full shell reload after the application-layer import so the final assertion must read the reopened local-first database.
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 async function openSidebarWithNativeInstallEntry(page: Page) {

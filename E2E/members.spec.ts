@@ -25,6 +25,7 @@ import {
 import {
   addRosterMemberViaUi,
   addRosterMembersViaUi,
+  expectActiveRosterHeading,
   expectRosterMemberHidden,
   expectRosterMemberVisible,
   openDemoRoster,
@@ -112,7 +113,7 @@ async function filterRosterByName(page: Page, name: string) {
 
 async function openRosterAfterLocalWrites(page: Page) {
   await page.goto('/members')
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 async function deleteRosterMemberFromDetails(page: Page, fullName: string) {
@@ -315,7 +316,7 @@ test('updates the roster member counter after a persisted add', async ({
 
   await reloadRosterAfterLocalWrites(page)
 
-  await expect(page.getByText(/^61 członków$/i)).toBeVisible()
+  await expect(page.getByTestId('member-counter-total')).toHaveText('61')
   await expectRosterMemberVisible(page, 'Licznik Rosterowy')
 })
 

@@ -1,6 +1,7 @@
 import { expect, test, type Page } from 'playwright/test'
 
 import { leaveDemoForSetup, openDemoIntro } from './support/demo'
+import { expectActiveRosterHeading } from './support/roster'
 
 type FakeBeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -34,13 +35,13 @@ test('completes first-run setup with a sample club and trainer', async ({
 
   // Why: the first completed local-first notebook should immediately receive the one-time PWA install nudge while the browser install event is still available.
   await expect(installDialog).toBeVisible()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 
   // Why: first-run setup is only complete when the club and trainer writes survive a fresh local-first app boot.
   await page.reload()
   await exposeNativeInstallPrompt(page)
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
-  await expect(page.getByText(/^0 członków$/i)).toBeVisible()
+  await expectActiveRosterHeading(page)
+  await expect(page.getByTestId('member-counter-total')).toHaveText('0')
 
   // Why: once the automatic prompt has been shown, another install event during a fresh boot must not interrupt the same local-first notebook again.
   await expect(installDialog).not.toBeVisible()

@@ -17,7 +17,9 @@ export async function continueDemo(page: Page) {
   await demoIntroDialog(page)
     .getByRole('button', { name: /sprawdzam!/i })
     .click()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: /^aktywni członkowie$/i })
+  ).toBeVisible()
 }
 
 export async function openDemoRoster(page: Page) {

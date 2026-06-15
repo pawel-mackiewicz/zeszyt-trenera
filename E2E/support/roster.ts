@@ -48,7 +48,7 @@ export async function addRosterMemberViaUi(
   }
 
   await page.getByRole('button', { name: /^zapisz$/i }).click()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
   await expect(
     rosterMemberName(page, `${member.firstName} ${member.lastName}`)
   ).toBeVisible()
@@ -66,15 +66,25 @@ export async function addRosterMembersViaUi(
 export async function reloadRosterAfterLocalWrites(page: Page) {
   // Why: local-first E2E assertions should prove IndexedDB was re-read after writes, not only that Vue kept temporary in-memory state.
   await page.reload()
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 }
 
 export async function openRosterAfterLocalWrites(page: Page) {
   await page.goto('/members')
-  await expect(page.getByRole('heading', { name: /członkowie/i })).toBeVisible()
+  await expectActiveRosterHeading(page)
 
   // Why: cross-feature member writes should be verified from a fresh roster projection, not from the route that performed the write.
   await reloadRosterAfterLocalWrites(page)
+}
+
+export async function expectActiveRosterHeading(
+  page: Page,
+  locale: 'pl' | 'en' = 'pl'
+) {
+  const headingName =
+    locale === 'pl' ? /^aktywni członkowie$/i : /^active members$/i
+
+  await expect(page.getByRole('heading', { name: headingName })).toBeVisible()
 }
 
 export async function openRosterTab(page: Page, tabName: string) {
