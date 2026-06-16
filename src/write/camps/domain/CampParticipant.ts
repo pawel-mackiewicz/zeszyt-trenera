@@ -162,6 +162,15 @@ const resolveRefundStatus = (
 ): CampParticipantStatus =>
   financialBalanceAmountMinor === 0 ? 'REFUNDED' : 'RESIGNED'
 
+const resolveStatusAfterRefund = (
+  currentStatus: CampParticipantStatus,
+  totalAmountDue: Money,
+  financialBalanceAmountMinor: number
+): CampParticipantStatus =>
+  currentStatus === 'RESIGNED'
+    ? resolveRefundStatus(financialBalanceAmountMinor)
+    : resolvePaymentStatus(totalAmountDue, financialBalanceAmountMinor)
+
 const assertCanApplyDiscount = (status: CampParticipantStatus): void => {
   if (status === 'RESIGNED' || status === 'REFUNDED') {
     throw new CampParticipantDiscountNotAllowedError(status)
@@ -175,7 +184,7 @@ const assertCanRegisterPayment = (status: CampParticipantStatus): void => {
 }
 
 const assertCanRegisterRefund = (status: CampParticipantStatus): void => {
-  if (status !== 'RESIGNED') {
+  if (status === 'REFUNDED') {
     throw new CampParticipantRefundNotAllowedError(status)
   }
 }
@@ -368,10 +377,11 @@ export class CampParticipant {
   }
 
   /**
-   * Registers a refund after a participant has resigned.
+   * Registers a refund for a participant with refundable balance.
    * It checks that the refund uses the camp currency and does not exceed the
-   * current refundable balance. After the refund, the status becomes refunded
-   * only when the balance is zero.
+   * current refundable balance. Active participants return to the payment
+   * status matching their remaining balance; resigned participants become
+   * refunded only when the balance is zero.
    */
   public registerRefund(
     input: RefundInput
@@ -397,7 +407,11 @@ export class CampParticipant {
       {
         campId: this.campId,
         person: this.person,
-        status: resolveRefundStatus(ledger.balanceMinor()),
+        status: resolveStatusAfterRefund(
+          this._status,
+          this._totalAmountDue,
+          ledger.balanceMinor()
+        ),
         totalAmountDue: this._totalAmountDue,
         discounts: this._discounts,
         financialTransactions,

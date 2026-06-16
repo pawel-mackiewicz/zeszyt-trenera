@@ -632,6 +632,56 @@ describe('CampParticipant', () => {
   })
 
   describe('refund stories', () => {
+    it('a partially paid participant can receive a refund and stay registered', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant } = whenParticipantPays(participant, 500_00)
+
+      const { refundedParticipant, event } = whenParticipantReceivesRefund(
+        paidParticipant,
+        200_00
+      )
+
+      expect(refundedParticipant).not.toBe(paidParticipant)
+      expect(paidParticipant.status).toBe('REGISTERED')
+      expect(refundedParticipant.status).toBe('REGISTERED')
+      expect(refundedParticipant.financialTransactions).toHaveLength(2)
+      expect(refundedParticipant.financialTransactions[1]).toMatchObject({
+        type: 'refund',
+        amount: money(200_00)
+      })
+      expectFinancialBalance(refundedParticipant, 300_00)
+      expectRemainingAmountToPay(refundedParticipant, 900_00)
+      expectParticipantEvent(
+        event,
+        CampParticipantRefundRegisteredDomainEvent,
+        'camp.participant.refund_registered',
+        refundedParticipant
+      )
+    })
+
+    it('a fully paid participant becomes registered when a refund leaves money still due', () => {
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        fullyPaidParticipant,
+        200_00
+      )
+
+      expect(fullyPaidParticipant.status).toBe('FULLY_PAID')
+      expect(refundedParticipant.status).toBe('REGISTERED')
+      expectFinancialBalance(refundedParticipant, 1000_00)
+      expectRemainingAmountToPay(refundedParticipant, 200_00)
+    })
+
+    it('an active participant refund cannot create a negative balance', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant } = whenParticipantPays(participant, 500_00)
+
+      expect(() =>
+        whenParticipantReceivesRefund(paidParticipant, 501_00)
+      ).toThrow(CampParticipantRefundExceedsRefundableBalanceError)
+    })
+
     it('refunds are recorded after resignation and the participant stays resigned while money remains', () => {
       const fullyPaidParticipant = givenFullyPaidParticipant()
       const { resignedParticipant } =
@@ -1055,9 +1105,6 @@ describe('CampParticipant', () => {
     it('a participant cannot take lifecycle actions from the wrong status', () => {
       const participant = givenRegisteredClubParticipant()
 
-      expect(() => whenParticipantReceivesRefund(participant, 100_00)).toThrow(
-        CampParticipantRefundNotAllowedError
-      )
       expect(() => whenParticipantCancelsResignation(participant)).toThrow(
         CampParticipantResignationCancellationNotAllowedError
       )
