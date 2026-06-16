@@ -1,8 +1,0 @@
-- if using `Money` vo in tests - always separate cents -> `200_00`, not `20_000`
-- if you create new use case:
-  - add its command/request type under the feature `application/requests`
-  - expose it through `src/appServices.ts`
-  - update service-bag tests/mocks that implement `AppUseCases`
-- follow DDD / Hexagonal Architecture
-- domain logic should always live in domain
-- check other, similar use cases to follow as example
