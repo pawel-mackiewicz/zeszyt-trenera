@@ -60,6 +60,26 @@ describe('camp participant payment live read query', () => {
           amountMinor: 80000,
           currency: 'PLN'
         },
+        discounts: [
+          {
+            id: 'discount-1',
+            amount: {
+              amountMinor: 15000,
+              currency: 'PLN'
+            },
+            reason: 'siblings',
+            createdAt: new Date('2026-05-01T00:00:00Z')
+          },
+          {
+            id: 'discount-2',
+            amount: {
+              amountMinor: 5000,
+              currency: 'PLN'
+            },
+            reason: 'coach decision',
+            createdAt: new Date('2026-05-02T00:00:00Z')
+          }
+        ],
         financialTransactions: [
           {
             type: 'payment',
@@ -85,6 +105,10 @@ describe('camp participant payment live read query', () => {
     ).resolves.toEqual({
       amountDue: {
         amountMinor: 80000,
+        currency: 'PLN'
+      },
+      discountSum: {
+        amountMinor: 20000,
         currency: 'PLN'
       },
       paidAmount: {

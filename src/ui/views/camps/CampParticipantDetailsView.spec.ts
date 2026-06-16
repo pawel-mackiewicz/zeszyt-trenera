@@ -164,6 +164,10 @@ describe('CampParticipantDetailsView', () => {
           amountMinor: 90000,
           currency: 'PLN'
         },
+        discountSum: {
+          amountMinor: 15000,
+          currency: 'PLN'
+        },
         paidAmount: {
           amountMinor: 90000,
           currency: 'PLN'
@@ -178,6 +182,7 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).toContain('Obóz letni')
     expect(wrapper.text()).toContain('Opłacony')
     expect(wrapper.text()).toContain('900,00')
+    expect(wrapper.text()).toContain('Zniżki: 150,00')
     expect(mockObserveCampParticipantDetailsHandle).toHaveBeenCalledTimes(1)
     expect(mockObserveCampParticipantPaymentHandle).toHaveBeenCalledTimes(1)
   })
@@ -198,6 +203,9 @@ describe('CampParticipantDetailsView', () => {
 
     await findButton(wrapper, 'Przyjmij płatność').trigger('click')
 
+    expect(wrapper.text()).toContain('Przyjmij płatność')
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).toContain('Obóz zimowy')
     expect(
       (
         wrapper.get('input#campParticipantPaymentAmount')
@@ -213,7 +221,7 @@ describe('CampParticipantDetailsView', () => {
     await findButton(wrapper, 'Przyjmij płatność').trigger('click')
     await wrapper.get('input#campParticipantPaymentAmount').setValue('125,50')
     await wrapper.get('input#campParticipantPaymentNote').setValue('gotówka')
-    await wrapper.get('form').trigger('submit')
+    await wrapper.get('form#campParticipantPaymentForm').trigger('submit')
     await flushPromises()
 
     await findButton(wrapper, 'Przyznaj zniżkę').trigger('click')
@@ -221,15 +229,22 @@ describe('CampParticipantDetailsView', () => {
     await wrapper
       .get('input#campParticipantDiscountReason')
       .setValue('rodzeństwo')
-    await wrapper.get('form').trigger('submit')
+    await wrapper.get('form#campParticipantDiscountForm').trigger('submit')
     await flushPromises()
 
     await findButton(wrapper, 'Przyjmij rezygnację').trigger('click')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
     await wrapper.get('input#campParticipantResignationDeposit').setValue('200')
-    await wrapper
-      .get('input#campParticipantResignationRefund')
-      .setValue('300,25')
-    await wrapper.get('form').trigger('submit')
+    expect(wrapper.text()).toContain('100,00 PLN')
+    await wrapper.findAll('input[type="checkbox"]')[1].setValue(true)
+    expect(
+      (
+        wrapper.get('input#campParticipantResignationRefund')
+          .element as HTMLInputElement
+      ).value
+    ).toBe('100,00')
+    await wrapper.get('input#campParticipantResignationRefund').setValue('100')
+    await wrapper.get('form#campParticipantResignationForm').trigger('submit')
     await flushPromises()
 
     expect(mockRegisterPaymentHandle).toHaveBeenCalledWith({
@@ -258,7 +273,7 @@ describe('CampParticipantDetailsView', () => {
       },
       participantId: 'participant-1',
       refundedValue: {
-        amountMinor: 30025,
+        amountMinor: 10000,
         currency: 'PLN'
       }
     })
@@ -275,10 +290,27 @@ describe('CampParticipantDetailsView', () => {
 
     await findButton(wrapper, 'Przyjmij płatność').trigger('click')
     await wrapper.get('input#campParticipantPaymentAmount').setValue('0')
-    await wrapper.get('form').trigger('submit')
+    await wrapper.get('form#campParticipantPaymentForm').trigger('submit')
 
     expect(wrapper.text()).toContain('Podaj dodatnią kwotę wpłaty.')
     expect(mockRegisterPaymentHandle).not.toHaveBeenCalled()
+  })
+
+  it('keeps invalid resignation settlement inside the modal story', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await findButton(wrapper, 'Przyjmij rezygnację').trigger('click')
+    await wrapper.get('input[type="checkbox"]').setValue(true)
+    await wrapper.get('input#campParticipantResignationDeposit').setValue('200')
+    await wrapper.findAll('input[type="checkbox"]')[1].setValue(true)
+    await wrapper.get('input#campParticipantResignationRefund').setValue('200')
+    await wrapper.get('form#campParticipantResignationForm').trigger('submit')
+
+    expect(wrapper.text()).toContain(
+      'Zwrot nie może być wyższy niż kwota do zwrotu.'
+    )
+    expect(mockAcceptResignationHandle).not.toHaveBeenCalled()
   })
 
   it('shows an observable error only in the affected section', async () => {
@@ -427,6 +459,10 @@ function createCampParticipantPayment(
       amountMinor: 80000,
       currency: 'PLN'
     },
+    discountSum: {
+      amountMinor: 0,
+      currency: 'PLN'
+    },
     paidAmount: {
       amountMinor: 30000,
       currency: 'PLN'
@@ -447,6 +483,14 @@ function createCampParticipantActionsContext(
     paymentPrefillAmount: {
       amountMinor: 50000,
       currency: 'PLN'
+    },
+    refundableBalance: {
+      amountMinor: 30000,
+      currency: 'PLN'
+    },
+    subject: {
+      campName: 'Obóz zimowy',
+      participantDisplayName: 'Amanda Nunes'
     },
     status: 'registered',
     ...overrides

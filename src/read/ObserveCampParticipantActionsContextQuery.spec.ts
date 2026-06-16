@@ -2,10 +2,32 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { TrainerNotebookDb } from '@/db'
 import { ObserveCampParticipantActionsContextQuery } from '@/read/ObserveCampParticipantActionsContextQuery'
-import type { PersistedCampParticipant } from '@/write/shared/infra'
+import type {
+  PersistedCamp,
+  PersistedCampParticipant
+} from '@/write/shared/infra'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
+}
+
+function createCampRow(overrides: Partial<PersistedCamp> = {}): PersistedCamp {
+  const now = new Date('2026-06-01T00:00:00Z')
+
+  return {
+    id: 'camp-1',
+    name: 'Oboz zimowy',
+    note: 'Internal note hidden from participant actions',
+    startDate: new Date('2026-12-12T00:00:00Z'),
+    finishDate: new Date('2026-12-19T00:00:00Z'),
+    price: {
+      amountMinor: 100000,
+      currency: 'PLN'
+    },
+    createdAt: now,
+    updatedAt: now,
+    ...overrides
+  }
 }
 
 function createCampParticipantRow(
@@ -52,6 +74,7 @@ describe('camp participant actions context live read query', () => {
     )
     const query = new ObserveCampParticipantActionsContextQuery(database)
 
+    await database.camps.add(createCampRow())
     await database.campParticipants.add(
       createCampParticipantRow({
         id: 'participant-1',
@@ -89,6 +112,14 @@ describe('camp participant actions context live read query', () => {
       paymentPrefillAmount: {
         amountMinor: 50000,
         currency: 'PLN'
+      },
+      refundableBalance: {
+        amountMinor: 30000,
+        currency: 'PLN'
+      },
+      subject: {
+        campName: 'Oboz zimowy',
+        participantDisplayName: 'jane doe'
       },
       status: 'registered'
     })

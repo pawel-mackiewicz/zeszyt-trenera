@@ -5,16 +5,19 @@ import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 import { useCampParticipantActions } from '../useCampParticipantActions'
 
-type ActionPanel = 'discount' | 'payment' | 'resignation'
+type ActionModal = 'discount' | 'payment' | 'resignation'
 type FormErrorKey =
+  | 'depositExceedsRefundable'
   | 'invalidDiscount'
   | 'invalidPayment'
   | 'invalidResignationDeposit'
   | 'invalidResignationRefund'
+  | 'refundExceedsAvailable'
 
 const props = defineProps<{
   campId: string
@@ -39,26 +42,58 @@ const {
   participantId: toRef(props, 'participantId')
 })
 
-const activePanel = ref<ActionPanel | null>(null)
+const activeActionModal = ref<ActionModal | null>(null)
 const discountAmount = ref('')
 const discountReason = ref('')
 const paymentAmount = ref('')
 const paymentNote = ref('')
+const resignationDeductsDeposit = ref(false)
 const resignationDepositAmount = ref('')
+const resignationSettled = ref(false)
 const resignationRefundAmount = ref('')
 const formError = ref<FormErrorKey | null>(null)
 
+const hasOpenActionModal = computed(() => activeActionModal.value !== null)
 const hasAvailableActions = computed(
   () =>
     Boolean(actionsContext.value?.canGrantDiscount) ||
     Boolean(actionsContext.value?.canRegisterPayment) ||
     Boolean(actionsContext.value?.canAcceptResignation)
 )
+const actionCurrency = computed(
+  () =>
+    actionsContext.value?.paymentPrefillAmount?.currency ??
+    actionsContext.value?.refundableBalance.currency ??
+    'PLN'
+)
+const refundableBalance = computed<MoneySnapshot>(() =>
+  actionsContext.value?.refundableBalance
+    ? actionsContext.value.refundableBalance
+    : {
+        amountMinor: 0,
+        currency: actionCurrency.value
+      }
+)
+const resignationDepositPreviewMinor = computed(() =>
+  resignationDeductsDeposit.value
+    ? parsePositiveMoneyMinorForPreview(resignationDepositAmount.value)
+    : 0
+)
+const resignationRefundPreview = computed<MoneySnapshot>(() => ({
+  amountMinor: Math.max(
+    0,
+    refundableBalance.value.amountMinor - resignationDepositPreviewMinor.value
+  ),
+  currency: refundableBalance.value.currency
+}))
 const formErrorMessage = computed(() =>
   formError.value === null ? '' : t(`errors.${formError.value}`)
 )
 const submitErrorMessage = computed(() =>
   submitError.value ? t('errors.submit') : ''
+)
+const submitErrorStackLevel = computed<'base' | 'modal'>(() =>
+  hasOpenActionModal.value ? 'modal' : 'base'
 )
 const shouldRenderSection = computed(
   () =>
@@ -71,24 +106,49 @@ const shouldRenderSection = computed(
 watch([() => props.campId, () => props.participantId], resetForms)
 
 watch(actionsContext, () => {
-  if (activePanel.value && !isPanelAvailable(activePanel.value)) {
+  if (activeActionModal.value && !isModalAvailable(activeActionModal.value)) {
     resetForms()
   }
 })
 
-function isPanelAvailable(panel: ActionPanel): boolean {
-  if (panel === 'discount') {
+watch(
+  [
+    () => resignationDeductsDeposit.value,
+    () => resignationDepositAmount.value,
+    () => resignationRefundPreview.value.amountMinor
+  ],
+  () => {
+    if (resignationSettled.value) {
+      prefillResignationRefund()
+    }
+  }
+)
+
+watch(resignationSettled, (isSettled) => {
+  if (isSettled) {
+    prefillResignationRefund()
+    return
+  }
+
+  resignationRefundAmount.value = ''
+})
+
+function isModalAvailable(modal: ActionModal): boolean {
+  if (modal === 'discount') {
     return Boolean(actionsContext.value?.canGrantDiscount)
   }
 
-  if (panel === 'payment') {
+  if (modal === 'payment') {
     return Boolean(actionsContext.value?.canRegisterPayment)
   }
 
   return Boolean(actionsContext.value?.canAcceptResignation)
 }
 
-function parseMoney(value: string): MoneySnapshot | null {
+function parseMoney(
+  value: string,
+  currency = actionCurrency.value
+): MoneySnapshot | null {
   const normalizedValue = value.trim().replace(',', '.')
   const amount = Number(normalizedValue)
   const amountMinor = Math.round(amount * 100)
@@ -99,12 +159,37 @@ function parseMoney(value: string): MoneySnapshot | null {
 
   return {
     amountMinor,
-    currency: 'PLN'
+    currency
   }
 }
 
-function parseOptionalMoney(value: string): MoneySnapshot | null | undefined {
-  return value.trim() === '' ? undefined : parseMoney(value)
+function parseNonNegativeMoney(
+  value: string,
+  currency = actionCurrency.value
+): MoneySnapshot | null {
+  const normalizedValue = value.trim().replace(',', '.')
+
+  if (normalizedValue.length === 0) {
+    return null
+  }
+
+  const amount = Number(normalizedValue)
+  const amountMinor = Math.round(amount * 100)
+
+  if (!Number.isFinite(amount) || amountMinor < 0) {
+    return null
+  }
+
+  return {
+    amountMinor,
+    currency
+  }
+}
+
+function parsePositiveMoneyMinorForPreview(value: string): number {
+  const parsedValue = parseMoney(value, refundableBalance.value.currency)
+
+  return parsedValue?.amountMinor ?? 0
 }
 
 function optionalText(value: string): string | undefined {
@@ -117,32 +202,56 @@ function formatMoneyInput(money: MoneySnapshot): string {
   return (money.amountMinor / 100).toFixed(2).replace('.', ',')
 }
 
-function showPanel(panel: ActionPanel) {
-  if (!isPanelAvailable(panel)) {
+function formatMoney(money: MoneySnapshot): string {
+  return `${formatMoneyInput(money)} ${money.currency}`
+}
+
+function showActionModal(modal: ActionModal) {
+  if (!isModalAvailable(modal)) {
     return
   }
 
-  activePanel.value = activePanel.value === panel ? null : panel
-  formError.value = null
+  resetFormFields()
+  activeActionModal.value = modal
   clearSubmitError()
 
-  if (panel === 'payment' && actionsContext.value?.paymentPrefillAmount) {
+  if (modal === 'payment' && actionsContext.value?.paymentPrefillAmount) {
     paymentAmount.value = formatMoneyInput(
       actionsContext.value.paymentPrefillAmount
     )
   }
 }
 
-function resetForms() {
-  activePanel.value = null
+function closeActionModal() {
+  if (isSubmitting.value) {
+    return
+  }
+
+  resetForms()
+}
+
+function resetFormFields() {
   discountAmount.value = ''
   discountReason.value = ''
   paymentAmount.value = ''
   paymentNote.value = ''
+  resignationDeductsDeposit.value = false
   resignationDepositAmount.value = ''
+  resignationSettled.value = false
   resignationRefundAmount.value = ''
   formError.value = null
+}
+
+function resetForms() {
+  activeActionModal.value = null
+  resetFormFields()
   clearSubmitError()
+}
+
+function prefillResignationRefund() {
+  resignationRefundAmount.value = formatMoneyInput(
+    resignationRefundPreview.value
+  )
 }
 
 async function submitDiscount() {
@@ -176,26 +285,57 @@ async function submitPayment() {
 }
 
 async function submitResignation() {
-  const nonRefundableDepositValue = parseOptionalMoney(
-    resignationDepositAmount.value
-  )
-  const refundedValue = parseOptionalMoney(resignationRefundAmount.value)
+  const nonRefundableDepositValue = resignationDeductsDeposit.value
+    ? parseMoney(
+        resignationDepositAmount.value,
+        refundableBalance.value.currency
+      )
+    : undefined
 
-  if (nonRefundableDepositValue === null) {
+  if (resignationDeductsDeposit.value && !nonRefundableDepositValue) {
     formError.value = 'invalidResignationDeposit'
     return
   }
 
-  if (refundedValue === null) {
+  if (
+    nonRefundableDepositValue &&
+    nonRefundableDepositValue.amountMinor > refundableBalance.value.amountMinor
+  ) {
+    formError.value = 'depositExceedsRefundable'
+    return
+  }
+
+  const settledRefundValue = resignationSettled.value
+    ? parseNonNegativeMoney(
+        resignationRefundAmount.value,
+        refundableBalance.value.currency
+      )
+    : undefined
+
+  if (resignationSettled.value && !settledRefundValue) {
     formError.value = 'invalidResignationRefund'
     return
   }
 
+  if (
+    settledRefundValue &&
+    settledRefundValue.amountMinor > resignationRefundPreview.value.amountMinor
+  ) {
+    formError.value = 'refundExceedsAvailable'
+    return
+  }
+
   formError.value = null
+  const acceptedNonRefundableDepositValue: MoneySnapshot | undefined =
+    nonRefundableDepositValue ?? undefined
+  const refundedValue: MoneySnapshot | undefined =
+    settledRefundValue && settledRefundValue.amountMinor > 0
+      ? settledRefundValue
+      : undefined
 
   if (
     await acceptResignation({
-      nonRefundableDepositValue,
+      nonRefundableDepositValue: acceptedNonRefundableDepositValue,
       refundedValue
     })
   ) {
@@ -208,6 +348,7 @@ async function submitResignation() {
   <FloatingErrorAlert
     v-if="submitErrorMessage"
     :message="submitErrorMessage"
+    :stack-level="submitErrorStackLevel"
     top-offset="shell"
     @dismiss="clearSubmitError"
   />
@@ -255,7 +396,7 @@ async function submitResignation() {
             type="button"
             variant="secondary"
             :disabled="isSubmitting"
-            @click="showPanel('discount')"
+            @click="showActionModal('discount')"
           >
             <BadgePercent
               class="camp-participant-actions-section__button-icon"
@@ -269,7 +410,7 @@ async function submitResignation() {
             type="button"
             variant="secondary"
             :disabled="isSubmitting"
-            @click="showPanel('payment')"
+            @click="showActionModal('payment')"
           >
             <Banknote
               class="camp-participant-actions-section__button-icon"
@@ -283,7 +424,7 @@ async function submitResignation() {
             type="button"
             variant="secondary"
             :disabled="isSubmitting"
-            @click="showPanel('resignation')"
+            @click="showActionModal('resignation')"
           >
             <UserMinus
               class="camp-participant-actions-section__button-icon"
@@ -292,7 +433,195 @@ async function submitResignation() {
             {{ t('actions.resignation') }}
           </AppButton>
         </div>
+      </template>
+    </div>
+  </section>
 
+  <template v-if="actionsContext">
+    <BaseModal
+      :visible="activeActionModal === 'discount'"
+      :title="t('modals.discountTitle')"
+      @close="closeActionModal"
+    >
+      <div class="camp-participant-actions-section__modal-brief">
+        <p class="camp-participant-actions-section__modal-brief-label">
+          {{ t('fields.subject') }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-name">
+          {{ actionsContext.subject.participantDisplayName }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-camp">
+          {{ actionsContext.subject.campName }}
+        </p>
+      </div>
+
+      <form
+        id="campParticipantDiscountForm"
+        class="camp-participant-actions-section__modal-form"
+        @submit.prevent="submitDiscount"
+      >
+        <p
+          v-if="formErrorMessage"
+          class="camp-participant-actions-section__form-error"
+          role="alert"
+        >
+          {{ formErrorMessage }}
+        </p>
+        <label
+          class="app-section-label camp-participant-actions-section__field-label"
+          for="campParticipantDiscountAmount"
+        >
+          {{ t('fields.discountAmount') }}
+        </label>
+        <input
+          id="campParticipantDiscountAmount"
+          v-model="discountAmount"
+          class="camp-participant-actions-section__control"
+          inputmode="decimal"
+          :placeholder="t('fields.moneyPlaceholder')"
+          type="text"
+        />
+        <label
+          class="app-section-label camp-participant-actions-section__field-label"
+          for="campParticipantDiscountReason"
+        >
+          {{ t('fields.discountReason') }}
+        </label>
+        <input
+          id="campParticipantDiscountReason"
+          v-model="discountReason"
+          class="camp-participant-actions-section__control"
+          type="text"
+        />
+      </form>
+
+      <template #actions>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="submit"
+          form="campParticipantDiscountForm"
+          :disabled="isSubmitting"
+        >
+          {{
+            isSubmitting
+              ? t('actions.submitting')
+              : t('actions.confirmDiscount')
+          }}
+        </AppButton>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="button"
+          variant="secondary"
+          :disabled="isSubmitting"
+          @click="closeActionModal"
+        >
+          {{ t('actions.cancel') }}
+        </AppButton>
+      </template>
+    </BaseModal>
+
+    <BaseModal
+      :visible="activeActionModal === 'payment'"
+      :title="t('modals.paymentTitle')"
+      @close="closeActionModal"
+    >
+      <div class="camp-participant-actions-section__modal-brief">
+        <p class="camp-participant-actions-section__modal-brief-label">
+          {{ t('fields.subject') }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-name">
+          {{ actionsContext.subject.participantDisplayName }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-camp">
+          {{ actionsContext.subject.campName }}
+        </p>
+      </div>
+
+      <form
+        id="campParticipantPaymentForm"
+        class="camp-participant-actions-section__modal-form"
+        @submit.prevent="submitPayment"
+      >
+        <p
+          v-if="formErrorMessage"
+          class="camp-participant-actions-section__form-error"
+          role="alert"
+        >
+          {{ formErrorMessage }}
+        </p>
+        <label
+          class="app-section-label camp-participant-actions-section__field-label"
+          for="campParticipantPaymentAmount"
+        >
+          {{ t('fields.paymentAmount') }}
+        </label>
+        <input
+          id="campParticipantPaymentAmount"
+          v-model="paymentAmount"
+          class="camp-participant-actions-section__control"
+          inputmode="decimal"
+          :placeholder="t('fields.moneyPlaceholder')"
+          type="text"
+        />
+        <label
+          class="app-section-label camp-participant-actions-section__field-label"
+          for="campParticipantPaymentNote"
+        >
+          {{ t('fields.paymentNote') }}
+        </label>
+        <input
+          id="campParticipantPaymentNote"
+          v-model="paymentNote"
+          class="camp-participant-actions-section__control"
+          type="text"
+        />
+      </form>
+
+      <template #actions>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="submit"
+          form="campParticipantPaymentForm"
+          :disabled="isSubmitting"
+        >
+          {{
+            isSubmitting ? t('actions.submitting') : t('actions.confirmPayment')
+          }}
+        </AppButton>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="button"
+          variant="secondary"
+          :disabled="isSubmitting"
+          @click="closeActionModal"
+        >
+          {{ t('actions.cancel') }}
+        </AppButton>
+      </template>
+    </BaseModal>
+
+    <BaseModal
+      :visible="activeActionModal === 'resignation'"
+      :title="t('modals.resignationTitle')"
+      @close="closeActionModal"
+    >
+      <div class="camp-participant-actions-section__modal-brief">
+        <p class="camp-participant-actions-section__modal-brief-label">
+          {{ t('fields.subject') }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-name">
+          {{ actionsContext.subject.participantDisplayName }}
+        </p>
+        <p class="camp-participant-actions-section__modal-brief-camp">
+          {{ actionsContext.subject.campName }}
+        </p>
+      </div>
+
+      <form
+        id="campParticipantResignationForm"
+        class="camp-participant-actions-section__modal-form"
+        @submit.prevent="submitResignation"
+      >
         <p
           v-if="formErrorMessage"
           class="camp-participant-actions-section__form-error"
@@ -301,92 +630,20 @@ async function submitResignation() {
           {{ formErrorMessage }}
         </p>
 
-        <form
-          v-if="activePanel === 'discount'"
-          class="camp-participant-actions-section__form"
-          @submit.prevent="submitDiscount"
-        >
-          <label
-            class="app-section-label camp-participant-actions-section__field-label"
-            for="campParticipantDiscountAmount"
-          >
-            {{ t('fields.discountAmount') }}
-          </label>
+        <label class="camp-participant-actions-section__toggle">
           <input
-            id="campParticipantDiscountAmount"
-            v-model="discountAmount"
-            class="camp-participant-actions-section__control"
-            inputmode="decimal"
-            :placeholder="t('fields.moneyPlaceholder')"
-            type="text"
+            v-model="resignationDeductsDeposit"
+            class="camp-participant-actions-section__checkbox"
+            type="checkbox"
           />
-          <label
-            class="app-section-label camp-participant-actions-section__field-label"
-            for="campParticipantDiscountReason"
-          >
-            {{ t('fields.discountReason') }}
-          </label>
-          <input
-            id="campParticipantDiscountReason"
-            v-model="discountReason"
-            class="camp-participant-actions-section__control"
-            type="text"
-          />
-          <AppButton
-            class="camp-participant-actions-section__submit"
-            type="submit"
-            variant="primary"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? t('actions.submitting') : t('actions.save') }}
-          </AppButton>
-        </form>
+          <span class="camp-participant-actions-section__toggle-label">
+            {{ t('fields.deductDeposit') }}
+          </span>
+        </label>
 
-        <form
-          v-else-if="activePanel === 'payment'"
-          class="camp-participant-actions-section__form"
-          @submit.prevent="submitPayment"
-        >
-          <label
-            class="app-section-label camp-participant-actions-section__field-label"
-            for="campParticipantPaymentAmount"
-          >
-            {{ t('fields.paymentAmount') }}
-          </label>
-          <input
-            id="campParticipantPaymentAmount"
-            v-model="paymentAmount"
-            class="camp-participant-actions-section__control"
-            inputmode="decimal"
-            :placeholder="t('fields.moneyPlaceholder')"
-            type="text"
-          />
-          <label
-            class="app-section-label camp-participant-actions-section__field-label"
-            for="campParticipantPaymentNote"
-          >
-            {{ t('fields.paymentNote') }}
-          </label>
-          <input
-            id="campParticipantPaymentNote"
-            v-model="paymentNote"
-            class="camp-participant-actions-section__control"
-            type="text"
-          />
-          <AppButton
-            class="camp-participant-actions-section__submit"
-            type="submit"
-            variant="primary"
-            :disabled="isSubmitting"
-          >
-            {{ isSubmitting ? t('actions.submitting') : t('actions.save') }}
-          </AppButton>
-        </form>
-
-        <form
-          v-else-if="activePanel === 'resignation'"
-          class="camp-participant-actions-section__form"
-          @submit.prevent="submitResignation"
+        <div
+          v-if="resignationDeductsDeposit"
+          class="camp-participant-actions-section__conditional-field"
         >
           <label
             class="app-section-label camp-participant-actions-section__field-label"
@@ -399,9 +656,44 @@ async function submitResignation() {
             v-model="resignationDepositAmount"
             class="camp-participant-actions-section__control"
             inputmode="decimal"
-            :placeholder="t('fields.optionalMoneyPlaceholder')"
+            :placeholder="t('fields.moneyPlaceholder')"
             type="text"
           />
+        </div>
+
+        <div
+          class="camp-participant-actions-section__refund-summary"
+          aria-live="polite"
+        >
+          <div>
+            <p class="camp-participant-actions-section__refund-label">
+              {{ t('fields.refundToReturn') }}
+            </p>
+            <p class="camp-participant-actions-section__refund-value">
+              {{ formatMoney(resignationRefundPreview) }}
+            </p>
+          </div>
+          <div class="camp-participant-actions-section__refund-meta">
+            <span>{{ t('fields.paidBase') }}</span>
+            <strong>{{ formatMoney(refundableBalance) }}</strong>
+          </div>
+        </div>
+
+        <label class="camp-participant-actions-section__toggle">
+          <input
+            v-model="resignationSettled"
+            class="camp-participant-actions-section__checkbox"
+            type="checkbox"
+          />
+          <span class="camp-participant-actions-section__toggle-label">
+            {{ t('fields.settled') }}
+          </span>
+        </label>
+
+        <div
+          v-if="resignationSettled"
+          class="camp-participant-actions-section__conditional-field"
+        >
           <label
             class="app-section-label camp-participant-actions-section__field-label"
             for="campParticipantResignationRefund"
@@ -413,25 +705,37 @@ async function submitResignation() {
             v-model="resignationRefundAmount"
             class="camp-participant-actions-section__control"
             inputmode="decimal"
-            :placeholder="t('fields.optionalMoneyPlaceholder')"
+            :placeholder="t('fields.moneyPlaceholder')"
             type="text"
           />
-          <AppButton
-            class="camp-participant-actions-section__submit"
-            type="submit"
-            variant="primary"
-            :disabled="isSubmitting"
-          >
-            {{
-              isSubmitting
-                ? t('actions.submitting')
-                : t('actions.confirmResignation')
-            }}
-          </AppButton>
-        </form>
+        </div>
+      </form>
+
+      <template #actions>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="submit"
+          form="campParticipantResignationForm"
+          :disabled="isSubmitting"
+        >
+          {{
+            isSubmitting
+              ? t('actions.submitting')
+              : t('actions.confirmResignation')
+          }}
+        </AppButton>
+        <AppButton
+          class="camp-participant-actions-section__modal-action"
+          type="button"
+          variant="secondary"
+          :disabled="isSubmitting"
+          @click="closeActionModal"
+        >
+          {{ t('actions.cancel') }}
+        </AppButton>
       </template>
-    </div>
-  </section>
+    </BaseModal>
+  </template>
 </template>
 
 <style scoped>
@@ -482,8 +786,7 @@ async function submitResignation() {
   gap: 0.75rem;
 }
 
-.camp-participant-actions-section__action-button,
-.camp-participant-actions-section__submit {
+.camp-participant-actions-section__action-button {
   width: 100%;
   min-height: 3.5rem;
 }
@@ -515,11 +818,55 @@ async function submitResignation() {
   color: var(--color-danger);
 }
 
-.camp-participant-actions-section__form {
+.camp-participant-actions-section__modal-brief {
+  display: grid;
+  gap: 0.25rem;
+  padding-block: 0.15rem;
+  padding-inline-start: 1rem;
+  border-inline-start: 4px solid var(--color-primary);
+}
+
+.camp-participant-actions-section__modal-brief-label,
+.camp-participant-actions-section__modal-brief-camp,
+.camp-participant-actions-section__refund-label,
+.camp-participant-actions-section__refund-meta,
+.camp-participant-actions-section__toggle-label {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.camp-participant-actions-section__modal-brief-label {
+  color: var(--color-secondary);
+}
+
+.camp-participant-actions-section__modal-brief-name {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+}
+
+.camp-participant-actions-section__modal-brief-camp {
+  color: var(--color-primary);
+}
+
+.camp-participant-actions-section__modal-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.camp-participant-actions-section__conditional-field {
   display: grid;
   gap: 0.5rem;
-  padding-block-start: 1.25rem;
-  border-block-start: 1px dashed var(--color-on-surface);
 }
 
 .camp-participant-actions-section__field-label {
@@ -561,6 +908,67 @@ async function submitResignation() {
   outline: 0;
 }
 
+.camp-participant-actions-section__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+}
+
+.camp-participant-actions-section__checkbox {
+  flex: 0 0 auto;
+  width: 1.35rem;
+  height: 1.35rem;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.camp-participant-actions-section__toggle-label {
+  color: var(--color-on-surface);
+}
+
+.camp-participant-actions-section__refund-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-on-surface);
+  background: var(--color-on-surface);
+  color: var(--color-on-primary);
+}
+
+.camp-participant-actions-section__refund-label {
+  color: var(--color-surface-container-highest);
+}
+
+.camp-participant-actions-section__refund-value {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-headline);
+  font-size: clamp(1.75rem, 9vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--color-on-primary);
+}
+
+.camp-participant-actions-section__refund-meta {
+  display: grid;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  color: var(--color-surface-container-highest);
+  text-align: end;
+}
+
+.camp-participant-actions-section__refund-meta strong {
+  color: var(--color-on-primary);
+}
+
+.camp-participant-actions-section__modal-action {
+  width: 100%;
+}
+
 @media (min-width: 48rem) {
   .camp-participant-actions-section__body {
     gap: 1.5rem;
@@ -569,6 +977,10 @@ async function submitResignation() {
 
   .camp-participant-actions-section__actions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .camp-participant-actions-section__modal-action {
+    width: auto;
   }
 }
 </style>
@@ -580,30 +992,43 @@ async function submitResignation() {
       "actions": "Akcje"
     },
     "actions": {
-      "confirmResignation": "Przyjmij rezygnację",
+      "cancel": "Anuluj",
+      "confirmDiscount": "Zapisz zniżkę",
+      "confirmPayment": "Zapisz wpłatę",
+      "confirmResignation": "Potwierdź rezygnację",
       "discount": "Przyznaj zniżkę",
       "payment": "Przyjmij płatność",
       "resignation": "Przyjmij rezygnację",
       "retry": "Spróbuj ponownie",
-      "save": "Zapisz",
       "submitting": "Zapisywanie"
     },
     "errors": {
+      "depositExceedsRefundable": "Zatrzymana zaliczka nie może być wyższa niż wpłacona kwota.",
       "invalidDiscount": "Podaj dodatnią kwotę zniżki.",
       "invalidPayment": "Podaj dodatnią kwotę wpłaty.",
-      "invalidResignationDeposit": "Podaj dodatnią kwotę zatrzymanej zaliczki albo zostaw pole puste.",
-      "invalidResignationRefund": "Podaj dodatnią kwotę zwrotu albo zostaw pole puste.",
+      "invalidResignationDeposit": "Podaj dodatnią kwotę zatrzymanej zaliczki.",
+      "invalidResignationRefund": "Podaj poprawną kwotę zwrotu.",
+      "refundExceedsAvailable": "Zwrot nie może być wyższy niż kwota do zwrotu.",
       "submit": "Nie udało się zapisać zmian uczestnika."
     },
     "fields": {
+      "deductDeposit": "Odliczamy zadatek?",
       "discountAmount": "Kwota zniżki",
       "discountReason": "Powód zniżki",
       "moneyPlaceholder": "0,00",
-      "nonRefundableDeposit": "Zatrzymana zaliczka",
-      "optionalMoneyPlaceholder": "Opcjonalnie",
+      "nonRefundableDeposit": "Kwota zadatku",
+      "paidBase": "Wpłacono",
       "paymentAmount": "Kwota wpłaty",
       "paymentNote": "Notatka do wpłaty",
-      "refundAmount": "Kwota zwrotu"
+      "refundAmount": "Zwrócono",
+      "refundToReturn": "Kwota do zwrotu",
+      "settled": "Zwrócono wpłatę?",
+      "subject": "Uczestnik / wydarzenie"
+    },
+    "modals": {
+      "discountTitle": "Przyznaj zniżkę",
+      "paymentTitle": "Przyjmij płatność",
+      "resignationTitle": "Przyjmij rezygnację"
     },
     "states": {
       "loading": "Wczytywanie akcji uczestnika",
@@ -616,30 +1041,43 @@ async function submitResignation() {
       "actions": "Actions"
     },
     "actions": {
-      "confirmResignation": "Accept resignation",
+      "cancel": "Cancel",
+      "confirmDiscount": "Save discount",
+      "confirmPayment": "Save payment",
+      "confirmResignation": "Confirm resignation",
       "discount": "Grant discount",
       "payment": "Receive payment",
       "resignation": "Accept resignation",
       "retry": "Try again",
-      "save": "Save",
       "submitting": "Saving"
     },
     "errors": {
+      "depositExceedsRefundable": "The retained deposit cannot be higher than the paid amount.",
       "invalidDiscount": "Enter a positive discount amount.",
       "invalidPayment": "Enter a positive payment amount.",
-      "invalidResignationDeposit": "Enter a positive retained deposit or leave it empty.",
-      "invalidResignationRefund": "Enter a positive refund amount or leave it empty.",
+      "invalidResignationDeposit": "Enter a positive retained deposit.",
+      "invalidResignationRefund": "Enter a valid refund amount.",
+      "refundExceedsAvailable": "The refund cannot be higher than the amount to return.",
       "submit": "Participant changes could not be saved."
     },
     "fields": {
+      "deductDeposit": "Deduct deposit?",
       "discountAmount": "Discount amount",
       "discountReason": "Discount reason",
       "moneyPlaceholder": "0.00",
-      "nonRefundableDeposit": "Retained deposit",
-      "optionalMoneyPlaceholder": "Optional",
+      "nonRefundableDeposit": "Deposit amount",
+      "paidBase": "Paid",
       "paymentAmount": "Payment amount",
       "paymentNote": "Payment note",
-      "refundAmount": "Refund amount"
+      "refundAmount": "Refunded",
+      "refundToReturn": "Amount to return",
+      "settled": "Payment refunded?",
+      "subject": "Participant / event"
+    },
+    "modals": {
+      "discountTitle": "Grant discount",
+      "paymentTitle": "Receive payment",
+      "resignationTitle": "Accept resignation"
     },
     "states": {
       "loading": "Loading participant actions",

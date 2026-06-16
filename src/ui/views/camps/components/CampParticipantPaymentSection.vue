@@ -29,6 +29,13 @@ const activePayment = computed<CampParticipantPaymentActive | null>(() =>
 const resignedPayment = computed<CampParticipantPaymentResigned | null>(() =>
   payment.value && 'amountToRefund' in payment.value ? payment.value : null
 )
+const discountSum = computed<MoneySnapshot | null>(() => {
+  if (!payment.value || payment.value.discountSum.amountMinor <= 0) {
+    return null
+  }
+
+  return payment.value.discountSum
+})
 const progressStyle = computed(() => ({
   width: `${Math.min(
     100,
@@ -121,17 +128,30 @@ function formatMoney(money: MoneySnapshot): string {
           />
         </div>
 
-        <p
-          v-if="remainingAmount"
-          class="camp-participant-payment-section__remaining"
-          aria-live="polite"
-        >
-          {{
-            t('payment.remaining', {
-              amount: formatMoney(remainingAmount)
-            })
-          }}
-        </p>
+        <div class="camp-participant-payment-section__summary">
+          <p
+            v-if="remainingAmount"
+            class="camp-participant-payment-section__remaining"
+            aria-live="polite"
+          >
+            {{
+              t('payment.remaining', {
+                amount: formatMoney(remainingAmount)
+              })
+            }}
+          </p>
+
+          <p
+            v-if="discountSum"
+            class="camp-participant-payment-section__discount"
+          >
+            {{
+              t('payment.discount', {
+                amount: formatMoney(discountSum)
+              })
+            }}
+          </p>
+        </div>
       </template>
 
       <template v-else-if="resignedPayment">
@@ -143,6 +163,16 @@ function formatMoney(money: MoneySnapshot): string {
         </h3>
         <p class="camp-participant-payment-section__money">
           <strong>{{ formatMoney(resignedPayment.amountToRefund) }}</strong>
+        </p>
+        <p
+          v-if="discountSum"
+          class="camp-participant-payment-section__discount"
+        >
+          {{
+            t('payment.discount', {
+              amount: formatMoney(discountSum)
+            })
+          }}
         </p>
       </template>
     </div>
@@ -227,7 +257,24 @@ function formatMoney(money: MoneySnapshot): string {
   background: var(--color-primary);
 }
 
+.camp-participant-payment-section__summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+}
+
+.camp-participant-payment-section__discount {
+  justify-self: end;
+  max-width: 100%;
+  margin-inline-start: auto;
+  text-align: end;
+  overflow-wrap: anywhere;
+}
+
 .camp-participant-payment-section__remaining,
+.camp-participant-payment-section__discount,
 .camp-participant-payment-section__state {
   margin: 0;
   font-family: var(--font-mono);
@@ -257,6 +304,7 @@ function formatMoney(money: MoneySnapshot): string {
       "retry": "Spróbuj ponownie"
     },
     "payment": {
+      "discount": "Zniżki: {amount}",
       "progressLabel": "Postęp płatności uczestnika",
       "refund": "Do zwrotu",
       "remaining": "Pozostało: {amount}",
@@ -276,6 +324,7 @@ function formatMoney(money: MoneySnapshot): string {
       "retry": "Try again"
     },
     "payment": {
+      "discount": "Discounts: {amount}",
       "progressLabel": "Participant payment progress",
       "refund": "To refund",
       "remaining": "Remaining: {amount}",

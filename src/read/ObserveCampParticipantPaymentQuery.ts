@@ -17,6 +17,7 @@ export type CampParticipantPaymentActiveStatus = 'registered' | 'fullyPaid'
 export type CampParticipantPaymentActive = {
   status: CampParticipantPaymentActiveStatus
   amountDue: MoneySnapshot
+  discountSum: MoneySnapshot
   paidAmount: MoneySnapshot
   paymentProgressPercent: number
 }
@@ -24,6 +25,7 @@ export type CampParticipantPaymentActive = {
 export type CampParticipantPaymentResigned = {
   status: 'resigned'
   amountToRefund: MoneySnapshot
+  discountSum: MoneySnapshot
 }
 
 export type CampParticipantPayment =
@@ -51,11 +53,13 @@ function toCampParticipantPayment(
 ): CampParticipantPayment {
   const snapshot = participant.toSnapshot()
   const financialBalance = participant.financialBalance().toSnapshot()
+  const discountSum = resolveDiscountSum(snapshot)
 
   if (snapshot.status !== 'REGISTERED' && snapshot.status !== 'FULLY_PAID') {
     return {
       status: 'resigned',
-      amountToRefund: financialBalance
+      amountToRefund: financialBalance,
+      discountSum
     }
   }
 
@@ -64,10 +68,23 @@ function toCampParticipantPayment(
   return {
     status: snapshot.status === 'REGISTERED' ? 'registered' : 'fullyPaid',
     amountDue,
+    discountSum,
     paidAmount: financialBalance,
     paymentProgressPercent: resolvePaymentProgressPercent(
       amountDue.amountMinor,
       financialBalance.amountMinor
     )
+  }
+}
+
+function resolveDiscountSum(
+  snapshot: ReturnType<CampParticipant['toSnapshot']>
+): MoneySnapshot {
+  return {
+    amountMinor: snapshot.discounts.reduce(
+      (total, discount) => total + discount.amount.amountMinor,
+      0
+    ),
+    currency: snapshot.totalAmountDue.currency
   }
 }

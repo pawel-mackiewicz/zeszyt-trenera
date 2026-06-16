@@ -4,11 +4,16 @@ import type { TrainerNotebookDb } from '@/db'
 import {
   loadCampParticipantForCamp,
   rehydrateCampParticipant,
+  resolveParticipantDisplayName,
   toCampParticipantReadStatus,
   type CampParticipantQueryInput,
   type CampParticipantReadStatus
 } from '@/read/CampParticipantReadModel'
 import type { CampParticipant } from '@/write/camps/domain/CampParticipant'
+import type {
+  PersistedCampParticipant,
+  PersistedMember
+} from '@/write/shared/infra'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 export type ObserveCampParticipantActionsContextQueryInput =
@@ -20,6 +25,11 @@ export type CampParticipantActionsContext = {
   canGrantDiscount: boolean
   canRegisterPayment: boolean
   paymentPrefillAmount: MoneySnapshot | null
+  refundableBalance: MoneySnapshot
+  subject: {
+    campName: string
+    participantDisplayName: string
+  }
 }
 
 export class ObserveCampParticipantActionsContextQuery {
@@ -29,17 +39,34 @@ export class ObserveCampParticipantActionsContextQuery {
     input: ObserveCampParticipantActionsContextQueryInput
   ): Observable<CampParticipantActionsContext | null> {
     return liveQuery(async () => {
-      const participant = await loadCampParticipantForCamp(this.database, input)
+      const [camp, participant] = await Promise.all([
+        input.campId ? this.database.camps.get(input.campId) : undefined,
+        loadCampParticipantForCamp(this.database, input)
+      ])
 
-      return participant
-        ? toCampParticipantActionsContext(rehydrateCampParticipant(participant))
-        : null
+      if (!camp || !participant) {
+        return null
+      }
+
+      const member = await loadParticipantMember(this.database, participant)
+
+      return toCampParticipantActionsContext(
+        rehydrateCampParticipant(participant),
+        {
+          campName: camp.name,
+          participantDisplayName: resolveParticipantDisplayName(
+            participant,
+            member
+          )
+        }
+      )
     })
   }
 }
 
 function toCampParticipantActionsContext(
-  participant: CampParticipant
+  participant: CampParticipant,
+  subject: CampParticipantActionsContext['subject']
 ): CampParticipantActionsContext {
   const snapshot = participant.toSnapshot()
   const isActive =
@@ -62,6 +89,17 @@ function toCampParticipantActionsContext(
             amountMinor: remainingAmountMinor,
             currency: amountDue.currency
           }
-        : null
+        : null,
+    refundableBalance: paidAmount,
+    subject
   }
+}
+
+async function loadParticipantMember(
+  database: TrainerNotebookDb,
+  participant: PersistedCampParticipant
+): Promise<PersistedMember | undefined> {
+  return participant.person.type === 'club'
+    ? await database.members.get(participant.person.memberId)
+    : undefined
 }
