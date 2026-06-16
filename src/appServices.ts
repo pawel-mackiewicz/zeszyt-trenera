@@ -15,6 +15,7 @@ import { ExportDatabaseBackupUseCase } from '@/system_management/database_backup
 import { ImportDatabaseBackupUseCase } from '@/system_management/database_backup/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/system_management/demo/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/write/attendance/application/RegisterAttendanceListUseCase'
+import { AcceptCampParticipantResignationUseCase } from '@/write/camps/application/AcceptCampParticipantResignationUseCase'
 import { RegisterCampParticipantDiscountUseCase } from '@/write/camps/application/RegisterCampParticipantDiscountUseCase'
 import { RegisterCampParticipantPaymentUseCase } from '@/write/camps/application/RegisterCampParticipantPaymentUseCase'
 import { RegisterCampParticipantUseCase } from '@/write/camps/application/RegisterCampParticipantUseCase'
@@ -46,6 +47,7 @@ import type { RegisterMemberCommand } from '@/write/members/application/requests
 import type { RegisterMembershipPaymentCommand } from '@/write/memberships/application/requests/RegisterMembershipPaymentCommand'
 import type { ResetApplicationDataCommand } from '@/system_management/app_reset/application/requests/ResetApplicationDataCommand'
 import type { UnarchiveMemberCommand } from '@/write/members/application/requests/UnarchiveMemberCommand'
+import type { AcceptCampParticipantResignationCommand } from '@/write/camps/application/requests/AcceptCampParticipantResignationCommand'
 import type { RegisterTrainerCommand } from '@/write/business_profile/application/commands/RegisterTrainerCommand'
 import type { SendMembershipPaymentReminderCommand } from '@/write/memberships/application/requests/SendMembershipPaymentReminderCommand'
 import type { UpdateAttendanceListCommand } from '@/write/attendance/application/requests/UpdateAttendanceListCommand'
@@ -84,6 +86,11 @@ import {
   type CampDetails,
   type GetCampDetailsQueryInput
 } from '@/read/GetCampDetailsQuery'
+import {
+  GetCampParticipantDetailsQuery,
+  type CampParticipantDetails,
+  type GetCampParticipantDetailsQueryInput
+} from '@/read/GetCampParticipantDetailsQuery'
 import {
   GetClubCampParticipantRegistrationContextQuery,
   type ClubCampParticipantRegistrationContext,
@@ -133,6 +140,7 @@ import {
 } from '@/read/ObserveSetupStatusQuery'
 
 export type AppUseCases = {
+  readonly acceptCampParticipantResignation: UseCase<AcceptCampParticipantResignationCommand>
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
   readonly archiveMember: UseCase<ArchiveMemberCommand>
@@ -177,6 +185,11 @@ export type AppQueries = {
   }
   readonly getCampDetails: {
     handle(input: GetCampDetailsQueryInput): Promise<CampDetails | null>
+  }
+  readonly getCampParticipantDetails: {
+    handle(
+      input: GetCampParticipantDetailsQueryInput
+    ): Promise<CampParticipantDetails | null>
   }
   readonly getClubCampParticipantRegistrationContext: {
     handle(
@@ -369,6 +382,15 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveIdGenerator()
       )
   )
+  const resolveAcceptCampParticipantResignation = lazy(
+    () =>
+      new AcceptCampParticipantResignationUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
   const resolveDeleteAttendanceList = lazy(
     () =>
       new DeleteAttendanceListUseCase(
@@ -416,6 +438,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new GetAttendanceSessionByIdQuery(database)
   )
   const resolveGetCampDetails = lazy(() => new GetCampDetailsQuery(database))
+  const resolveGetCampParticipantDetails = lazy(
+    () => new GetCampParticipantDetailsQuery(database)
+  )
   const resolveGetClubCampParticipantRegistrationContext = lazy(
     () => new GetClubCampParticipantRegistrationContextQuery(database)
   )
@@ -520,6 +545,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
+    get acceptCampParticipantResignation() {
+      return resolveAcceptCampParticipantResignation()
+    },
     get deleteAttendanceList() {
       return resolveDeleteAttendanceList()
     },
@@ -605,6 +633,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get getCampDetails() {
       return resolveGetCampDetails()
+    },
+    get getCampParticipantDetails() {
+      return resolveGetCampParticipantDetails()
     },
     get getClubCampParticipantRegistrationContext() {
       return resolveGetClubCampParticipantRegistrationContext()

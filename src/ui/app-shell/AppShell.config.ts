@@ -31,6 +31,7 @@ export const SHELL_ROUTE_TITLE_KEYS = {
   'attendance-edit': 'routes.attendanceEdit',
   'camps-list': 'routes.campsList',
   'camp-details': 'routes.campsList',
+  'camp-participant-details': 'routes.campsList',
   'add-camp-participant': 'routes.campsList',
   'add-club-camp-participant': 'routes.campsList',
   'add-external-camp-participant': 'routes.campsList',
@@ -82,6 +83,7 @@ export const SHELL_BOTTOM_NAVIGATION_ITEMS: ReadonlyArray<ShellBottomNavigationI
       activeRouteNames: [
         'camps-list',
         'camp-details',
+        'camp-participant-details',
         'add-camp-participant',
         'add-club-camp-participant',
         'add-external-camp-participant',

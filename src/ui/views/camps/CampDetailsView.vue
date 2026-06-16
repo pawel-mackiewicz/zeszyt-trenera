@@ -133,6 +133,7 @@ const addParticipantTo = computed(() =>
     ? ''
     : `/camps/${encodeURIComponent(camp.value.id)}/participants/new`
 )
+const participantListCampId = computed(() => camp.value?.id ?? campId.value)
 const moneyFormatter = computed(() => {
   return new Intl.NumberFormat(locale.value, {
     currency: 'PLN',
@@ -207,6 +208,7 @@ function formatMoney(money: MoneySnapshot): string {
 
       <div v-else class="camp-details-view__ledger mb-10">
         <CampDetailsParticipantSection
+          :camp-id="participantListCampId"
           :discount-label="t('table.discount')"
           :empty-message="t('table.emptyRegistered')"
           :format-age="formatAge"
@@ -218,6 +220,7 @@ function formatMoney(money: MoneySnapshot): string {
           variant="registered"
         />
         <CampDetailsParticipantSection
+          :camp-id="participantListCampId"
           :discount-label="t('table.discount')"
           :empty-message="t('table.emptyFullyPaid')"
           :format-age="formatAge"
@@ -229,6 +232,7 @@ function formatMoney(money: MoneySnapshot): string {
           variant="fullyPaid"
         />
         <CampDetailsParticipantSection
+          :camp-id="participantListCampId"
           :discount-label="t('table.discount')"
           :empty-message="t('table.emptyResigned')"
           :format-age="formatAge"

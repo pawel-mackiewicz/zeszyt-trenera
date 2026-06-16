@@ -12,6 +12,7 @@ type CampDetailsParticipantRowItem =
   | CampDetailsResignedParticipantListItem
 
 const props = defineProps<{
+  campId: string
   discountLabel: string
   participant: CampDetailsParticipantRowItem
   paidLabel: string
@@ -33,6 +34,10 @@ const activeParticipant = computed(() =>
 const resignedParticipant = computed(() =>
   isResigned(props.participant) ? props.participant : null
 )
+const participantTo = computed(
+  () =>
+    `/camps/${encodeURIComponent(props.campId)}/participants/${encodeURIComponent(props.participant.id)}`
+)
 const progressStyle = computed(() => {
   if (activeParticipant.value === null) {
     return {
@@ -51,62 +56,75 @@ const progressStyle = computed(() => {
     class="camp-details-participant-row"
     :class="`camp-details-participant-row--${variant}`"
   >
-    <div class="camp-details-participant-row__identity">
-      <span class="camp-details-participant-row__name">
-        {{ participant.displayName }}
-      </span>
-      <span class="camp-details-participant-row__age">
-        {{ formatAge(participant.age) }}
-      </span>
-      <span
-        v-if="activeParticipant?.hasDiscount"
-        class="camp-details-participant-row__discount"
+    <RouterLink class="camp-details-participant-row__link" :to="participantTo">
+      <div class="camp-details-participant-row__identity">
+        <span class="camp-details-participant-row__name">
+          {{ participant.displayName }}
+        </span>
+        <span class="camp-details-participant-row__age">
+          {{ formatAge(participant.age) }}
+        </span>
+        <span
+          v-if="activeParticipant?.hasDiscount"
+          class="camp-details-participant-row__discount"
+        >
+          {{ discountLabel }}
+        </span>
+      </div>
+
+      <div class="camp-details-participant-row__payment">
+        <template v-if="resignedParticipant">
+          <span class="camp-details-participant-row__payment-label">
+            {{ refundLabel }}
+          </span>
+          <span class="camp-details-participant-row__payment-value">
+            {{ formatMoney(resignedParticipant.amountToRefund) }}
+          </span>
+        </template>
+        <template v-else-if="activeParticipant">
+          <span class="camp-details-participant-row__payment-label">
+            {{ paidLabel }}
+          </span>
+          <span class="camp-details-participant-row__payment-value">
+            {{ formatMoney(activeParticipant.paidAmount) }}
+          </span>
+          <span class="camp-details-participant-row__payment-total">
+            / {{ formatMoney(activeParticipant.amountDue) }}
+          </span>
+        </template>
+      </div>
+
+      <div
+        v-if="activeParticipant"
+        class="camp-details-participant-row__progress"
+        aria-hidden="true"
       >
-        {{ discountLabel }}
-      </span>
-    </div>
-
-    <div class="camp-details-participant-row__payment">
-      <template v-if="resignedParticipant">
-        <span class="camp-details-participant-row__payment-label">
-          {{ refundLabel }}
-        </span>
-        <span class="camp-details-participant-row__payment-value">
-          {{ formatMoney(resignedParticipant.amountToRefund) }}
-        </span>
-      </template>
-      <template v-else-if="activeParticipant">
-        <span class="camp-details-participant-row__payment-label">
-          {{ paidLabel }}
-        </span>
-        <span class="camp-details-participant-row__payment-value">
-          {{ formatMoney(activeParticipant.paidAmount) }}
-        </span>
-        <span class="camp-details-participant-row__payment-total">
-          / {{ formatMoney(activeParticipant.amountDue) }}
-        </span>
-      </template>
-    </div>
-
-    <div
-      v-if="activeParticipant"
-      class="camp-details-participant-row__progress"
-      aria-hidden="true"
-    >
-      <span
-        class="camp-details-participant-row__progress-value"
-        :style="progressStyle"
-      />
-    </div>
+        <span
+          class="camp-details-participant-row__progress-value"
+          :style="progressStyle"
+        />
+      </div>
+    </RouterLink>
   </li>
 </template>
 
 <style scoped>
 .camp-details-participant-row {
+  display: block;
+}
+
+.camp-details-participant-row__link {
   display: grid;
   gap: 0.75rem;
   padding: 1rem 0;
   border-bottom: 1px solid var(--color-outline-variant);
+  color: inherit;
+  text-decoration: none;
+}
+
+.camp-details-participant-row__link:focus-visible {
+  outline: 2px solid var(--color-on-surface);
+  outline-offset: 0.25rem;
 }
 
 .camp-details-participant-row__identity {
@@ -181,6 +199,10 @@ const progressStyle = computed(() => {
 
 @media (min-width: 42rem) {
   .camp-details-participant-row {
+    display: block;
+  }
+
+  .camp-details-participant-row__link {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }

@@ -11,6 +11,7 @@ type CampDetailsParticipantSectionItem =
   | CampDetailsResignedParticipantListItem
 
 defineProps<{
+  campId: string
   discountLabel: string
   emptyMessage: string
   formatAge: (age: number | null) => string
@@ -42,6 +43,7 @@ defineProps<{
       <CampDetailsParticipantRow
         v-for="participant in participants"
         :key="participant.id"
+        :camp-id="campId"
         :discount-label="discountLabel"
         :format-age="formatAge"
         :format-money="formatMoney"
