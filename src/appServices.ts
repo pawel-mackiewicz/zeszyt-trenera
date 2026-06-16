@@ -89,10 +89,20 @@ import {
   type GetCampDetailsQueryInput
 } from '@/read/GetCampDetailsQuery'
 import {
-  GetCampParticipantDetailsQuery,
+  ObserveCampParticipantDetailsQuery,
   type CampParticipantDetails,
-  type GetCampParticipantDetailsQueryInput
-} from '@/read/GetCampParticipantDetailsQuery'
+  type ObserveCampParticipantDetailsQueryInput
+} from '@/read/ObserveCampParticipantDetailsQuery'
+import {
+  ObserveCampParticipantPaymentQuery,
+  type CampParticipantPayment,
+  type ObserveCampParticipantPaymentQueryInput
+} from '@/read/ObserveCampParticipantPaymentQuery'
+import {
+  ObserveCampParticipantActionsContextQuery,
+  type CampParticipantActionsContext,
+  type ObserveCampParticipantActionsContextQueryInput
+} from '@/read/ObserveCampParticipantActionsContextQuery'
 import {
   GetClubCampParticipantRegistrationContextQuery,
   type ClubCampParticipantRegistrationContext,
@@ -189,10 +199,20 @@ export type AppQueries = {
   readonly getCampDetails: {
     handle(input: GetCampDetailsQueryInput): Promise<CampDetails | null>
   }
-  readonly getCampParticipantDetails: {
+  readonly observeCampParticipantActionsContext: {
     handle(
-      input: GetCampParticipantDetailsQueryInput
-    ): Promise<CampParticipantDetails | null>
+      input: ObserveCampParticipantActionsContextQueryInput
+    ): Observable<CampParticipantActionsContext | null>
+  }
+  readonly observeCampParticipantDetails: {
+    handle(
+      input: ObserveCampParticipantDetailsQueryInput
+    ): Observable<CampParticipantDetails | null>
+  }
+  readonly observeCampParticipantPayment: {
+    handle(
+      input: ObserveCampParticipantPaymentQueryInput
+    ): Observable<CampParticipantPayment | null>
   }
   readonly getClubCampParticipantRegistrationContext: {
     handle(
@@ -450,8 +470,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new GetAttendanceSessionByIdQuery(database)
   )
   const resolveGetCampDetails = lazy(() => new GetCampDetailsQuery(database))
-  const resolveGetCampParticipantDetails = lazy(
-    () => new GetCampParticipantDetailsQuery(database)
+  const resolveObserveCampParticipantActionsContext = lazy(
+    () => new ObserveCampParticipantActionsContextQuery(database)
+  )
+  const resolveObserveCampParticipantDetails = lazy(
+    () => new ObserveCampParticipantDetailsQuery(database)
+  )
+  const resolveObserveCampParticipantPayment = lazy(
+    () => new ObserveCampParticipantPaymentQuery(database)
   )
   const resolveGetClubCampParticipantRegistrationContext = lazy(
     () => new GetClubCampParticipantRegistrationContextQuery(database)
@@ -649,8 +675,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get getCampDetails() {
       return resolveGetCampDetails()
     },
-    get getCampParticipantDetails() {
-      return resolveGetCampParticipantDetails()
+    get observeCampParticipantActionsContext() {
+      return resolveObserveCampParticipantActionsContext()
+    },
+    get observeCampParticipantDetails() {
+      return resolveObserveCampParticipantDetails()
+    },
+    get observeCampParticipantPayment() {
+      return resolveObserveCampParticipantPayment()
     },
     get getClubCampParticipantRegistrationContext() {
       return resolveGetClubCampParticipantRegistrationContext()

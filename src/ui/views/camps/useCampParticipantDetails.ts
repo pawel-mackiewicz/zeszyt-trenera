@@ -1,154 +1,82 @@
-import { computed, onMounted, ref, watch, type Ref } from 'vue'
+import { computed, onScopeDispose, ref, watch, type Ref } from 'vue'
 
-import type { CampParticipantDetails } from '@/read/GetCampParticipantDetailsQuery'
+import type { CampParticipantDetails } from '@/read/ObserveCampParticipantDetailsQuery'
 import { useAppServices } from '@/ui/appServices'
-import type { MoneySnapshot } from '@/write/shared/vo/Money'
+
+type ObservableSubscription = {
+  unsubscribe(): void
+}
 
 type UseCampParticipantDetailsOptions = {
   campId: Ref<string>
   participantId: Ref<string>
 }
 
-type AcceptResignationInput = {
-  nonRefundableDepositValue?: MoneySnapshot
-  refundedValue?: MoneySnapshot
-}
-
 export function useCampParticipantDetails({
   campId,
   participantId
 }: UseCampParticipantDetailsOptions) {
-  const { queries, useCases } = useAppServices()
+  const { queries } = useAppServices()
   const details = ref<CampParticipantDetails | null>(null)
   const isLoading = ref(true)
-  const isSubmitting = ref(false)
   const loadError = ref(false)
-  const submitError = ref(false)
-  let loadSequence = 0
+  let detailsSubscription: ObservableSubscription | null = null
 
   const camp = computed(() => details.value?.camp ?? null)
-  const participant = computed<CampParticipantDetails['participant'] | null>(
-    () => details.value?.participant ?? null
-  )
+  const participant = computed(() => details.value?.participant ?? null)
   const notFound = computed(
-    () =>
-      !isLoading.value &&
-      !loadError.value &&
-      (details.value === null || participant.value === null)
+    () => !isLoading.value && !loadError.value && details.value === null
   )
 
-  async function reload() {
-    const requestedCampId = campId.value
-    const requestedParticipantId = participantId.value
-    const currentLoad = ++loadSequence
+  function unsubscribeDetails() {
+    detailsSubscription?.unsubscribe()
+    detailsSubscription = null
+  }
 
+  function subscribeToDetails() {
+    unsubscribeDetails()
     isLoading.value = true
     loadError.value = false
 
-    try {
-      const loadedDetails =
-        requestedCampId && requestedParticipantId
-          ? await queries.getCampParticipantDetails.handle({
-              campId: requestedCampId,
-              participantId: requestedParticipantId
-            })
-          : null
-
-      if (currentLoad === loadSequence) {
-        details.value = loadedDetails
-      }
-    } catch (error) {
-      if (currentLoad === loadSequence) {
-        console.error('Failed to load camp participant details', error)
-        details.value = null
-        loadError.value = true
-      }
-    } finally {
-      if (currentLoad === loadSequence) {
-        isLoading.value = false
-      }
-    }
-  }
-
-  async function runCommand(command: () => Promise<void>): Promise<boolean> {
-    if (!campId.value || !participantId.value) {
-      submitError.value = true
-      return false
-    }
-
-    isSubmitting.value = true
-    submitError.value = false
-
-    try {
-      await command()
-      await reload()
-      return true
-    } catch (error) {
-      console.error('Failed to update camp participant details', error)
-      submitError.value = true
-      return false
-    } finally {
-      isSubmitting.value = false
-    }
-  }
-
-  function registerDiscount(amount: MoneySnapshot, reason?: string) {
-    return runCommand(() =>
-      useCases.registerCampParticipantDiscount.handle({
-        amount,
+    detailsSubscription = queries.observeCampParticipantDetails
+      .handle({
         campId: campId.value,
-        participantId: participantId.value,
-        reason
-      })
-    )
-  }
-
-  function registerPayment(amount: MoneySnapshot, note?: string) {
-    return runCommand(() =>
-      useCases.registerCampParticipantPayment.handle({
-        amount,
-        campId: campId.value,
-        note,
         participantId: participantId.value
       })
-    )
-  }
-
-  function acceptResignation(input: AcceptResignationInput) {
-    return runCommand(() =>
-      useCases.acceptCampParticipantResignation.handle({
-        campId: campId.value,
-        nonRefundableDepositValue: input.nonRefundableDepositValue,
-        participantId: participantId.value,
-        refundedValue: input.refundedValue
+      .subscribe({
+        next(nextDetails) {
+          details.value = nextDetails
+          isLoading.value = false
+          loadError.value = false
+        },
+        error(error) {
+          console.error('Failed to load camp participant details', error)
+          details.value = null
+          isLoading.value = false
+          loadError.value = true
+        }
       })
-    )
   }
 
-  function clearSubmitError() {
-    submitError.value = false
+  function retryLoading() {
+    subscribeToDetails()
   }
 
-  onMounted(() => {
-    void reload()
+  watch([campId, participantId], subscribeToDetails, {
+    immediate: true
   })
 
-  watch([campId, participantId], () => {
-    void reload()
+  onScopeDispose(() => {
+    unsubscribeDetails()
   })
 
   return {
-    acceptResignation,
     camp,
-    clearSubmitError,
+    details,
     isLoading,
-    isSubmitting,
     loadError,
     notFound,
     participant,
-    registerDiscount,
-    registerPayment,
-    reload,
-    submitError
+    retryLoading
   }
 }
