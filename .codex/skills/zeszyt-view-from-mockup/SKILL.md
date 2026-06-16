@@ -14,9 +14,10 @@ Use this skill to turn a mockup into a production Vue view in this repository wi
 3. Load [references/view-from-mockup.md](references/view-from-mockup.md) before editing files.
 4. Translate the mockup into existing repo patterns instead of copying prototype-only implementation details such as CDN assets, Tailwind utility markup, decorative backgrounds, or one-off colors.
 5. Put feature behavior in domain composables and application services/use cases. Keep UI-only state inside components.
-6. Split UI into components when a visible part has a clear responsibility that can be named and reasoned about.
-7. Add focused story-like tests around the user workflow and accessible states.
-8. Validate with the narrowest useful commands and follow `AGENTS.md` for version handling, including the feature-branch exception.
+6. Give every view its own separate query through `src/read`; the query should return all data in a format that is plausible for the UI to consume directly.
+7. Split UI into components when a visible part has a clear responsibility that can be named and reasoned about.
+8. Add focused story-like tests around the user workflow and accessible states.
+9. Validate with the narrowest useful commands and follow `AGENTS.md` for version handling, including the feature-branch exception.
 
 ## Repo Defaults
 
@@ -30,6 +31,7 @@ Use this skill to turn a mockup into a production Vue view in this repository wi
 - Add `aria-label`, `aria-labelledby`, `aria-live`, and hidden decorative icons as appropriate.
 - Prefer separate `<style>` sections over inline CSS.
 - Route reads through `queries` and writes through `useCases` from `useAppServices()`. Do not write directly from components when an application-layer use case belongs in the flow.
+- Each view should have a dedicated query in `src/read` that shapes the complete read model for that view, so components do not assemble domain data into UI-ready structures themselves.
 - Make domain composables feature-related rather than UI-related; prefer `composable -> appServices` over `component -> appServices`.
 - Keep UI-only logic such as expanded rows, local filters, and display toggles inside components.
 

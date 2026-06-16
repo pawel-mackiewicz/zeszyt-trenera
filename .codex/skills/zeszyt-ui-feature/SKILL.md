@@ -14,10 +14,11 @@ Use this skill for ordinary UI feature work in this repository: new screens, exi
 1. Confirm the request is not mockup-driven. If the user provided a mockup artifact, switch to `zeszyt-view-from-mockup`.
 2. Inspect only the closest existing view, component, composable, route, query, app service, and test files needed to understand the feature. Keep the search narrow; ask when broader discovery is necessary.
 3. Preserve the app model: PWA, local-first, mobile-first. Reads should follow existing query patterns and writes must go through the application layer.
-4. Put feature/domain behavior in domain composables that call app services or use cases. Keep UI-only state, layout toggles, and presentation details inside Vue components.
-5. Split UI into components when a part has a clear responsibility that can be named and reasoned about.
-6. Add story-like tests for the main user workflow, accessible states, and any application-layer behavior touched by the UI.
-7. Run the narrowest useful validation commands and follow `AGENTS.md` for version handling, including the feature-branch exception.
+4. Give every view its own separate query through `src/read`; the query should return all data in a format that is plausible for the UI to consume directly.
+5. Put feature/domain behavior in domain composables that call app services or use cases. Keep UI-only state, layout toggles, and presentation details inside Vue components.
+6. Split UI into components when a part has a clear responsibility that can be named and reasoned about.
+7. Add story-like tests for the main user workflow, accessible states, and any application-layer behavior touched by the UI.
+8. Run the narrowest useful validation commands and follow `AGENTS.md` for version handling, including the feature-branch exception.
 
 ## Vue And UI Rules
 
@@ -29,3 +30,4 @@ Use this skill for ordinary UI feature work in this repository: new screens, exi
 - Avoid decorative gradients, oversized hero typography, nested cards, and non-domain explanatory copy inside feature UI.
 - Add appropriate `aria-label`, `aria-labelledby`, `aria-live`, and hidden decorative icon attributes for accessible interactions.
 - Prefer separate `<style>` sections over inline CSS.
+- Each view should have a dedicated query in `src/read` that shapes the complete read model for that view, so components do not assemble domain data into UI-ready structures themselves.
