@@ -18,6 +18,7 @@ import { RegisterAttendanceListUseCase } from '@/write/attendance/application/Re
 import { AcceptCampParticipantResignationUseCase } from '@/write/camps/application/AcceptCampParticipantResignationUseCase'
 import { RegisterCampParticipantDiscountUseCase } from '@/write/camps/application/RegisterCampParticipantDiscountUseCase'
 import { RegisterCampParticipantPaymentUseCase } from '@/write/camps/application/RegisterCampParticipantPaymentUseCase'
+import { RegisterCampParticipantRefundUseCase } from '@/write/camps/application/RegisterCampParticipantRefundUseCase'
 import { RegisterCampParticipantUseCase } from '@/write/camps/application/RegisterCampParticipantUseCase'
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import { RegisterClubUseCase } from '@/write/business_profile/application/RegisterClubUseCase'
@@ -40,6 +41,7 @@ import type { ArchiveMemberCommand } from '@/write/members/application/requests/
 import type { RegisterAttendanceListCommand } from '@/write/attendance/application/requests/RegisterAttendanceListCommand'
 import type { RegisterCampParticipantDiscountCommand } from '@/write/camps/application/requests/RegisterCampParticipantDiscountCommand'
 import type { RegisterCampParticipantPaymentCommand } from '@/write/camps/application/requests/RegisterCampParticipantPaymentCommand'
+import type { RegisterCampParticipantRefundCommand } from '@/write/camps/application/requests/RegisterCampParticipantRefundCommand'
 import type { RegisterCampParticipantCommand } from '@/write/camps/application/requests/RegisterCampParticipantCommand'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import type { RegisterClubCommand } from '@/write/business_profile/application/commands/RegisterClubCommand'
@@ -150,6 +152,7 @@ export type AppUseCases = {
   readonly registerCampParticipant: UseCase<RegisterCampParticipantCommand>
   readonly registerCampParticipantDiscount: UseCase<RegisterCampParticipantDiscountCommand>
   readonly registerCampParticipantPayment: UseCase<RegisterCampParticipantPaymentCommand>
+  readonly registerCampParticipantRefund: UseCase<RegisterCampParticipantRefundCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
@@ -382,6 +385,15 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveIdGenerator()
       )
   )
+  const resolveRegisterCampParticipantRefund = lazy(
+    () =>
+      new RegisterCampParticipantRefundUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
   const resolveAcceptCampParticipantResignation = lazy(
     () =>
       new AcceptCampParticipantResignationUseCase(
@@ -574,6 +586,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get registerCampParticipantPayment() {
       return resolveRegisterCampParticipantPayment()
+    },
+    get registerCampParticipantRefund() {
+      return resolveRegisterCampParticipantRefund()
     },
     get registerClub() {
       return resolveRegisterClub()
