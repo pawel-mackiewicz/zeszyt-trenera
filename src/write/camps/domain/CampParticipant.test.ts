@@ -74,6 +74,25 @@ const expectFinancialBalance = (
   )
 }
 
+const expectActionAvailability = (
+  participant: CampParticipant,
+  expected: {
+    canApplyDiscount: boolean
+    canRegisterPayment: boolean
+    canRegisterRefund: boolean
+    canResign: boolean
+    canCancelResignation: boolean
+  }
+) => {
+  expect({
+    canApplyDiscount: participant.canApplyDiscount(),
+    canRegisterPayment: participant.canRegisterPayment(),
+    canRegisterRefund: participant.canRegisterRefund(),
+    canResign: participant.canResign(),
+    canCancelResignation: participant.canCancelResignation()
+  }).toEqual(expected)
+}
+
 const expectParticipantEvent = (
   event: CampParticipantEvent,
   expectedEvent: new (participant: CampParticipantSnapshot) => object,
@@ -554,6 +573,48 @@ describe('CampParticipant', () => {
       expectFinancialBalance(paidParticipant, 700_00)
       expectFinancialBalance(resignedParticipant, 500_00)
       expectFinancialBalance(refundedParticipant, 200_00)
+    })
+  })
+
+  describe('action availability stories', () => {
+    it('tells which actions are open as the participant payment story changes', () => {
+      const registeredParticipant = givenRegisteredClubParticipant()
+      const fullyPaidParticipant = givenFullyPaidParticipant()
+      const { resignedParticipant } =
+        whenParticipantResigns(fullyPaidParticipant)
+      const { refundedParticipant } = whenParticipantReceivesRefund(
+        resignedParticipant,
+        CAMP_PRICE
+      )
+
+      expectActionAvailability(registeredParticipant, {
+        canApplyDiscount: true,
+        canRegisterPayment: true,
+        canRegisterRefund: false,
+        canResign: true,
+        canCancelResignation: false
+      })
+      expectActionAvailability(fullyPaidParticipant, {
+        canApplyDiscount: true,
+        canRegisterPayment: true,
+        canRegisterRefund: true,
+        canResign: true,
+        canCancelResignation: false
+      })
+      expectActionAvailability(resignedParticipant, {
+        canApplyDiscount: false,
+        canRegisterPayment: false,
+        canRegisterRefund: true,
+        canResign: false,
+        canCancelResignation: true
+      })
+      expectActionAvailability(refundedParticipant, {
+        canApplyDiscount: false,
+        canRegisterPayment: false,
+        canRegisterRefund: false,
+        canResign: false,
+        canCancelResignation: true
+      })
     })
   })
 

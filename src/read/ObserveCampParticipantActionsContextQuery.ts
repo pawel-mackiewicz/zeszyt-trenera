@@ -24,6 +24,7 @@ export type CampParticipantActionsContext = {
   canAcceptResignation: boolean
   canGrantDiscount: boolean
   canRegisterPayment: boolean
+  canRegisterRefund: boolean
   paymentPrefillAmount: MoneySnapshot | null
   refundableBalance: MoneySnapshot
   subject: {
@@ -68,29 +69,21 @@ function toCampParticipantActionsContext(
   participant: CampParticipant,
   subject: CampParticipantActionsContext['subject']
 ): CampParticipantActionsContext {
-  const snapshot = participant.toSnapshot()
-  const isActive =
-    snapshot.status === 'REGISTERED' || snapshot.status === 'FULLY_PAID'
-  const amountDue = snapshot.totalAmountDue.toSnapshot()
-  const paidAmount = participant.financialBalance().toSnapshot()
-  const remainingAmountMinor = Math.max(
-    0,
-    amountDue.amountMinor - paidAmount.amountMinor
-  )
+  const remainingAmountToPay = participant.remainingAmountToPay().toSnapshot()
+  const refundableBalance = participant.financialBalance().toSnapshot()
+  const canRegisterPayment = participant.canRegisterPayment()
 
   return {
-    status: toCampParticipantReadStatus(snapshot.status),
-    canAcceptResignation: isActive,
-    canGrantDiscount: isActive,
-    canRegisterPayment: isActive,
+    status: toCampParticipantReadStatus(participant.status),
+    canAcceptResignation: participant.canResign(),
+    canGrantDiscount: participant.canApplyDiscount(),
+    canRegisterPayment,
+    canRegisterRefund: participant.canRegisterRefund(),
     paymentPrefillAmount:
-      isActive && remainingAmountMinor > 0
-        ? {
-            amountMinor: remainingAmountMinor,
-            currency: amountDue.currency
-          }
+      canRegisterPayment && remainingAmountToPay.amountMinor > 0
+        ? remainingAmountToPay
         : null,
-    refundableBalance: paidAmount,
+    refundableBalance,
     subject
   }
 }

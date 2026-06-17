@@ -171,32 +171,47 @@ const resolveStatusAfterRefund = (
     ? resolveRefundStatus(financialBalanceAmountMinor)
     : resolvePaymentStatus(totalAmountDue, financialBalanceAmountMinor)
 
+const canApplyDiscountInStatus = (status: CampParticipantStatus): boolean =>
+  status !== 'RESIGNED' && status !== 'REFUNDED'
+
+const canRegisterPaymentInStatus = (status: CampParticipantStatus): boolean =>
+  status !== 'RESIGNED' && status !== 'REFUNDED'
+
+const canRegisterRefundInStatus = (status: CampParticipantStatus): boolean =>
+  status !== 'REFUNDED'
+
+const canResignInStatus = (status: CampParticipantStatus): boolean =>
+  status !== 'RESIGNED' && status !== 'REFUNDED'
+
+const canCancelResignationInStatus = (status: CampParticipantStatus): boolean =>
+  status === 'RESIGNED' || status === 'REFUNDED'
+
 const assertCanApplyDiscount = (status: CampParticipantStatus): void => {
-  if (status === 'RESIGNED' || status === 'REFUNDED') {
+  if (!canApplyDiscountInStatus(status)) {
     throw new CampParticipantDiscountNotAllowedError(status)
   }
 }
 
 const assertCanRegisterPayment = (status: CampParticipantStatus): void => {
-  if (status === 'RESIGNED' || status === 'REFUNDED') {
+  if (!canRegisterPaymentInStatus(status)) {
     throw new CampParticipantPaymentNotAllowedError(status)
   }
 }
 
 const assertCanRegisterRefund = (status: CampParticipantStatus): void => {
-  if (status === 'REFUNDED') {
+  if (!canRegisterRefundInStatus(status)) {
     throw new CampParticipantRefundNotAllowedError(status)
   }
 }
 
 const assertCanResign = (status: CampParticipantStatus): void => {
-  if (status === 'RESIGNED' || status === 'REFUNDED') {
+  if (!canResignInStatus(status)) {
     throw new CampParticipantResignationNotAllowedError(status)
   }
 }
 
 const assertCanCancelResignation = (status: CampParticipantStatus): void => {
-  if (status !== 'RESIGNED' && status !== 'REFUNDED') {
+  if (!canCancelResignationInStatus(status)) {
     throw new CampParticipantResignationCancellationNotAllowedError(status)
   }
 }
@@ -536,6 +551,29 @@ export class CampParticipant {
     )
 
     return [updatedCampParticipant, event]
+  }
+
+  public canApplyDiscount(): boolean {
+    return canApplyDiscountInStatus(this._status)
+  }
+
+  public canRegisterPayment(): boolean {
+    return canRegisterPaymentInStatus(this._status)
+  }
+
+  public canRegisterRefund(): boolean {
+    return (
+      canRegisterRefundInStatus(this._status) &&
+      this.financialBalance().amountMinor > 0
+    )
+  }
+
+  public canResign(): boolean {
+    return canResignInStatus(this._status)
+  }
+
+  public canCancelResignation(): boolean {
+    return canCancelResignationInStatus(this._status)
   }
 
   /**

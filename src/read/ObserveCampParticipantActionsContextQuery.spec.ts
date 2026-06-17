@@ -109,6 +109,7 @@ describe('camp participant actions context live read query', () => {
       canAcceptResignation: true,
       canGrantDiscount: true,
       canRegisterPayment: true,
+      canRegisterRefund: true,
       paymentPrefillAmount: {
         amountMinor: 50000,
         currency: 'PLN'
@@ -122,6 +123,91 @@ describe('camp participant actions context live read query', () => {
         participantDisplayName: 'jane doe'
       },
       status: 'registered'
+    })
+  })
+
+  it('does not offer a refund path when the participant has no refundable balance', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-actions-no-refund-read')
+    )
+    const query = new ObserveCampParticipantActionsContextQuery(database)
+
+    await database.camps.add(createCampRow())
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1'
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toMatchObject({
+      canRegisterRefund: false,
+      refundableBalance: {
+        amountMinor: 0,
+        currency: 'PLN'
+      },
+      status: 'registered'
+    })
+  })
+
+  it('does not offer a refund path after the participant refund story is closed', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-actions-refunded-read')
+    )
+    const query = new ObserveCampParticipantActionsContextQuery(database)
+
+    await database.camps.add(createCampRow())
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'REFUNDED',
+        financialTransactions: [
+          {
+            type: 'payment',
+            id: 'payment-1',
+            amount: {
+              amountMinor: 30000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-03T00:00:00Z')
+          },
+          {
+            type: 'refund',
+            id: 'refund-1',
+            amount: {
+              amountMinor: 30000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-04T00:00:00Z')
+          }
+        ]
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toMatchObject({
+      canRegisterRefund: false,
+      refundableBalance: {
+        amountMinor: 0,
+        currency: 'PLN'
+      },
+      status: 'resigned'
     })
   })
 })

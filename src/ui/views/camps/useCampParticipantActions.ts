@@ -111,6 +111,17 @@ export function useCampParticipantActions({
     )
   }
 
+  function registerRefund(amount: MoneySnapshot, note?: string) {
+    return runCommand(() =>
+      useCases.registerCampParticipantRefund.handle({
+        amount,
+        campId: campId.value,
+        note,
+        participantId: participantId.value
+      })
+    )
+  }
+
   function acceptResignation(input: AcceptResignationInput) {
     return runCommand(() =>
       useCases.acceptCampParticipantResignation.handle({
@@ -144,6 +155,7 @@ export function useCampParticipantActions({
     notFound,
     registerDiscount,
     registerPayment,
+    registerRefund,
     retryLoading,
     submitError
   }

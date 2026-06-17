@@ -37,6 +37,7 @@ describe('CampParticipantDetailsView', () => {
   let mockObserveCampParticipantPaymentHandle: Mock
   let mockRegisterDiscountHandle: Mock
   let mockRegisterPaymentHandle: Mock
+  let mockRegisterRefundHandle: Mock
   let mockAcceptResignationHandle: Mock
   let route: ReturnType<typeof createRoute>
   let subscriptionUnsubscribeSpies: Mock[]
@@ -66,6 +67,7 @@ describe('CampParticipantDetailsView', () => {
     )
     mockRegisterDiscountHandle = vi.fn().mockResolvedValue(undefined)
     mockRegisterPaymentHandle = vi.fn().mockResolvedValue(undefined)
+    mockRegisterRefundHandle = vi.fn().mockResolvedValue(undefined)
     mockAcceptResignationHandle = vi.fn().mockResolvedValue(undefined)
 
     vi.mocked(useAppServices).mockReturnValue({
@@ -89,6 +91,9 @@ describe('CampParticipantDetailsView', () => {
         },
         registerCampParticipantPayment: {
           handle: mockRegisterPaymentHandle
+        },
+        registerCampParticipantRefund: {
+          handle: mockRegisterRefundHandle
         }
       }
     } as unknown as ReturnType<typeof useAppServices>)
@@ -139,6 +144,7 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).toContain('Amanda Nunes')
     expect(wrapper.text()).toContain('Status płatności')
     expect(wrapper.text()).toContain('Przyjmij płatność')
+    expect(wrapper.text()).toContain('Zarejestruj zwrot')
   })
 
   it('updates details and payment when their own observable reads emit', async () => {
@@ -214,7 +220,7 @@ describe('CampParticipantDetailsView', () => {
     ).toBe('444,00')
   })
 
-  it('records participant payment, discount, and resignation through app-layer use cases', async () => {
+  it('records participant payment, refund, discount, and resignation through app-layer use cases', async () => {
     const wrapper = mountView()
     await flushPromises()
 
@@ -222,6 +228,21 @@ describe('CampParticipantDetailsView', () => {
     await wrapper.get('input#campParticipantPaymentAmount').setValue('125,50')
     await wrapper.get('input#campParticipantPaymentNote').setValue('gotówka')
     await wrapper.get('form#campParticipantPaymentForm').trigger('submit')
+    await flushPromises()
+
+    await findButton(wrapper, 'Zarejestruj zwrot').trigger('click')
+    expect(wrapper.text()).toContain('Do zwrotu')
+    expect(
+      (
+        wrapper.get('input#campParticipantRefundAmount')
+          .element as HTMLInputElement
+      ).value
+    ).toBe('300,00')
+    await wrapper.get('input#campParticipantRefundAmount').setValue('75,25')
+    await wrapper
+      .get('input#campParticipantRefundNote')
+      .setValue('przelew zwrotny')
+    await wrapper.get('form#campParticipantRefundForm').trigger('submit')
     await flushPromises()
 
     await findButton(wrapper, 'Przyznaj zniżkę').trigger('click')
@@ -254,6 +275,15 @@ describe('CampParticipantDetailsView', () => {
       },
       campId: 'camp-winter-2026',
       note: 'gotówka',
+      participantId: 'participant-1'
+    })
+    expect(mockRegisterRefundHandle).toHaveBeenCalledWith({
+      amount: {
+        amountMinor: 7525,
+        currency: 'PLN'
+      },
+      campId: 'camp-winter-2026',
+      note: 'przelew zwrotny',
       participantId: 'participant-1'
     })
     expect(mockRegisterDiscountHandle).toHaveBeenCalledWith({
@@ -294,6 +324,32 @@ describe('CampParticipantDetailsView', () => {
 
     expect(wrapper.text()).toContain('Podaj dodatnią kwotę wpłaty.')
     expect(mockRegisterPaymentHandle).not.toHaveBeenCalled()
+  })
+
+  it('keeps invalid refund input inside the actions component', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await findButton(wrapper, 'Zarejestruj zwrot').trigger('click')
+    await wrapper.get('input#campParticipantRefundAmount').setValue('0')
+    await wrapper.get('form#campParticipantRefundForm').trigger('submit')
+
+    expect(wrapper.text()).toContain('Podaj dodatnią kwotę zwrotu.')
+    expect(mockRegisterRefundHandle).not.toHaveBeenCalled()
+  })
+
+  it('keeps refunds above the refundable balance inside the actions component', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await findButton(wrapper, 'Zarejestruj zwrot').trigger('click')
+    await wrapper.get('input#campParticipantRefundAmount').setValue('301')
+    await wrapper.get('form#campParticipantRefundForm').trigger('submit')
+
+    expect(wrapper.text()).toContain(
+      'Zwrot nie może być wyższy niż kwota do zwrotu.'
+    )
+    expect(mockRegisterRefundHandle).not.toHaveBeenCalled()
   })
 
   it('keeps invalid resignation settlement inside the modal story', async () => {
@@ -480,6 +536,7 @@ function createCampParticipantActionsContext(
     canAcceptResignation: true,
     canGrantDiscount: true,
     canRegisterPayment: true,
+    canRegisterRefund: true,
     paymentPrefillAmount: {
       amountMinor: 50000,
       currency: 'PLN'

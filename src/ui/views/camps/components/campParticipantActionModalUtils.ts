@@ -15,6 +15,11 @@ export type CampParticipantPaymentSubmit = {
   note?: string
 }
 
+export type CampParticipantRefundSubmit = {
+  amount: MoneySnapshot
+  note?: string
+}
+
 export type CampParticipantResignationSubmit = {
   nonRefundableDepositValue?: MoneySnapshot
   refundedValue?: MoneySnapshot

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BadgePercent, Banknote, UserMinus } from '@lucide/vue'
+import { BadgePercent, Banknote, HandCoins, UserMinus } from '@lucide/vue'
 import { computed, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -10,14 +10,16 @@ import type { MoneySnapshot } from '@/write/shared/vo/Money'
 import { useCampParticipantActions } from '../useCampParticipantActions'
 import CampParticipantDiscountModal from './CampParticipantDiscountModal.vue'
 import CampParticipantPaymentModal from './CampParticipantPaymentModal.vue'
+import CampParticipantRefundModal from './CampParticipantRefundModal.vue'
 import CampParticipantResignationModal from './CampParticipantResignationModal.vue'
 import type {
   CampParticipantDiscountSubmit,
   CampParticipantPaymentSubmit,
+  CampParticipantRefundSubmit,
   CampParticipantResignationSubmit
 } from './campParticipantActionModalUtils'
 
-type ActionModal = 'discount' | 'payment' | 'resignation'
+type ActionModal = 'discount' | 'payment' | 'refund' | 'resignation'
 
 const props = defineProps<{
   campId: string
@@ -35,6 +37,7 @@ const {
   notFound,
   registerDiscount,
   registerPayment,
+  registerRefund,
   retryLoading,
   submitError
 } = useCampParticipantActions({
@@ -49,6 +52,7 @@ const hasAvailableActions = computed(
   () =>
     Boolean(actionsContext.value?.canGrantDiscount) ||
     Boolean(actionsContext.value?.canRegisterPayment) ||
+    Boolean(actionsContext.value?.canRegisterRefund) ||
     Boolean(actionsContext.value?.canAcceptResignation)
 )
 const actionCurrency = computed(
@@ -96,6 +100,10 @@ function isModalAvailable(modal: ActionModal): boolean {
     return Boolean(actionsContext.value?.canRegisterPayment)
   }
 
+  if (modal === 'refund') {
+    return Boolean(actionsContext.value?.canRegisterRefund)
+  }
+
   return Boolean(actionsContext.value?.canAcceptResignation)
 }
 
@@ -129,6 +137,12 @@ async function submitDiscount(payload: CampParticipantDiscountSubmit) {
 
 async function submitPayment(payload: CampParticipantPaymentSubmit) {
   if (await registerPayment(payload.amount, payload.note)) {
+    resetForms()
+  }
+}
+
+async function submitRefund(payload: CampParticipantRefundSubmit) {
+  if (await registerRefund(payload.amount, payload.note)) {
     resetForms()
   }
 }
@@ -215,6 +229,20 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
             {{ t('actions.payment') }}
           </AppButton>
           <AppButton
+            v-if="actionsContext.canRegisterRefund"
+            class="camp-participant-actions-section__action-button"
+            type="button"
+            variant="secondary"
+            :disabled="isSubmitting"
+            @click="showActionModal('refund')"
+          >
+            <HandCoins
+              class="camp-participant-actions-section__button-icon"
+              aria-hidden="true"
+            />
+            {{ t('actions.refund') }}
+          </AppButton>
+          <AppButton
             v-if="actionsContext.canAcceptResignation"
             class="camp-participant-actions-section__action-button"
             type="button"
@@ -251,6 +279,15 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
       :is-submitting="isSubmitting"
       @close="closeActionModal"
       @submit="submitPayment"
+    />
+
+    <CampParticipantRefundModal
+      :visible="activeActionModal === 'refund'"
+      :subject="actionsContext.subject"
+      :refundable-balance="refundableBalance"
+      :is-submitting="isSubmitting"
+      @close="closeActionModal"
+      @submit="submitRefund"
     />
 
     <CampParticipantResignationModal
@@ -346,7 +383,7 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
   }
 
   .camp-participant-actions-section__actions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>
@@ -360,6 +397,7 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
     "actions": {
       "discount": "Przyznaj zniżkę",
       "payment": "Przyjmij płatność",
+      "refund": "Zarejestruj zwrot",
       "resignation": "Przyjmij rezygnację",
       "retry": "Spróbuj ponownie"
     },
@@ -379,6 +417,7 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
     "actions": {
       "discount": "Grant discount",
       "payment": "Receive payment",
+      "refund": "Register refund",
       "resignation": "Accept resignation",
       "retry": "Try again"
     },
