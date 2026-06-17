@@ -174,7 +174,7 @@ describe('RegisterExternalCampParticipantView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await buttonByText(wrapper, 'Anuluj').trigger('click')
+    await buttonByText(wrapper, 'Wróć do wyboru').trigger('click')
 
     expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()
     expect(mockRouterReplace).toHaveBeenCalledWith(

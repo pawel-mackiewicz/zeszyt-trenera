@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { BadgePercent, Banknote, IdCard, Tent, UserRound } from '@lucide/vue'
+import {
+  ArrowLeft,
+  BadgePercent,
+  Banknote,
+  IdCard,
+  RotateCcw,
+  Tent,
+  UserPlus,
+  UserRound
+} from '@lucide/vue'
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 
@@ -121,14 +130,28 @@ async function handleSubmit() {
         <div class="register-external-camp-participant-view__actions">
           <AppButton
             v-if="loadError"
+            class="register-external-camp-participant-view__action-button"
             type="button"
-            variant="secondary"
+            variant="primary"
             @click="reload"
           >
+            <RotateCcw
+              class="register-external-camp-participant-view__button-icon"
+              aria-hidden="true"
+            />
             {{ t('actions.retry') }}
           </AppButton>
-          <AppButton type="button" variant="primary" @click="goBackToList">
-            {{ t('actions.cancel') }}
+          <AppButton
+            class="register-external-camp-participant-view__action-button"
+            type="button"
+            variant="secondary"
+            @click="goBackToList"
+          >
+            <ArrowLeft
+              class="register-external-camp-participant-view__button-icon"
+              aria-hidden="true"
+            />
+            {{ t('actions.backToPicker') }}
           </AppButton>
         </div>
       </div>
@@ -361,15 +384,28 @@ async function handleSubmit() {
 
         <div class="register-external-camp-participant-view__actions">
           <AppButton
-            class="register-external-camp-participant-view__submit"
+            class="register-external-camp-participant-view__action-button register-external-camp-participant-view__action-button--submit"
             type="submit"
             :disabled="isSubmitting"
-            variant="secondary"
+            variant="primary"
           >
+            <UserPlus
+              class="register-external-camp-participant-view__button-icon"
+              aria-hidden="true"
+            />
             {{ isSubmitting ? t('actions.submitting') : t('actions.submit') }}
           </AppButton>
-          <AppButton type="button" variant="primary" @click="goBackToList">
-            {{ t('actions.cancel') }}
+          <AppButton
+            class="register-external-camp-participant-view__action-button"
+            type="button"
+            variant="secondary"
+            @click="goBackToList"
+          >
+            <ArrowLeft
+              class="register-external-camp-participant-view__button-icon"
+              aria-hidden="true"
+            />
+            {{ t('actions.backToPicker') }}
           </AppButton>
         </div>
       </div>
@@ -544,19 +580,24 @@ async function handleSubmit() {
 }
 
 .register-external-camp-participant-view__actions {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
   padding-block-start: 2rem;
   border-block-start: 1px dashed var(--color-on-surface);
 }
 
-.register-external-camp-participant-view__submit {
+.register-external-camp-participant-view__action-button {
   width: 100%;
   min-height: 3.5rem;
-  box-shadow: 4px 4px 0 0 var(--color-on-surface);
-  font-family: var(--font-mono);
-  font-size: 0.9rem;
-  letter-spacing: 0.22em;
+}
+
+.register-external-camp-participant-view__button-icon {
+  flex: 0 0 auto;
+  width: 0.95rem;
+  height: 0.95rem;
+  color: currentColor;
+  stroke-width: 2.25;
 }
 
 @media (min-width: 48rem) {
@@ -572,6 +613,20 @@ async function handleSubmit() {
   .register-external-camp-participant-view__identity {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .register-external-camp-participant-view__actions {
+    flex-flow: row wrap;
+    align-items: stretch;
+  }
+
+  .register-external-camp-participant-view__action-button {
+    flex: 1 1 12rem;
+    width: auto;
+  }
+
+  .register-external-camp-participant-view__action-button--submit {
+    flex-basis: 100%;
+  }
 }
 </style>
 
@@ -582,10 +637,10 @@ async function handleSubmit() {
       "registration": "Dodaj spoza klubu"
     },
     "actions": {
-      "cancel": "Anuluj",
+      "backToPicker": "Wróć do wyboru",
       "retry": "Spróbuj ponownie",
-      "submit": "Zapisz",
-      "submitting": "Zapisywanie"
+      "submit": "Zapisz uczestnika",
+      "submitting": "Zapisywanie..."
     },
     "states": {
       "loading": "Wczytywanie zapisu",
@@ -639,10 +694,10 @@ async function handleSubmit() {
       "registration": "Add outside club"
     },
     "actions": {
-      "cancel": "Cancel",
+      "backToPicker": "Back to picker",
       "retry": "Try again",
-      "submit": "Save",
-      "submitting": "Saving"
+      "submit": "Register participant",
+      "submitting": "Saving..."
     },
     "states": {
       "loading": "Loading registration",
