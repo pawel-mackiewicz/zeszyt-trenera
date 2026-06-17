@@ -442,7 +442,7 @@ function submitResignation() {
 }
 
 .camp-participant-action-modal__refund-label {
-  color: var(--color-surface-container-highest);
+  color: var(--color-surface-container);
 }
 
 .camp-participant-action-modal__refund-value {
@@ -460,7 +460,7 @@ function submitResignation() {
   display: grid;
   gap: 0.25rem;
   flex: 0 0 auto;
-  color: var(--color-surface-container-highest);
+  color: var(--color-surface-container);
   text-align: end;
 }
 
