@@ -8,7 +8,6 @@ import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 import {
   formatMoney,
-  formatMoneyInput,
   optionalText,
   parsePositiveMoney,
   type CampParticipantActionSubject,
@@ -49,7 +48,7 @@ watch(
 )
 
 function resetForm() {
-  paymentAmount.value = formatMoneyInput(props.remainingAmountToPay)
+  paymentAmount.value = ''
   paymentNote.value = ''
   formError.value = null
 }

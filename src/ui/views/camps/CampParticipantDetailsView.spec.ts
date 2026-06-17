@@ -207,8 +207,13 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).toContain('Valentina Shevchenko')
     expect(wrapper.text()).toContain('Obóz letni')
     expect(wrapper.text()).toContain('Opłacony')
+    expect(wrapper.text()).toContain('Cena bazowa')
+    expect(wrapper.text()).toContain('1050,00')
+    expect(wrapper.text()).toContain('Zniżki')
     expect(wrapper.text()).toContain('900,00')
-    expect(wrapper.text()).toContain('Zniżki: 150,00')
+    expect(wrapper.text()).toContain('Wpłaty')
+    expect(wrapper.text()).toContain('Do zapłaty')
+    expect(wrapper.text()).toContain('0,00')
     expect(mockObserveCampParticipantDetailsHandle).toHaveBeenCalledTimes(1)
     expect(mockObserveCampParticipantPaymentHandle).toHaveBeenCalledTimes(1)
   })
@@ -260,7 +265,7 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).not.toContain('Zniżki')
   })
 
-  it('prefills a received payment from the actions context read', async () => {
+  it('opens a received payment with the remaining amount visible and the payment amount empty', async () => {
     actionsContextObservable = createObservable(
       createCampParticipantActionsContext({
         paymentPrefillAmount: {
@@ -279,12 +284,13 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).toContain('Przyjmij płatność')
     expect(wrapper.text()).toContain('Amanda Nunes')
     expect(wrapper.text()).toContain('Obóz zimowy')
+    expect(wrapper.text()).toContain('444,00 PLN')
     expect(
       (
         wrapper.get('input#campParticipantPaymentAmount')
           .element as HTMLInputElement
       ).value
-    ).toBe('444,00')
+    ).toBe('')
   })
 
   it('records participant payment, refund, discount, and resignation through app-layer use cases', async () => {

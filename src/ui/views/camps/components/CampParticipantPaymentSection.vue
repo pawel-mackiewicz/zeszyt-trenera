@@ -29,15 +29,17 @@ const activePayment = computed<CampParticipantPaymentActive | null>(() =>
 const refundPayment = computed<CampParticipantPaymentRefund | null>(() =>
   payment.value && 'amountToRefund' in payment.value ? payment.value : null
 )
-const discountSum = computed<MoneySnapshot | null>(() => {
-  if (
-    !activePayment.value ||
-    activePayment.value.discountSum.amountMinor <= 0
-  ) {
+const basePrice = computed<MoneySnapshot | null>(() => {
+  if (!activePayment.value) {
     return null
   }
 
-  return activePayment.value.discountSum
+  return {
+    amountMinor:
+      activePayment.value.amountDue.amountMinor +
+      activePayment.value.discountSum.amountMinor,
+    currency: activePayment.value.amountDue.currency
+  }
 })
 const progressStyle = computed(() => ({
   width: `${Math.min(
@@ -104,53 +106,67 @@ function formatMoney(money: MoneySnapshot): string {
         </AppButton>
       </template>
 
-      <template v-else-if="activePayment">
-        <div class="camp-participant-payment-section__heading">
-          <p class="camp-participant-payment-section__money">
-            <strong>
-              {{ formatMoney(activePayment.paidAmount) }}
-            </strong>
-            <span>/ {{ formatMoney(activePayment.amountDue) }}</span>
-          </p>
-        </div>
-
+      <template v-else-if="activePayment && basePrice && remainingAmount">
         <div
-          class="camp-participant-payment-section__progress"
-          role="progressbar"
-          :aria-label="t('payment.progressLabel')"
-          aria-valuemin="0"
-          aria-valuemax="100"
-          :aria-valuenow="activePayment.paymentProgressPercent"
+          class="camp-participant-payment-section__receipt"
+          :aria-label="t('payment.receiptLabel')"
         >
-          <span
-            class="camp-participant-payment-section__progress-value"
-            :style="progressStyle"
-          />
-        </div>
+          <dl class="camp-participant-payment-section__ledger">
+            <div
+              class="camp-participant-payment-section__line camp-participant-payment-section__line--base"
+            >
+              <dt>{{ t('payment.basePrice') }}</dt>
+              <dd>{{ formatMoney(basePrice) }}</dd>
+            </div>
 
-        <div class="camp-participant-payment-section__summary">
-          <p
-            v-if="remainingAmount"
-            class="camp-participant-payment-section__remaining"
+            <div
+              class="camp-participant-payment-section__line camp-participant-payment-section__line--adjustment"
+            >
+              <dt>{{ t('payment.discounts') }}</dt>
+              <dd>
+                {{
+                  t('payment.deduction', {
+                    amount: formatMoney(activePayment.discountSum)
+                  })
+                }}
+              </dd>
+            </div>
+
+            <div
+              class="camp-participant-payment-section__line camp-participant-payment-section__line--adjustment"
+            >
+              <dt>{{ t('payment.payments') }}</dt>
+              <dd>
+                {{
+                  t('payment.deduction', {
+                    amount: formatMoney(activePayment.paidAmount)
+                  })
+                }}
+              </dd>
+            </div>
+          </dl>
+
+          <div
+            class="camp-participant-payment-section__progress"
+            role="progressbar"
+            :aria-label="t('payment.progressLabel')"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-valuenow="activePayment.paymentProgressPercent"
+          >
+            <span
+              class="camp-participant-payment-section__progress-value"
+              :style="progressStyle"
+            />
+          </div>
+
+          <div
+            class="camp-participant-payment-section__line camp-participant-payment-section__line--due"
             aria-live="polite"
           >
-            {{
-              t('payment.remaining', {
-                amount: formatMoney(remainingAmount)
-              })
-            }}
-          </p>
-
-          <p
-            v-if="discountSum"
-            class="camp-participant-payment-section__discount"
-          >
-            {{
-              t('payment.discount', {
-                amount: formatMoney(discountSum)
-              })
-            }}
-          </p>
+            <span>{{ t('payment.due') }}</span>
+            <strong>{{ formatMoney(remainingAmount) }}</strong>
+          </div>
         </div>
       </template>
 
@@ -188,14 +204,6 @@ function formatMoney(money: MoneySnapshot): string {
   display: grid;
   gap: 1.25rem;
   padding: 1.5rem 1rem;
-}
-
-.camp-participant-payment-section__heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  justify-content: flex-end;
-  gap: 0.75rem 1rem;
 }
 
 .camp-participant-payment-section__headline,
@@ -239,8 +247,86 @@ function formatMoney(money: MoneySnapshot): string {
   color: var(--color-secondary);
 }
 
+/* good overall, but use font size from @style.css or add camp.css or smth like that */
+.camp-participant-payment-section__receipt {
+  display: grid;
+  gap: 1rem;
+}
+
+.camp-participant-payment-section__ledger {
+  display: grid;
+  margin: 0;
+}
+
+.camp-participant-payment-section__line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(min-content, auto);
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.8rem 0;
+  border-block-end: 1px solid var(--color-outline-variant);
+}
+
+.camp-participant-payment-section__line dt,
+.camp-participant-payment-section__line dd {
+  margin: 0;
+}
+
+.camp-participant-payment-section__line dt,
+.camp-participant-payment-section__line > span {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  line-height: 1.35;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+}
+
+.camp-participant-payment-section__line dd,
+.camp-participant-payment-section__line strong {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  font-family: var(--font-mono);
+  font-size: 0.86rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-align: end;
+  color: var(--color-on-surface);
+}
+
+.camp-participant-payment-section__line--base {
+  padding-block-start: 0;
+  border-block-end-color: var(--color-on-surface);
+}
+
+.camp-participant-payment-section__line--base dd {
+  font-size: 1rem;
+}
+
+.camp-participant-payment-section__line--adjustment dd {
+  color: var(--color-secondary);
+}
+
+.camp-participant-payment-section__line--due {
+  padding-block: 1rem 0;
+  border-block-start: 1px solid var(--color-on-surface);
+  border-block-end: 0;
+}
+
+.camp-participant-payment-section__line--due span {
+  color: var(--color-on-surface);
+}
+
+.camp-participant-payment-section__line--due strong {
+  font-size: 1.4rem;
+  color: var(--color-primary);
+}
+
 .camp-participant-payment-section__progress {
-  height: 1rem;
+  height: 0.55rem;
   border: 1px solid var(--color-on-surface);
   background: var(--color-surface-container-low);
 }
@@ -252,24 +338,6 @@ function formatMoney(money: MoneySnapshot): string {
   background: var(--color-primary);
 }
 
-.camp-participant-payment-section__summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.35rem 1rem;
-}
-
-.camp-participant-payment-section__discount {
-  justify-self: end;
-  max-width: 100%;
-  margin-inline-start: auto;
-  text-align: end;
-  overflow-wrap: anywhere;
-}
-
-.camp-participant-payment-section__remaining,
-.camp-participant-payment-section__discount,
 .camp-participant-payment-section__state {
   margin: 0;
   font-family: var(--font-mono);
@@ -299,10 +367,14 @@ function formatMoney(money: MoneySnapshot): string {
       "retry": "Spróbuj ponownie"
     },
     "payment": {
-      "discount": "Zniżki: {amount}",
+      "basePrice": "Cena bazowa",
+      "deduction": "- {amount}",
+      "discounts": "Zniżki",
+      "due": "Do zapłaty",
+      "payments": "Wpłaty",
       "progressLabel": "Postęp płatności uczestnika",
-      "refund": "Do zwrotu",
-      "remaining": "Pozostało: {amount}"
+      "receiptLabel": "Paragon płatności uczestnika",
+      "refund": "Do zwrotu"
     },
     "states": {
       "loading": "Wczytywanie płatności uczestnika",
@@ -318,10 +390,14 @@ function formatMoney(money: MoneySnapshot): string {
       "retry": "Try again"
     },
     "payment": {
-      "discount": "Discounts: {amount}",
+      "basePrice": "Base price",
+      "deduction": "- {amount}",
+      "discounts": "Discounts",
+      "due": "Due",
+      "payments": "Payments",
       "progressLabel": "Participant payment progress",
-      "refund": "To refund",
-      "remaining": "Remaining: {amount}"
+      "receiptLabel": "Participant payment receipt",
+      "refund": "To refund"
     },
     "states": {
       "loading": "Loading participant payment",
