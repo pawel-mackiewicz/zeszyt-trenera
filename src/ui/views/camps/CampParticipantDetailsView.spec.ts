@@ -1,5 +1,13 @@
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+  type Mock
+} from 'vitest'
 import { reactive } from 'vue'
 
 import type { CampParticipantActionsContext } from '@/read/ObserveCampParticipantActionsContextQuery'
@@ -39,6 +47,7 @@ describe('CampParticipantDetailsView', () => {
   let mockRegisterPaymentHandle: Mock
   let mockRegisterRefundHandle: Mock
   let mockAcceptResignationHandle: Mock
+  let mockCancelResignationHandle: Mock
   let route: ReturnType<typeof createRoute>
   let subscriptionUnsubscribeSpies: Mock[]
   let detailsObservable: TestObservable<CampParticipantDetails | null>
@@ -69,6 +78,7 @@ describe('CampParticipantDetailsView', () => {
     mockRegisterPaymentHandle = vi.fn().mockResolvedValue(undefined)
     mockRegisterRefundHandle = vi.fn().mockResolvedValue(undefined)
     mockAcceptResignationHandle = vi.fn().mockResolvedValue(undefined)
+    mockCancelResignationHandle = vi.fn().mockResolvedValue(undefined)
 
     vi.mocked(useAppServices).mockReturnValue({
       queries: {
@@ -86,6 +96,9 @@ describe('CampParticipantDetailsView', () => {
         acceptCampParticipantResignation: {
           handle: mockAcceptResignationHandle
         },
+        cancelCampParticipantResignation: {
+          handle: mockCancelResignationHandle
+        },
         registerCampParticipantDiscount: {
           handle: mockRegisterDiscountHandle
         },
@@ -100,6 +113,10 @@ describe('CampParticipantDetailsView', () => {
     vi.mocked(useRoute).mockReturnValue(
       route as unknown as ReturnType<typeof useRoute>
     )
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   function mountView(locale: 'pl' | 'en' = 'pl') {
@@ -249,7 +266,7 @@ describe('CampParticipantDetailsView', () => {
     await flushPromises()
 
     await findButton(wrapper, 'Zarejestruj zwrot').trigger('click')
-    expect(wrapper.text()).toContain('Do zwrotu')
+    expect(wrapper.text()).toContain('Wpłacono')
     expect(
       (
         wrapper.get('input#campParticipantRefundAmount')
@@ -330,6 +347,58 @@ describe('CampParticipantDetailsView', () => {
     expect(
       mockObserveCampParticipantActionsContextHandle
     ).toHaveBeenCalledTimes(1)
+  })
+
+  it('cancels participant resignation after confirmation through the app-layer use case', async () => {
+    vi.useFakeTimers()
+    actionsContextObservable = createObservable(
+      createCampParticipantActionsContext({
+        canAcceptResignation: false,
+        canCancelResignation: true,
+        canGrantDiscount: false,
+        canRegisterPayment: false,
+        canRegisterRefund: false,
+        paymentPrefillAmount: null,
+        refundableBalance: {
+          amountMinor: 0,
+          currency: 'PLN'
+        },
+        status: 'resigned'
+      }),
+      subscriptionUnsubscribeSpies
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Cofnij rezygnację')
+    expect(wrapper.text()).not.toContain('Przyjmij rezygnację')
+
+    await findButton(wrapper, 'Cofnij rezygnację').trigger('click')
+    expect(wrapper.text()).toContain('Cofnąć rezygnację?')
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).toContain('Obóz zimowy')
+
+    await wrapper
+      .get('[data-testid="campParticipantCancelResignationCancel"]')
+      .trigger('click')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+
+    expect(mockCancelResignationHandle).not.toHaveBeenCalled()
+    expect(wrapper.text()).not.toContain('Cofnąć rezygnację?')
+
+    await findButton(wrapper, 'Cofnij rezygnację').trigger('click')
+    await wrapper
+      .get('[data-testid="campParticipantCancelResignationConfirm"]')
+      .trigger('click')
+    await vi.runAllTimersAsync()
+    await flushPromises()
+
+    expect(mockCancelResignationHandle).toHaveBeenCalledWith({
+      campId: 'camp-winter-2026',
+      participantId: 'participant-1'
+    })
   })
 
   it('keeps invalid payment input inside the actions component', async () => {
@@ -552,6 +621,7 @@ function createCampParticipantActionsContext(
 ): CampParticipantActionsContext {
   return {
     canAcceptResignation: true,
+    canCancelResignation: false,
     canGrantDiscount: true,
     canRegisterPayment: true,
     canRegisterRefund: true,

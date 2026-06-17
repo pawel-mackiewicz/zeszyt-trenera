@@ -22,6 +22,7 @@ export type ObserveCampParticipantActionsContextQueryInput =
 export type CampParticipantActionsContext = {
   status: CampParticipantReadStatus
   canAcceptResignation: boolean
+  canCancelResignation: boolean
   canGrantDiscount: boolean
   canRegisterPayment: boolean
   canRegisterRefund: boolean
@@ -76,6 +77,7 @@ function toCampParticipantActionsContext(
   return {
     status: toCampParticipantReadStatus(participant.status),
     canAcceptResignation: participant.canResign(),
+    canCancelResignation: participant.canCancelResignation(),
     canGrantDiscount: participant.canApplyDiscount(),
     canRegisterPayment,
     canRegisterRefund: participant.canRegisterRefund(),

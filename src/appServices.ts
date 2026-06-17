@@ -16,6 +16,7 @@ import { ImportDatabaseBackupUseCase } from '@/system_management/database_backup
 import { LeaveDemoModeUseCase } from '@/system_management/demo/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/write/attendance/application/RegisterAttendanceListUseCase'
 import { AcceptCampParticipantResignationUseCase } from '@/write/camps/application/AcceptCampParticipantResignationUseCase'
+import { CancelCampParticipantResignationUseCase } from '@/write/camps/application/CancelCampParticipantResignationUseCase'
 import { RegisterCampParticipantDiscountUseCase } from '@/write/camps/application/RegisterCampParticipantDiscountUseCase'
 import { RegisterCampParticipantPaymentUseCase } from '@/write/camps/application/RegisterCampParticipantPaymentUseCase'
 import { RegisterCampParticipantRefundUseCase } from '@/write/camps/application/RegisterCampParticipantRefundUseCase'
@@ -50,6 +51,7 @@ import type { RegisterMembershipPaymentCommand } from '@/write/memberships/appli
 import type { ResetApplicationDataCommand } from '@/system_management/app_reset/application/requests/ResetApplicationDataCommand'
 import type { UnarchiveMemberCommand } from '@/write/members/application/requests/UnarchiveMemberCommand'
 import type { AcceptCampParticipantResignationCommand } from '@/write/camps/application/requests/AcceptCampParticipantResignationCommand'
+import type { CancelCampParticipantResignationCommand } from '@/write/camps/application/requests/CancelCampParticipantResignationCommand'
 import type { RegisterTrainerCommand } from '@/write/business_profile/application/commands/RegisterTrainerCommand'
 import type { SendMembershipPaymentReminderCommand } from '@/write/memberships/application/requests/SendMembershipPaymentReminderCommand'
 import type { UpdateAttendanceListCommand } from '@/write/attendance/application/requests/UpdateAttendanceListCommand'
@@ -153,6 +155,7 @@ import {
 
 export type AppUseCases = {
   readonly acceptCampParticipantResignation: UseCase<AcceptCampParticipantResignationCommand>
+  readonly cancelCampParticipantResignation: UseCase<CancelCampParticipantResignationCommand>
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
   readonly archiveMember: UseCase<ArchiveMemberCommand>
@@ -423,6 +426,15 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveIdGenerator()
       )
   )
+  const resolveCancelCampParticipantResignation = lazy(
+    () =>
+      new CancelCampParticipantResignationUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
   const resolveDeleteAttendanceList = lazy(
     () =>
       new DeleteAttendanceListUseCase(
@@ -585,6 +597,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
     get acceptCampParticipantResignation() {
       return resolveAcceptCampParticipantResignation()
+    },
+    get cancelCampParticipantResignation() {
+      return resolveCancelCampParticipantResignation()
     },
     get deleteAttendanceList() {
       return resolveDeleteAttendanceList()

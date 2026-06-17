@@ -119,6 +119,9 @@ describe('appServices', () => {
     expect(services.useCases.registerCampParticipantRefund).toBe(
       services.useCases.registerCampParticipantRefund
     )
+    expect(services.useCases.cancelCampParticipantResignation).toBe(
+      services.useCases.cancelCampParticipantResignation
+    )
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
     )

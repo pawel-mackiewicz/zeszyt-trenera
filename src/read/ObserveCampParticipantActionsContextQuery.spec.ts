@@ -107,6 +107,7 @@ describe('camp participant actions context live read query', () => {
       )
     ).resolves.toEqual({
       canAcceptResignation: true,
+      canCancelResignation: false,
       canGrantDiscount: true,
       canRegisterPayment: true,
       canRegisterRefund: true,
@@ -148,6 +149,7 @@ describe('camp participant actions context live read query', () => {
         })
       )
     ).resolves.toMatchObject({
+      canCancelResignation: false,
       canRegisterRefund: false,
       refundableBalance: {
         amountMinor: 0,
@@ -202,12 +204,55 @@ describe('camp participant actions context live read query', () => {
         })
       )
     ).resolves.toMatchObject({
+      canAcceptResignation: false,
+      canCancelResignation: true,
       canRegisterRefund: false,
       refundableBalance: {
         amountMinor: 0,
         currency: 'PLN'
       },
       status: 'refunded'
+    })
+  })
+
+  it('offers resignation cancellation while the participant is resigned', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-actions-resigned-read')
+    )
+    const query = new ObserveCampParticipantActionsContextQuery(database)
+
+    await database.camps.add(createCampRow())
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'RESIGNED',
+        financialTransactions: [
+          {
+            type: 'payment',
+            id: 'payment-1',
+            amount: {
+              amountMinor: 30000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-03T00:00:00Z')
+          }
+        ]
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toMatchObject({
+      canAcceptResignation: false,
+      canCancelResignation: true,
+      status: 'resigned'
     })
   })
 })

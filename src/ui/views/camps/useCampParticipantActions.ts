@@ -133,6 +133,15 @@ export function useCampParticipantActions({
     )
   }
 
+  function cancelResignation() {
+    return runCommand(() =>
+      useCases.cancelCampParticipantResignation.handle({
+        campId: campId.value,
+        participantId: participantId.value
+      })
+    )
+  }
+
   function clearSubmitError() {
     submitError.value = false
   }
@@ -148,6 +157,7 @@ export function useCampParticipantActions({
   return {
     acceptResignation,
     actionsContext,
+    cancelResignation,
     clearSubmitError,
     isLoading,
     isSubmitting,

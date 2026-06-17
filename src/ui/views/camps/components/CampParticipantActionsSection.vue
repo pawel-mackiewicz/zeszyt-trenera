@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { BadgePercent, Banknote, HandCoins, UserMinus } from '@lucide/vue'
+import {
+  BadgePercent,
+  Banknote,
+  HandCoins,
+  UserCheck,
+  UserMinus
+} from '@lucide/vue'
 import { computed, ref, toRef, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
+import ConfirmationModal from '@/ui/components/modals/ConfirmationModal.vue'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 import { useCampParticipantActions } from '../useCampParticipantActions'
@@ -19,7 +26,12 @@ import type {
   CampParticipantResignationSubmit
 } from './campParticipantActionModalUtils'
 
-type ActionModal = 'discount' | 'payment' | 'refund' | 'resignation'
+type ActionModal =
+  | 'discount'
+  | 'payment'
+  | 'refund'
+  | 'resignation'
+  | 'cancelResignation'
 
 const props = defineProps<{
   campId: string
@@ -30,6 +42,7 @@ const { t } = useI18n({ useScope: 'local' })
 const {
   acceptResignation,
   actionsContext,
+  cancelResignation,
   clearSubmitError,
   isLoading,
   isSubmitting,
@@ -53,7 +66,8 @@ const hasAvailableActions = computed(
     Boolean(actionsContext.value?.canGrantDiscount) ||
     Boolean(actionsContext.value?.canRegisterPayment) ||
     Boolean(actionsContext.value?.canRegisterRefund) ||
-    Boolean(actionsContext.value?.canAcceptResignation)
+    Boolean(actionsContext.value?.canAcceptResignation) ||
+    Boolean(actionsContext.value?.canCancelResignation)
 )
 const actionCurrency = computed(
   () =>
@@ -104,7 +118,11 @@ function isModalAvailable(modal: ActionModal): boolean {
     return Boolean(actionsContext.value?.canRegisterRefund)
   }
 
-  return Boolean(actionsContext.value?.canAcceptResignation)
+  if (modal === 'resignation') {
+    return Boolean(actionsContext.value?.canAcceptResignation)
+  }
+
+  return Boolean(actionsContext.value?.canCancelResignation)
 }
 
 function showActionModal(modal: ActionModal) {
@@ -149,6 +167,12 @@ async function submitRefund(payload: CampParticipantRefundSubmit) {
 
 async function submitResignation(payload: CampParticipantResignationSubmit) {
   if (await acceptResignation(payload)) {
+    resetForms()
+  }
+}
+
+async function submitCancelResignation() {
+  if (await cancelResignation()) {
     resetForms()
   }
 }
@@ -256,6 +280,20 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
             />
             {{ t('actions.resignation') }}
           </AppButton>
+          <AppButton
+            v-if="actionsContext.canCancelResignation"
+            class="camp-participant-actions-section__action-button"
+            type="button"
+            variant="secondary"
+            :disabled="isSubmitting"
+            @click="showActionModal('cancelResignation')"
+          >
+            <UserCheck
+              class="camp-participant-actions-section__button-icon"
+              aria-hidden="true"
+            />
+            {{ t('actions.cancelResignation') }}
+          </AppButton>
         </div>
       </template>
     </div>
@@ -297,6 +335,30 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
       :is-submitting="isSubmitting"
       @close="closeActionModal"
       @submit="submitResignation"
+    />
+
+    <ConfirmationModal
+      :visible="activeActionModal === 'cancelResignation'"
+      :title="t('modals.cancelResignationTitle')"
+      :body="t('modals.cancelResignationBody')"
+      :details="[
+        {
+          label: t('fields.participant'),
+          value: actionsContext.subject.participantDisplayName
+        },
+        {
+          label: t('fields.camp'),
+          value: actionsContext.subject.campName
+        }
+      ]"
+      :confirm-label="t('actions.confirmCancelResignation')"
+      :pending-label="t('actions.submitting')"
+      :cancel-label="t('actions.cancel')"
+      confirm-test-id="campParticipantCancelResignationConfirm"
+      cancel-test-id="campParticipantCancelResignationCancel"
+      :is-pending="isSubmitting"
+      @close="closeActionModal"
+      @confirm="submitCancelResignation"
     />
   </template>
 </template>
@@ -383,7 +445,7 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
   }
 
   .camp-participant-actions-section__actions {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
   }
 }
 </style>
@@ -399,7 +461,19 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
       "payment": "Przyjmij płatność",
       "refund": "Zarejestruj zwrot",
       "resignation": "Przyjmij rezygnację",
+      "cancelResignation": "Cofnij rezygnację",
+      "confirmCancelResignation": "Cofnij rezygnację",
+      "cancel": "Anuluj",
+      "submitting": "Zapisywanie...",
       "retry": "Spróbuj ponownie"
+    },
+    "fields": {
+      "participant": "Uczestnik",
+      "camp": "Obóz"
+    },
+    "modals": {
+      "cancelResignationTitle": "Cofnąć rezygnację?",
+      "cancelResignationBody": "Uczestnik wróci do aktywnego statusu, a zadatki wrócą do salda uczestnika."
     },
     "errors": {
       "submit": "Nie udało się zapisać zmian uczestnika."
@@ -419,7 +493,19 @@ async function submitResignation(payload: CampParticipantResignationSubmit) {
       "payment": "Receive payment",
       "refund": "Register refund",
       "resignation": "Accept resignation",
+      "cancelResignation": "Cancel resignation",
+      "confirmCancelResignation": "Cancel resignation",
+      "cancel": "Cancel",
+      "submitting": "Saving...",
       "retry": "Try again"
+    },
+    "fields": {
+      "participant": "Participant",
+      "camp": "Camp"
+    },
+    "modals": {
+      "cancelResignationTitle": "Cancel resignation?",
+      "cancelResignationBody": "The participant will return to the active status, and deposits will return to the participant balance."
     },
     "errors": {
       "submit": "Participant changes could not be saved."
