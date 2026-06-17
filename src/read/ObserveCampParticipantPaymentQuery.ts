@@ -7,6 +7,7 @@ import {
   resolvePaymentProgressPercent,
   type CampParticipantQueryInput
 } from '@/read/CampParticipantReadModel'
+import { Camp } from '@/write/camps/domain/Camp'
 import type { CampParticipant } from '@/write/camps/domain/CampParticipant'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
@@ -16,6 +17,7 @@ export type CampParticipantPaymentActiveStatus = 'registered' | 'fullyPaid'
 
 export type CampParticipantPaymentActive = {
   status: CampParticipantPaymentActiveStatus
+  basePrice: MoneySnapshot
   amountDue: MoneySnapshot
   discountSum: MoneySnapshot
   paidAmount: MoneySnapshot
@@ -42,15 +44,27 @@ export class ObserveCampParticipantPaymentQuery {
     return liveQuery(async () => {
       const participant = await loadCampParticipantForCamp(this.database, input)
 
-      return participant
-        ? toCampParticipantPayment(rehydrateCampParticipant(participant))
+      if (!participant) {
+        return null
+      }
+
+      const camp = input.campId
+        ? await this.database.camps.get(input.campId)
+        : null
+
+      return camp
+        ? toCampParticipantPayment(
+            rehydrateCampParticipant(participant),
+            Camp.rehydrate(camp)
+          )
         : null
     })
   }
 }
 
 function toCampParticipantPayment(
-  participant: CampParticipant
+  participant: CampParticipant,
+  camp: Camp
 ): CampParticipantPayment {
   const snapshot = participant.toSnapshot()
   const financialBalance = participant.financialBalance().toSnapshot()
@@ -66,6 +80,7 @@ function toCampParticipantPayment(
 
   return {
     status: snapshot.status === 'REGISTERED' ? 'registered' : 'fullyPaid',
+    basePrice: camp.price.toSnapshot(),
     amountDue,
     discountSum: resolveDiscountSum(snapshot),
     paidAmount: financialBalance,

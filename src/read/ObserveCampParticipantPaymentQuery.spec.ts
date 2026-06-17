@@ -2,7 +2,10 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { TrainerNotebookDb } from '@/db'
 import { ObserveCampParticipantPaymentQuery } from '@/read/ObserveCampParticipantPaymentQuery'
-import type { PersistedCampParticipant } from '@/write/shared/infra'
+import type {
+  PersistedCamp,
+  PersistedCampParticipant
+} from '@/write/shared/infra'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
@@ -36,6 +39,25 @@ function createCampParticipantRow(
   }
 }
 
+function createCampRow(overrides: Partial<PersistedCamp> = {}): PersistedCamp {
+  const now = new Date('2026-06-01T00:00:00Z')
+
+  return {
+    id: 'camp-1',
+    name: 'Winter camp',
+    note: '',
+    startDate: new Date('2026-12-12T00:00:00Z'),
+    finishDate: new Date('2026-12-19T00:00:00Z'),
+    price: {
+      amountMinor: 100000,
+      currency: 'PLN'
+    },
+    createdAt: now,
+    updatedAt: now,
+    ...overrides
+  }
+}
+
 describe('camp participant payment live read query', () => {
   let database: TrainerNotebookDb | undefined
 
@@ -46,12 +68,20 @@ describe('camp participant payment live read query', () => {
     }
   })
 
-  it('tells the active payment progress story from the participant money data', async () => {
+  it('tells the active payment progress story from the camp price and participant money data', async () => {
     database = new TrainerNotebookDb(
       createTestDbName('camp-participant-payment-read')
     )
     const query = new ObserveCampParticipantPaymentQuery(database)
 
+    await database.camps.add(
+      createCampRow({
+        price: {
+          amountMinor: 100000,
+          currency: 'PLN'
+        }
+      })
+    )
     await database.campParticipants.add(
       createCampParticipantRow({
         id: 'participant-1',
@@ -103,6 +133,10 @@ describe('camp participant payment live read query', () => {
         })
       )
     ).resolves.toEqual({
+      basePrice: {
+        amountMinor: 100000,
+        currency: 'PLN'
+      },
       amountDue: {
         amountMinor: 80000,
         currency: 'PLN'
@@ -126,6 +160,7 @@ describe('camp participant payment live read query', () => {
     )
     const query = new ObserveCampParticipantPaymentQuery(database)
 
+    await database.camps.add(createCampRow())
     await database.campParticipants.add(
       createCampParticipantRow({
         id: 'participant-1',
@@ -179,6 +214,7 @@ describe('camp participant payment live read query', () => {
     )
     const query = new ObserveCampParticipantPaymentQuery(database)
 
+    await database.camps.add(createCampRow())
     await database.campParticipants.add(
       createCampParticipantRow({
         id: 'participant-1',

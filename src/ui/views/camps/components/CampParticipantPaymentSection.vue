@@ -29,18 +29,9 @@ const activePayment = computed<CampParticipantPaymentActive | null>(() =>
 const refundPayment = computed<CampParticipantPaymentRefund | null>(() =>
   payment.value && 'amountToRefund' in payment.value ? payment.value : null
 )
-const basePrice = computed<MoneySnapshot | null>(() => {
-  if (!activePayment.value) {
-    return null
-  }
-
-  return {
-    amountMinor:
-      activePayment.value.amountDue.amountMinor +
-      activePayment.value.discountSum.amountMinor,
-    currency: activePayment.value.amountDue.currency
-  }
-})
+const hasDiscount = computed(
+  () => (activePayment.value?.discountSum.amountMinor ?? 0) !== 0
+)
 const progressStyle = computed(() => ({
   width: `${Math.min(
     100,
@@ -106,7 +97,7 @@ function formatMoney(money: MoneySnapshot): string {
         </AppButton>
       </template>
 
-      <template v-else-if="activePayment && basePrice && remainingAmount">
+      <template v-else-if="activePayment && remainingAmount">
         <div
           class="camp-participant-payment-section__receipt"
           :aria-label="t('payment.receiptLabel')"
@@ -116,10 +107,11 @@ function formatMoney(money: MoneySnapshot): string {
               class="camp-participant-payment-section__line camp-participant-payment-section__line--base"
             >
               <dt>{{ t('payment.basePrice') }}</dt>
-              <dd>{{ formatMoney(basePrice) }}</dd>
+              <dd>{{ formatMoney(activePayment.basePrice) }}</dd>
             </div>
 
             <div
+              v-if="hasDiscount"
               class="camp-participant-payment-section__line camp-participant-payment-section__line--adjustment"
             >
               <dt>{{ t('payment.discounts') }}</dt>

@@ -186,6 +186,10 @@ describe('CampParticipantDetailsView', () => {
     )
     paymentObservable.emit(
       createCampParticipantPayment({
+        basePrice: {
+          amountMinor: 105000,
+          currency: 'PLN'
+        },
         amountDue: {
           amountMinor: 90000,
           currency: 'PLN'
@@ -216,6 +220,36 @@ describe('CampParticipantDetailsView', () => {
     expect(wrapper.text()).toContain('0,00')
     expect(mockObserveCampParticipantDetailsHandle).toHaveBeenCalledTimes(1)
     expect(mockObserveCampParticipantPaymentHandle).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the active payment story without discounts when the discount sum is zero', async () => {
+    paymentObservable = createObservable(
+      createCampParticipantPayment({
+        amountDue: {
+          amountMinor: 80000,
+          currency: 'PLN'
+        },
+        discountSum: {
+          amountMinor: 0,
+          currency: 'PLN'
+        },
+        paidAmount: {
+          amountMinor: 30000,
+          currency: 'PLN'
+        },
+        paymentProgressPercent: 37,
+        status: 'registered'
+      }),
+      subscriptionUnsubscribeSpies
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Cena bazowa')
+    expect(wrapper.text()).toContain('Wpłaty')
+    expect(wrapper.text()).toContain('Do zapłaty')
+    expect(wrapper.text()).not.toContain('Zniżki')
   })
 
   it('shows when the participant resignation story has been refunded', async () => {
@@ -653,6 +687,10 @@ function createCampParticipantPayment(
   overrides: Partial<CampParticipantPayment> = {}
 ): CampParticipantPayment {
   return {
+    basePrice: {
+      amountMinor: 80000,
+      currency: 'PLN'
+    },
     amountDue: {
       amountMinor: 80000,
       currency: 'PLN'
