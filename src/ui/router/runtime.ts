@@ -12,5 +12,6 @@ export type {
   RouteLocationNormalized,
   RouteLocationNormalizedLoaded,
   RouteRecordRaw,
-  Router
+  Router,
+  RouterOptions
 } from 'vue-router/dist/vue-router.mjs'

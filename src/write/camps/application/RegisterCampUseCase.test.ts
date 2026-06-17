@@ -1,12 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { FakeCampRepo } from '@/write/camps/application/CampRepoPort'
+import { FakeCampRepo } from '@/write/camps/application/ports/CampRepoPort'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import {
   CampRegisteredDomainEvent,
-  InvalidCampNameError,
-  InvalidCampStartDateError
+  InvalidCampNameError
 } from '@/write/camps/domain/Camp'
 import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
@@ -29,6 +28,10 @@ class FakeIdGenerator implements IdGeneratorPort {
   }
 }
 
+const futureDate = () => new Date(Date.now() + 24 * 60 * 60 * 1000)
+const futureFinishDate = (startDate: Date) =>
+  new Date(startDate.getTime() + 24 * 60 * 60 * 1000)
+
 describe('RegisterCampUseCase', () => {
   let uow: FakeUnitOfWork
   let campRepo: FakeCampRepo
@@ -48,12 +51,14 @@ describe('RegisterCampUseCase', () => {
   })
 
   it('registers a camp via UoW, saving the camp and related domain event', async () => {
+    const startDate = futureDate()
     const dto: RegisterCampCommand = {
       name: ' Summer camp ',
       note: '  Advanced group  ',
-      startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      startDate,
+      finishDate: futureFinishDate(startDate),
       price: {
-        amountMinor: 129900,
+        amountMinor: 1299_00,
         currency: 'PLN'
       }
     }
@@ -69,8 +74,9 @@ describe('RegisterCampUseCase', () => {
     expect(savedCamp.name).toBe('Summer camp')
     expect(savedCamp.note).toBe('Advanced group')
     expect(savedCamp.startDate).toEqual(dto.startDate)
+    expect(savedCamp.finishDate).toEqual(dto.finishDate)
     expect(savedCamp.price.toSnapshot()).toEqual({
-      amountMinor: 129900,
+      amountMinor: 1299_00,
       currency: 'PLN'
     })
 
@@ -84,12 +90,15 @@ describe('RegisterCampUseCase', () => {
   })
 
   it('rejects an empty camp name without saving', async () => {
+    const startDate = futureDate()
+
     await expect(
       useCase.handle({
         name: '   ',
-        startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        startDate,
+        finishDate: futureFinishDate(startDate),
         price: {
-          amountMinor: 129900,
+          amountMinor: 1299_00,
           currency: 'PLN'
         }
       })
@@ -101,29 +110,35 @@ describe('RegisterCampUseCase', () => {
     expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
-  it('rejects a past start date without saving', async () => {
-    await expect(
-      useCase.handle({
-        name: 'Summer camp',
-        startDate: new Date('2020-01-01T00:00:00Z'),
-        price: {
-          amountMinor: 129900,
-          currency: 'PLN'
-        }
-      })
-    ).rejects.toThrow(InvalidCampStartDateError)
+  it('registers a past camp for a completed camp record', async () => {
+    const dto: RegisterCampCommand = {
+      name: 'Spring camp',
+      startDate: new Date('2020-01-01T00:00:00Z'),
+      finishDate: new Date('2020-01-07T00:00:00Z'),
+      price: {
+        amountMinor: 1299_00,
+        currency: 'PLN'
+      }
+    }
+
+    await useCase.handle(dto)
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toEqual(['camp-generated-by-test'])
-    expect(campRepo.savedCamps).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
+    expect(campRepo.savedCamps).toHaveLength(1)
+    expect(campRepo.savedCamps[0].startDate).toEqual(dto.startDate)
+    expect(campRepo.savedCamps[0].finishDate).toEqual(dto.finishDate)
+    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects an invalid money amount before generating an id', async () => {
+    const startDate = futureDate()
+
     await expect(
       useCase.handle({
         name: 'Summer camp',
-        startDate: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        startDate,
+        finishDate: futureFinishDate(startDate),
         price: {
           amountMinor: -1,
           currency: 'PLN'

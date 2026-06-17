@@ -1,4 +1,4 @@
-import type { RouteRecordRaw } from '@/ui/router/runtime'
+import type { RouteRecordRaw, RouterOptions } from '@/ui/router/runtime'
 import { createRouter, createWebHistory } from '@/ui/router/runtime'
 
 import RosterView from '@/ui/views/roster/RosterView.vue'
@@ -6,6 +6,13 @@ import AddMemberView from '@/ui/views/roster/AddMemberView.vue'
 import AttendanceEditView from '@/ui/views/attendance/AttendanceEditView.vue'
 import AttendanceListView from '@/ui/views/attendance/AttendanceListView.vue'
 import AttendanceHistoryView from '@/ui/views/attendance/AttendanceHistoryView.vue'
+import CampDetailsView from '@/ui/views/camps/CampDetailsView.vue'
+import CampParticipantDetailsView from '@/ui/views/camps/CampParticipantDetailsView.vue'
+import CampNewView from '@/ui/views/camps/CampNewView.vue'
+import CampClubMembersListView from '@/ui/views/camps/CampClubMembersListView.vue'
+import RegisterClubCampParticipantView from '@/ui/views/camps/RegisterClubCampParticipantView.vue'
+import RegisterExternalCampParticipantView from '@/ui/views/camps/RegisterExternalCampParticipantView.vue'
+import CampsListView from '@/ui/views/camps/CampsListView.vue'
 import ClubSetupView from '@/ui/views/setup/ClubSetupView.vue'
 import MembershipPaymentsView from '@/ui/views/payments/MembershipPaymentsView.vue'
 import TrainerSetupView from '@/ui/views/setup/TrainerSetupView.vue'
@@ -24,6 +31,13 @@ export type AppRouteName =
   | 'attendance-history'
   | 'attendance-record'
   | 'attendance-edit'
+  | 'camps-list'
+  | 'camp-details'
+  | 'camp-participant-details'
+  | 'add-camp-participant'
+  | 'add-club-camp-participant'
+  | 'add-external-camp-participant'
+  | 'add-camp'
   | 'setup-club'
   | 'setup-trainer'
   | 'debug-indexeddb'
@@ -109,6 +123,71 @@ const baseRoutes = [
       hideBottomNav: true,
       backTo: '/attendance'
     }
+  },
+  {
+    path: '/camps',
+    name: 'camps-list',
+    component: CampsListView,
+    meta: {}
+  },
+  {
+    path: '/camps/:campId',
+    name: 'camp-details',
+    component: CampDetailsView,
+    meta: {
+      showBack: true,
+      backTo: '/camps'
+    }
+  },
+  {
+    path: '/camps/:campId/participants/:participantId',
+    name: 'camp-participant-details',
+    component: CampParticipantDetailsView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps/:campId'
+    }
+  },
+  {
+    path: '/camps/:campId/participants/new',
+    name: 'add-camp-participant',
+    component: CampClubMembersListView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps/:campId'
+    }
+  },
+  {
+    path: '/camps/:campId/participants/new/club/:memberId',
+    name: 'add-club-camp-participant',
+    component: RegisterClubCampParticipantView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps/:campId/participants/new'
+    }
+  },
+  {
+    path: '/camps/:campId/participants/new/external',
+    name: 'add-external-camp-participant',
+    component: RegisterExternalCampParticipantView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps/:campId/participants/new'
+    }
+  },
+  {
+    path: '/camps/new',
+    name: 'add-camp',
+    component: CampNewView,
+    meta: {
+      showBack: true,
+      hideBottomNav: true,
+      backTo: '/camps'
+    }
   }
 ] satisfies AppRoute[]
 
@@ -146,10 +225,17 @@ export function createNavigationItems(
   })
 }
 
+export const scrollToRouteTop: NonNullable<RouterOptions['scrollBehavior']> = (
+  _to,
+  _from,
+  savedPosition
+) => savedPosition ?? { left: 0, top: 0 }
+
 export function createAppRouter(debugEnabled = import.meta.env.DEV) {
   return createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    routes: createAppRoutes(debugEnabled)
+    routes: createAppRoutes(debugEnabled),
+    scrollBehavior: scrollToRouteTop
   })
 }
 

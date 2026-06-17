@@ -42,6 +42,8 @@ export const APP_SHELL_MESSAGES = {
       attendanceHistory: 'Historia treningów',
       attendanceRecord: 'Nowy trening',
       attendanceEdit: 'Edycja treningu',
+      campsList: 'Obozy',
+      addCamp: 'Nowy obóz',
       setupClub: 'Konfiguracja klubu',
       setupTrainer: 'Konfiguracja trenera',
       debugIndexedDb: 'Podgląd IndexedDB'
@@ -49,7 +51,8 @@ export const APP_SHELL_MESSAGES = {
     bottomNav: {
       members: 'Członkowie',
       payments: 'Płatności',
-      attendance: 'Obecności'
+      attendance: 'Obecności',
+      camps: 'Obozy'
     },
     install: {
       entry: {
@@ -130,6 +133,8 @@ export const APP_SHELL_MESSAGES = {
       attendanceHistory: 'Training history',
       attendanceRecord: 'New training',
       attendanceEdit: 'Edit training',
+      campsList: 'Camps',
+      addCamp: 'New camp',
       setupClub: 'Club setup',
       setupTrainer: 'Trainer setup',
       debugIndexedDb: 'IndexedDB Inspector'
@@ -137,7 +142,8 @@ export const APP_SHELL_MESSAGES = {
     bottomNav: {
       members: 'Members',
       payments: 'Payments',
-      attendance: 'Attendance'
+      attendance: 'Attendance',
+      camps: 'Camps'
     },
     install: {
       entry: {

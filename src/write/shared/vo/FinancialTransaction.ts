@@ -1,7 +1,13 @@
 import { copyDate } from '@/write/shared/DateUtils'
 import { Money } from '@/write/shared/vo/Money'
 
-type FinancialTransactionFields<TType extends 'payment' | 'refund'> = {
+type FinancialTransactionFields<
+  TType extends
+    | 'payment'
+    | 'refund'
+    | 'non_refundable_deposit'
+    | 'non_refundable_deposit_reversal'
+> = {
   type: TType
   id: string
   amount: Money
@@ -34,16 +40,38 @@ export type Payment = FinancialTransactionFields<'payment'>
 
 export type RefundInput = NotedFinancialTransactionInputFields
 
-// todo not yet sure if we should allow for negative values in refunds
 export type Refund = FinancialTransactionFields<'refund'>
+
+export type NonRefundableDepositInput = NotedFinancialTransactionInputFields
+
+export type NonRefundableDeposit =
+  FinancialTransactionFields<'non_refundable_deposit'>
+
+export type NonRefundableDepositReversalInput =
+  NotedFinancialTransactionInputFields & {
+    reversedTransactionId: string
+  }
+
+export type NonRefundableDepositReversal =
+  FinancialTransactionFields<'non_refundable_deposit_reversal'> & {
+    reversedTransactionId: string
+  }
 
 export type Discount = DiscountFields
 
 export type DiscountInput = DiscountInputFields
 
-export type FinancialTransaction = Payment | Refund
+export type FinancialTransaction =
+  | Payment
+  | Refund
+  | NonRefundableDeposit
+  | NonRefundableDepositReversal
 
-export type FinancialTransactionInput = PaymentInput | RefundInput
+export type FinancialTransactionInput =
+  | PaymentInput
+  | RefundInput
+  | NonRefundableDepositInput
+  | NonRefundableDepositReversalInput
 
 const assertValidTransactionId = (transactionId: string): string => {
   const normalizedTransactionId = transactionId.trim()
@@ -97,6 +125,29 @@ export const createRefund = (
   createdAt: copyDate(createdAt)
 })
 
+export const createNonRefundableDeposit = (
+  input: NonRefundableDepositInput,
+  createdAt: Date = new Date()
+): NonRefundableDeposit => ({
+  type: 'non_refundable_deposit',
+  id: assertValidTransactionId(input.id),
+  amount: assertPositiveAmount(input.amount),
+  note: trimOptionalText(input.note),
+  createdAt: copyDate(createdAt)
+})
+
+export const createNonRefundableDepositReversal = (
+  input: NonRefundableDepositReversalInput,
+  createdAt: Date = new Date()
+): NonRefundableDepositReversal => ({
+  type: 'non_refundable_deposit_reversal',
+  id: assertValidTransactionId(input.id),
+  reversedTransactionId: assertValidTransactionId(input.reversedTransactionId),
+  amount: assertPositiveAmount(input.amount),
+  note: trimOptionalText(input.note),
+  createdAt: copyDate(createdAt)
+})
+
 export const copyDiscount = (discount: Discount): Discount => ({
   id: discount.id,
   amount: Money.create(discount.amount.toSnapshot()),
@@ -106,13 +157,46 @@ export const copyDiscount = (discount: Discount): Discount => ({
 
 export const copyFinancialTransaction = (
   transaction: FinancialTransaction
-): FinancialTransaction => ({
-  type: transaction.type,
-  id: transaction.id,
-  amount: Money.create(transaction.amount.toSnapshot()),
-  note: transaction.note,
-  createdAt: copyDate(transaction.createdAt)
-})
+): FinancialTransaction => {
+  if (transaction.type === 'payment') {
+    return {
+      type: 'payment',
+      id: transaction.id,
+      amount: Money.create(transaction.amount.toSnapshot()),
+      note: transaction.note,
+      createdAt: copyDate(transaction.createdAt)
+    }
+  }
+
+  if (transaction.type === 'refund') {
+    return {
+      type: 'refund',
+      id: transaction.id,
+      amount: Money.create(transaction.amount.toSnapshot()),
+      note: transaction.note,
+      createdAt: copyDate(transaction.createdAt)
+    }
+  }
+
+  if (transaction.type === 'non_refundable_deposit') {
+    return {
+      type: 'non_refundable_deposit',
+      id: transaction.id,
+      amount: Money.create(transaction.amount.toSnapshot()),
+      note: transaction.note,
+      createdAt: copyDate(transaction.createdAt)
+    }
+  }
+
+  return {
+    type: 'non_refundable_deposit_reversal',
+    id: transaction.id,
+    amount: Money.create(transaction.amount.toSnapshot()),
+    note: transaction.note,
+    createdAt: copyDate(transaction.createdAt),
+    reversedTransactionId: transaction.reversedTransactionId
+  }
+}
 
 export class InvalidFinancialTransactionIdError extends Error {
   public constructor(transactionId: string) {

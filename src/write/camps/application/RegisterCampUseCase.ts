@@ -1,4 +1,4 @@
-import type { CampRepoPort } from '@/write/camps/application/CampRepoPort'
+import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import { Camp } from '@/write/camps/domain/Camp'
 import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
@@ -31,6 +31,7 @@ export class RegisterCampUseCase implements UseCase<RegisterCampCommand> {
         name: dto.name,
         note: dto.note,
         startDate: dto.startDate,
+        finishDate: dto.finishDate,
         price: Money.create(dto.price)
       },
       this.idGenerator.generate()

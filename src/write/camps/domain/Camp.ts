@@ -15,23 +15,30 @@ const assertValidName = (name: string): string => {
 const assertValidNote = (note: string): string => note.trim()
 
 const assertValidStartDate = (startDate: Date): Date => {
-  const now = new Date()
-
-  if (
-    !(startDate instanceof Date) ||
-    Number.isNaN(startDate.getTime()) ||
-    startDate <= now
-  ) {
+  if (!(startDate instanceof Date) || Number.isNaN(startDate.getTime())) {
     throw new InvalidCampStartDateError()
   }
 
   return copyDate(startDate)
 }
 
+const assertValidFinishDate = (finishDate: Date, startDate: Date): Date => {
+  if (
+    !(finishDate instanceof Date) ||
+    Number.isNaN(finishDate.getTime()) ||
+    finishDate <= startDate
+  ) {
+    throw new InvalidCampFinishDateError()
+  }
+
+  return copyDate(finishDate)
+}
+
 export type RegisterCampInput = {
   name: string
   note?: string
   startDate: Date
+  finishDate: Date
   price: Money
 }
 
@@ -40,12 +47,14 @@ export type UpdateCampInput = {
   name: string
   note?: string
   startDate: Date
+  finishDate: Date
 }
 
 type CampStateInput = {
   name: string
   note: string
   startDate: Date
+  finishDate: Date
   price: Money
   updatedAt?: Date
 }
@@ -55,6 +64,7 @@ export type CampSnapshot = {
   name: string
   note: string
   startDate: Date
+  finishDate: Date
   price: MoneySnapshot
   createdAt: Date
   updatedAt: Date
@@ -65,7 +75,8 @@ export class Camp {
 
   private _name: string
   private _note: string
-  private _startDate: Date
+  private _startDate: Date //past start dates are allowed
+  private _finishDate: Date
   private _price: Money
   private _createdAt: Date
   private _updatedAt: Date
@@ -79,6 +90,7 @@ export class Camp {
     this._name = input.name
     this._note = input.note
     this._startDate = copyDate(input.startDate)
+    this._finishDate = copyDate(input.finishDate)
     this._price = input.price
     this._createdAt = copyDate(createdAt)
     this._updatedAt = copyDate(input.updatedAt ?? createdAt)
@@ -94,6 +106,7 @@ export class Camp {
         name: assertValidName(input.name),
         note: assertValidNote(input.note ?? ''),
         startDate: assertValidStartDate(input.startDate),
+        finishDate: assertValidFinishDate(input.finishDate, input.startDate),
         price: input.price,
         updatedAt: createdAt
       },
@@ -111,6 +124,7 @@ export class Camp {
         name: snapshot.name,
         note: snapshot.note,
         startDate: snapshot.startDate,
+        finishDate: snapshot.finishDate,
         price: Money.create(snapshot.price),
         updatedAt: snapshot.updatedAt
       },
@@ -132,6 +146,7 @@ export class Camp {
         name: assertValidName(input.name),
         note: assertValidNote(input.note ?? ''),
         startDate: assertValidStartDate(input.startDate),
+        finishDate: assertValidFinishDate(input.finishDate, input.startDate),
         price: existingCamp.price,
         updatedAt: new Date()
       },
@@ -149,6 +164,7 @@ export class Camp {
       name: this.name,
       note: this.note,
       startDate: this.startDate,
+      finishDate: this.finishDate,
       price: this.price.toSnapshot(),
       createdAt: this.createdAt,
       updatedAt: this.updatedAt
@@ -165,6 +181,10 @@ export class Camp {
 
   public get startDate() {
     return copyDate(this._startDate)
+  }
+
+  public get finishDate() {
+    return copyDate(this._finishDate)
   }
 
   public get price() {
@@ -216,6 +236,13 @@ export class InvalidCampNameError extends Error {
   public constructor(name: string) {
     super(`Camp name is invalid: ${name}`)
     this.name = 'InvalidCampNameError'
+  }
+}
+
+export class InvalidCampFinishDateError extends Error {
+  public constructor() {
+    super('Camp finish date is invalid')
+    this.name = 'InvalidCampFinishDateError'
   }
 }
 

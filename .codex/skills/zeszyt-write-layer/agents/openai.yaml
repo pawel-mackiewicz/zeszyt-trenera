@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Zeszyt Write Layer'
+  short_description: 'Guide write-layer application work'
+  default_prompt: 'Use $zeszyt-write-layer to add or change a write-layer use case in zeszyt-trenera.'

@@ -81,6 +81,7 @@ describe('BottomNavigation', () => {
     expectBottomNavTabState(wrapper, '/members', true)
     expectBottomNavTabState(wrapper, '/payments', false)
     expectBottomNavTabState(wrapper, '/attendance', false)
+    expectBottomNavTabState(wrapper, '/camps', false)
   })
 
   it('keeps the payments tab active on the monthly ledger screen', () => {
@@ -93,6 +94,7 @@ describe('BottomNavigation', () => {
     expectBottomNavTabState(wrapper, '/payments', true)
     expectBottomNavTabState(wrapper, '/members', false)
     expectBottomNavTabState(wrapper, '/attendance', false)
+    expectBottomNavTabState(wrapper, '/camps', false)
   })
 
   it.each([
@@ -111,6 +113,27 @@ describe('BottomNavigation', () => {
       expectBottomNavTabState(wrapper, '/attendance', true)
       expectBottomNavTabState(wrapper, '/members', false)
       expectBottomNavTabState(wrapper, '/payments', false)
+      expectBottomNavTabState(wrapper, '/camps', false)
+    }
+  )
+
+  it.each([
+    ['camps-list', '/camps'],
+    ['camp-details', '/camps/camp-1'],
+    ['add-camp', '/camps/new']
+  ] satisfies Array<[AppRouteName, string]>)(
+    'keeps the camps tab active on the %s route',
+    (routeName, path) => {
+      mockRoute.name = routeName
+      mockRoute.path = path
+      mockRoute.fullPath = path
+
+      const wrapper = mountBottomNavigation()
+
+      expectBottomNavTabState(wrapper, '/camps', true)
+      expectBottomNavTabState(wrapper, '/members', false)
+      expectBottomNavTabState(wrapper, '/payments', false)
+      expectBottomNavTabState(wrapper, '/attendance', false)
     }
   )
 
@@ -144,6 +167,9 @@ describe('BottomNavigation', () => {
     )
     expect(wrapper.get('a[href="/attendance"]').text().toUpperCase()).toContain(
       'OBECNOŚCI'
+    )
+    expect(wrapper.get('a[href="/camps"]').text().toUpperCase()).toContain(
+      'OBOZY'
     )
   })
 })

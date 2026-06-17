@@ -15,6 +15,12 @@ import { ExportDatabaseBackupUseCase } from '@/system_management/database_backup
 import { ImportDatabaseBackupUseCase } from '@/system_management/database_backup/application/ImportDatabaseBackupUseCase'
 import { LeaveDemoModeUseCase } from '@/system_management/demo/application/LeaveDemoModeUseCase'
 import { RegisterAttendanceListUseCase } from '@/write/attendance/application/RegisterAttendanceListUseCase'
+import { AcceptCampParticipantResignationUseCase } from '@/write/camps/application/AcceptCampParticipantResignationUseCase'
+import { CancelCampParticipantResignationUseCase } from '@/write/camps/application/CancelCampParticipantResignationUseCase'
+import { RegisterCampParticipantDiscountUseCase } from '@/write/camps/application/RegisterCampParticipantDiscountUseCase'
+import { RegisterCampParticipantPaymentUseCase } from '@/write/camps/application/RegisterCampParticipantPaymentUseCase'
+import { RegisterCampParticipantRefundUseCase } from '@/write/camps/application/RegisterCampParticipantRefundUseCase'
+import { RegisterCampParticipantUseCase } from '@/write/camps/application/RegisterCampParticipantUseCase'
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
 import { RegisterClubUseCase } from '@/write/business_profile/application/RegisterClubUseCase'
 import { RegisterMemberUseCase } from '@/write/members/application/RegisterMemberUseCase'
@@ -34,12 +40,18 @@ import type { ImportDatabaseBackupCommand } from '@/system_management/database_b
 import type { LeaveDemoModeCommand } from '@/system_management/demo/application/requests/LeaveDemoModeCommand'
 import type { ArchiveMemberCommand } from '@/write/members/application/requests/ArchiveMemberCommand'
 import type { RegisterAttendanceListCommand } from '@/write/attendance/application/requests/RegisterAttendanceListCommand'
+import type { RegisterCampParticipantDiscountCommand } from '@/write/camps/application/requests/RegisterCampParticipantDiscountCommand'
+import type { RegisterCampParticipantPaymentCommand } from '@/write/camps/application/requests/RegisterCampParticipantPaymentCommand'
+import type { RegisterCampParticipantRefundCommand } from '@/write/camps/application/requests/RegisterCampParticipantRefundCommand'
+import type { RegisterCampParticipantCommand } from '@/write/camps/application/requests/RegisterCampParticipantCommand'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import type { RegisterClubCommand } from '@/write/business_profile/application/commands/RegisterClubCommand'
 import type { RegisterMemberCommand } from '@/write/members/application/requests/RegisterMemberCommand'
 import type { RegisterMembershipPaymentCommand } from '@/write/memberships/application/requests/RegisterMembershipPaymentCommand'
 import type { ResetApplicationDataCommand } from '@/system_management/app_reset/application/requests/ResetApplicationDataCommand'
 import type { UnarchiveMemberCommand } from '@/write/members/application/requests/UnarchiveMemberCommand'
+import type { AcceptCampParticipantResignationCommand } from '@/write/camps/application/requests/AcceptCampParticipantResignationCommand'
+import type { CancelCampParticipantResignationCommand } from '@/write/camps/application/requests/CancelCampParticipantResignationCommand'
 import type { RegisterTrainerCommand } from '@/write/business_profile/application/commands/RegisterTrainerCommand'
 import type { SendMembershipPaymentReminderCommand } from '@/write/memberships/application/requests/SendMembershipPaymentReminderCommand'
 import type { UpdateAttendanceListCommand } from '@/write/attendance/application/requests/UpdateAttendanceListCommand'
@@ -50,6 +62,7 @@ import { BrowserSmsComposer } from '@/write/memberships/infra/BrowserSmsComposer
 import { DemoSeedFactory } from '@/system_management/demo/infra/seed/DemoSeedFactory.ts'
 import { DexieAttendanceListRepo } from '@/write/attendance/infra/db/DexieAttendanceListRepo'
 import { DexieAppResetRepo } from '@/system_management/app_reset/infra/db/DexieAppResetRepo'
+import { DexieCampParticipantRepo } from '@/write/camps/infra/db/DexieCampParticipantRepo'
 import { DexieCampRepo } from '@/write/camps/infra/db/DexieCampRepo'
 import { DexieDatabaseBackupExporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupExporter'
 import { DexieDatabaseBackupImporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupImporter'
@@ -73,10 +86,46 @@ import {
   type GetAttendanceSessionByIdQueryInput
 } from '@/read/GetAttendanceSessionByIdQuery'
 import {
+  GetCampDetailsQuery,
+  type CampDetails,
+  type GetCampDetailsQueryInput
+} from '@/read/GetCampDetailsQuery'
+import {
+  ObserveCampParticipantDetailsQuery,
+  type CampParticipantDetails,
+  type ObserveCampParticipantDetailsQueryInput
+} from '@/read/ObserveCampParticipantDetailsQuery'
+import {
+  ObserveCampParticipantPaymentQuery,
+  type CampParticipantPayment,
+  type ObserveCampParticipantPaymentQueryInput
+} from '@/read/ObserveCampParticipantPaymentQuery'
+import {
+  ObserveCampParticipantActionsContextQuery,
+  type CampParticipantActionsContext,
+  type ObserveCampParticipantActionsContextQueryInput
+} from '@/read/ObserveCampParticipantActionsContextQuery'
+import {
+  GetClubCampParticipantRegistrationContextQuery,
+  type ClubCampParticipantRegistrationContext,
+  type GetClubCampParticipantRegistrationContextQueryInput
+} from '@/read/GetClubCampParticipantRegistrationContextQuery'
+import {
+  GetExternalCampParticipantRegistrationContextQuery,
+  type ExternalCampParticipantRegistrationContext,
+  type GetExternalCampParticipantRegistrationContextQueryInput
+} from '@/read/GetExternalCampParticipantRegistrationContextQuery'
+import {
+  ListCampParticipantCandidatesQuery,
+  type CampParticipantCandidateListItem,
+  type ListCampParticipantCandidatesQueryInput
+} from '@/read/ListCampParticipantCandidatesQuery'
+import {
   ListAttendanceSessionsByMonthQuery,
   type AttendanceSessionListItem,
   type ListAttendanceSessionsByMonthQueryInput
 } from '@/read/ListAttendanceSessionsByMonthQuery'
+import { ListCampsQuery, type CampListResult } from '@/read/ListCampsQuery'
 import {
   ListMembersForAttendanceEditorQuery,
   type AttendanceEditorMemberListItem
@@ -105,12 +154,18 @@ import {
 } from '@/read/ObserveSetupStatusQuery'
 
 export type AppUseCases = {
+  readonly acceptCampParticipantResignation: UseCase<AcceptCampParticipantResignationCommand>
+  readonly cancelCampParticipantResignation: UseCase<CancelCampParticipantResignationCommand>
   readonly deleteAttendanceList: UseCase<DeleteAttendanceListCommand>
   readonly deleteMember: UseCase<DeleteMemberCommand, DeleteMemberResult>
   readonly archiveMember: UseCase<ArchiveMemberCommand>
   readonly deleteMembershipPayment: UseCase<DeleteMembershipPaymentCommand>
   readonly registerAttendanceList: UseCase<RegisterAttendanceListCommand>
   readonly registerCamp: UseCase<RegisterCampCommand>
+  readonly registerCampParticipant: UseCase<RegisterCampParticipantCommand>
+  readonly registerCampParticipantDiscount: UseCase<RegisterCampParticipantDiscountCommand>
+  readonly registerCampParticipantPayment: UseCase<RegisterCampParticipantPaymentCommand>
+  readonly registerCampParticipantRefund: UseCase<RegisterCampParticipantRefundCommand>
   readonly registerClub: UseCase<RegisterClubCommand>
   readonly registerMember: UseCase<RegisterMemberCommand>
   readonly registerMembershipPayment: UseCase<RegisterMembershipPaymentCommand>
@@ -144,10 +199,46 @@ export type AppQueries = {
       input: GetAttendanceSessionByIdQueryInput
     ): Promise<AttendanceSessionDetails | null>
   }
+  readonly getCampDetails: {
+    handle(input: GetCampDetailsQueryInput): Promise<CampDetails | null>
+  }
+  readonly observeCampParticipantActionsContext: {
+    handle(
+      input: ObserveCampParticipantActionsContextQueryInput
+    ): Observable<CampParticipantActionsContext | null>
+  }
+  readonly observeCampParticipantDetails: {
+    handle(
+      input: ObserveCampParticipantDetailsQueryInput
+    ): Observable<CampParticipantDetails | null>
+  }
+  readonly observeCampParticipantPayment: {
+    handle(
+      input: ObserveCampParticipantPaymentQueryInput
+    ): Observable<CampParticipantPayment | null>
+  }
+  readonly getClubCampParticipantRegistrationContext: {
+    handle(
+      input: GetClubCampParticipantRegistrationContextQueryInput
+    ): Promise<ClubCampParticipantRegistrationContext | null>
+  }
+  readonly getExternalCampParticipantRegistrationContext: {
+    handle(
+      input: GetExternalCampParticipantRegistrationContextQueryInput
+    ): Promise<ExternalCampParticipantRegistrationContext | null>
+  }
   readonly listAttendanceSessionsByMonth: {
     handle(
       input: ListAttendanceSessionsByMonthQueryInput
     ): Promise<AttendanceSessionListItem[]>
+  }
+  readonly listCamps: {
+    handle(): Promise<CampListResult>
+  }
+  readonly listCampParticipantCandidates: {
+    handle(
+      input: ListCampParticipantCandidatesQueryInput
+    ): Promise<CampParticipantCandidateListItem[]>
   }
   readonly listMembersForAttendanceEditor: {
     handle(): Promise<AttendanceEditorMemberListItem[]>
@@ -201,6 +292,9 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () => new DexieAttendanceListRepo(database)
   )
   const resolveCampRepo = lazy(() => new DexieCampRepo(database))
+  const resolveCampParticipantRepo = lazy(
+    () => new DexieCampParticipantRepo(database)
+  )
   const resolveAppResetRepo = lazy(() => new DexieAppResetRepo(database))
   const resolveAppStateReset = lazy(() => new LocalStorageAppStateResetter())
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
@@ -239,6 +333,8 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveMemberRepo(),
         resolveMembershipPaymentRepo(),
         resolveAttendanceListRepo(),
+        resolveCampRepo(),
+        resolveCampParticipantRepo(),
         resolveEventRepo(),
         resolveIdGenerator(),
         resolveDemoSeedFactory(),
@@ -280,6 +376,61 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterCampUseCase(
         resolveUnitOfWork(),
         resolveCampRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveRegisterCampParticipant = lazy(
+    () =>
+      new RegisterCampParticipantUseCase(
+        resolveUnitOfWork(),
+        resolveCampRepo(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveRegisterCampParticipantDiscount = lazy(
+    () =>
+      new RegisterCampParticipantDiscountUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveRegisterCampParticipantPayment = lazy(
+    () =>
+      new RegisterCampParticipantPaymentUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveRegisterCampParticipantRefund = lazy(
+    () =>
+      new RegisterCampParticipantRefundUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveAcceptCampParticipantResignation = lazy(
+    () =>
+      new AcceptCampParticipantResignationUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
+        resolveEventRepo(),
+        resolveIdGenerator()
+      )
+  )
+  const resolveCancelCampParticipantResignation = lazy(
+    () =>
+      new CancelCampParticipantResignationUseCase(
+        resolveUnitOfWork(),
+        resolveCampParticipantRepo(),
         resolveEventRepo(),
         resolveIdGenerator()
       )
@@ -330,8 +481,28 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveGetAttendanceSessionById = lazy(
     () => new GetAttendanceSessionByIdQuery(database)
   )
+  const resolveGetCampDetails = lazy(() => new GetCampDetailsQuery(database))
+  const resolveObserveCampParticipantActionsContext = lazy(
+    () => new ObserveCampParticipantActionsContextQuery(database)
+  )
+  const resolveObserveCampParticipantDetails = lazy(
+    () => new ObserveCampParticipantDetailsQuery(database)
+  )
+  const resolveObserveCampParticipantPayment = lazy(
+    () => new ObserveCampParticipantPaymentQuery(database)
+  )
+  const resolveGetClubCampParticipantRegistrationContext = lazy(
+    () => new GetClubCampParticipantRegistrationContextQuery(database)
+  )
+  const resolveGetExternalCampParticipantRegistrationContext = lazy(
+    () => new GetExternalCampParticipantRegistrationContextQuery(database)
+  )
   const resolveListAttendanceSessionsByMonth = lazy(
     () => new ListAttendanceSessionsByMonthQuery(database)
+  )
+  const resolveListCamps = lazy(() => new ListCampsQuery(database))
+  const resolveListCampParticipantCandidates = lazy(
+    () => new ListCampParticipantCandidatesQuery(database)
   )
   const resolveListMembersForAttendanceEditor = lazy(
     () => new ListMembersForAttendanceEditorQuery(database)
@@ -424,6 +595,12 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
 
   const useCases: AppUseCases = {
     // Keeping workflows behind one service bag makes adding use cases a local change instead of growing a resolver API throughout the app.
+    get acceptCampParticipantResignation() {
+      return resolveAcceptCampParticipantResignation()
+    },
+    get cancelCampParticipantResignation() {
+      return resolveCancelCampParticipantResignation()
+    },
     get deleteAttendanceList() {
       return resolveDeleteAttendanceList()
     },
@@ -441,6 +618,18 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     },
     get registerCamp() {
       return resolveRegisterCamp()
+    },
+    get registerCampParticipant() {
+      return resolveRegisterCampParticipant()
+    },
+    get registerCampParticipantDiscount() {
+      return resolveRegisterCampParticipantDiscount()
+    },
+    get registerCampParticipantPayment() {
+      return resolveRegisterCampParticipantPayment()
+    },
+    get registerCampParticipantRefund() {
+      return resolveRegisterCampParticipantRefund()
     },
     get registerClub() {
       return resolveRegisterClub()
@@ -498,8 +687,32 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     get getAttendanceSessionById() {
       return resolveGetAttendanceSessionById()
     },
+    get getCampDetails() {
+      return resolveGetCampDetails()
+    },
+    get observeCampParticipantActionsContext() {
+      return resolveObserveCampParticipantActionsContext()
+    },
+    get observeCampParticipantDetails() {
+      return resolveObserveCampParticipantDetails()
+    },
+    get observeCampParticipantPayment() {
+      return resolveObserveCampParticipantPayment()
+    },
+    get getClubCampParticipantRegistrationContext() {
+      return resolveGetClubCampParticipantRegistrationContext()
+    },
+    get getExternalCampParticipantRegistrationContext() {
+      return resolveGetExternalCampParticipantRegistrationContext()
+    },
     get listAttendanceSessionsByMonth() {
       return resolveListAttendanceSessionsByMonth()
+    },
+    get listCamps() {
+      return resolveListCamps()
+    },
+    get listCampParticipantCandidates() {
+      return resolveListCampParticipantCandidates()
     },
     get listMembersForAttendanceEditor() {
       return resolveListMembersForAttendanceEditor()

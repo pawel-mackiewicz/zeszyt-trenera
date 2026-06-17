@@ -45,8 +45,68 @@ export type PersistedCamp = {
   name: string
   note: string
   startDate: Date
+  finishDate: Date
   price: MoneySnapshot
   createdAt: Date
+  updatedAt: Date
+}
+
+export type PersistedCampParticipantStatus =
+  | 'REGISTERED'
+  | 'FULLY_PAID'
+  | 'RESIGNED'
+  | 'REFUNDED'
+
+export type PersistedCampParticipantPerson =
+  | {
+      type: 'club'
+      memberId: string
+    }
+  | {
+      type: 'external'
+      firstName: string
+      lastName: string
+    }
+
+export type PersistedCampParticipantDiscount = {
+  id: string
+  amount: MoneySnapshot
+  reason: string
+  createdAt: Date
+}
+
+type PersistedCampParticipantFinancialTransactionFields<
+  TType extends
+    | 'payment'
+    | 'refund'
+    | 'non_refundable_deposit'
+    | 'non_refundable_deposit_reversal'
+> = {
+  type: TType
+  id: string
+  amount: MoneySnapshot
+  note: string
+  createdAt: Date
+}
+
+export type PersistedCampParticipantFinancialTransaction =
+  | PersistedCampParticipantFinancialTransactionFields<'payment'>
+  | PersistedCampParticipantFinancialTransactionFields<'refund'>
+  | PersistedCampParticipantFinancialTransactionFields<'non_refundable_deposit'>
+  | (PersistedCampParticipantFinancialTransactionFields<'non_refundable_deposit_reversal'> & {
+      reversedTransactionId: string
+    })
+
+export type PersistedCampParticipant = {
+  id: string
+  campId: string
+  personKey: string
+  person: PersistedCampParticipantPerson
+  status: PersistedCampParticipantStatus
+  totalAmountDue: MoneySnapshot
+  discounts: PersistedCampParticipantDiscount[]
+  financialTransactions: PersistedCampParticipantFinancialTransaction[]
+  addedAt: Date
   updatedAt: Date
 }
 

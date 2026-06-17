@@ -67,6 +67,7 @@ describe('appServices', () => {
     expect(services.queries.listAttendanceSessionsByMonth).toBe(
       services.queries.listAttendanceSessionsByMonth
     )
+    expect(services.queries.listCamps).toBe(services.queries.listCamps)
     expect(services.queries.listMembersForAttendanceEditor).toBe(
       services.queries.listMembersForAttendanceEditor
     )
@@ -81,6 +82,15 @@ describe('appServices', () => {
     )
     expect(services.queries.observeMembershipPaymentSummaryByMonth).toBe(
       services.queries.observeMembershipPaymentSummaryByMonth
+    )
+    expect(services.queries.observeCampParticipantActionsContext).toBe(
+      services.queries.observeCampParticipantActionsContext
+    )
+    expect(services.queries.observeCampParticipantDetails).toBe(
+      services.queries.observeCampParticipantDetails
+    )
+    expect(services.queries.observeCampParticipantPayment).toBe(
+      services.queries.observeCampParticipantPayment
     )
     expect(services.queries.observeSetupStatus).toBe(
       services.queries.observeSetupStatus
@@ -105,6 +115,12 @@ describe('appServices', () => {
     )
     expect(services.useCases.registerMembershipPayment).toBe(
       services.useCases.registerMembershipPayment
+    )
+    expect(services.useCases.registerCampParticipantRefund).toBe(
+      services.useCases.registerCampParticipantRefund
+    )
+    expect(services.useCases.cancelCampParticipantResignation).toBe(
+      services.useCases.cancelCampParticipantResignation
     )
     expect(services.useCases.registerTrainer).toBe(
       services.useCases.registerTrainer
@@ -260,6 +276,7 @@ describe('appServices', () => {
       name: 'Summer camp',
       note: 'Advanced group',
       startDate: new Date('2099-07-01T08:00:00Z'),
+      finishDate: new Date('2099-07-08T08:00:00Z'),
       price: {
         amountMinor: 129900,
         currency: 'PLN'
@@ -277,6 +294,7 @@ describe('appServices', () => {
       name: 'Summer camp',
       note: 'Advanced group',
       startDate: new Date('2099-07-01T08:00:00Z'),
+      finishDate: new Date('2099-07-08T08:00:00Z'),
       price: {
         amountMinor: 129900,
         currency: 'PLN'
@@ -290,6 +308,7 @@ describe('appServices', () => {
         name: persistedCamp.name,
         note: persistedCamp.note,
         startDate: persistedCamp.startDate,
+        finishDate: persistedCamp.finishDate,
         price: persistedCamp.price,
         createdAt: persistedCamp.createdAt,
         updatedAt: persistedCamp.updatedAt
@@ -615,12 +634,20 @@ describe('appServices', () => {
     await expect(database.clubs.count()).resolves.toBe(1)
     await expect(database.trainers.count()).resolves.toBe(1)
     await expect(database.members.count()).resolves.toBe(60)
+    await expect(database.camps.count()).resolves.toBe(
+      expectedDemoSeed.camps.length
+    )
+    await expect(database.campParticipants.count()).resolves.toBe(
+      expectedDemoSeed.campParticipants.length
+    )
 
     const currentMonthStatus = await waitForFirstEmission(
       services.queries.observeMembershipPaymentStatusByMonth.handle({
         month: now
       })
     )
+    const campParticipants = await database.campParticipants.toArray()
+    const camps = await services.queries.listCamps.handle()
     const currentMonthSessions =
       await services.queries.listAttendanceSessionsByMonth.handle({
         month: now
@@ -641,6 +668,39 @@ describe('appServices', () => {
     expect(currentMonthStatus.unpaidAttendedMembers.length).toBeLessThanOrEqual(
       3
     )
+    expect(
+      campParticipants.some((participant) => participant.person.type === 'club')
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.person.type === 'external'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.status === 'FULLY_PAID'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some(
+        (participant) => participant.status === 'REGISTERED'
+      )
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) => participant.discounts.length > 0)
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) => participant.status === 'RESIGNED')
+    ).toBe(true)
+    expect(
+      campParticipants.some((participant) =>
+        participant.financialTransactions.some(
+          (transaction) => transaction.type === 'non_refundable_deposit'
+        )
+      )
+    ).toBe(true)
+    expect(camps.past).toHaveLength(2)
+    expect(camps.present).toHaveLength(expectedDemoSeed.camps.length - 2)
     if (currentMonthStatus.unpaidAttendedMembers.length > 1) {
       expect(
         new Set(
