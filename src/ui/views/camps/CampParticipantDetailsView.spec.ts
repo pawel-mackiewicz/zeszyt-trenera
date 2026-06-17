@@ -445,6 +445,23 @@ describe('CampParticipantDetailsView', () => {
     expect(mockRegisterPaymentHandle).not.toHaveBeenCalled()
   })
 
+  it('keeps payments above the amount still due inside the actions component', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await findButton(wrapper, 'Przyjmij płatność').trigger('click')
+    expect(wrapper.text()).toContain('Do zapłaty')
+    expect(wrapper.text()).toContain('500,00 PLN')
+
+    await wrapper.get('input#campParticipantPaymentAmount').setValue('500,01')
+    await wrapper.get('form#campParticipantPaymentForm').trigger('submit')
+
+    expect(wrapper.text()).toContain(
+      'Wpłata nie może być wyższa niż kwota do zapłaty.'
+    )
+    expect(mockRegisterPaymentHandle).not.toHaveBeenCalled()
+  })
+
   it('keeps invalid refund input inside the actions component', async () => {
     const wrapper = mountView()
     await flushPromises()

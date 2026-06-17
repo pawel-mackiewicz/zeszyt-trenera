@@ -160,6 +160,24 @@ describe('RegisterClubCampParticipantView', () => {
     expect(mockRouterReplace).toHaveBeenCalledWith('/camps/camp-winter-2026')
   })
 
+  it('keeps an overpaid initial camp payment inside the registration form', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('#campParticipantDiscountEnabled').setValue(true)
+    await wrapper.get('#campParticipantDiscountAmount').setValue('100,25')
+    await wrapper.get('#campParticipantPaymentEnabled').setValue(true)
+    await wrapper.get('#campParticipantPaymentAmount').setValue('2000')
+    await wrapper.get('form').trigger('submit')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain(
+      'Zniżka i wpłata nie mogą przekroczyć ceny obozu.'
+    )
+    expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()
+    expect(mockRouterReplace).not.toHaveBeenCalled()
+  })
+
   it('returns to the club member picker when a coach cancels registration', async () => {
     const wrapper = mountView()
     await flushPromises()

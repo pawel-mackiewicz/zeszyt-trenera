@@ -10,6 +10,7 @@ import type { RegisterCampParticipantPaymentCommand } from '@/write/camps/applic
 import {
   CampParticipant,
   CampParticipantCurrencyMismatchError,
+  CampParticipantPaymentExceedsRemainingAmountError,
   CampParticipantPaymentNotAllowedError,
   CampParticipantPaymentRegisteredDomainEvent
 } from '@/write/camps/domain/CampParticipant'
@@ -160,6 +161,24 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
       currency: 'PLN'
     })
     expect(eventRepo.savedEvents).toHaveLength(1)
+  })
+
+  it('does not save partial changes when the payment is higher than the amount still due', async () => {
+    campParticipantRepo.addParticipant(givenParticipantRegisteredForCamp())
+
+    await expect(
+      useCase.handle(
+        paymentCommand({
+          amount: {
+            amountMinor: 1000_01,
+            currency: 'PLN'
+          }
+        })
+      )
+    ).rejects.toThrow(CampParticipantPaymentExceedsRemainingAmountError)
+
+    expect(campParticipantRepo.updatedParticipants).toEqual([])
+    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('rejects payment registration when the participant cannot be found', async () => {

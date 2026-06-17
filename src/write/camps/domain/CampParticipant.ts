@@ -364,6 +364,17 @@ export class CampParticipant {
 
     assertMatchingCurrency(this._totalAmountDue, payment.amount)
 
+    const currentLedger = CampParticipantLedger.from(
+      this._financialTransactions
+    )
+    const remainingAmountToPay = currentLedger.remainingAmountToPay(
+      this._totalAmountDue
+    )
+
+    if (payment.amount.amountMinor > remainingAmountToPay.amountMinor) {
+      throw new CampParticipantPaymentExceedsRemainingAmountError()
+    }
+
     const financialTransactions = [...this._financialTransactions, payment]
     const ledger = CampParticipantLedger.from(financialTransactions)
 
@@ -558,7 +569,10 @@ export class CampParticipant {
   }
 
   public canRegisterPayment(): boolean {
-    return canRegisterPaymentInStatus(this._status)
+    return (
+      canRegisterPaymentInStatus(this._status) &&
+      this.remainingAmountToPay().amountMinor > 0
+    )
   }
 
   public canRegisterRefund(): boolean {
@@ -744,6 +758,13 @@ export class CampParticipantPaymentNotAllowedError extends Error {
   public constructor(status: CampParticipantStatus) {
     super(`Camp participant payment is not allowed for status: ${status}`)
     this.name = 'CampParticipantPaymentNotAllowedError'
+  }
+}
+
+export class CampParticipantPaymentExceedsRemainingAmountError extends Error {
+  public constructor() {
+    super('Camp participant payment exceeds remaining amount')
+    this.name = 'CampParticipantPaymentExceedsRemainingAmountError'
   }
 }
 

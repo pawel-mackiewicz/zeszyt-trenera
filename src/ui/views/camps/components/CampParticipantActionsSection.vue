@@ -83,6 +83,14 @@ const refundableBalance = computed<MoneySnapshot>(() =>
         currency: actionCurrency.value
       }
 )
+const paymentRemainingAmount = computed<MoneySnapshot>(() =>
+  actionsContext.value?.paymentPrefillAmount
+    ? actionsContext.value.paymentPrefillAmount
+    : {
+        amountMinor: 0,
+        currency: actionCurrency.value
+      }
+)
 const submitErrorMessage = computed(() =>
   submitError.value ? t('errors.submit') : ''
 )
@@ -312,8 +320,7 @@ async function submitCancelResignation() {
     <CampParticipantPaymentModal
       :visible="activeActionModal === 'payment'"
       :subject="actionsContext.subject"
-      :currency="actionCurrency"
-      :prefill-amount="actionsContext.paymentPrefillAmount ?? undefined"
+      :remaining-amount-to-pay="paymentRemainingAmount"
       :is-submitting="isSubmitting"
       @close="closeActionModal"
       @submit="submitPayment"

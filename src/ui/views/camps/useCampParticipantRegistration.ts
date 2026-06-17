@@ -14,7 +14,11 @@ import {
   CampNotFoundForParticipantRegistrationError,
   CampParticipantAlreadyRegisteredError
 } from '@/write/camps/application/RegisterCampParticipantUseCase'
-import type { CampParticipantPerson } from '@/write/camps/domain/CampParticipant'
+import {
+  CampParticipantDiscountExceedsAmountDueError,
+  CampParticipantPaymentExceedsRemainingAmountError,
+  type CampParticipantPerson
+} from '@/write/camps/domain/CampParticipant'
 import { useAppServices } from '@/ui/appServices'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
@@ -24,6 +28,7 @@ export type CampParticipantRegistrationBaseErrorKey =
   | 'invalidPayment'
   | 'load'
   | 'missingContext'
+  | 'overpayment'
   | 'submit'
 
 type CampParticipantRegistrationContext = {
@@ -212,6 +217,11 @@ export function useCampParticipantRegistration<
       return false
     }
 
+    if (overpaymentAmount.value) {
+      submitErrorKey.value = 'overpayment' as ErrorKey
+      return false
+    }
+
     isSubmitting.value = true
 
     try {
@@ -313,6 +323,13 @@ function resolveSubmitErrorKey(
 
   if (error instanceof CampNotFoundForParticipantRegistrationError) {
     return 'missingContext'
+  }
+
+  if (
+    error instanceof CampParticipantDiscountExceedsAmountDueError ||
+    error instanceof CampParticipantPaymentExceedsRemainingAmountError
+  ) {
+    return 'overpayment'
   }
 
   return 'submit'

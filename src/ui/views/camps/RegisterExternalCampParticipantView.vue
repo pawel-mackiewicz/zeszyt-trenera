@@ -598,6 +598,7 @@ async function handleSubmit() {
       "invalidPayment": "Podaj dodatnią kwotę wpłaty.",
       "load": "Nie udało się wczytać danych zapisu.",
       "missingContext": "Nie znaleziono obozu.",
+      "overpayment": "Zniżka i wpłata nie mogą przekroczyć ceny obozu.",
       "submit": "Nie udało się zapisać uczestnika. Sprawdź dane i spróbuj ponownie."
     },
     "fields": {
@@ -654,6 +655,7 @@ async function handleSubmit() {
       "invalidPayment": "Enter a positive payment amount.",
       "load": "The registration data could not be loaded.",
       "missingContext": "The camp could not be found.",
+      "overpayment": "Discount and payment cannot exceed the camp price.",
       "submit": "The participant could not be saved. Check the details and try again."
     },
     "fields": {

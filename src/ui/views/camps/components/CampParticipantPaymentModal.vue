@@ -7,6 +7,7 @@ import BaseModal from '@/ui/components/modals/BaseModal.vue'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 import {
+  formatMoney,
   formatMoneyInput,
   optionalText,
   parsePositiveMoney,
@@ -14,12 +15,11 @@ import {
   type CampParticipantPaymentSubmit
 } from './campParticipantActionModalUtils'
 
-type FormErrorKey = 'invalidPayment'
+type FormErrorKey = 'invalidPayment' | 'paymentExceedsRemaining'
 
 const props = defineProps<{
-  currency: string
   isSubmitting: boolean
-  prefillAmount?: MoneySnapshot
+  remainingAmountToPay: MoneySnapshot
   subject: CampParticipantActionSubject
   visible: boolean
 }>()
@@ -49,9 +49,7 @@ watch(
 )
 
 function resetForm() {
-  paymentAmount.value = props.prefillAmount
-    ? formatMoneyInput(props.prefillAmount)
-    : ''
+  paymentAmount.value = formatMoneyInput(props.remainingAmountToPay)
   paymentNote.value = ''
   formError.value = null
 }
@@ -65,10 +63,18 @@ function requestClose() {
 }
 
 function submitPayment() {
-  const amount = parsePositiveMoney(paymentAmount.value, props.currency)
+  const amount = parsePositiveMoney(
+    paymentAmount.value,
+    props.remainingAmountToPay.currency
+  )
 
   if (!amount) {
     formError.value = 'invalidPayment'
+    return
+  }
+
+  if (amount.amountMinor > props.remainingAmountToPay.amountMinor) {
+    formError.value = 'paymentExceedsRemaining'
     return
   }
 
@@ -95,6 +101,15 @@ function submitPayment() {
       </p>
       <p class="camp-participant-action-modal__brief-camp">
         {{ props.subject.campName }}
+      </p>
+    </div>
+
+    <div class="camp-participant-action-modal__balance">
+      <p class="camp-participant-action-modal__balance-label">
+        {{ t('fields.remainingAmount') }}
+      </p>
+      <p class="camp-participant-action-modal__balance-value">
+        {{ formatMoney(props.remainingAmountToPay) }}
       </p>
     </div>
 
@@ -174,7 +189,8 @@ function submitPayment() {
 }
 
 .camp-participant-action-modal__brief-label,
-.camp-participant-action-modal__brief-camp {
+.camp-participant-action-modal__brief-camp,
+.camp-participant-action-modal__balance-label {
   margin: 0;
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -184,7 +200,8 @@ function submitPayment() {
   text-transform: uppercase;
 }
 
-.camp-participant-action-modal__brief-label {
+.camp-participant-action-modal__brief-label,
+.camp-participant-action-modal__balance-label {
   color: var(--color-secondary);
 }
 
@@ -201,6 +218,23 @@ function submitPayment() {
 
 .camp-participant-action-modal__brief-camp {
   color: var(--color-primary);
+}
+
+.camp-participant-action-modal__balance {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-on-surface);
+}
+
+.camp-participant-action-modal__balance-value {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 1;
+  color: var(--color-on-surface);
 }
 
 .camp-participant-action-modal__form {
@@ -278,12 +312,14 @@ function submitPayment() {
       "submitting": "Zapisywanie"
     },
     "errors": {
-      "invalidPayment": "Podaj dodatnią kwotę wpłaty."
+      "invalidPayment": "Podaj dodatnią kwotę wpłaty.",
+      "paymentExceedsRemaining": "Wpłata nie może być wyższa niż kwota do zapłaty."
     },
     "fields": {
       "moneyPlaceholder": "0,00",
       "paymentAmount": "Kwota wpłaty",
       "paymentNote": "Notatka do wpłaty",
+      "remainingAmount": "Do zapłaty",
       "subject": "Uczestnik / wydarzenie"
     },
     "modals": {
@@ -297,12 +333,14 @@ function submitPayment() {
       "submitting": "Saving"
     },
     "errors": {
-      "invalidPayment": "Enter a positive payment amount."
+      "invalidPayment": "Enter a positive payment amount.",
+      "paymentExceedsRemaining": "The payment cannot be higher than the amount to pay."
     },
     "fields": {
       "moneyPlaceholder": "0.00",
       "paymentAmount": "Payment amount",
       "paymentNote": "Payment note",
+      "remainingAmount": "To pay",
       "subject": "Participant / event"
     },
     "modals": {

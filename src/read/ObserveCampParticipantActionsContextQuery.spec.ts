@@ -159,6 +159,52 @@ describe('camp participant actions context live read query', () => {
     })
   })
 
+  it('does not offer another payment when the participant has already paid the camp amount', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-actions-paid-read')
+    )
+    const query = new ObserveCampParticipantActionsContextQuery(database)
+
+    await database.camps.add(createCampRow())
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'FULLY_PAID',
+        financialTransactions: [
+          {
+            type: 'payment',
+            id: 'payment-1',
+            amount: {
+              amountMinor: 100000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-03T00:00:00Z')
+          }
+        ]
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toMatchObject({
+      canRegisterPayment: false,
+      canRegisterRefund: true,
+      paymentPrefillAmount: null,
+      refundableBalance: {
+        amountMinor: 100000,
+        currency: 'PLN'
+      },
+      status: 'fullyPaid'
+    })
+  })
+
   it('does not offer a refund path after the participant refund story is closed', async () => {
     database = new TrainerNotebookDb(
       createTestDbName('camp-participant-actions-refunded-read')

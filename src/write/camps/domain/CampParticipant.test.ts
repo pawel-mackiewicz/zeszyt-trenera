@@ -7,6 +7,7 @@ import {
   CampParticipantDiscountExceedsAmountDueError,
   CampParticipantDiscountNotAllowedError,
   CampParticipantNonRefundableDepositExceedsPaidBalanceError,
+  CampParticipantPaymentExceedsRemainingAmountError,
   CampParticipantPaymentNotAllowedError,
   CampParticipantPaymentRegisteredDomainEvent,
   CampParticipantRefundExceedsRefundableBalanceError,
@@ -485,6 +486,25 @@ describe('CampParticipant', () => {
         fullyPaidParticipant
       )
     })
+
+    it('a participant cannot pay more than the amount still due', () => {
+      const participant = givenRegisteredClubParticipant()
+      const { paidParticipant: partlyPaidParticipant } = whenParticipantPays(
+        participant,
+        500_00,
+        {
+          id: 'payment-1'
+        }
+      )
+
+      expect(() =>
+        whenParticipantPays(partlyPaidParticipant, 701_00, {
+          id: 'payment-2'
+        })
+      ).toThrow(CampParticipantPaymentExceedsRemainingAmountError)
+      expect(partlyPaidParticipant.financialTransactions).toHaveLength(1)
+      expectRemainingAmountToPay(partlyPaidParticipant, 700_00)
+    })
   })
 
   describe('amount to pay stories', () => {
@@ -494,22 +514,22 @@ describe('CampParticipant', () => {
       expectRemainingAmountToPay(participant, CAMP_PRICE)
     })
 
-    it('subtracts payments and never asks for more money after overpayment', () => {
+    it('subtracts payments and stops asking for money after the camp is fully paid', () => {
       const participant = givenRegisteredClubParticipant()
       const { paidParticipant: partlyPaidParticipant } = whenParticipantPays(
         participant,
         500_00
       )
-      const { paidParticipant: overpaidParticipant } = whenParticipantPays(
+      const { paidParticipant: fullyPaidParticipant } = whenParticipantPays(
         partlyPaidParticipant,
-        800_00,
+        700_00,
         {
           id: 'payment-2'
         }
       )
 
       expectRemainingAmountToPay(partlyPaidParticipant, 700_00)
-      expectRemainingAmountToPay(overpaidParticipant, 0)
+      expectRemainingAmountToPay(fullyPaidParticipant, 0)
     })
 
     it('uses the discounted amount due when calculating what remains to pay', () => {
@@ -596,7 +616,7 @@ describe('CampParticipant', () => {
       })
       expectActionAvailability(fullyPaidParticipant, {
         canApplyDiscount: true,
-        canRegisterPayment: true,
+        canRegisterPayment: false,
         canRegisterRefund: true,
         canResign: true,
         canCancelResignation: false
