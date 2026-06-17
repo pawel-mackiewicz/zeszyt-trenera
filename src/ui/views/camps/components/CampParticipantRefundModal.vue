@@ -106,7 +106,7 @@ function submitRefund() {
 
     <div class="camp-participant-action-modal__balance">
       <p class="camp-participant-action-modal__balance-label">
-        {{ t('fields.refundableBalance') }}
+        {{ t('fields.balance') }}
       </p>
       <p class="camp-participant-action-modal__balance-value">
         {{ formatMoney(props.refundableBalance) }}
@@ -318,7 +318,7 @@ function submitRefund() {
     "fields": {
       "moneyPlaceholder": "0,00",
       "refundAmount": "Kwota zwrotu",
-      "refundableBalance": "Do zwrotu",
+      "balance": "Wpłacono",
       "refundNote": "Notatka",
       "subject": "Uczestnik"
     },
@@ -339,7 +339,7 @@ function submitRefund() {
     "fields": {
       "moneyPlaceholder": "0.00",
       "refundAmount": "Refund amount",
-      "refundableBalance": "To refund",
+      "balance": "Paid",
       "refundNote": "Note",
       "subject": "Participant"
     },
