@@ -207,7 +207,7 @@ describe('camp participant actions context live read query', () => {
         amountMinor: 0,
         currency: 'PLN'
       },
-      status: 'resigned'
+      status: 'refunded'
     })
   })
 })

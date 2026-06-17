@@ -258,6 +258,7 @@ const statusLabel = computed(() =>
     },
     "status": {
       "fullyPaid": "Opłacony",
+      "refunded": "Zwrócono",
       "registered": "Zapisany",
       "resigned": "Rezygnacja"
     }
@@ -285,6 +286,7 @@ const statusLabel = computed(() =>
     },
     "status": {
       "fullyPaid": "Paid",
+      "refunded": "Refunded",
       "registered": "Registered",
       "resigned": "Resigned"
     }

@@ -129,6 +129,36 @@ describe('camp participant details live read query', () => {
       }
     })
   })
+
+  it('tells a refunded participant story without folding it into resignation', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-details-refunded-read')
+    )
+    const query = new ObserveCampParticipantDetailsQuery(database)
+
+    await database.camps.add(createCampRow())
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'REFUNDED'
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toMatchObject({
+      participant: {
+        displayName: 'jane doe',
+        status: 'refunded'
+      }
+    })
+  })
 })
 
 function readObservableOnce<T>(observable: {

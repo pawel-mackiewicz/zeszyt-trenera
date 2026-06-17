@@ -17,7 +17,11 @@ export type CampParticipantQueryInput = {
   participantId: string
 }
 
-export type CampParticipantReadStatus = 'registered' | 'fullyPaid' | 'resigned'
+export type CampParticipantReadStatus =
+  | 'registered'
+  | 'fullyPaid'
+  | 'resigned'
+  | 'refunded'
 
 export async function loadCampParticipantForCamp(
   database: TrainerNotebookDb,
@@ -71,6 +75,10 @@ export function toCampParticipantReadStatus(
 
   if (status === 'FULLY_PAID') {
     return 'fullyPaid'
+  }
+
+  if (status === 'REFUNDED') {
+    return 'refunded'
   }
 
   return 'resigned'

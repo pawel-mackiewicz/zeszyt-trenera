@@ -193,6 +193,24 @@ describe('CampParticipantDetailsView', () => {
     expect(mockObserveCampParticipantPaymentHandle).toHaveBeenCalledTimes(1)
   })
 
+  it('shows when the participant resignation story has been refunded', async () => {
+    detailsObservable = createObservable(
+      createCampParticipantDetails({
+        participant: {
+          displayName: 'Amanda Nunes',
+          status: 'refunded'
+        }
+      }),
+      subscriptionUnsubscribeSpies
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Zwrócono')
+    expect(wrapper.text()).not.toContain('Rezygnacja')
+  })
+
   it('prefills a received payment from the actions context read', async () => {
     actionsContextObservable = createObservable(
       createCampParticipantActionsContext({
