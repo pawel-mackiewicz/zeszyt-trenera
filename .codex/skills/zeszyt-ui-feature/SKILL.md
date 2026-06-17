@@ -18,7 +18,7 @@ Use this skill for ordinary UI feature work in this repository: new screens, exi
 5. Put feature/domain behavior in domain composables that call app services or use cases. Keep UI-only state, layout toggles, and presentation details inside Vue components.
 6. Split UI into components when a part has a clear responsibility that can be named and reasoned about.
 7. Add story-like tests for the main user workflow, accessible states, and any application-layer behavior touched by the UI.
-8. Run the narrowest useful validation commands and follow `AGENTS.md` for version handling, including the feature-branch exception.
+8. Run the narrowest useful validation commands and follow `AGENTS.md` for version handling.
 
 ## Vue And UI Rules
 
