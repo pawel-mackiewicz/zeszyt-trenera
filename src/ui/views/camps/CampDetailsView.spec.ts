@@ -67,7 +67,7 @@ describe('CampDetailsView', () => {
       wrapper.get('.camp-details-view__total-counter').attributes('aria-label')
     ).toBe('3 uczestników')
     expect(wrapper.get('.camp-details-view__total-counter').text()).toContain(
-      'Uczestnicy'
+      'Uczestników'
     )
     expect(wrapper.get('.camp-details-view__total-count').text()).toBe('3')
     expect(wrapper.get('.camp-details-view__visible-count').text()).toBe(
