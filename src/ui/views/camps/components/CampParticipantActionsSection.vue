@@ -248,7 +248,7 @@ async function submitCancelResignation() {
           </AppButton>
           <AppButton
             v-if="actionsContext.canRegisterPayment"
-            class="camp-participant-actions-section__action-button"
+            class="camp-participant-actions-section__action-button camp-participant-actions-section__action-button--payment"
             type="button"
             variant="secondary"
             :disabled="isSubmitting"
@@ -414,7 +414,8 @@ async function submitCancelResignation() {
 }
 
 .camp-participant-actions-section__actions {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 0.75rem;
 }
 
@@ -452,7 +453,18 @@ async function submitCancelResignation() {
   }
 
   .camp-participant-actions-section__actions {
-    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    flex-flow: row wrap;
+    align-items: stretch;
+  }
+
+  .camp-participant-actions-section__action-button {
+    flex: 1 1 9.5rem;
+    width: auto;
+  }
+
+  .camp-participant-actions-section__action-button--payment {
+    order: -1;
+    flex-basis: 100%;
   }
 }
 </style>
