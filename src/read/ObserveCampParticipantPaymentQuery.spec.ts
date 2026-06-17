@@ -119,6 +119,100 @@ describe('camp participant payment live read query', () => {
       status: 'registered'
     })
   })
+
+  it('tells the resigned refund story without exposing historical discounts', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-payment-resigned-read')
+    )
+    const query = new ObserveCampParticipantPaymentQuery(database)
+
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'RESIGNED',
+        discounts: [
+          {
+            id: 'discount-1',
+            amount: {
+              amountMinor: 15000,
+              currency: 'PLN'
+            },
+            reason: 'siblings',
+            createdAt: new Date('2026-05-01T00:00:00Z')
+          }
+        ],
+        financialTransactions: [
+          {
+            type: 'payment',
+            id: 'payment-1',
+            amount: {
+              amountMinor: 50000,
+              currency: 'PLN'
+            },
+            note: '',
+            createdAt: new Date('2026-05-03T00:00:00Z')
+          }
+        ]
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toEqual({
+      amountToRefund: {
+        amountMinor: 50000,
+        currency: 'PLN'
+      },
+      status: 'resigned'
+    })
+  })
+
+  it('tells the refunded refund story without exposing historical discounts', async () => {
+    database = new TrainerNotebookDb(
+      createTestDbName('camp-participant-payment-refunded-read')
+    )
+    const query = new ObserveCampParticipantPaymentQuery(database)
+
+    await database.campParticipants.add(
+      createCampParticipantRow({
+        id: 'participant-1',
+        campId: 'camp-1',
+        status: 'REFUNDED',
+        discounts: [
+          {
+            id: 'discount-1',
+            amount: {
+              amountMinor: 15000,
+              currency: 'PLN'
+            },
+            reason: 'siblings',
+            createdAt: new Date('2026-05-01T00:00:00Z')
+          }
+        ]
+      })
+    )
+
+    await expect(
+      readObservableOnce(
+        query.handle({
+          campId: 'camp-1',
+          participantId: 'participant-1'
+        })
+      )
+    ).resolves.toEqual({
+      amountToRefund: {
+        amountMinor: 0,
+        currency: 'PLN'
+      },
+      status: 'refunded'
+    })
+  })
 })
 
 function readObservableOnce<T>(observable: {

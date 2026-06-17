@@ -12,7 +12,10 @@ import { reactive } from 'vue'
 
 import type { CampParticipantActionsContext } from '@/read/ObserveCampParticipantActionsContextQuery'
 import type { CampParticipantDetails } from '@/read/ObserveCampParticipantDetailsQuery'
-import type { CampParticipantPayment } from '@/read/ObserveCampParticipantPaymentQuery'
+import type {
+  CampParticipantPayment,
+  CampParticipantPaymentRefund
+} from '@/read/ObserveCampParticipantPaymentQuery'
 import { useAppServices } from '@/ui/appServices'
 import { createAppI18n } from '@/ui/i18n'
 import { useRoute } from '@/ui/router/runtime'
@@ -226,6 +229,35 @@ describe('CampParticipantDetailsView', () => {
 
     expect(wrapper.text()).toContain('Zwrócono')
     expect(wrapper.text()).not.toContain('Rezygnacja')
+  })
+
+  it('shows the refunded payment story without discounts', async () => {
+    detailsObservable = createObservable(
+      createCampParticipantDetails({
+        participant: {
+          displayName: 'Amanda Nunes',
+          status: 'refunded'
+        }
+      }),
+      subscriptionUnsubscribeSpies
+    )
+    paymentObservable = createObservable(
+      createCampParticipantRefundPayment({
+        amountToRefund: {
+          amountMinor: 0,
+          currency: 'PLN'
+        },
+        status: 'refunded'
+      }),
+      subscriptionUnsubscribeSpies
+    )
+
+    const wrapper = mountView()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Zwrócono')
+    expect(wrapper.text()).toContain('Do zwrotu')
+    expect(wrapper.text()).not.toContain('Zniżki')
   })
 
   it('prefills a received payment from the actions context read', async () => {
@@ -614,6 +646,19 @@ function createCampParticipantPayment(
     status: 'registered',
     ...overrides
   } as CampParticipantPayment
+}
+
+function createCampParticipantRefundPayment(
+  overrides: Partial<CampParticipantPaymentRefund> = {}
+): CampParticipantPaymentRefund {
+  return {
+    amountToRefund: {
+      amountMinor: 30000,
+      currency: 'PLN'
+    },
+    status: 'resigned',
+    ...overrides
+  }
 }
 
 function createCampParticipantActionsContext(

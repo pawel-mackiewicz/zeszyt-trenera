@@ -22,15 +22,16 @@ export type CampParticipantPaymentActive = {
   paymentProgressPercent: number
 }
 
-export type CampParticipantPaymentResigned = {
-  status: 'resigned'
+export type CampParticipantPaymentRefundStatus = 'resigned' | 'refunded'
+
+export type CampParticipantPaymentRefund = {
+  status: CampParticipantPaymentRefundStatus
   amountToRefund: MoneySnapshot
-  discountSum: MoneySnapshot
 }
 
 export type CampParticipantPayment =
   | CampParticipantPaymentActive
-  | CampParticipantPaymentResigned
+  | CampParticipantPaymentRefund
 
 export class ObserveCampParticipantPaymentQuery {
   public constructor(private readonly database: TrainerNotebookDb) {}
@@ -53,13 +54,11 @@ function toCampParticipantPayment(
 ): CampParticipantPayment {
   const snapshot = participant.toSnapshot()
   const financialBalance = participant.financialBalance().toSnapshot()
-  const discountSum = resolveDiscountSum(snapshot)
 
-  if (snapshot.status !== 'REGISTERED' && snapshot.status !== 'FULLY_PAID') {
+  if (snapshot.status === 'RESIGNED' || snapshot.status === 'REFUNDED') {
     return {
-      status: 'resigned',
-      amountToRefund: financialBalance,
-      discountSum
+      status: snapshot.status === 'REFUNDED' ? 'refunded' : 'resigned',
+      amountToRefund: financialBalance
     }
   }
 
@@ -68,7 +67,7 @@ function toCampParticipantPayment(
   return {
     status: snapshot.status === 'REGISTERED' ? 'registered' : 'fullyPaid',
     amountDue,
-    discountSum,
+    discountSum: resolveDiscountSum(snapshot),
     paidAmount: financialBalance,
     paymentProgressPercent: resolvePaymentProgressPercent(
       amountDue.amountMinor,

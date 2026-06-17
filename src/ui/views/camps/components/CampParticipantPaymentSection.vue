@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 
 import type {
   CampParticipantPaymentActive,
-  CampParticipantPaymentResigned
+  CampParticipantPaymentRefund
 } from '@/read/ObserveCampParticipantPaymentQuery'
 import AppButton from '@/ui/components/AppButton.vue'
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
@@ -26,15 +26,18 @@ const { isLoading, loadError, notFound, payment, retryLoading } =
 const activePayment = computed<CampParticipantPaymentActive | null>(() =>
   payment.value && 'amountDue' in payment.value ? payment.value : null
 )
-const resignedPayment = computed<CampParticipantPaymentResigned | null>(() =>
+const refundPayment = computed<CampParticipantPaymentRefund | null>(() =>
   payment.value && 'amountToRefund' in payment.value ? payment.value : null
 )
 const discountSum = computed<MoneySnapshot | null>(() => {
-  if (!payment.value || payment.value.discountSum.amountMinor <= 0) {
+  if (
+    !activePayment.value ||
+    activePayment.value.discountSum.amountMinor <= 0
+  ) {
     return null
   }
 
-  return payment.value.discountSum
+  return activePayment.value.discountSum
 })
 const progressStyle = computed(() => ({
   width: `${Math.min(
@@ -74,7 +77,10 @@ function formatMoney(money: MoneySnapshot): string {
     class="camp-participant-payment-section"
     aria-labelledby="campParticipantPaymentHeading"
   >
-    <div class="app-section-label camp-participant-payment-section__label-bar">
+    <div
+      id="campParticipantPaymentHeading"
+      class="app-section-label camp-participant-payment-section__label-bar"
+    >
       {{ t('sections.payment') }}
     </div>
     <div class="camp-participant-payment-section__body">
@@ -100,12 +106,6 @@ function formatMoney(money: MoneySnapshot): string {
 
       <template v-else-if="activePayment">
         <div class="camp-participant-payment-section__heading">
-          <h3
-            id="campParticipantPaymentHeading"
-            class="camp-participant-payment-section__headline"
-          >
-            {{ t('payment.status') }}
-          </h3>
           <p class="camp-participant-payment-section__money">
             <strong>
               {{ formatMoney(activePayment.paidAmount) }}
@@ -154,25 +154,14 @@ function formatMoney(money: MoneySnapshot): string {
         </div>
       </template>
 
-      <template v-else-if="resignedPayment">
-        <h3
-          id="campParticipantPaymentHeading"
-          class="camp-participant-payment-section__headline"
-        >
+      <template v-else-if="refundPayment">
+        <h3 class="camp-participant-payment-section__headline">
           {{ t('payment.refund') }}
         </h3>
-        <p class="camp-participant-payment-section__money">
-          <strong>{{ formatMoney(resignedPayment.amountToRefund) }}</strong>
-        </p>
         <p
-          v-if="discountSum"
-          class="camp-participant-payment-section__discount"
+          class="camp-participant-payment-section__money camp-participant-payment-section__money--refund"
         >
-          {{
-            t('payment.discount', {
-              amount: formatMoney(discountSum)
-            })
-          }}
+          <strong>{{ formatMoney(refundPayment.amountToRefund) }}</strong>
         </p>
       </template>
     </div>
@@ -205,7 +194,7 @@ function formatMoney(money: MoneySnapshot): string {
   display: flex;
   flex-wrap: wrap;
   align-items: end;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 0.75rem 1rem;
 }
 
@@ -232,8 +221,14 @@ function formatMoney(money: MoneySnapshot): string {
   font-weight: 700;
   letter-spacing: 0.08em;
   line-height: 1.4;
+  text-align: end;
   text-transform: uppercase;
   color: var(--color-on-surface);
+}
+
+.camp-participant-payment-section__money--refund {
+  justify-self: start;
+  text-align: start;
 }
 
 .camp-participant-payment-section__money strong {
@@ -307,8 +302,7 @@ function formatMoney(money: MoneySnapshot): string {
       "discount": "Zniżki: {amount}",
       "progressLabel": "Postęp płatności uczestnika",
       "refund": "Do zwrotu",
-      "remaining": "Pozostało: {amount}",
-      "status": "Status płatności"
+      "remaining": "Pozostało: {amount}"
     },
     "states": {
       "loading": "Wczytywanie płatności uczestnika",
@@ -327,8 +321,7 @@ function formatMoney(money: MoneySnapshot): string {
       "discount": "Discounts: {amount}",
       "progressLabel": "Participant payment progress",
       "refund": "To refund",
-      "remaining": "Remaining: {amount}",
-      "status": "Payment status"
+      "remaining": "Remaining: {amount}"
     },
     "states": {
       "loading": "Loading participant payment",
