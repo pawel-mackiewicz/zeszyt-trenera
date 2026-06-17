@@ -63,6 +63,16 @@ describe('CampDetailsView', () => {
     })
     expect(wrapper.text()).toContain('Obóz zimowy')
     expect(wrapper.text()).toContain('12.12.2026 - 19.12.2026')
+    expect(
+      wrapper.get('.camp-details-view__total-counter').attributes('aria-label')
+    ).toBe('3 uczestników')
+    expect(wrapper.get('.camp-details-view__total-counter').text()).toContain(
+      'Uczestnicy'
+    )
+    expect(wrapper.get('.camp-details-view__total-count').text()).toBe('3')
+    expect(wrapper.get('.camp-details-view__visible-count').text()).toBe(
+      '3 z 3'
+    )
     expect(wrapper.text()).toContain('Zapisani')
     expect(wrapper.text()).toContain('Opłacone')
     expect(wrapper.text()).toContain('Zrezygnowali')
@@ -78,6 +88,12 @@ describe('CampDetailsView', () => {
 
     await wrapper.get('input#camp-details-search').setValue('royce')
 
+    expect(
+      wrapper.get('.camp-details-view__total-counter').attributes('aria-label')
+    ).toBe('3 uczestników')
+    expect(wrapper.get('.camp-details-view__visible-count').text()).toBe(
+      '1 z 3'
+    )
     expect(wrapper.text()).not.toContain('Amanda Nunes')
     expect(wrapper.text()).toContain('Royce Gracie')
     expect(wrapper.text()).not.toContain('jane doe')

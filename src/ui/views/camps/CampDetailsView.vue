@@ -18,6 +18,13 @@ const messages = {
     dates: {
       range: '{start} - {finish}'
     },
+    counters: {
+      participantPlural: '{count} uczestników',
+      participantSingle: '{count} uczestnik',
+      totalLabel: 'Uczestników',
+      visibleLabel: 'Widoczni',
+      visibleValue: '{visible} z {total}'
+    },
     search: {
       label: 'Szukaj uczestnika',
       placeholder: 'Wpisz imię i nazwisko'
@@ -52,6 +59,13 @@ const messages = {
     },
     dates: {
       range: '{start} - {finish}'
+    },
+    counters: {
+      participantPlural: '{count} participants',
+      participantSingle: '{count} participant',
+      totalLabel: 'Participants',
+      visibleLabel: 'Visible',
+      visibleValue: '{visible} of {total}'
     },
     search: {
       label: 'Search participant',
@@ -150,13 +164,40 @@ function formatAge(age: number | null): string {
 function formatMoney(money: MoneySnapshot): string {
   return moneyFormatter.value.format(money.amountMinor / 100)
 }
+
+function formatParticipantCount(count: number): string {
+  return t(
+    count === 1 ? 'counters.participantSingle' : 'counters.participantPlural',
+    { count }
+  )
+}
+
+function formatVisibleParticipantCount(visible: number, total: number): string {
+  return t('counters.visibleValue', {
+    total,
+    visible
+  })
+}
 </script>
 
 <template>
   <div class="camp-details-view pt-4 pb-12">
     <section v-if="camp" class="camp-details-view__hero mb-6">
       <p class="camp-details-view__eyebrow">{{ dateRange }}</p>
-      <h2 class="camp-details-view__title">{{ camp.name }}</h2>
+      <div class="camp-details-view__hero-main">
+        <h2 class="camp-details-view__title">{{ camp.name }}</h2>
+        <p
+          class="camp-details-view__total-counter"
+          :aria-label="formatParticipantCount(totalParticipantCount)"
+        >
+          <span class="camp-details-view__total-count">
+            {{ totalParticipantCount }}
+          </span>
+          <span class="camp-details-view__counter-label">
+            {{ t('counters.totalLabel') }}
+          </span>
+        </p>
+      </div>
     </section>
 
     <section v-if="isLoading" class="camp-details-view__state mb-10 px-5 py-6">
@@ -191,6 +232,25 @@ function formatMoney(money: MoneySnapshot): string {
         :search-label="t('search.label')"
         :search-placeholder="t('search.placeholder')"
       />
+
+      <section
+        v-if="totalParticipantCount > 0"
+        class="camp-details-view__visible-counter mb-8"
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        <span class="camp-details-view__counter-label">
+          {{ t('counters.visibleLabel') }}
+        </span>
+        <span class="camp-details-view__visible-count">
+          {{
+            formatVisibleParticipantCount(
+              filteredParticipantCount,
+              totalParticipantCount
+            )
+          }}
+        </span>
+      </section>
 
       <section
         v-if="totalParticipantCount === 0"
@@ -262,9 +322,15 @@ function formatMoney(money: MoneySnapshot): string {
 
 .camp-details-view__hero {
   display: grid;
-  gap: 0.5rem;
-  padding-bottom: 1rem;
+  gap: 0.75rem;
+  padding-bottom: 1.15rem;
   border-bottom: 2px solid var(--color-on-surface);
+}
+
+.camp-details-view__hero-main {
+  display: grid;
+  gap: 1rem;
+  align-items: end;
 }
 
 .camp-details-view__eyebrow {
@@ -286,6 +352,57 @@ function formatMoney(money: MoneySnapshot): string {
   font-weight: 900;
   line-height: 0.92;
   letter-spacing: -0.04em;
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+}
+
+.camp-details-view__total-counter {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: end;
+  width: 100%;
+  gap: 0.75rem;
+  margin: 0;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--color-outline-variant);
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: var(--color-on-surface);
+}
+
+.camp-details-view__counter-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+}
+
+.camp-details-view__total-count {
+  font-family: var(--font-headline);
+  font-size: clamp(4.5rem, 22vw, 7rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  line-height: 0.78;
+}
+
+.camp-details-view__visible-counter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--color-outline-variant);
+}
+
+.camp-details-view__visible-count {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  line-height: 1;
   text-transform: uppercase;
   color: var(--color-on-surface);
 }
@@ -321,5 +438,32 @@ function formatMoney(money: MoneySnapshot): string {
 
 .camp-details-view__ledger :deep(.camp-details-participant-row__link:hover) {
   background: var(--color-surface-container-low);
+}
+
+@media (min-width: 48rem) {
+  .camp-details-view__hero-main {
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, auto);
+    gap: 1.5rem;
+  }
+
+  .camp-details-view__total-counter {
+    grid-template-columns: 1fr;
+    align-content: end;
+    justify-self: end;
+    width: auto;
+    min-width: 9rem;
+    padding-top: 0;
+    border-top: 0;
+    border-left: 2px solid var(--color-on-surface);
+    padding-left: 1rem;
+  }
+
+  .camp-details-view__counter-label {
+    max-width: 8.5rem;
+  }
+
+  .camp-details-view__total-count {
+    font-size: clamp(5.25rem, 10vw, 8rem);
+  }
 }
 </style>

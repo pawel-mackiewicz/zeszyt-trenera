@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { BadgePercent } from '@lucide/vue'
 import { computed } from 'vue'
 
 import type {
@@ -67,8 +68,13 @@ const progressStyle = computed(() => {
         <span
           v-if="activeParticipant?.hasDiscount"
           class="camp-details-participant-row__discount"
+          :aria-label="discountLabel"
+          :title="discountLabel"
         >
-          {{ discountLabel }}
+          <BadgePercent
+            class="camp-details-participant-row__discount-icon"
+            aria-hidden="true"
+          />
         </span>
       </div>
 
@@ -165,9 +171,16 @@ const progressStyle = computed(() => {
 }
 
 .camp-details-participant-row__discount {
-  padding: 0.2rem 0.35rem;
-  border: 1px solid var(--color-outline-variant);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   color: var(--color-secondary);
+}
+
+.camp-details-participant-row__discount-icon {
+  width: 0.85rem;
+  height: 0.85rem;
+  stroke-width: 2;
 }
 
 .camp-details-participant-row__payment {
