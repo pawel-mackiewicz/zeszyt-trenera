@@ -314,4 +314,12 @@ function formatMoney(money: MoneySnapshot): string {
   display: grid;
   gap: 2rem;
 }
+
+.camp-details-view__ledger :deep(.camp-details-participant-row__link) {
+  transition: background-color 160ms ease;
+}
+
+.camp-details-view__ledger :deep(.camp-details-participant-row__link:hover) {
+  background: var(--color-surface-container-low);
+}
 </style>
