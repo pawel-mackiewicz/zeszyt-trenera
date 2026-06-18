@@ -194,6 +194,48 @@ describe('RosterView', () => {
     )
   })
 
+  it('marks the floating add action to stay clear of an opened mobile member drawer', async () => {
+    mockObserveMembersForRosterHandle.mockReturnValue(
+      createObservable([
+        {
+          id: 'member-1',
+          firstName: 'Amanda',
+          lastName: 'Nunes',
+          phoneNumber: '+48 111 111 111',
+          dateOfBirth: new Date('1990-01-01T00:00:00Z'),
+          createdAt: new Date('2026-03-20T10:00:00Z')
+        }
+      ])
+    )
+
+    const wrapper = mountView('pl')
+    await flushPromises()
+
+    const addAction = () => wrapper.get('.members-list-view__action-fab')
+
+    expect(wrapper.find('a[to="/members/new"]').exists()).toBe(true)
+    expect(
+      addAction().classes('members-list-view__action-fab--mobile-hidden')
+    ).toBe(false)
+
+    await wrapper.find('summary').trigger('click')
+
+    expect(wrapper.find('[data-testid="member-delete-open"]').exists()).toBe(
+      true
+    )
+    expect(wrapper.find('a[to="/members/new"]').exists()).toBe(true)
+    expect(
+      addAction().classes('members-list-view__action-fab--mobile-hidden')
+    ).toBe(true)
+
+    await wrapper.find('summary').trigger('click')
+
+    expect(wrapper.find('a[to="/members/new"]').exists()).toBe(true)
+    expect(
+      addAction().classes('members-list-view__action-fab--mobile-hidden')
+    ).toBe(false)
+  })
+
   it('closes the open drawer after archiving the member', async () => {
     mockObserveMembersForRosterHandle.mockReturnValue(
       createObservable([

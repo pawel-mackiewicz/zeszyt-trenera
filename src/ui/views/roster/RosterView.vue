@@ -204,7 +204,12 @@ onBeforeUnmount(() => {
       </Transition>
     </div>
 
-    <div class="members-list-view__action-fab app-floating-action">
+    <div
+      class="members-list-view__action-fab app-floating-action"
+      :class="{
+        'members-list-view__action-fab--mobile-hidden': openMemberId !== null
+      }"
+    >
       <!-- What: keep the add-member trigger pinned to the viewport edge. Why: when the desktop roster leaves side rail space, the CTA should float outside the list instead of covering rows. -->
       <AppButton
         as="router-link"
@@ -242,6 +247,10 @@ onBeforeUnmount(() => {
   text-transform: uppercase;
 }
 
+.members-list-view__action-fab--mobile-hidden {
+  display: none;
+}
+
 .roster-tab-ledger-enter-active,
 .roster-tab-ledger-leave-active {
   transition: opacity 240ms var(--ease-standard);
@@ -256,6 +265,12 @@ onBeforeUnmount(() => {
   .roster-tab-ledger-enter-active,
   .roster-tab-ledger-leave-active {
     transition: opacity 120ms ease;
+  }
+}
+
+@media (min-width: 768px) {
+  .members-list-view__action-fab--mobile-hidden {
+    display: block;
   }
 }
 </style>
