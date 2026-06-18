@@ -63,7 +63,7 @@ test('registers a club member for a demo camp with discount and initial payment'
 
   await reloadCampDetailsAfterLocalWrites(page, FUNDAMENTALS_CAMP)
   await expectCampParticipantVisible(page, 'Amanda Nunes')
-  await expect(page.getByText(/^zniżka$/i)).toHaveCount(2)
+  await expect(page.locator('[aria-label="Zniżka"]')).toHaveCount(2)
   await expectMoneyVisible(page, '234,56')
   await expectMoneyVisible(page, '826,55')
 })
