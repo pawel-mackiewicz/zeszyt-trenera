@@ -56,7 +56,7 @@ test('registers a club member for a demo camp with discount and initial payment'
     payment: '234,56'
   })
   await expectMoneyVisible(page, '591,99')
-  await page.getByRole('button', { name: /^zapisz$/i }).click()
+  await page.getByRole('button', { name: /zapisz klubowicza/i }).click()
   await expect(
     page.getByRole('heading', { exact: true, name: FUNDAMENTALS_CAMP })
   ).toBeVisible()

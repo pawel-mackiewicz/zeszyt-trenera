@@ -118,7 +118,7 @@ export async function registerClubCampParticipantViaUi(
     await fillCampParticipantMoney(page, money)
   }
 
-  await page.getByRole('button', { name: /^zapisz$/i }).click()
+  await page.getByRole('button', { name: /zapisz klubowicza/i }).click()
 }
 
 export async function registerExternalCampParticipantViaUi(
@@ -141,7 +141,7 @@ export async function registerExternalCampParticipantViaUi(
     await fillCampParticipantMoney(page, money)
   }
 
-  await page.getByRole('button', { name: /^zapisz$/i }).click()
+  await page.getByRole('button', { name: /zapisz uczestnika/i }).click()
 }
 
 export async function reloadCampsAfterLocalWrites(page: Page) {
