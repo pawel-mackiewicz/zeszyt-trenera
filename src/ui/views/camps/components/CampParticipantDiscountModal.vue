@@ -230,7 +230,7 @@ function submitDiscount() {
   background: transparent;
   padding: 0.5rem 0;
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: var(--app-form-control-font-size);
   font-variant-numeric: tabular-nums;
   font-style: normal;
   font-weight: 400;

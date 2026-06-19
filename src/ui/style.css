@@ -20,7 +20,7 @@
   --font-headline: 'Space Grotesk', sans-serif;
   --font-body: 'Inter', sans-serif;
   --font-label: 'Space Grotesk', sans-serif;
-  --font-mono: 'Roboto Mono', monospace;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 :root {
@@ -67,6 +67,7 @@
   --app-section-label-letter-spacing: 0.08em;
   --app-section-label-text-transform: uppercase;
   --app-section-label-color: var(--color-secondary);
+  --app-form-control-font-size: 1rem;
 }
 
 *,

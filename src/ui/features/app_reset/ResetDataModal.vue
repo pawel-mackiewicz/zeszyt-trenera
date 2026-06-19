@@ -50,7 +50,7 @@ const confirmLabel = computed(() =>
     <input
       id="reset-confirmation"
       v-model="resetConfirmationInputModel"
-      class="w-full rounded-none border border-on-surface/20 bg-surface px-3 py-3 font-mono text-xs text-on-surface"
+      class="reset-data-modal__confirmation-input w-full rounded-none border border-on-surface/20 bg-surface px-3 py-3 font-mono text-on-surface"
       type="text"
       autocomplete="off"
       :aria-label="t('reset.inputLabel')"
@@ -86,3 +86,9 @@ const confirmLabel = computed(() =>
     @dismiss="dismissResetError"
   />
 </template>
+
+<style scoped>
+.reset-data-modal__confirmation-input {
+  font-size: var(--app-form-control-font-size);
+}
+</style>

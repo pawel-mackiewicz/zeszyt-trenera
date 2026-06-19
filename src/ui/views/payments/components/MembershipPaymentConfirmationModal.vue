@@ -246,7 +246,10 @@ watch(
   border: 0;
   background: transparent;
   padding: 0.9rem 0.875rem;
-  font: 700 1.25rem/1.15 var(--font-headline);
+  font-family: var(--font-headline);
+  font-size: var(--app-form-control-font-size);
+  font-weight: 700;
+  line-height: 1.15;
   color: var(--color-on-surface);
   outline: none;
 }
