@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Zeszyt UI Refactor'
+  short_description: 'Refactor shared Vue UI patterns'
+  default_prompt: 'Use $zeszyt-ui-refactor to refactor repeated UI patterns in the zeszyt-trenera app.'
