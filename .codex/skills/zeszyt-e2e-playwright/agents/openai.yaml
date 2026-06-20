@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Zeszyt E2E Playwright'
+  short_description: 'Write local-first Playwright E2E tests'
+  default_prompt: 'Use $zeszyt-e2e-playwright to add a local-first Playwright E2E test for the zeszyt-trenera app.'
