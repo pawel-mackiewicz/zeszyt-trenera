@@ -61,6 +61,22 @@ export async function openCampDetailsViaUi(page: Page, campNameValue: string) {
   ).toBeVisible()
 }
 
+export async function openCampParticipantDetailsViaUi(
+  page: Page,
+  fullName: string
+) {
+  await page
+    .getByRole('link', {
+      name: new RegExp(escapeRegExp(fullName), 'i')
+    })
+    .click()
+  await expect(
+    page.getByRole('heading', {
+      name: new RegExp(`^${escapeRegExp(fullName)}$`, 'i')
+    })
+  ).toBeVisible()
+}
+
 export async function openCampParticipantPicker(page: Page) {
   await page.getByRole('link', { name: /dodaj uczestnika/i }).click()
   await expect(
@@ -144,6 +160,87 @@ export async function registerExternalCampParticipantViaUi(
   await page.getByRole('button', { name: /zapisz uczestnika/i }).click()
 }
 
+export async function grantCampParticipantDiscountViaUi(
+  page: Page,
+  {
+    amount,
+    reason
+  }: {
+    amount: string
+    reason?: string
+  }
+) {
+  await page.getByRole('button', { name: /^przyznaj zniżkę$/i }).click()
+  const modal = page.getByRole('dialog', { name: /^przyznaj zniżkę$/i })
+  await expect(modal).toBeVisible()
+
+  await modal.getByRole('textbox', { name: /^kwota zniżki$/i }).fill(amount)
+
+  if (reason) {
+    await modal.getByRole('textbox', { name: /^powód zniżki$/i }).fill(reason)
+  }
+
+  await modal.getByRole('button', { name: /^zapisz zniżkę$/i }).click()
+  await expect(modal).not.toBeVisible()
+}
+
+export async function registerCampParticipantPaymentViaUi(
+  page: Page,
+  {
+    amount,
+    note
+  }: {
+    amount: string
+    note?: string
+  }
+) {
+  await page.getByRole('button', { name: /^przyjmij płatność$/i }).click()
+  const modal = page.getByRole('dialog', { name: /^przyjmij płatność$/i })
+  await expect(modal).toBeVisible()
+
+  await modal.getByRole('textbox', { name: /^kwota wpłaty$/i }).fill(amount)
+
+  if (note) {
+    await modal
+      .getByRole('textbox', { name: /^notatka do wpłaty$/i })
+      .fill(note)
+  }
+
+  await modal.getByRole('button', { name: /^zapisz wpłatę$/i }).click()
+  await expect(modal).not.toBeVisible()
+}
+
+export async function acceptCampParticipantResignationViaUi(page: Page) {
+  await page.getByRole('button', { name: /^przyjmij rezygnację$/i }).click()
+  const modal = page.getByRole('dialog', { name: /^przyjmij rezygnację$/i })
+  await expect(modal).toBeVisible()
+
+  await modal.getByRole('button', { name: /^potwierdź rezygnację$/i }).click()
+  await expect(modal).not.toBeVisible()
+}
+
+export async function registerCampParticipantRefundViaUi(
+  page: Page,
+  amount: string
+) {
+  await page.getByRole('button', { name: /^zarejestruj zwrot$/i }).click()
+  const modal = page.getByRole('dialog', { name: /^zarejestruj zwrot$/i })
+  await expect(modal).toBeVisible()
+
+  await modal.getByRole('textbox', { name: /^kwota zwrotu$/i }).fill(amount)
+  await modal.getByRole('button', { name: /^zapisz zwrot$/i }).click()
+  await expect(modal).not.toBeVisible()
+}
+
+export async function cancelCampParticipantResignationViaUi(page: Page) {
+  await page.getByRole('button', { name: /^cofnij rezygnację$/i }).click()
+  const modal = page.getByRole('dialog', { name: /^cofnąć rezygnację\?$/i })
+  await expect(modal).toBeVisible()
+
+  await modal.getByRole('button', { name: /^cofnij rezygnację$/i }).click()
+  await expect(modal).not.toBeVisible()
+}
+
 export async function reloadCampsAfterLocalWrites(page: Page) {
   // Why: local-first E2E assertions should prove IndexedDB was re-read after writes, not only that Vue kept temporary in-memory state.
   await page.reload()
@@ -160,6 +257,19 @@ export async function reloadCampDetailsAfterLocalWrites(
   await page.reload()
   await expect(
     page.getByRole('heading', { exact: true, name: campNameValue })
+  ).toBeVisible()
+}
+
+export async function reloadCampParticipantDetailsAfterLocalWrites(
+  page: Page,
+  fullName: string
+) {
+  // Why: participant action assertions must prove the command writes survived a fresh IndexedDB read, not only a live-query refresh.
+  await page.reload()
+  await expect(
+    page.getByRole('heading', {
+      name: new RegExp(`^${escapeRegExp(fullName)}$`, 'i')
+    })
   ).toBeVisible()
 }
 
@@ -189,8 +299,25 @@ export async function expectCampParticipantShownOnce(
   await expect(campParticipantName(page, fullName)).toHaveCount(1)
 }
 
+export async function expectCampParticipantDiscountVisible(
+  page: Page,
+  fullName: string
+) {
+  await expect(
+    page.getByRole('link', {
+      name: new RegExp(`${escapeRegExp(fullName)}.*zniżka`, 'i')
+    })
+  ).toBeVisible()
+}
+
 export async function expectMoneyVisible(page: Page, amount: string) {
   await expect(page.getByText(moneyRegExp(amount))).toBeVisible()
+}
+
+export async function expectCampParticipantStatus(page: Page, status: string) {
+  await expect(
+    page.getByText(new RegExp(`^${escapeRegExp(status)}$`, 'i'))
+  ).toBeVisible()
 }
 
 export async function expectSignedCampCandidate(page: Page, fullName: string) {

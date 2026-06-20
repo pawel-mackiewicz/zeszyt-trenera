@@ -2,18 +2,27 @@ import { expect, test } from 'playwright/test'
 
 import {
   addCampViaUi,
+  acceptCampParticipantResignationViaUi,
+  cancelCampParticipantResignationViaUi,
+  expectCampParticipantDiscountVisible,
   expectCampParticipantShownOnce,
+  expectCampParticipantStatus,
   expectCampParticipantVisible,
   expectCampVisible,
   expectMoneyVisible,
   expectSignedCampCandidate,
   fillCampParticipantMoney,
+  grantCampParticipantDiscountViaUi,
   openCampDetailsViaUi,
+  openCampParticipantDetailsViaUi,
   openCampParticipantPicker,
   openClubCampParticipantForm,
   openDemoCamps,
+  registerCampParticipantPaymentViaUi,
+  registerCampParticipantRefundViaUi,
   registerExternalCampParticipantViaUi,
   reloadCampDetailsAfterLocalWrites,
+  reloadCampParticipantDetailsAfterLocalWrites,
   reloadCampsAfterLocalWrites,
   type CampDraft
 } from './support/camps'
@@ -27,6 +36,8 @@ const NEW_CAMP: CampDraft = {
 }
 const FUNDAMENTALS_CAMP = 'Fundamentals weekend camp'
 const COMPETITION_CAMP = 'Competition preparation camp'
+const LEDGER_PARTICIPANT = 'Pola Ledger'
+const RESIGNATION_PARTICIPANT = 'Renata Zwrot'
 
 test('adds a camp and keeps it after reload with an empty participant ledger', async ({
   page
@@ -63,7 +74,7 @@ test('registers a club member for a demo camp with discount and initial payment'
 
   await reloadCampDetailsAfterLocalWrites(page, FUNDAMENTALS_CAMP)
   await expectCampParticipantVisible(page, 'Amanda Nunes')
-  await expect(page.locator('[aria-label="Zniżka"]')).toHaveCount(2)
+  await expectCampParticipantDiscountVisible(page, 'Amanda Nunes')
   await expectMoneyVisible(page, '234,56')
   await expectMoneyVisible(page, '826,55')
 })
@@ -133,5 +144,93 @@ test('marks an already signed club member in the candidate picker', async ({
   await expectSignedCampCandidate(page, 'Gordon Ryan')
   await expect(
     page.getByRole('heading', { name: /dodaj uczestnika obozu/i })
+  ).toBeVisible()
+})
+
+test('updates an active camp participant ledger from participant details and keeps it after reload', async ({
+  page
+}) => {
+  await openDemoCamps(page)
+  await openCampDetailsViaUi(page, COMPETITION_CAMP)
+  await openCampParticipantPicker(page)
+  await registerExternalCampParticipantViaUi(page, {
+    firstName: 'Pola',
+    lastName: 'Ledger'
+  })
+  await expect(
+    page.getByRole('heading', { exact: true, name: COMPETITION_CAMP })
+  ).toBeVisible()
+
+  await reloadCampDetailsAfterLocalWrites(page, COMPETITION_CAMP)
+  await openCampParticipantDetailsViaUi(page, LEDGER_PARTICIPANT)
+  await expectCampParticipantStatus(page, 'Zapisany')
+
+  await grantCampParticipantDiscountViaUi(page, {
+    amount: '100',
+    reason: 'Rabat rodzinny'
+  })
+  await expectMoneyVisible(page, '100,00')
+
+  await registerCampParticipantPaymentViaUi(page, {
+    amount: '200',
+    note: 'Przelew rodzica'
+  })
+  await expectMoneyVisible(page, '200,00')
+
+  await reloadCampParticipantDetailsAfterLocalWrites(page, LEDGER_PARTICIPANT)
+  await expectCampParticipantStatus(page, 'Zapisany')
+  await expectMoneyVisible(page, '100,00')
+  await expectMoneyVisible(page, '200,00')
+  await expectMoneyVisible(page, '950,00')
+})
+
+test('moves a paid camp participant through resignation, refund, and cancellation from details', async ({
+  page
+}) => {
+  await openDemoCamps(page)
+  await openCampDetailsViaUi(page, COMPETITION_CAMP)
+  await openCampParticipantPicker(page)
+  await registerExternalCampParticipantViaUi(page, {
+    firstName: 'Renata',
+    lastName: 'Zwrot',
+    money: {
+      payment: '1250'
+    }
+  })
+  await expect(
+    page.getByRole('heading', { exact: true, name: COMPETITION_CAMP })
+  ).toBeVisible()
+
+  await reloadCampDetailsAfterLocalWrites(page, COMPETITION_CAMP)
+  await openCampParticipantDetailsViaUi(page, RESIGNATION_PARTICIPANT)
+  await expectCampParticipantStatus(page, 'Opłacony')
+
+  await acceptCampParticipantResignationViaUi(page)
+  await expectCampParticipantStatus(page, 'Rezygnacja')
+  await expectMoneyVisible(page, '1250,00')
+
+  await reloadCampParticipantDetailsAfterLocalWrites(
+    page,
+    RESIGNATION_PARTICIPANT
+  )
+  await expectCampParticipantStatus(page, 'Rezygnacja')
+  await registerCampParticipantRefundViaUi(page, '1250')
+  await expectCampParticipantStatus(page, 'Zwrócono')
+
+  await reloadCampParticipantDetailsAfterLocalWrites(
+    page,
+    RESIGNATION_PARTICIPANT
+  )
+  await expectCampParticipantStatus(page, 'Zwrócono')
+  await cancelCampParticipantResignationViaUi(page)
+  await expectCampParticipantStatus(page, 'Zapisany')
+
+  await reloadCampParticipantDetailsAfterLocalWrites(
+    page,
+    RESIGNATION_PARTICIPANT
+  )
+  await expectCampParticipantStatus(page, 'Zapisany')
+  await expect(
+    page.getByRole('button', { name: /^przyjmij płatność$/i })
   ).toBeVisible()
 })
