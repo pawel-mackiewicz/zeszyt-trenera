@@ -18,6 +18,7 @@ import { useNetworkStatus } from '@/ui/composables/useNetworkStatus'
 import type { AppRouteName } from '@/ui/router'
 import { useRoute } from '@/ui/router/runtime'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
+import DemoOutroModal from '@/ui/features/demo/DemoOutroModal.vue'
 import { useAppStore } from '@/ui/stores/app'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
 import { useShellStore } from '@/ui/stores/shell.store'
@@ -103,8 +104,11 @@ watch(
       <!-- What: mount the smart sidebar menu beside the header. Why: AppShell should place menu chrome without owning menu state, backup workflows, or locale controls. -->
       <SidebarMenu />
 
-      <!-- What: mount the smart demo overlay from the feature folder. Why: AppShell should provide shell placement while demo exit state and application workflow wiring stay inside the demo feature. -->
+      <!-- What: mount the smart demo intro overlay from the feature folder. Why: AppShell should provide shell placement while first-start copy and shared demo modal state stay inside the demo feature. -->
       <DemoIntroModal />
+
+      <!-- What: mount the smart demo outro overlay from the feature folder. Why: AppShell should provide shell placement while demo exit state and application workflow wiring stay inside the demo feature. -->
+      <DemoOutroModal />
 
       <!-- What: mount the smart reset overlay from the feature folder. Why: AppShell should own global overlay placement while reset confirmation, errors, and application-layer workflow stay behind the reset feature boundary. -->
       <ResetDataModal />

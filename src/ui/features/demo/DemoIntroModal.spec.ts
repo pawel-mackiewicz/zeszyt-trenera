@@ -1,50 +1,39 @@
-import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { nextTick } from 'vue'
-import { beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 
-import { createAppServicesProvides } from '@/ui/appServices'
 import DemoIntroModal from '@/ui/features/demo/DemoIntroModal.vue'
-import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/features/demo/DemoIntroModal.messages'
-import { useDemoStore } from '@/ui/features/demo/demo.store'
+import { DemoIntroModalPath, useDemoStore } from '@/ui/features/demo/demo.store'
 import { createAppI18n } from '@/ui/i18n'
 import { useAppStore } from '@/ui/stores/app'
 
-function createDeferredPromise() {
-  let resolve!: () => void
+const demoIntroCopy = {
+  title: 'Tryb Demo',
+  copy: 'Sprawdź zeszyt-trenera na testowych danych',
+  action: 'Sprawdzam!'
+} as const
 
-  const promise = new Promise<void>((resolvePromise) => {
-    resolve = resolvePromise
-  })
-
-  return {
-    promise,
-    resolve
-  }
-}
-
-function configureReadyDemo(
+function prepareReadyDemoIntro(
   appStore: ReturnType<typeof useAppStore>,
   demoStore: ReturnType<typeof useDemoStore>
 ) {
   appStore.setAppReady()
   appStore.setSetupStatus('ready')
   demoStore.setDemoModeActive(true)
-  demoStore.showDemoIntroModal()
+  demoStore.showDemoIntroModal(DemoIntroModalPath.Startup)
 }
 
 describe('DemoIntroModal', () => {
-  let mockLeaveDemoMode: Mock
-
   beforeEach(() => {
-    mockLeaveDemoMode = vi.fn().mockResolvedValue(undefined)
+    setActivePinia(createPinia())
   })
 
   function mountDemoIntroModal(
-    configureStores: (
+    prepareStores: (
       appStore: ReturnType<typeof useAppStore>,
       demoStore: ReturnType<typeof useDemoStore>
-    ) => void = configureReadyDemo
+    ) => void = prepareReadyDemoIntro
   ): {
     appStore: ReturnType<typeof useAppStore>
     demoStore: ReturnType<typeof useDemoStore>
@@ -56,29 +45,18 @@ describe('DemoIntroModal', () => {
     const appStore = useAppStore()
     const demoStore = useDemoStore()
 
-    configureStores(appStore, demoStore)
+    prepareStores(appStore, demoStore)
 
     const wrapper = mount(DemoIntroModal, {
       global: {
-        plugins: [pinia, i18n],
-        provide: createAppServicesProvides({
-          queries: {} as never,
-          system: {
-            demo: {
-              leave: {
-                handle: mockLeaveDemoMode
-              }
-            }
-          } as never,
-          useCases: {} as never
-        })
+        plugins: [pinia, i18n]
       }
     })
 
     return { appStore, demoStore, wrapper }
   }
 
-  it('keeps the modal hidden until the ready shell and shared visibility flag align', async () => {
+  it('keeps the welcome hidden until the ready shell and startup path align', async () => {
     const { appStore, demoStore, wrapper } = mountDemoIntroModal(
       () => undefined
     )
@@ -87,7 +65,7 @@ describe('DemoIntroModal', () => {
       false
     )
 
-    demoStore.showDemoIntroModal()
+    demoStore.showDemoIntroModal(DemoIntroModalPath.Startup)
     await nextTick()
     expect(wrapper.find('[data-testid="continue-demo-button"]').exists()).toBe(
       false
@@ -97,134 +75,60 @@ describe('DemoIntroModal', () => {
     appStore.setSetupStatus('ready')
     await nextTick()
 
-    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
-      ''
+    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).toBe(
+      demoIntroCopy.action
     )
   })
 
-  it('renders modal structure and action variants in the ready state', () => {
+  it('keeps the welcome hidden when the shared modal state points at the outro path', () => {
+    const { wrapper } = mountDemoIntroModal((appStore, demoStore) => {
+      appStore.setAppReady()
+      appStore.setSetupStatus('ready')
+      demoStore.setDemoModeActive(true)
+      demoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
+    })
+
+    expect(wrapper.find('[role="dialog"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="continue-demo-button"]').exists()).toBe(
+      false
+    )
+  })
+
+  it('shows the first-start demo path as one primary action', () => {
     const { wrapper } = mountDemoIntroModal()
 
-    // What: keep markup and CTA-variant assertions on the smart modal. Why: this component now owns both the visible overlay and the demo workflow boundary.
+    // What: keep the startup path to one visible decision. Why: the first run should invite exploration instead of asking the coach to choose a setup exit too early.
     expect(wrapper.find('[role="dialog"]').exists()).toBe(true)
-    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).not.toBe(
-      ''
+    expect(wrapper.text()).toContain(demoIntroCopy.title)
+    expect(wrapper.text()).toContain(demoIntroCopy.copy)
+    expect(wrapper.get('[data-testid="continue-demo-button"]').text()).toBe(
+      demoIntroCopy.action
     )
     expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
-    ).not.toBe('')
+      wrapper.find('[data-testid="confirm-leave-demo-button"]').exists()
+    ).toBe(false)
     expect(
       wrapper.get('[data-testid="continue-demo-button"]').classes()
     ).toContain('app-button--primary')
-    expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').classes()
-    ).toContain('app-button--secondary')
   })
 
-  it('closes the modal without leaving demo mode when the coach stays in demo', async () => {
+  it('lets the coach start checking the demo without leaving demo mode', async () => {
     const { demoStore, wrapper } = mountDemoIntroModal()
 
     await wrapper.get('[data-testid="continue-demo-button"]').trigger('click')
 
-    expect(mockLeaveDemoMode).not.toHaveBeenCalled()
     expect(demoStore.demoIntroModalVisible).toBe(false)
     expect(demoStore.demoModeActive).toBe(true)
   })
 
-  it('routes demo exit through the application layer and clears demo state on success', async () => {
+  it('treats the welcome backdrop like the Sprawdzam action', async () => {
     const { demoStore, wrapper } = mountDemoIntroModal()
-
-    await wrapper
-      .get('[data-testid="confirm-leave-demo-button"]')
-      .trigger('click')
-    await flushPromises()
-
-    expect(mockLeaveDemoMode).toHaveBeenCalledWith({})
-    expect(demoStore.demoModeActive).toBe(false)
-    expect(demoStore.demoIntroModalVisible).toBe(false)
-  })
-
-  it('keeps the intro modal locked while leave-demo writes are pending', async () => {
-    const deferredLeave = createDeferredPromise()
-    mockLeaveDemoMode.mockReturnValueOnce(deferredLeave.promise)
-
-    const { demoStore, wrapper } = mountDemoIntroModal()
-
-    const leaveClick = wrapper
-      .get('[data-testid="confirm-leave-demo-button"]')
-      .trigger('click')
-    await nextTick()
-
-    const pendingLabel = DEMO_INTRO_MODAL_MESSAGES.pl.demo.actions.pending
-
-    expect(
-      wrapper.get('[data-testid="continue-demo-button"]').attributes('disabled')
-    ).toBeDefined()
-    expect(
-      wrapper
-        .get('[data-testid="confirm-leave-demo-button"]')
-        .attributes('disabled')
-    ).toBeDefined()
-    expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
-    ).toContain(pendingLabel)
 
     await wrapper
       .get('[data-testid="demo-intro-modal-backdrop"]')
       .trigger('click')
-    expect(demoStore.demoIntroModalVisible).toBe(true)
 
-    deferredLeave.resolve()
-    await leaveClick
-    await flushPromises()
-  })
-
-  it('keeps leave-demo failures visible above the modal', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined)
-    mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
-
-    const { demoStore, wrapper } = mountDemoIntroModal()
-
-    await wrapper
-      .get('[data-testid="confirm-leave-demo-button"]')
-      .trigger('click')
-    await flushPromises()
-
-    expect(wrapper.get('.floating-error-alert--modal').text()).toContain(
-      DEMO_INTRO_MODAL_MESSAGES.pl.demo.error
-    )
+    expect(demoStore.demoIntroModalVisible).toBe(false)
     expect(demoStore.demoModeActive).toBe(true)
-    expect(demoStore.demoIntroModalVisible).toBe(true)
-
-    consoleErrorSpy.mockRestore()
-  })
-
-  it('clears a stale leave-demo failure when the intro modal reopens', async () => {
-    const consoleErrorSpy = vi
-      .spyOn(console, 'error')
-      .mockImplementation(() => undefined)
-    mockLeaveDemoMode.mockRejectedValueOnce(new Error('leave demo failed'))
-
-    const { demoStore, wrapper } = mountDemoIntroModal()
-
-    await wrapper
-      .get('[data-testid="confirm-leave-demo-button"]')
-      .trigger('click')
-    await flushPromises()
-    expect(wrapper.find('.floating-error-alert--modal').exists()).toBe(true)
-
-    demoStore.dismissDemoIntroModal()
-    await nextTick()
-    demoStore.showDemoIntroModal()
-    await nextTick()
-
-    expect(wrapper.find('.floating-error-alert--modal').exists()).toBe(false)
-    expect(
-      wrapper.get('[data-testid="confirm-leave-demo-button"]').text()
-    ).not.toContain(DEMO_INTRO_MODAL_MESSAGES.pl.demo.actions.pending)
-
-    consoleErrorSpy.mockRestore()
   })
 })

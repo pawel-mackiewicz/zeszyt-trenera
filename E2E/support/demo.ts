@@ -6,7 +6,13 @@ const DEMO_STARTUP_TIMEOUT_MS = 5_000
 
 export function demoIntroDialog(page: Page): Locator {
   return page.getByRole('dialog', {
-    name: /sprawdź apkę/i
+    name: /tryb demo/i
+  })
+}
+
+export function demoOutroDialog(page: Page): Locator {
+  return page.getByRole('dialog', {
+    name: /zaczynasz na serio/i
   })
 }
 
@@ -31,22 +37,30 @@ export async function openDemoRoster(page: Page) {
   await continueDemo(page)
 }
 
-export async function openLeaveDemoIntro(page: Page) {
+export async function openDemoOutro(page: Page) {
   await page.getByRole('button', { name: /wyjdź z demo/i }).click()
 
-  // Why: the header exit CTA must reuse the same intro modal so leaving demo and first-run demo onboarding stay one tested workflow.
-  await expect(demoIntroDialog(page)).toBeVisible()
+  // Why: the header exit CTA should open the dedicated destructive outro before any local-first demo data is wiped.
+  await expect(demoOutroDialog(page)).toBeVisible()
 }
 
 export async function exitDemoModeForSetup(page: Page) {
   // Why: specs that already entered demo should share the visible exit path instead of duplicating the header CTA plus confirmation modal sequence.
-  await openLeaveDemoIntro(page)
+  await openDemoOutro(page)
   await leaveDemoForSetup(page)
 }
 
 export async function leaveDemoForSetup(page: Page) {
-  await demoIntroDialog(page)
-    .getByRole('button', { name: /już testowałem/i })
+  if (await demoIntroDialog(page).isVisible()) {
+    await continueDemo(page)
+  }
+
+  if (!(await demoOutroDialog(page).isVisible())) {
+    await openDemoOutro(page)
+  }
+
+  await demoOutroDialog(page)
+    .getByRole('button', { name: /zaczynam na serio/i })
     .click()
 
   // Why: leaving demo is only complete when the seeded notebook is gone and setup routing opens the real local-first onboarding flow.

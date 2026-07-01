@@ -8,7 +8,7 @@ import App from './ui/App.vue'
 import router from './ui/router'
 import { installSetupPhaseNavigation } from './ui/router/setupPhaseNavigation'
 import { useAppStore } from './ui/stores/app'
-import { useDemoStore } from './ui/features/demo/demo.store'
+import { DemoIntroModalPath, useDemoStore } from './ui/features/demo/demo.store'
 // This root entrypoint keeps the PWA bootstrap easy to find while Vite serves the shell from /src/main.ts.
 import './ui/fonts.css'
 import './ui/style.css'
@@ -50,7 +50,7 @@ function bootstrap() {
 
       if (demoMode.introModal) {
         // What: only surface the onboarding modal when this boot actually created demo data. Why: later launches should reopen straight into the notebook instead of re-explaining the same seeded state.
-        demoStore.showDemoIntroModal()
+        demoStore.showDemoIntroModal(DemoIntroModalPath.Startup)
       }
 
       appStore.setAppReady()

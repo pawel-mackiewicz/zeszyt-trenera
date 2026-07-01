@@ -16,7 +16,7 @@ import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
 import { useAppStore } from '@/ui/stores/app'
 import { useAppResetStore } from '@/ui/features/app_reset/app-reset.store'
 import { useAppUpdateStore } from '@/ui/stores/app-update.store'
-import { useDemoStore } from '@/ui/features/demo/demo.store'
+import { DemoIntroModalPath, useDemoStore } from '@/ui/features/demo/demo.store'
 import { useShellStore } from '@/ui/stores/shell.store'
 
 type MockRoute = {
@@ -339,13 +339,14 @@ describe('AppShell', () => {
 
     // What: assert Header opens the manager-owned demo modal through shared shell state. Why: modal markup and button variants are covered elsewhere, so this integration spec stays focused on the shell-level integration boundary.
     expect(demoStore.demoIntroModalVisible).toBe(true)
+    expect(demoStore.demoIntroModalPath).toBe(DemoIntroModalPath.Exit)
   })
 
   it('keeps demo exploration as the default modal action', async () => {
     const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
       nextDemoStore.setDemoModeActive(true)
-      nextDemoStore.showDemoIntroModal()
+      nextDemoStore.showDemoIntroModal(DemoIntroModalPath.Startup)
     })
 
     await wrapper.get('[data-testid="continue-demo-button"]').trigger('click')
@@ -358,7 +359,7 @@ describe('AppShell', () => {
     const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
       nextDemoStore.setDemoModeActive(true)
-      nextDemoStore.showDemoIntroModal()
+      nextDemoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
     })
 
     await wrapper
@@ -379,7 +380,7 @@ describe('AppShell', () => {
     const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
       appStore.setAppReady()
       nextDemoStore.setDemoModeActive(true)
-      nextDemoStore.showDemoIntroModal()
+      nextDemoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
     })
 
     await wrapper

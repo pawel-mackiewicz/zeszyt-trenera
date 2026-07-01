@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import LeaveDemoButton from '@/ui/features/demo/LeaveDemoButton.vue'
 import { createAppI18n } from '@/ui/i18n'
-import { useDemoStore } from '@/ui/features/demo/demo.store'
+import { DemoIntroModalPath, useDemoStore } from '@/ui/features/demo/demo.store'
 
 describe('LeaveDemoButton', () => {
   beforeEach(() => {
@@ -36,7 +36,7 @@ describe('LeaveDemoButton', () => {
     expect(wrapper.find('[data-testid="open-demo-modal"]').exists()).toBe(false)
   })
 
-  it('renders the shared compact CTA and opens the modal through shared demo state', async () => {
+  it('renders the shared compact CTA and opens the start-for-real modal path', async () => {
     const { wrapper, demoStore } = mountLeaveDemoButton((demoStore) => {
       demoStore.setDemoModeActive(true)
     })
@@ -49,5 +49,6 @@ describe('LeaveDemoButton', () => {
     await trigger.trigger('click')
 
     expect(demoStore.demoIntroModalVisible).toBe(true)
+    expect(demoStore.demoIntroModalPath).toBe(DemoIntroModalPath.Exit)
   })
 })

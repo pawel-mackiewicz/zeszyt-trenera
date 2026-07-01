@@ -3,19 +3,35 @@ import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
-import { DEMO_INTRO_MODAL_MESSAGES } from '@/ui/features/demo/DemoIntroModal.messages'
-import { useDemoStore } from '@/ui/features/demo/demo.store'
+import { DemoIntroModalPath, useDemoStore } from '@/ui/features/demo/demo.store'
+
+const LEAVE_DEMO_BUTTON_MESSAGES = {
+  pl: {
+    demo: {
+      actions: {
+        open: 'Wyjdź z demo'
+      }
+    }
+  },
+  en: {
+    demo: {
+      actions: {
+        open: 'Leave demo'
+      }
+    }
+  }
+} as const
 
 const demoStore = useDemoStore()
 const { demoModeActive } = storeToRefs(demoStore)
 const { t } = useI18n({
   useScope: 'local',
-  messages: DEMO_INTRO_MODAL_MESSAGES
+  messages: LEAVE_DEMO_BUTTON_MESSAGES
 })
 
-function openDemoIntroModal() {
+function openDemoOutroModal() {
   // What: open the demo-exit modal through the feature store from the header CTA. Why: the smart feature modal listens to shared state without the app shell owning demo workflow details.
-  demoStore.showDemoIntroModal()
+  demoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
 }
 </script>
 
@@ -28,7 +44,7 @@ function openDemoIntroModal() {
     size="compact"
     type="button"
     variant="secondary"
-    @click="openDemoIntroModal"
+    @click="openDemoOutroModal"
   >
     {{ t('demo.actions.open') }}
   </AppButton>
