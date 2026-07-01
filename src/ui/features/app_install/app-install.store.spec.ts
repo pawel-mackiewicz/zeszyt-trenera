@@ -35,6 +35,16 @@ describe('useAppInstallStore', () => {
     expect(reloadedInstallStore.shouldAutoOpenInstallModal).toBe(false)
   })
 
+  it('remembers a post-demo prompt once the install modal opens', () => {
+    const installStore = useAppInstallStore()
+
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal('post-demo')
+
+    expect(installStore.installModalVisible).toBe(true)
+    expect(installStore.installModalShown).toBe(true)
+  })
+
   it('marks the app installed and hides the install modal', () => {
     const installStore = useAppInstallStore()
 

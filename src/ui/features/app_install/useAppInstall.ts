@@ -1,5 +1,5 @@
 import { storeToRefs } from 'pinia'
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 import { usePwaInstall } from '@/ui/composables/usePwaInstall'
 import { useAppInstallStore } from '@/ui/features/app_install/app-install.store'
@@ -24,14 +24,16 @@ export function useAppInstall() {
     shouldAutoOpenInstallModal
   } = storeToRefs(appInstallStore)
   const { demoIntroModalVisible, demoModeActive } = storeToRefs(demoStore)
+  const postDemoInstallPromptRequested = ref(false)
 
+  const isAppReady = computed(() => appReadiness.value === 'ready')
   const isShellReady = computed(
-    () => appReadiness.value === 'ready' && setupStatus.value === 'ready'
+    () => isAppReady.value && setupStatus.value === 'ready'
   )
 
   // What: expose one status value for the smart modal. Why: consolidating shell readiness, visibility, install surface, and pending state keeps the feature UI from drifting into invalid combinations.
   const installModalStatus = computed<InstallModalStatusValue>(() => {
-    if (!isShellReady.value || !installModalVisible.value) {
+    if (!isAppReady.value || !installModalVisible.value) {
       return InstallModalStatus.Hidden
     }
 
@@ -70,13 +72,44 @@ export function useAppInstall() {
 
   watch(
     demoModeActive,
-    (value) => {
-      if (!value) {
+    (value, previousValue) => {
+      if (value) {
+        postDemoInstallPromptRequested.value = false
+        // What: collapse install-only surfaces while demo mode is active. Why: demo exploration should not compete with the local-first install prompt for the same first-run attention.
+        appInstallStore.dismissInstallModal()
         return
       }
 
-      // What: collapse install-only surfaces while demo mode is active. Why: demo exploration should not compete with the local-first install prompt for the same first-run attention.
-      appInstallStore.dismissInstallModal()
+      if (previousValue === true) {
+        // What: keep the post-demo install nudge as session-only state. Why: exiting demo should get one immediate PWA prompt over setup without making future app launches reopen it.
+        postDemoInstallPromptRequested.value = true
+      }
+    },
+    { immediate: true }
+  )
+
+  watch(
+    [
+      postDemoInstallPromptRequested,
+      isAppReady,
+      demoIntroModalVisible,
+      showInstallEntry
+    ],
+    ([shouldOpen, appReady, demoModalVisible, canShowInstallEntry]) => {
+      if (
+        !shouldOpen ||
+        !appReady ||
+        demoModalVisible ||
+        !canShowInstallEntry
+      ) {
+        return
+      }
+
+      appInstallStore.openInstallModal('post-demo')
+
+      if (installModalVisible.value) {
+        postDemoInstallPromptRequested.value = false
+      }
     },
     { immediate: true }
   )

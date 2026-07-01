@@ -1,5 +1,6 @@
 import { expect, test, type Page } from 'playwright/test'
 
+import { INSTALL_MODAL_SHOWN_STORAGE_KEY } from '../src/appStorageKeys'
 import { leaveDemoForSetup, openDemoIntro } from './support/demo'
 import {
   expectActiveRosterHeading,
@@ -17,9 +18,22 @@ type FakeBeforeInstallPromptEvent = Event & {
 test('completes first-run setup with a sample club and trainer', async ({
   page
 }) => {
+  await page.addInitScript((storageKey) => {
+    window.localStorage.setItem(storageKey, '1')
+  }, INSTALL_MODAL_SHOWN_STORAGE_KEY)
+
   await openDemoIntro(page)
   await exposeNativeInstallPrompt(page)
   await leaveDemoForSetup(page)
+
+  const installDialog = page.getByRole('dialog', {
+    name: /zainstaluj zeszyt trenera/i
+  })
+
+  // Why: exiting demo is the one time the PWA install nudge should interrupt before first-run setup, even when the older automatic prompt was already remembered.
+  await expect(installDialog).toBeVisible()
+  await installDialog.getByRole('button', { name: /^później$/i }).click()
+  await expect(installDialog).not.toBeVisible()
 
   await page.getByLabel(/^nazwa klubu$/i).fill('Sample Club')
   await page.getByLabel(/^data założenia$/i).fill('2024-01-01')
@@ -32,12 +46,8 @@ test('completes first-run setup with a sample club and trainer', async ({
   await page.getByLabel(/^imię$/i).fill('Sample Trainer')
   await page.getByRole('button', { name: /^zapisz trenera$/i }).click()
 
-  const installDialog = page.getByRole('dialog', {
-    name: /zainstaluj zeszyt trenera/i
-  })
-
-  // Why: the first completed local-first notebook should immediately receive the one-time PWA install nudge while the browser install event is still available.
-  await expect(installDialog).toBeVisible()
+  // Why: the post-demo install nudge was already handled before setup, so completing setup must not interrupt the fresh notebook a second time.
+  await expect(installDialog).not.toBeVisible()
   await expectActiveRosterHeading(page)
 
   // Why: first-run setup is only complete when the club and trainer writes survive a fresh local-first app boot.

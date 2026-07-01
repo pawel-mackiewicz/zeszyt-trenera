@@ -6,6 +6,7 @@ import { useDemoStore } from '@/ui/features/demo/demo.store'
 import { useAppStore } from '@/ui/stores/app'
 
 export type InstallSurface = 'hidden' | 'native' | 'manual'
+type InstallModalSource = 'automatic' | 'manual' | 'post-demo'
 
 function isStandaloneMode() {
   return window.matchMedia('(display-mode: standalone)').matches
@@ -95,12 +96,12 @@ export const useAppInstallStore = defineStore('appInstall', () => {
     writeStoredFlag(INSTALL_MODAL_SHOWN_STORAGE_KEY, true)
   }
 
-  function openInstallModal(source: 'automatic' | 'manual' = 'manual') {
+  function openInstallModal(source: InstallModalSource = 'manual') {
     if (!showInstallEntry.value) {
       return
     }
 
-    if (source === 'automatic') {
+    if (source !== 'manual') {
       markInstallModalShown()
     }
 

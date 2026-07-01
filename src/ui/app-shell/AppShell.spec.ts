@@ -355,12 +355,25 @@ describe('AppShell', () => {
     expect(demoStore.demoIntroModalVisible).toBe(false)
   })
 
-  it('leaves demo mode through the application layer and closes the modal', async () => {
-    const { wrapper, demoStore } = mountShell((appStore, nextDemoStore) => {
-      appStore.setAppReady()
-      nextDemoStore.setDemoModeActive(true)
-      nextDemoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
-    })
+  it('leaves demo mode through the application layer and opens install before setup', async () => {
+    const { wrapper, demoStore, appInstallStore } = mountShell(
+      (
+        appStore,
+        nextDemoStore,
+        _shellStore,
+        _appUpdateStore,
+        _appResetStore,
+        installStore
+      ) => {
+        appStore.setAppReady()
+        installStore.setInstallSurface('native')
+        nextDemoStore.setDemoModeActive(true)
+        nextDemoStore.showDemoIntroModal(DemoIntroModalPath.Exit)
+        mockLeaveDemoMode.mockImplementationOnce(async () => {
+          appStore.setSetupStatus('requires-club')
+        })
+      }
+    )
 
     await wrapper
       .get('[data-testid="confirm-leave-demo-button"]')
@@ -370,6 +383,14 @@ describe('AppShell', () => {
     expect(mockLeaveDemoMode).toHaveBeenCalledWith({})
     expect(demoStore.demoModeActive).toBe(false)
     expect(demoStore.demoIntroModalVisible).toBe(false)
+    expect(appInstallStore.installModalVisible).toBe(true)
+    expect(appInstallStore.installModalShown).toBe(true)
+    expect(wrapper.find('[data-testid="install-modal-primary"]').exists()).toBe(
+      true
+    )
+    expect(
+      wrapper.find('[data-testid="confirm-leave-demo-button"]').exists()
+    ).toBe(false)
   })
 
   it('keeps demo-exit failures visible above the modal', async () => {

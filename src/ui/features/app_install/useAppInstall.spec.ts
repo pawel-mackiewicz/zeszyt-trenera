@@ -57,7 +57,7 @@ describe('useAppInstall', () => {
     appStore.setSetupStatus('ready')
   }
 
-  it('keeps the modal hidden until shell readiness and modal visibility are true', () => {
+  it('keeps the modal hidden until app readiness and modal visibility are true', () => {
     const { appStore, composable, installStore } = mountInstallModalController()
 
     installStore.setInstallSurface('native')
@@ -65,7 +65,7 @@ describe('useAppInstall', () => {
     expect(composable.installModalStatus.value).toBe(InstallModalStatus.Hidden)
     expect(composable.isInstallModalVisible.value).toBe(false)
 
-    makeShellReady(appStore)
+    appStore.setAppReady()
     expect(composable.installModalStatus.value).toBe(
       InstallModalStatus.NativeReady
     )
@@ -177,6 +177,94 @@ describe('useAppInstall', () => {
     expect(installStore.installModalVisible).toBe(false)
 
     demoStore.dismissDemoIntroModal()
+    await nextTick()
+
+    expect(installStore.installModalVisible).toBe(true)
+  })
+
+  it('opens the install modal over setup after the coach exits demo mode', async () => {
+    const { appStore, demoStore, installStore } = mountInstallModalController()
+
+    appStore.setAppReady()
+    appStore.setSetupStatus('requires-club')
+    installStore.setInstallSurface('native')
+
+    demoStore.setDemoModeActive(true)
+    await nextTick()
+    expect(installStore.installModalVisible).toBe(false)
+
+    demoStore.setDemoModeActive(false)
+    await nextTick()
+
+    expect(installStore.installModalVisible).toBe(true)
+    expect(installStore.installModalShown).toBe(true)
+  })
+
+  it('shows the post-demo install modal even after the automatic prompt was already remembered', async () => {
+    const { appStore, demoStore, installStore } = mountInstallModalController()
+
+    installStore.setInstallSurface('native')
+    installStore.openInstallModal('automatic')
+    installStore.dismissInstallModal()
+    expect(installStore.installModalShown).toBe(true)
+
+    appStore.setAppReady()
+    appStore.setSetupStatus('requires-club')
+    demoStore.setDemoModeActive(true)
+    await nextTick()
+
+    demoStore.setDemoModeActive(false)
+    await nextTick()
+
+    expect(installStore.installModalVisible).toBe(true)
+  })
+
+  it('does not reopen a dismissed post-demo install modal after reentering the app without another demo exit', async () => {
+    const { appStore, composable, demoStore, installStore } =
+      mountInstallModalController()
+
+    appStore.setAppReady()
+    appStore.setSetupStatus('requires-club')
+    installStore.setInstallSurface('native')
+    demoStore.setDemoModeActive(true)
+    await nextTick()
+
+    demoStore.setDemoModeActive(false)
+    await nextTick()
+    expect(installStore.installModalVisible).toBe(true)
+
+    composable.handleInstallLater()
+    expect(installStore.installModalVisible).toBe(false)
+
+    const { appStore: reenteredAppStore, installStore: reenteredInstallStore } =
+      mountInstallModalController()
+
+    reenteredInstallStore.setInstallSurface('native')
+    reenteredAppStore.setAppReady()
+    reenteredAppStore.setSetupStatus('requires-club')
+    await nextTick()
+
+    expect(reenteredInstallStore.installModalVisible).toBe(false)
+
+    reenteredAppStore.setSetupStatus('ready')
+    await nextTick()
+
+    expect(reenteredInstallStore.installModalVisible).toBe(false)
+  })
+
+  it('waits for install availability when the browser exposes it after demo exit', async () => {
+    const { appStore, demoStore, installStore } = mountInstallModalController()
+
+    appStore.setAppReady()
+    appStore.setSetupStatus('requires-club')
+    demoStore.setDemoModeActive(true)
+    await nextTick()
+
+    demoStore.setDemoModeActive(false)
+    await nextTick()
+    expect(installStore.installModalVisible).toBe(false)
+
+    installStore.setInstallSurface('native')
     await nextTick()
 
     expect(installStore.installModalVisible).toBe(true)
