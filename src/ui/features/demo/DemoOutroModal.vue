@@ -11,12 +11,12 @@ const DEMO_OUTRO_MODAL_MESSAGES = {
   pl: {
     demo: {
       exit: {
-        title: 'Zaczynasz na serio?',
-        copy: 'Jeśli demo już wystarczy, wyczyścimy testowe dane i przejdziesz do konfiguracji Twojego zeszytu.',
+        title: 'Zaczynamy?',
+        copy: 'Jeśli dema już wystarczy, wyczyścimy testowe dane i przejdziesz do konfiguracji Twojego zeszytu.',
         actions: {
-          confirm: 'Zaczynam na serio',
+          confirm: 'Zaczynamy!',
           pending: 'Przechodzę do konfiguracji...',
-          stay: 'Jeszcze testuję'
+          stay: 'Jeszcze potestuję'
         }
       },
       error: 'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
@@ -25,10 +25,10 @@ const DEMO_OUTRO_MODAL_MESSAGES = {
   en: {
     demo: {
       exit: {
-        title: 'Ready to start for real?',
+        title: 'Ready to start?',
         copy: 'If the demo is enough, we will clear sample data and take you to setup your own notebook.',
         actions: {
-          confirm: 'Start for real',
+          confirm: "Let's Start!",
           pending: 'Opening setup...',
           stay: 'Keep testing'
         }

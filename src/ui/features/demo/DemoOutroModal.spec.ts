@@ -10,11 +10,11 @@ import { createAppI18n } from '@/ui/i18n'
 import { useAppStore } from '@/ui/stores/app'
 
 const demoOutroCopy = {
-  title: 'Zaczynasz na serio?',
-  copy: 'Jeśli demo już wystarczy, wyczyścimy testowe dane i przejdziesz do konfiguracji Twojego zeszytu.',
-  confirmAction: 'Zaczynam na serio',
+  title: 'Zaczynamy?',
+  copy: 'Jeśli dema już wystarczy, wyczyścimy testowe dane i przejdziesz do konfiguracji Twojego zeszytu.',
+  confirmAction: 'Zaczynamy!',
   pendingAction: 'Przechodzę do konfiguracji...',
-  stayAction: 'Jeszcze testuję',
+  stayAction: 'Jeszcze potestuję',
   error: 'Nie udało się wyjść z trybu demo. Spróbuj ponownie.'
 } as const
 

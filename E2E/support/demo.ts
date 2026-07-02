@@ -12,7 +12,7 @@ export function demoIntroDialog(page: Page): Locator {
 
 export function demoOutroDialog(page: Page): Locator {
   return page.getByRole('dialog', {
-    name: /zaczynasz na serio/i
+    name: /zaczynamy?/i
   })
 }
 
@@ -60,7 +60,7 @@ export async function leaveDemoForSetup(page: Page) {
   }
 
   await demoOutroDialog(page)
-    .getByRole('button', { name: /zaczynam na serio/i })
+    .getByRole('button', { name: /zaczynam/i })
     .click()
 
   // Why: leaving demo is only complete when the seeded notebook is gone and setup routing opens the real local-first onboarding flow.
