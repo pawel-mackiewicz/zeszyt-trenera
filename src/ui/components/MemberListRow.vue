@@ -163,21 +163,20 @@ const props = withDefaults(
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 1px solid rgba(16, 59, 55, 0.18);
-  color: var(--color-primary);
-  background: rgba(255, 255, 255, 0.7);
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-secondary);
+  opacity: 0.84;
 }
 
 .member-list-row__status--selected {
-  border-color: rgba(255, 255, 255, 0.35);
   color: white;
-  background: rgba(255, 255, 255, 0.1);
+  opacity: 0.84;
 }
 
 .member-list-row__status--muted {
   color: var(--color-secondary);
+  opacity: 0.84;
 }
 
 .member-list-row__status :deep(.app-icon) {
