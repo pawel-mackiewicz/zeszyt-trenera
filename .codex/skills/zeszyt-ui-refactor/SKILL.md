@@ -20,7 +20,8 @@ Use this skill for UI-only refactoring in this repository. Preserve the app mode
 5. Reuse or extend existing primitives such as `AppButton`, `BaseModal`, `ConfirmationModal`, `FloatingErrorAlert`, and existing filter or row components before introducing another shared component.
 6. Keep feature/domain behavior in domain composables that call app services or use cases. Keep UI-only state inside components.
 7. Add or update story-like tests around observable behavior, accessible states, and any shared component API that changed.
-8. Run the narrowest useful validation commands and follow repo version handling rules.
+8. Before running any E2E suite, check whether the refactor may break existing E2E coverage by reasoning from the changed flows, routes, accessible names, selectors, storage behavior, and visible states. If risk remains or the check needs runtime confirmation, ask the user whether to run the necessary E2E tests.
+9. Run the narrowest useful validation commands and follow repo version handling rules.
 
 ## Component Extraction
 
