@@ -1,6 +1,6 @@
 {
   "name": "zeszyt-trenera",
-  "version": "0.8.23",
+  "version": "0.8.24",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.4.0",
@@ -64,7 +64,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.4.0",
     "happy-dom": "^20.8.4",
-    "playwright": "^1.60.0",
+    "playwright": "1.61.1",
     "prettier": "^3.8.1",
     "storybook": "^10.3.5",
     "tailwindcss": "^4.2.2",
