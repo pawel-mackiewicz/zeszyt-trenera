@@ -74,6 +74,12 @@ describe('CampClubMembersListView', () => {
     })
   }
 
+  function candidateRows(wrapper: ReturnType<typeof mountView>) {
+    return wrapper.findAll(
+      '.camp-club-members-list-view__members .member-list-row'
+    )
+  }
+
   it('loads camp participant candidates from the read layer', async () => {
     const wrapper = mountView()
     await flushPromises()
@@ -90,7 +96,7 @@ describe('CampClubMembersListView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    const rows = wrapper.findAll('li')
+    const rows = candidateRows(wrapper)
 
     expect(rows.map((row) => row.text())).toEqual([
       expect.stringContaining('Amanda Nunes'),
@@ -115,29 +121,34 @@ describe('CampClubMembersListView', () => {
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.findAll('li')[0].trigger('click')
+    await candidateRows(wrapper)[0].trigger('click')
 
     expect(mockRouterPush).toHaveBeenCalledWith(
       '/camps/camp-winter-2026/participants/new/club/member-amanda'
     )
   })
 
-  it('does not route a coach from an already signed member row', async () => {
+  it('shows an already signed member as unavailable without routing a coach', async () => {
     const wrapper = mountView()
     await flushPromises()
+    const signedRow = candidateRows(wrapper)[2]
 
-    await wrapper.findAll('li')[2].trigger('click')
+    await signedRow.trigger('click')
 
+    expect(signedRow.attributes('aria-disabled')).toBe('true')
+    expect(signedRow.attributes('aria-label')).toBe('Royce Gracie, zapisany')
     expect(mockRouterPush).not.toHaveBeenCalled()
   })
 
-  it('routes a coach from the enabled add button without directly registering the participant', async () => {
+  it('routes a coach from the named add row without directly registering the participant', async () => {
     const wrapper = mountView()
     await flushPromises()
 
     await wrapper
       .findAll('button')
-      .find((button) => button.attributes('aria-label') === 'Dodaj')!
+      .find(
+        (button) => button.attributes('aria-label') === 'Dodaj Amanda Nunes'
+      )!
       .trigger('click')
 
     expect(mockRegisterCampParticipantHandle).not.toHaveBeenCalled()

@@ -12,7 +12,7 @@ import AppButton from '@/ui/components/AppButton.vue'
 import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
-import AttendanceMemberRow from './components/AttendanceMemberRow.vue'
+import MemberListRow from '@/ui/components/MemberListRow.vue'
 import { matchesAgeValueRange } from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
@@ -341,15 +341,17 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
         {{ t(emptyStateKey) }}
       </div>
 
-      <AttendanceMemberRow
+      <MemberListRow
         v-for="member in filteredMembers"
         v-else
         :key="member.id"
+        :age-label="formatMemberAge(member)"
         :disabled="interactionLocked"
-        :format-age="formatMemberAge"
-        :member="member"
+        :name="`${member.firstName} ${member.lastName}`"
         :selected="isSelected(member.id)"
-        @toggle="emit('toggle-member', $event)"
+        :status-icon="isSelected(member.id) ? 'check_circle' : 'add'"
+        type="button"
+        @click="emit('toggle-member', member.id)"
       />
     </section>
 

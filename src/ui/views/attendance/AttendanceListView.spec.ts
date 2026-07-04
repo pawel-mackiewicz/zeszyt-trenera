@@ -85,7 +85,7 @@ describe('AttendanceListView', () => {
 
   function memberNamesInOrder(wrapper: ReturnType<typeof mountView>) {
     return wrapper
-      .findAll('.attendance-member-row .font-headline')
+      .findAll('.member-list-row__name')
       .map((nameWrapper) => nameWrapper.text())
   }
 
@@ -351,10 +351,10 @@ describe('AttendanceListView', () => {
       '18:30'
     )
     expect(memberRow(wrapper, 'Anderson Silva').classes()).toContain(
-      'attendance-member-row--selected'
+      'member-list-row--selected'
     )
     expect(memberRow(wrapper, 'Amanda Nunes').classes()).not.toContain(
-      'attendance-member-row--selected'
+      'member-list-row--selected'
     )
     expect(readStoredDraft()).toEqual({
       sessionDate: '2026-03-27',
@@ -397,7 +397,7 @@ describe('AttendanceListView', () => {
       '07:15'
     )
     expect(memberRow(wrapper, 'Anderson Silva').classes()).not.toContain(
-      'attendance-member-row--selected'
+      'member-list-row--selected'
     )
     expect(readStoredDraft()).toBeNull()
   })
@@ -545,9 +545,7 @@ describe('AttendanceListView', () => {
 
     expect(mockRouterPush).toHaveBeenCalledWith('/attendance')
     expect(wrapper.text()).toContain('Zapisano obecność dla 1 osób.')
-    expect(wrapper.find('.attendance-member-row--selected').exists()).toBe(
-      false
-    )
+    expect(wrapper.find('.member-list-row--selected').exists()).toBe(false)
     await wrapper.find('#attendance-session-date-trigger').trigger('click')
     expect(
       (wrapper.find('#attendance-date').element as HTMLInputElement).value

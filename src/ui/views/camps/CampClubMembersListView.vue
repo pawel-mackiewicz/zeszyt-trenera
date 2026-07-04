@@ -3,9 +3,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
+import MemberListRow from '@/ui/components/MemberListRow.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
 import { useRoute, useRouter } from '@/ui/router/runtime'
-import CampParticipantCandidateRow from './components/CampParticipantCandidateRow.vue'
 import {
   useCampParticipantCandidates,
   type CampParticipantCandidateViewItem
@@ -16,8 +16,10 @@ const messages = {
     actions: {
       add: 'Dodaj',
       addExternal: 'Dodaj spoza klubu',
+      addMember: 'Dodaj {memberName}',
       retry: 'Spróbuj ponownie',
-      signedButton: 'Zapisany'
+      signedButton: 'Zapisany',
+      signedMember: '{memberName}, zapisany'
     },
     search: {
       label: 'Szukaj klubowicza',
@@ -42,8 +44,10 @@ const messages = {
     actions: {
       add: 'Add',
       addExternal: 'Add outside club',
+      addMember: 'Add {memberName}',
       retry: 'Try again',
-      signedButton: 'Signed'
+      signedButton: 'Signed',
+      signedMember: '{memberName}, signed'
     },
     search: {
       label: 'Search club member',
@@ -99,6 +103,16 @@ const emptyState = computed(() =>
 
 function formatAge(age: number): string {
   return t('table.age', { age })
+}
+
+function candidateActionLabel(
+  member: CampParticipantCandidateViewItem
+): string {
+  const memberName = `${member.firstName} ${member.lastName}`
+
+  return member.alreadySigned
+    ? t('actions.signedMember', { memberName })
+    : t('actions.addMember', { memberName })
 }
 
 function selectMember(member: CampParticipantCandidateViewItem) {
@@ -172,16 +186,24 @@ function addExternalParticipant() {
         </div>
 
         <ul v-else class="camp-club-members-list-view__members">
-          <CampParticipantCandidateRow
-            v-for="member in filteredMembers"
-            :key="member.id"
-            :add-label="t('actions.add')"
-            :format-age="formatAge"
-            :member="member"
-            :signed-button-label="t('actions.signedButton')"
-            :signed-label="t('table.signed')"
-            @select="selectMember"
-          />
+          <li v-for="member in filteredMembers" :key="member.id">
+            <MemberListRow
+              :age-label="formatAge(member.age)"
+              :aria-label="candidateActionLabel(member)"
+              :aria-disabled="member.alreadySigned ? 'true' : undefined"
+              :disabled="member.alreadySigned"
+              :muted="member.alreadySigned"
+              :name="`${member.firstName} ${member.lastName}`"
+              :status-icon="member.alreadySigned ? 'check_circle' : 'add'"
+              :title="candidateActionLabel(member)"
+              type="button"
+              @click="selectMember(member)"
+            >
+              <template v-if="member.alreadySigned" #supporting>
+                {{ t('table.signed') }}
+              </template>
+            </MemberListRow>
+          </li>
         </ul>
       </section>
 

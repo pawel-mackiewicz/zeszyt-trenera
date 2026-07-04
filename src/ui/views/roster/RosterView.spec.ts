@@ -124,6 +124,7 @@ describe('RosterView', () => {
     expect(tabButtons[0]?.attributes('aria-pressed')).toBe('true')
     expect(wrapper.text()).toContain('Active members')
     expect(wrapper.text()).toContain('Active Member')
+    expect(wrapper.text()).toContain('Age 31')
     expect(wrapper.text()).not.toContain('Archived Member')
 
     await tabButtons[1]?.trigger('click')
@@ -133,6 +134,7 @@ describe('RosterView', () => {
     expect(tabButtons[1]?.attributes('aria-pressed')).toBe('true')
     expect(wrapper.text()).toContain('Archived members')
     expect(wrapper.text()).toContain('Archived Member')
+    expect(wrapper.text()).toContain('Age 37')
     expect(wrapper.text()).not.toContain('Active Member')
   })
 
@@ -348,7 +350,7 @@ describe('RosterView', () => {
 
     expect(
       wrapper
-        .findAll('summary .roster-member-row__name')
+        .findAll('summary .member-list-row__name')
         .map((summaryName) => summaryName.text())
     ).toStrictEqual(['Adam Alpha', 'Adam Zulu', 'Zane Beta'])
   })
@@ -415,7 +417,7 @@ describe('RosterView', () => {
 
     const renderedNames = () =>
       wrapper
-        .findAll('summary .roster-member-row__name')
+        .findAll('summary .member-list-row__name')
         .map((summaryName) => summaryName.text())
 
     expect(renderedNames()).toStrictEqual([

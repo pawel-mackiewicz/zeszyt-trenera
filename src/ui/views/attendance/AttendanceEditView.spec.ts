@@ -143,7 +143,7 @@ describe('AttendanceEditView', () => {
       '18:00'
     )
     expect(memberRow(wrapper, 'Amanda Nunes').classes()).toContain(
-      'attendance-member-row--selected'
+      'member-list-row--selected'
     )
   })
 
