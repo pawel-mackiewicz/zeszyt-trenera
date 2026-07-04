@@ -1,0 +1,50 @@
+version: 2
+
+updates:
+  # pnpm uses the "npm" ecosystem in Dependabot
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:00'
+      timezone: 'Europe/Warsaw'
+
+    open-pull-requests-limit: 5
+
+    groups:
+      prod-minor-patch:
+        dependency-type: 'production'
+        update-types:
+          - 'minor'
+          - 'patch'
+        patterns:
+          - '*'
+
+      dev-minor-patch:
+        dependency-type: 'development'
+        update-types:
+          - 'minor'
+          - 'patch'
+        patterns:
+          - '*'
+
+      major-updates:
+        update-types:
+          - 'major'
+        patterns:
+          - '*'
+
+  # Also keep GitHub Actions versions updated
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '09:30'
+      timezone: 'Europe/Warsaw'
+
+    groups:
+      github-actions:
+        patterns:
+          - '*'
