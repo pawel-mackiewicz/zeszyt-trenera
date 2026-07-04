@@ -1,7 +1,11 @@
-name: Deploy
+name: CI/CD
 
 on:
   push:
+    branches:
+      - staging
+      - main
+  pull_request:
     branches:
       - staging
       - main
@@ -18,14 +22,52 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 concurrency:
   group: deploy-${{ github.ref }}-${{ github.event.inputs.target || 'auto' }}
   cancel-in-progress: true
 
 jobs:
+  classify-run:
+    name: Classify run
+    runs-on: ubuntu-24.04
+    outputs:
+      skip_checks: ${{ steps.classify.outputs.skip_checks }}
+
+    steps:
+      - name: Check whether push came from a merged PR
+        id: classify
+        uses: actions/github-script@v8
+        with:
+          script: |
+            if (context.eventName !== 'push') {
+              core.setOutput('skip_checks', 'false');
+              return;
+            }
+
+            const targetBranch = context.ref.replace('refs/heads/', '');
+            const { data: pulls } = await github.request(
+              'GET /repos/{owner}/{repo}/commits/{commit_sha}/pulls',
+              {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                commit_sha: context.sha,
+              }
+            );
+
+            const mergedIntoTarget = pulls.some((pull) =>
+              pull.state === 'closed' &&
+              pull.merged_at &&
+              pull.base.ref === targetBranch
+            );
+
+            core.setOutput('skip_checks', mergedIntoTarget ? 'true' : 'false');
+
   checks:
     name: Checks
+    needs: classify-run
+    if: needs.classify-run.outputs.skip_checks != 'true'
     runs-on: ubuntu-24.04
     container:
       image: mcr.microsoft.com/playwright:v1.60.0-noble
@@ -67,10 +109,23 @@ jobs:
 
   deploy-staging:
     name: Deploy staging
-    needs: checks
+    needs:
+      - classify-run
+      - checks
     if: |
-      github.ref == 'refs/heads/staging' ||
-      github.event.inputs.target == 'staging'
+      always() &&
+      needs.classify-run.result == 'success' &&
+      (
+        github.ref == 'refs/heads/staging' ||
+        github.event.inputs.target == 'staging'
+      ) &&
+      (
+        needs.checks.result == 'success' ||
+        (
+          needs.checks.result == 'skipped' &&
+          needs.classify-run.outputs.skip_checks == 'true'
+        )
+      )
     runs-on: ubuntu-24.04
     environment: staging
     timeout-minutes: 10
@@ -103,10 +158,23 @@ jobs:
 
   deploy-prod:
     name: Deploy prod
-    needs: checks
+    needs:
+      - classify-run
+      - checks
     if: |
-      github.ref == 'refs/heads/main' ||
-      github.event.inputs.target == 'prod'
+      always() &&
+      needs.classify-run.result == 'success' &&
+      (
+        github.ref == 'refs/heads/main' ||
+        github.event.inputs.target == 'prod'
+      ) &&
+      (
+        needs.checks.result == 'success' ||
+        (
+          needs.checks.result == 'skipped' &&
+          needs.classify-run.outputs.skip_checks == 'true'
+        )
+      )
     runs-on: ubuntu-24.04
     environment: prod
     timeout-minutes: 10
