@@ -17,7 +17,8 @@ export default tseslint.config(
       '.temp',
       'E2E/.temp',
       // Why: Storybook stories are isolated UI examples and should not fail app-wide lint gates.
-      'src/stories/**'
+      'src/stories/**',
+      'storybook-static'
     ]
   },
   js.configs.recommended,
