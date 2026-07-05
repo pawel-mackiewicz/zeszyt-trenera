@@ -1,5 +1,9 @@
 name: CI/CD
 
+# Runs checks and Cloudflare deploys for this local-first PWA.
+# Pull requests and direct pushes to staging/main run checks. Manual runs can
+# target staging or prod. Deploy jobs are gated by checks, except merge pushes
+# that were already checked as pull requests.
 on:
   push:
     branches:
@@ -65,6 +69,8 @@ jobs:
             core.setOutput('skip_checks', mergedIntoTarget ? 'true' : 'false');
 
   checks:
+    # Uses Node from .nvmrc and the Playwright image resolved from package.json.
+    # Runs typecheck, lint, unit tests, Playwright E2E tests, and build.
     name: Checks
     needs:
       - classify-run
@@ -110,6 +116,7 @@ jobs:
         run: pnpm run build
 
   resolve-playwright-image:
+    # Keeps the Playwright container image aligned with the dependency version.
     name: Resolve Playwright image
     needs: classify-run
     if: needs.classify-run.outputs.skip_checks != 'true'
@@ -149,6 +156,7 @@ jobs:
           echo "image=mcr.microsoft.com/playwright:v${playwright_version}-noble" >> "$GITHUB_OUTPUT"
 
   deploy-staging:
+    # Deploys to Cloudflare staging from the staging branch or manual target.
     name: Deploy staging
     needs:
       - classify-run
@@ -198,6 +206,7 @@ jobs:
           command: deploy --env staging
 
   deploy-prod:
+    # Deploys to Cloudflare prod from main or manual target.
     name: Deploy prod
     needs:
       - classify-run
