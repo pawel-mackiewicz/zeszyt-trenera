@@ -1,5 +1,7 @@
 /// <reference types="vite/client" />
 
+// What: keep app-local ambient declarations that Vite and generated virtual modules do not provide to TypeScript.
+// Why: this file must stay script-mode so `virtual:pwa-register/vue` and `__APP_VERSION__` are visible globally without shadowing package exports.
 declare module 'virtual:pwa-register/vue' {
   import type { Ref } from 'vue'
 
@@ -15,15 +17,6 @@ declare module 'virtual:pwa-register/vue' {
     needRefresh: Ref<boolean>
     offlineReady: Ref<boolean>
     updateServiceWorker: (reloadPage?: boolean) => Promise<void>
-  }
-}
-
-declare module 'vue-router' {
-  interface RouteMeta {
-    showBack?: boolean
-    hideBottomNav?: boolean
-    backTo?: string
-    showInMenu?: boolean
   }
 }
 

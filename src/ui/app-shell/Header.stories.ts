@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/vue3-vite'
 import { createPinia, setActivePinia } from 'pinia'
 import { computed, provide, reactive, watch } from 'vue'
-import { routeLocationKey, routerKey } from 'vue-router/dist/vue-router.mjs'
+import { routeLocationKey, routerKey } from 'vue-router'
 import { expect, fn, userEvent, waitFor, within } from 'storybook/test'
 
 import type { AppRouteName } from '@/ui/router'
