@@ -27,11 +27,7 @@ import type {
 } from './campParticipantActionModalUtils'
 
 type ActionModal =
-  | 'discount'
-  | 'payment'
-  | 'refund'
-  | 'resignation'
-  | 'cancelResignation'
+  'discount' | 'payment' | 'refund' | 'resignation' | 'cancelResignation'
 
 const props = defineProps<{
   campId: string

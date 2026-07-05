@@ -9,10 +9,7 @@ import { APP_SHELL_MESSAGES, type AppShellLocale } from './AppShell.messages'
 import ShellStatusScreen from './ShellStatusScreen.vue'
 
 type ShellStateScenario =
-  | 'boot-checking'
-  | 'setup-checking'
-  | 'database-blocked'
-  | 'bootstrap-blocked'
+  'boot-checking' | 'setup-checking' | 'database-blocked' | 'bootstrap-blocked'
 
 type ShellStatusScreenStoryArgs = {
   scenario: ShellStateScenario

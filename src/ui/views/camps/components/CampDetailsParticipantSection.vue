@@ -7,8 +7,7 @@ import type { MoneySnapshot } from '@/write/shared/vo/Money'
 import CampDetailsParticipantRow from './CampDetailsParticipantRow.vue'
 
 type CampDetailsParticipantSectionItem =
-  | CampDetailsActiveParticipantListItem
-  | CampDetailsResignedParticipantListItem
+  CampDetailsActiveParticipantListItem | CampDetailsResignedParticipantListItem
 
 defineProps<{
   campId: string

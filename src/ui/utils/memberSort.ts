@@ -1,8 +1,5 @@
 export type MemberSortField =
-  | 'lastName'
-  | 'firstName'
-  | 'dateOfBirth'
-  | 'joinedAt'
+  'lastName' | 'firstName' | 'dateOfBirth' | 'joinedAt'
 export type MemberSortDirection = 'asc' | 'desc'
 
 type SortableDate = Date | string | undefined

@@ -52,10 +52,7 @@ export type PersistedCamp = {
 }
 
 export type PersistedCampParticipantStatus =
-  | 'REGISTERED'
-  | 'FULLY_PAID'
-  | 'RESIGNED'
-  | 'REFUNDED'
+  'REGISTERED' | 'FULLY_PAID' | 'RESIGNED' | 'REFUNDED'
 
 export type PersistedCampParticipantPerson =
   | {

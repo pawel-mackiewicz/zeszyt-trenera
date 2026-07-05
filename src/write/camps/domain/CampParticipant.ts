@@ -26,10 +26,7 @@ import {
 import { Money } from '@/write/shared/vo/Money'
 
 export type CampParticipantStatus =
-  | 'REGISTERED'
-  | 'FULLY_PAID'
-  | 'RESIGNED'
-  | 'REFUNDED'
+  'REGISTERED' | 'FULLY_PAID' | 'RESIGNED' | 'REFUNDED'
 
 export type ClubCampParticipant = {
   type: 'club'
@@ -43,8 +40,7 @@ export type ExternalCampParticipant = {
 }
 
 export type CampParticipantPerson =
-  | ClubCampParticipant
-  | ExternalCampParticipant
+  ClubCampParticipant | ExternalCampParticipant
 
 export type CampParticipantPersonSnapshot = CampParticipantPerson
 

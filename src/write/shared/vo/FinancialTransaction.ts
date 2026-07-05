@@ -62,10 +62,7 @@ export type Discount = DiscountFields
 export type DiscountInput = DiscountInputFields
 
 export type FinancialTransaction =
-  | Payment
-  | Refund
-  | NonRefundableDeposit
-  | NonRefundableDepositReversal
+  Payment | Refund | NonRefundableDeposit | NonRefundableDepositReversal
 
 export type FinancialTransactionInput =
   | PaymentInput

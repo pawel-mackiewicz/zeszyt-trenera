@@ -8,8 +8,7 @@ import {
 } from './useCampParticipantRegistration'
 
 export type RegisterExternalCampParticipantErrorKey =
-  | CampParticipantRegistrationBaseErrorKey
-  | 'invalidName'
+  CampParticipantRegistrationBaseErrorKey | 'invalidName'
 
 type UseRegisterExternalCampParticipantOptions = {
   campId: Ref<string>

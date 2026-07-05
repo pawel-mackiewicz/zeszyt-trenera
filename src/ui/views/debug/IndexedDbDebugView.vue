@@ -251,8 +251,7 @@ function handleClearTable(tableName: string) {
                 <pre
                   v-if="isComplexValue(row[column])"
                   class="debug-cell debug-cell--code"
-                  >{{ formatCellValue(row[column]) }}</pre
-                >
+                  >{{ formatCellValue(row[column]) }}</pre>
                 <span v-else class="debug-cell">
                   {{ formatCellValue(row[column]) }}
                 </span>

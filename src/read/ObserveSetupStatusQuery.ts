@@ -3,10 +3,7 @@ import { liveQuery, type Observable } from 'dexie'
 import type { TrainerNotebookDb } from '@/db'
 
 export type SetupStatus =
-  | 'checking'
-  | 'requires-club'
-  | 'requires-trainer'
-  | 'ready'
+  'checking' | 'requires-club' | 'requires-trainer' | 'ready'
 
 export class ObserveSetupStatusQuery {
   public constructor(private readonly database: TrainerNotebookDb) {}
