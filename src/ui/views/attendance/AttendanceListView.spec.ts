@@ -216,7 +216,15 @@ describe('AttendanceListView', () => {
 
     await wrapper.find('#attendance-search').setValue('')
     const sliders = wrapper.findAll('input[type="range"]')
-    await sliders[0].setValue('60')
+    expect(sliders.map((slider) => slider.attributes('min'))).toEqual([
+      '18',
+      '18'
+    ])
+    expect(sliders.map((slider) => slider.attributes('max'))).toEqual([
+      '56',
+      '56'
+    ])
+    await sliders[0].setValue('56')
     await sliders[1].setValue('30')
     await flushPromises()
 

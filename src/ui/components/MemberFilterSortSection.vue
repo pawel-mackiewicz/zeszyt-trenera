@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 import AgeRangeFilter from '@/ui/components/AgeRangeFilter.vue'
 import MembersSortTool from '@/ui/components/MembersSortTool.vue'
 import SearchBar from '@/ui/components/SearchBar.vue'
-import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
+import { clampAgeRangeToBounds, normalizeAgeRange } from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
   MemberSortField
 } from '@/ui/utils/memberSort'
 
 const props = defineProps<{
+  minAgeBound: number
+  maxAgeBound: number
+  minAgeFilter: number
   maxAgeFilter: number
   memberSortDirection: MemberSortDirection
   memberSortField: MemberSortField
-  minAgeFilter: number
   searchInputId: string
   searchLabel: string
   searchPlaceholder: string
@@ -50,6 +52,10 @@ const maxAgeFilterModel = computed({
   }
 })
 
+const ageFilterBounds = computed(() =>
+  normalizeAgeRange(props.minAgeBound, props.maxAgeBound)
+)
+
 const memberSortFieldModel = computed({
   get: () => props.memberSortField,
   set: (value) => {
@@ -63,6 +69,31 @@ const memberSortDirectionModel = computed({
     emit('update:memberSortDirection', value)
   }
 })
+
+watch(
+  () =>
+    [
+      props.minAgeFilter,
+      props.maxAgeFilter,
+      ageFilterBounds.value.min,
+      ageFilterBounds.value.max
+    ] as const,
+  ([minAgeFilter, maxAgeFilter, minAgeBound, maxAgeBound]) => {
+    const clampedRange = clampAgeRangeToBounds(minAgeFilter, maxAgeFilter, {
+      min: minAgeBound,
+      max: maxAgeBound
+    })
+
+    if (clampedRange.min !== minAgeFilter) {
+      emit('update:minAgeFilter', clampedRange.min)
+    }
+
+    if (clampedRange.max !== maxAgeFilter) {
+      emit('update:maxAgeFilter', clampedRange.max)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
@@ -84,8 +115,8 @@ const memberSortDirectionModel = computed({
     <AgeRangeFilter
       v-model:max-value="maxAgeFilterModel"
       v-model:min-value="minAgeFilterModel"
-      :max-bound="AGE_FILTER_MAX"
-      :min-bound="AGE_FILTER_MIN"
+      :max-bound="ageFilterBounds.max"
+      :min-bound="ageFilterBounds.min"
     />
   </div>
 </template>

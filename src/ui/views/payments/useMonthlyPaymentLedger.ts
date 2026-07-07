@@ -6,7 +6,10 @@ import {
   type MembershipPaymentStatusByMonthResult,
   type MembershipPaymentStatusMemberListItem
 } from '@/read/ObserveMembershipPaymentStatusByMonthQuery'
-import { matchesAgeRange } from '@/ui/utils/ageRange'
+import {
+  getAgeRangeBoundsFromBirthDates,
+  matchesAgeRange
+} from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
   MemberSortField
@@ -53,6 +56,16 @@ export function useMonthlyPaymentLedger({
   let paymentsSubscription: ObservableSubscription | null = null
 
   const searchValue = computed(() => searchQuery.value.trim().toLowerCase())
+  const ledgerMembers = computed(() => [
+    ...result.value.paidMembers,
+    ...result.value.unpaidAbsentMembers,
+    ...result.value.unpaidAttendedMembers
+  ])
+  const ageFilterBounds = computed(() =>
+    getAgeRangeBoundsFromBirthDates(
+      ledgerMembers.value.map((member) => member.dateOfBirth)
+    )
+  )
 
   const filteredPaidMembers = computed(() =>
     filterAndSortMembers(result.value.paidMembers)
@@ -158,6 +171,7 @@ export function useMonthlyPaymentLedger({
   })
 
   return {
+    ageFilterBounds,
     filteredMemberCount,
     filteredPaidMembers,
     filteredUnpaidAbsentMembers,

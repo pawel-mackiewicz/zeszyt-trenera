@@ -43,6 +43,7 @@ const isLoading = computed(() =>
     : isArchivedMembersLoading.value
 )
 const {
+  ageFilterBounds,
   filteredMembers,
   maxAgeFilter,
   memberSortDirection,
@@ -160,6 +161,8 @@ onBeforeUnmount(() => {
         v-model:max-age-filter="maxAgeFilter"
         v-model:member-sort-field="memberSortField"
         v-model:member-sort-direction="memberSortDirection"
+        :min-age-bound="ageFilterBounds.min"
+        :max-age-bound="ageFilterBounds.max"
         search-input-id="members-search"
         :search-label="t('search.label')"
         :search-placeholder="t('search.placeholder')"

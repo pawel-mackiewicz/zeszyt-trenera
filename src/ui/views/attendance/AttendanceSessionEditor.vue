@@ -13,7 +13,10 @@ import AppIcon from '@/ui/components/AppIcon.vue'
 import FloatingErrorAlert from '@/ui/components/FloatingErrorAlert.vue'
 import MemberFilterSortSection from '@/ui/components/MemberFilterSortSection.vue'
 import MemberListRow from '@/ui/components/MemberListRow.vue'
-import { matchesAgeValueRange } from '@/ui/utils/ageRange'
+import {
+  getAgeRangeBoundsFromAges,
+  matchesAgeValueRange
+} from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
   MemberSortField
@@ -102,6 +105,9 @@ const sessionTimeModel = computed({
 })
 const selectedMembersCount = computed(() => props.selectedMemberIds.length)
 const totalMembersCount = computed(() => props.savedMembers.length)
+const ageFilterBounds = computed(() =>
+  getAgeRangeBoundsFromAges(props.savedMembers.map((member) => member.age))
+)
 const sessionStart = computed(() =>
   buildSessionStart(props.sessionDate, props.sessionTime)
 )
@@ -313,6 +319,8 @@ function formatMemberAge(member: AttendanceEditorMemberListItem) {
       v-model:max-age-filter="maxAgeFilterModel"
       v-model:member-sort-field="memberSortFieldModel"
       v-model:member-sort-direction="memberSortDirectionModel"
+      :min-age-bound="ageFilterBounds.min"
+      :max-age-bound="ageFilterBounds.max"
       search-input-id="attendance-search"
       :search-label="t('search.label')"
       :search-placeholder="t('search.placeholder')"

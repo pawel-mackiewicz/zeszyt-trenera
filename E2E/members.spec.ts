@@ -7,6 +7,7 @@ import {
   type AttendanceSessionExpectation
 } from './support/attendance'
 import {
+  expectAgeRangeFilterBounds,
   expectAgeRangeFilterValues,
   setAgeRangeFilter
 } from './support/ageRangeFilter'
@@ -241,6 +242,7 @@ test('filters roster members by name', async ({ page }) => {
 
 test('filters roster members by age range', async ({ page }) => {
   await openDemoRoster(page)
+  await expectAgeRangeFilterBounds(page, { minAge: '5', maxAge: '75' })
   await filterRosterByAgeRange(page, {
     minAge: '70',
     maxAge: '75'

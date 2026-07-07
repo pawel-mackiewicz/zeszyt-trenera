@@ -2,7 +2,11 @@ import { computed, onMounted, ref, watch, type Ref } from 'vue'
 
 import type { CampParticipantCandidateListItem } from '@/read/ListCampParticipantCandidatesQuery'
 import { useAppServices } from '@/ui/appServices'
-import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
+import {
+  AGE_FILTER_MAX,
+  AGE_FILTER_MIN,
+  getAgeRangeBoundsFromAges
+} from '@/ui/utils/ageRange'
 import {
   sortMembers,
   type MemberSortDirection,
@@ -39,6 +43,9 @@ export function useCampParticipantCandidates({
       ...member,
       age: calculateAge(member.dateOfBirth, new Date())
     }))
+  )
+  const ageFilterBounds = computed(() =>
+    getAgeRangeBoundsFromAges(membersWithAge.value.map((member) => member.age))
   )
   const filteredMembers = computed(() => {
     const matchingMembers = membersWithAge.value.filter(
@@ -113,6 +120,7 @@ export function useCampParticipantCandidates({
   })
 
   return {
+    ageFilterBounds,
     filteredMemberCount,
     filteredMembers,
     isLoading,

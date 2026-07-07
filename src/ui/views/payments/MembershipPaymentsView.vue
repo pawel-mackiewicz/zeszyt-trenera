@@ -81,6 +81,7 @@ const {
 } = paymentFormatters
 
 const {
+  ageFilterBounds,
   filteredMemberCount,
   filteredPaidMembers,
   filteredUnpaidAbsentMembers,
@@ -396,6 +397,8 @@ function handleMonthChange(month: Date) {
       v-model:max-age-filter="maxAgeFilter"
       v-model:member-sort-field="memberSortField"
       v-model:member-sort-direction="memberSortDirection"
+      :min-age-bound="ageFilterBounds.min"
+      :max-age-bound="ageFilterBounds.max"
       search-input-id="payments-search"
       :search-label="t('search.label')"
       :search-placeholder="t('search.placeholder')"

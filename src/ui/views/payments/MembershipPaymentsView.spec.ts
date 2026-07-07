@@ -317,7 +317,16 @@ describe('MembershipPaymentsView', () => {
 
     await wrapper.get('#payments-search').setValue('')
     const sliders = wrapper.findAll('input[type="range"]')
-    await sliders[1].setValue('7')
+    expect(sliders.map((slider) => slider.attributes('min'))).toEqual([
+      '8',
+      '8'
+    ])
+    expect(sliders.map((slider) => slider.attributes('max'))).toEqual([
+      '59',
+      '59'
+    ])
+    await sliders[0].setValue('20')
+    await sliders[1].setValue('20')
     await flushPromises()
 
     expect(wrapper.text()).not.toContain('Georges St-Pierre')
@@ -332,7 +341,7 @@ describe('MembershipPaymentsView', () => {
     expect(wrapper.text()).toContain('Mystery Member')
 
     const sliders = wrapper.findAll('input[type="range"]')
-    await sliders[0].setValue('60')
+    await sliders[0].setValue('59')
     await sliders[1].setValue('30')
     await flushPromises()
 

@@ -4,6 +4,7 @@ import type { MemberRosterListItem } from '@/read/ObserveMembersForRosterQuery'
 import {
   AGE_FILTER_MAX,
   AGE_FILTER_MIN,
+  getAgeRangeBoundsFromBirthDates,
   matchesAgeRange
 } from '@/ui/utils/ageRange'
 import {
@@ -25,6 +26,11 @@ export function useRosterMemberFilters(
   const minAgeFilter = ref(AGE_FILTER_MIN)
   const memberSortField = ref<MemberSortField>('firstName')
   const memberSortDirection = ref<MemberSortDirection>('asc')
+  const ageFilterBounds = computed(() =>
+    getAgeRangeBoundsFromBirthDates(
+      members.value.map((member) => member.dateOfBirth)
+    )
+  )
 
   const filteredMembers = computed(() => {
     const visibleMembers = members.value.filter((member) => {
@@ -48,6 +54,7 @@ export function useRosterMemberFilters(
   })
 
   return {
+    ageFilterBounds,
     filteredMembers,
     maxAgeFilter,
     memberSortDirection,

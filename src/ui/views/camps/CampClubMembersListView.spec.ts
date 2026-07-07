@@ -117,6 +117,29 @@ describe('CampClubMembersListView', () => {
     expect(wrapper.text()).not.toContain('Royce Gracie')
   })
 
+  it('uses candidate ages as the shared age filter bounds', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const sliders = wrapper.findAll('input[type="range"]')
+
+    expect(sliders.map((slider) => slider.attributes('min'))).toEqual([
+      '35',
+      '35'
+    ])
+    expect(sliders.map((slider) => slider.attributes('max'))).toEqual([
+      '59',
+      '59'
+    ])
+
+    await sliders[1].setValue('51')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).toContain('Anderson Silva')
+    expect(wrapper.text()).not.toContain('Royce Gracie')
+  })
+
   it('routes a coach to the club registration flow after tapping an unsigned member row', async () => {
     const wrapper = mountView()
     await flushPromises()

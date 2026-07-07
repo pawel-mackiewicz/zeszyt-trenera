@@ -8,7 +8,13 @@ import type {
   CampDetailsResignedParticipantListItem
 } from '@/read/GetCampDetailsQuery'
 import { useAppServices } from '@/ui/appServices'
-import { AGE_FILTER_MAX, AGE_FILTER_MIN } from '@/ui/utils/ageRange'
+import {
+  AGE_FILTER_MAX,
+  AGE_FILTER_MIN,
+  ageRangeCoversBounds,
+  getAgeRangeBoundsFromAges,
+  matchesAgeValueRange
+} from '@/ui/utils/ageRange'
 import type {
   MemberSortDirection,
   MemberSortField
@@ -38,6 +44,17 @@ export function useCampDetails({ campId, locale }: UseCampDetailsOptions) {
   const totalParticipantCount = computed(() =>
     details.value === null ? 0 : countParticipants(details.value.participants)
   )
+  const ageFilterBounds = computed(() => {
+    if (details.value === null) {
+      return getAgeRangeBoundsFromAges([])
+    }
+
+    return getAgeRangeBoundsFromAges(
+      getAllParticipants(details.value.participants).map(
+        (participant) => participant.age
+      )
+    )
+  })
   const filteredParticipants = computed<CampDetailsParticipantGroups>(() => {
     if (details.value === null) {
       return {
@@ -63,6 +80,12 @@ export function useCampDetails({ campId, locale }: UseCampDetailsOptions) {
   const notFound = computed(
     () => !isLoading.value && !loadError.value && details.value === null
   )
+
+  function getAllParticipants(
+    groups: CampDetailsParticipantGroups
+  ): CampDetailsParticipant[] {
+    return [...groups.registered, ...groups.fullyPaid, ...groups.resigned]
+  }
 
   function countParticipants(groups: {
     registered: readonly CampDetailsParticipant[]
@@ -90,17 +113,18 @@ export function useCampDetails({ campId, locale }: UseCampDetailsOptions) {
   }
 
   function matchesAge(participant: CampDetailsParticipantListItem): boolean {
-    const ageFilterIsDefault =
-      minAgeFilter.value === AGE_FILTER_MIN &&
-      maxAgeFilter.value === AGE_FILTER_MAX
-
     if (participant.age === null) {
-      return ageFilterIsDefault
+      return ageRangeCoversBounds(
+        minAgeFilter.value,
+        maxAgeFilter.value,
+        ageFilterBounds.value
+      )
     }
 
-    return (
-      participant.age >= minAgeFilter.value &&
-      participant.age <= maxAgeFilter.value
+    return matchesAgeValueRange(
+      participant.age,
+      minAgeFilter.value,
+      maxAgeFilter.value
     )
   }
 
@@ -213,6 +237,7 @@ export function useCampDetails({ campId, locale }: UseCampDetailsOptions) {
   })
 
   return {
+    ageFilterBounds,
     camp,
     clearError,
     filteredParticipantCount,

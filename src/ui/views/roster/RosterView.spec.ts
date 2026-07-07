@@ -496,7 +496,15 @@ describe('RosterView', () => {
     )
 
     const sliders = wrapper.findAll('input[type="range"]')
-    await sliders[0].setValue('60')
+    expect(sliders.map((slider) => slider.attributes('min'))).toEqual([
+      '8',
+      '8'
+    ])
+    expect(sliders.map((slider) => slider.attributes('max'))).toEqual([
+      '56',
+      '56'
+    ])
+    await sliders[0].setValue('56')
     await sliders[1].setValue('30')
     await flushPromises()
 

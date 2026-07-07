@@ -107,6 +107,7 @@ const campId = computed(() => {
   return Array.isArray(param) ? param[0] : String(param ?? '')
 })
 const {
+  ageFilterBounds,
   camp,
   filteredParticipantCount,
   filteredParticipants,
@@ -228,6 +229,8 @@ function formatVisibleParticipantCount(visible: number, total: number): string {
         v-model:max-age-filter="maxAgeFilter"
         v-model:member-sort-field="memberSortField"
         v-model:member-sort-direction="memberSortDirection"
+        :min-age-bound="ageFilterBounds.min"
+        :max-age-bound="ageFilterBounds.max"
         search-input-id="camp-details-search"
         :search-label="t('search.label')"
         :search-placeholder="t('search.placeholder')"

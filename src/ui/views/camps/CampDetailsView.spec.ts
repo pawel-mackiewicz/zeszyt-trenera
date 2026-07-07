@@ -99,6 +99,33 @@ describe('CampDetailsView', () => {
     expect(wrapper.text()).not.toContain('jane doe')
   })
 
+  it('keeps external participants until the coach narrows the data-aware age range', async () => {
+    const wrapper = mountView()
+    await flushPromises()
+
+    const sliders = wrapper.findAll('input[type="range"]')
+
+    expect(sliders.map((slider) => slider.attributes('min'))).toEqual([
+      '35',
+      '35'
+    ])
+    expect(sliders.map((slider) => slider.attributes('max'))).toEqual([
+      '56',
+      '56'
+    ])
+    expect(wrapper.text()).toContain('jane doe')
+
+    await sliders[1].setValue('35')
+    await flushPromises()
+
+    expect(wrapper.get('.camp-details-view__visible-count').text()).toBe(
+      '1 z 3'
+    )
+    expect(wrapper.text()).toContain('Amanda Nunes')
+    expect(wrapper.text()).not.toContain('Royce Gracie')
+    expect(wrapper.text()).not.toContain('jane doe')
+  })
+
   it('shows a retry path when the camp details query fails', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => undefined)
     mockGetCampDetailsHandle
@@ -170,7 +197,7 @@ function createCampDetails() {
           firstName: 'Royce',
           lastName: 'Gracie',
           displayName: 'Royce Gracie',
-          age: null,
+          age: 56,
           amountDue: {
             amountMinor: 100000,
             currency: 'PLN'

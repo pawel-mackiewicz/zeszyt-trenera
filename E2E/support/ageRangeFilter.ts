@@ -35,3 +35,19 @@ export async function expectAgeRangeFilterValues(
   await expect(minimumAgeInput(page)).toHaveValue(minAge)
   await expect(maximumAgeInput(page)).toHaveValue(maxAge)
 }
+
+export async function expectAgeRangeFilterBounds(
+  page: Page,
+  {
+    maxAge,
+    minAge
+  }: {
+    maxAge: string
+    minAge: string
+  }
+) {
+  await expect(minimumAgeInput(page)).toHaveAttribute('min', minAge)
+  await expect(minimumAgeInput(page)).toHaveAttribute('max', maxAge)
+  await expect(maximumAgeInput(page)).toHaveAttribute('min', minAge)
+  await expect(maximumAgeInput(page)).toHaveAttribute('max', maxAge)
+}
