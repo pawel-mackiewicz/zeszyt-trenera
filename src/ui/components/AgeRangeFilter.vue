@@ -14,6 +14,14 @@ const emit = defineEmits<{
   (event: 'update:maxValue', value: number): void
 }>()
 
+type AgeRangeEndpoint = 'min' | 'max'
+
+type AgeRangeValueControl = {
+  endpoint: AgeRangeEndpoint
+  prefixLabel: 'minValuePrefix' | 'maxValuePrefix'
+  inputLabel: 'minInputLabel' | 'maxInputLabel'
+}
+
 const minValueModel = computed({
   get: () => props.minValue,
   set: (value) => {
@@ -31,8 +39,25 @@ const maxValueModel = computed({
 const { t } = useI18n({ useScope: 'local' })
 const minInputValue = ref(String(props.minValue))
 const maxInputValue = ref(String(props.maxValue))
-const minValuePosition = computed(() => getValuePosition(props.minValue))
-const maxValuePosition = computed(() => getValuePosition(props.maxValue))
+const minValuePercent = computed(() => getValuePercent(props.minValue))
+const maxValuePercent = computed(() => getValuePercent(props.maxValue))
+const isRangeCrossed = computed(() => props.minValue > props.maxValue)
+const selectedRangeStyle = computed(() => {
+  const start = Math.min(minValuePercent.value, maxValuePercent.value)
+  const end = Math.max(minValuePercent.value, maxValuePercent.value)
+
+  return {
+    left: `${start}%`,
+    right: `${100 - end}%`
+  }
+})
+const valueControls = computed<AgeRangeValueControl[]>(() => {
+  if (!isRangeCrossed.value) {
+    return [createLowerValueControl('min'), createUpperValueControl('max')]
+  }
+
+  return [createLowerValueControl('max'), createUpperValueControl('min')]
+})
 
 watch(
   () => props.minValue,
@@ -48,18 +73,15 @@ watch(
   }
 )
 
-function getValuePosition(value: number) {
+function getValuePercent(value: number) {
   const span = props.maxBound - props.minBound
 
   if (span <= 0) {
-    return '50%'
+    return 50
   }
 
   const position = ((value - props.minBound) / span) * 100
-  const clampedPosition = Math.min(100, Math.max(0, position))
-  const thumbCenterOffset = 8 - clampedPosition * 0.16
-
-  return `calc(${clampedPosition}% + ${thumbCenterOffset}px)`
+  return Math.min(100, Math.max(0, position))
 }
 
 function clampAgeValue(value: number) {
@@ -70,34 +92,67 @@ function clampAgeValue(value: number) {
   return Math.min(props.maxBound, Math.max(props.minBound, value))
 }
 
-function updateMinValueFromInput() {
-  const value = getInRangeInputValue(minInputValue.value)
+function createLowerValueControl(
+  endpoint: AgeRangeEndpoint
+): AgeRangeValueControl {
+  return {
+    endpoint,
+    prefixLabel: 'minValuePrefix',
+    inputLabel: 'minInputLabel'
+  }
+}
 
-  if (value !== null) {
+function createUpperValueControl(
+  endpoint: AgeRangeEndpoint
+): AgeRangeValueControl {
+  return {
+    endpoint,
+    prefixLabel: 'maxValuePrefix',
+    inputLabel: 'maxInputLabel'
+  }
+}
+
+function getInputValue(endpoint: AgeRangeEndpoint) {
+  return endpoint === 'min' ? minInputValue.value : maxInputValue.value
+}
+
+function getInputEventValue(event: Event) {
+  return (event.target as HTMLInputElement).value
+}
+
+function setInputValue(endpoint: AgeRangeEndpoint, value: string) {
+  if (endpoint === 'min') {
+    minInputValue.value = value
+    return
+  }
+
+  maxInputValue.value = value
+}
+
+function emitValueUpdate(endpoint: AgeRangeEndpoint, value: number) {
+  if (endpoint === 'min') {
     emit('update:minValue', value)
+    return
   }
+
+  emit('update:maxValue', value)
 }
 
-function updateMaxValueFromInput() {
-  const value = getInRangeInputValue(maxInputValue.value)
+function updateValueFromInput(endpoint: AgeRangeEndpoint, rawValue: string) {
+  setInputValue(endpoint, rawValue)
+
+  const value = getInRangeInputValue(rawValue)
 
   if (value !== null) {
-    emit('update:maxValue', value)
+    emitValueUpdate(endpoint, value)
   }
 }
 
-function commitMinValueInput() {
-  const value = clampAgeValue(Number(minInputValue.value))
+function commitValueInput(endpoint: AgeRangeEndpoint) {
+  const value = clampAgeValue(Number(getInputValue(endpoint)))
 
-  minInputValue.value = String(value)
-  emit('update:minValue', value)
-}
-
-function commitMaxValueInput() {
-  const value = clampAgeValue(Number(maxInputValue.value))
-
-  maxInputValue.value = String(value)
-  emit('update:maxValue', value)
+  setInputValue(endpoint, String(value))
+  emitValueUpdate(endpoint, value)
 }
 
 function getInRangeInputValue(rawValue: string) {
@@ -118,56 +173,70 @@ function getInRangeInputValue(rawValue: string) {
 <template>
   <div class="age-range-filter">
     <span class="age-range-filter__label">{{ t('label') }}</span>
-    <div class="age-range-filter__body">
-      <div class="age-range-filter__track">
-        <span class="age-range-filter__bound">{{ minBound }}</span>
-        <div class="age-range-filter__slider">
-          <!-- What: name each stacked slider by the boundary it changes. Why: the mobile custom rail visually merges two native controls, so non-visual users and E2E flows need explicit targets. -->
-          <input
-            v-model.number="minValueModel"
-            :aria-label="t('minSliderLabel')"
-            :aria-valuetext="t('valueText', { value: minValue })"
-            class="age-range-filter__input"
-            :max="maxBound"
-            :min="minBound"
-            type="range"
-          />
-          <input
-            v-model.number="maxValueModel"
-            :aria-label="t('maxSliderLabel')"
-            :aria-valuetext="t('valueText', { value: maxValue })"
-            class="age-range-filter__input"
-            :max="maxBound"
-            :min="minBound"
-            type="range"
-          />
-          <div class="age-range-filter__rail"></div>
-          <input
-            v-model="minInputValue"
-            :aria-label="t('minInputLabel')"
-            class="age-range-filter__value"
-            :max="maxBound"
-            :min="minBound"
-            :style="{ left: minValuePosition }"
-            type="number"
-            @blur="commitMinValueInput"
-            @change="commitMinValueInput"
-            @input="updateMinValueFromInput"
-          />
-          <input
-            v-model="maxInputValue"
-            :aria-label="t('maxInputLabel')"
-            class="age-range-filter__value"
-            :max="maxBound"
-            :min="minBound"
-            :style="{ left: maxValuePosition }"
-            type="number"
-            @blur="commitMaxValueInput"
-            @change="commitMaxValueInput"
-            @input="updateMaxValueFromInput"
-          />
+    <div class="age-range-filter__content">
+      <div class="age-range-filter__values">
+        <template
+          v-for="(control, controlIndex) in valueControls"
+          :key="control.endpoint"
+        >
+          <label class="age-range-filter__value-control">
+            <span class="age-range-filter__value-prefix">
+              {{ t(control.prefixLabel) }}
+            </span>
+            <input
+              :aria-label="t(control.inputLabel)"
+              class="age-range-filter__value"
+              :max="maxBound"
+              :min="minBound"
+              type="number"
+              :value="getInputValue(control.endpoint)"
+              @blur="commitValueInput(control.endpoint)"
+              @change="commitValueInput(control.endpoint)"
+              @input="
+                updateValueFromInput(
+                  control.endpoint,
+                  getInputEventValue($event)
+                )
+              "
+            />
+            <span aria-hidden="true" class="age-range-filter__value-unit">
+              {{ t('unit') }}
+            </span>
+          </label>
+          <span
+            v-if="controlIndex === 0"
+            aria-hidden="true"
+            class="age-range-filter__separator"
+          ></span>
+        </template>
+      </div>
+
+      <div class="age-range-filter__slider">
+        <div aria-hidden="true" class="age-range-filter__rail">
+          <span
+            class="age-range-filter__rail-selected"
+            :style="selectedRangeStyle"
+          ></span>
         </div>
-        <span class="age-range-filter__bound">{{ maxBound }}</span>
+        <!-- What: name each stacked slider by the boundary it changes. Why: the mobile custom rail visually merges two native controls, so non-visual users and E2E flows need explicit targets. -->
+        <input
+          v-model.number="minValueModel"
+          :aria-label="t(isRangeCrossed ? 'maxSliderLabel' : 'minSliderLabel')"
+          :aria-valuetext="t('valueText', { value: minValue })"
+          class="age-range-filter__input"
+          :max="maxBound"
+          :min="minBound"
+          type="range"
+        />
+        <input
+          v-model.number="maxValueModel"
+          :aria-label="t(isRangeCrossed ? 'minSliderLabel' : 'maxSliderLabel')"
+          :aria-valuetext="t('valueText', { value: maxValue })"
+          class="age-range-filter__input"
+          :max="maxBound"
+          :min="minBound"
+          type="range"
+        />
       </div>
     </div>
   </div>
@@ -181,7 +250,7 @@ input[type='range'] {
 
 .age-range-filter {
   display: grid;
-  gap: 0.375rem;
+  gap: 0.5rem;
 }
 
 .age-range-filter__label {
@@ -195,26 +264,50 @@ input[type='range'] {
   color: var(--app-section-label-color);
 }
 
-.age-range-filter__body {
+.age-range-filter__content {
   display: grid;
+  gap: 0.625rem;
   margin-left: 0.125rem;
   padding-left: 0.625rem;
   border-left: 2px solid var(--color-outline-variant);
 }
 
+.age-range-filter__values {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.age-range-filter__value-control {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.age-range-filter__value-prefix,
+.age-range-filter__value-unit {
+  font-family: var(--app-section-label-font-family);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: var(--app-section-label-line-height);
+  letter-spacing: var(--app-section-label-letter-spacing);
+  text-transform: var(--app-section-label-text-transform);
+  color: var(--app-section-label-color);
+  white-space: nowrap;
+}
+
 .age-range-filter__value {
   appearance: textfield;
-  position: absolute;
-  top: 1.625rem;
-  transform: translateX(-50%);
-  width: 2.25rem;
-  min-height: 1.25rem;
+  width: 2.75rem;
+  min-height: 1.625rem;
   border: 0;
   border-bottom: 2px solid var(--color-primary);
   background: transparent;
-  padding: 0 0.125rem 0.125rem;
+  padding: 0 0.125rem 0.1875rem;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   font-weight: 700;
   text-align: center;
   text-transform: uppercase;
@@ -235,29 +328,17 @@ input[type='range'] {
   background: var(--color-surface-container-lowest);
 }
 
-.age-range-filter__track {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.age-range-filter__bound {
-  margin-top: 0.5rem;
-  font-family: var(--app-section-label-font-family);
-  font-size: var(--app-section-label-font-size);
-  font-weight: var(--app-section-label-font-weight);
-  line-height: var(--app-section-label-line-height);
-  letter-spacing: var(--app-section-label-letter-spacing);
-  text-transform: var(--app-section-label-text-transform);
-  color: var(--app-section-label-color);
+.age-range-filter__separator {
+  display: block;
+  flex: 0 0 1rem;
+  height: 2px;
+  background: var(--color-outline-variant);
 }
 
 .age-range-filter__slider {
   position: relative;
-  display: flex;
-  align-items: flex-start;
-  flex: 1;
-  height: 2.5rem;
+  height: 1.5rem;
+  min-width: 0;
 }
 
 /* What: keep the dual-slider interaction touch-friendly on mobile. Why: the reusable filter layers two native range inputs on one rail, so only the thumbs should capture drag gestures. */
@@ -311,6 +392,14 @@ input[type='range']::-moz-range-track {
   inset-inline: 0;
   height: 2px;
   transform: translateY(-50%);
+  overflow: hidden;
+  background: var(--color-outline-variant);
+}
+
+.age-range-filter__rail-selected {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   background: var(--color-primary);
 }
 </style>
@@ -319,6 +408,9 @@ input[type='range']::-moz-range-track {
 {
   "pl": {
     "label": "Zakres wieku",
+    "minValuePrefix": "Od",
+    "maxValuePrefix": "Do",
+    "unit": "lat",
     "minInputLabel": "Minimalny wiek, wartość",
     "maxInputLabel": "Maksymalny wiek, wartość",
     "minSliderLabel": "Minimalny wiek, suwak",
@@ -327,6 +419,9 @@ input[type='range']::-moz-range-track {
   },
   "en": {
     "label": "Age range",
+    "minValuePrefix": "From",
+    "maxValuePrefix": "To",
+    "unit": "years",
     "minInputLabel": "Minimum age, value",
     "maxInputLabel": "Maximum age, value",
     "minSliderLabel": "Minimum age, slider",
