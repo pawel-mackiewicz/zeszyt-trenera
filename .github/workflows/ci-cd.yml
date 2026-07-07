@@ -46,7 +46,9 @@ jobs:
         with:
           script: |
             if (context.eventName !== 'push') {
-              core.setOutput('skip_checks', 'false');
+              const skipChecks = 'false';
+              core.notice(`skip_checks=${skipChecks}`);
+              core.setOutput('skip_checks', skipChecks);
               return;
             }
 
@@ -66,7 +68,9 @@ jobs:
               pull.base.ref === targetBranch
             );
 
-            core.setOutput('skip_checks', mergedIntoTarget ? 'true' : 'false');
+            const skipChecks = mergedIntoTarget ? 'true' : 'false';
+            core.notice(`skip_checks=${skipChecks}`);
+            core.setOutput('skip_checks', skipChecks);
 
   checks:
     # Uses Node from .nvmrc and the Playwright image resolved from package.json.
