@@ -31,14 +31,15 @@ describe('AgeRangeFilter', () => {
     })
 
     expect(wrapper.find('.age-range-filter__label').text()).toBe('Zakres wieku')
-    expect(wrapper.find('.age-range-filter__values').text()).toContain('Od')
-    expect(wrapper.find('.age-range-filter__values').text()).toContain('Do')
+    expect(wrapper.find('.age-range-filter__values').text()).toBe('')
+    expect(wrapper.find('.age-range-filter__values').text()).not.toContain('Od')
+    expect(wrapper.find('.age-range-filter__values').text()).not.toContain('Do')
+    expect(wrapper.find('.age-range-filter__values').text()).not.toContain(
+      'lat'
+    )
     expect(wrapper.findAll('.age-range-filter__bound')).toHaveLength(0)
-    expect(
-      wrapper
-        .findAll('.age-range-filter__value-prefix')
-        .map((prefix) => prefix.text())
-    ).toEqual(['Od', 'Do'])
+    expect(wrapper.findAll('.age-range-filter__value-prefix')).toHaveLength(0)
+    expect(wrapper.findAll('.age-range-filter__value-unit')).toHaveLength(0)
     expect(
       wrapper
         .findAll('input[type="number"]')

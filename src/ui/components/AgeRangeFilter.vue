@@ -19,7 +19,6 @@ type AgeRangeEndpoint = 'min' | 'max'
 
 type AgeRangeValueControl = {
   endpoint: AgeRangeEndpoint
-  prefixLabel: 'minValuePrefix' | 'maxValuePrefix'
   inputLabel: 'minInputLabel' | 'maxInputLabel'
 }
 
@@ -98,7 +97,6 @@ function createLowerValueControl(
 ): AgeRangeValueControl {
   return {
     endpoint,
-    prefixLabel: 'minValuePrefix',
     inputLabel: 'minInputLabel'
   }
 }
@@ -108,7 +106,6 @@ function createUpperValueControl(
 ): AgeRangeValueControl {
   return {
     endpoint,
-    prefixLabel: 'maxValuePrefix',
     inputLabel: 'maxInputLabel'
   }
 }
@@ -181,9 +178,6 @@ function getInRangeInputValue(rawValue: string) {
           :key="control.endpoint"
         >
           <label class="age-range-filter__value-control">
-            <span class="age-range-filter__value-prefix">
-              {{ t(control.prefixLabel) }}
-            </span>
             <input
               :aria-label="t(control.inputLabel)"
               class="age-range-filter__value"
@@ -200,9 +194,6 @@ function getInRangeInputValue(rawValue: string) {
                 )
               "
             />
-            <span aria-hidden="true" class="age-range-filter__value-unit">
-              {{ t('unit') }}
-            </span>
           </label>
           <span
             v-if="controlIndex === 0"
@@ -287,18 +278,6 @@ input[type='range'] {
   min-width: 0;
 }
 
-.age-range-filter__value-prefix,
-.age-range-filter__value-unit {
-  font-family: var(--app-section-label-font-family);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  line-height: var(--app-section-label-line-height);
-  letter-spacing: var(--app-section-label-letter-spacing);
-  text-transform: var(--app-section-label-text-transform);
-  color: var(--app-section-label-color);
-  white-space: nowrap;
-}
-
 .age-range-filter__value {
   appearance: textfield;
   width: 2.75rem;
@@ -308,7 +287,7 @@ input[type='range'] {
   background: transparent;
   padding: 0 0.125rem 0.1875rem;
   font-family: var(--font-mono);
-  font-size: 0.875rem;
+  font-size: max(1rem, 16px);
   font-weight: 700;
   text-align: center;
   text-transform: uppercase;
@@ -409,9 +388,6 @@ input[type='range']::-moz-range-track {
 {
   "pl": {
     "label": "Zakres wieku",
-    "minValuePrefix": "Od",
-    "maxValuePrefix": "Do",
-    "unit": "lat",
     "minInputLabel": "Minimalny wiek, wartość",
     "maxInputLabel": "Maksymalny wiek, wartość",
     "minSliderLabel": "Minimalny wiek, suwak",
@@ -420,9 +396,6 @@ input[type='range']::-moz-range-track {
   },
   "en": {
     "label": "Age range",
-    "minValuePrefix": "From",
-    "maxValuePrefix": "To",
-    "unit": "years",
     "minInputLabel": "Minimum age, value",
     "maxInputLabel": "Maximum age, value",
     "minSliderLabel": "Minimum age, slider",
