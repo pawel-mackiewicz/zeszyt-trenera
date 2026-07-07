@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
+  /** Bounds define the allowed age scale; values define the selected range. */
   minBound: number
   maxBound: number
   minValue: number
