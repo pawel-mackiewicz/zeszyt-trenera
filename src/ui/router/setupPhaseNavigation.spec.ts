@@ -26,8 +26,7 @@ describe('setup phase navigation', () => {
   let mockUnsubscribe: Mock
   let mockObserveSetupStatus: Mock
   let setupGuard:
-    | ((to: RouteLocationNormalizedLoaded) => string | undefined)
-    | null
+    ((to: RouteLocationNormalizedLoaded) => string | undefined) | null
   let setupStatusObserver: SetupStatusObserver | null
 
   beforeEach(() => {

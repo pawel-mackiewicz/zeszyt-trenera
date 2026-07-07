@@ -9,8 +9,7 @@ import type {
 import type { MoneySnapshot } from '@/write/shared/vo/Money'
 
 type CampDetailsParticipantRowItem =
-  | CampDetailsActiveParticipantListItem
-  | CampDetailsResignedParticipantListItem
+  CampDetailsActiveParticipantListItem | CampDetailsResignedParticipantListItem
 
 const props = defineProps<{
   campId: string

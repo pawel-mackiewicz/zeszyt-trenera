@@ -1,0 +1,16 @@
+<component name="libraryTable">
+  <library name="ts-external-references" type="javaScript">
+    <properties>
+      <sourceFilesUrls>
+        <item url="file://$PROJECT_DIR$/node_modules/.pnpm/@storybook+vue3-vite@10.4.6_esbuild@0.27.4_rollup@2.80.0_storybook@10.4.6_@testing-libr_9d408d3011343d424d1f4b479359f9c6/node_modules/@storybook/vue3-vite/dist/index.d.ts" />
+        <item url="file://$PROJECT_DIR$/node_modules/.pnpm/vite@8.1.3_@types+node@26.0.0_esbuild@0.27.4_jiti@2.6.1_terser@5.48.0_yaml@2.9.0/node_modules/vite/client.d.ts" />
+      </sourceFilesUrls>
+    </properties>
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/node_modules/.pnpm/@storybook+vue3-vite@10.4.6_esbuild@0.27.4_rollup@2.80.0_storybook@10.4.6_@testing-libr_9d408d3011343d424d1f4b479359f9c6/node_modules/@storybook/vue3-vite/dist/index.d.ts" />
+      <root url="file://$PROJECT_DIR$/node_modules/.pnpm/vite@8.1.3_@types+node@26.0.0_esbuild@0.27.4_jiti@2.6.1_terser@5.48.0_yaml@2.9.0/node_modules/vite/client.d.ts" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

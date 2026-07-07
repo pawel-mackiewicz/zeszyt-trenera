@@ -1,3 +1,5 @@
+// What: keep Vue Router runtime imports behind one local boundary.
+// Why: specs can mock `@/ui/router/runtime` instead of the external package, and router dependency migrations stay scoped to this adapter.
 export {
   RouterLink,
   RouterView,
@@ -6,7 +8,7 @@ export {
   createWebHistory,
   useRoute,
   useRouter
-} from 'vue-router/dist/vue-router.mjs'
+} from 'vue-router'
 
 export type {
   RouteLocationNormalized,
@@ -14,4 +16,4 @@ export type {
   RouteRecordRaw,
   Router,
   RouterOptions
-} from 'vue-router/dist/vue-router.mjs'
+} from 'vue-router'

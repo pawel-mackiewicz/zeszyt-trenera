@@ -12,11 +12,7 @@ type ReminderLocale = 'pl' | 'en'
 type CoveredMonth = ReturnType<typeof toMembershipPaymentCoveredMonth>
 
 export type ReminderErrorKey =
-  | 'memberMissing'
-  | 'phoneMissing'
-  | 'senderMissing'
-  | 'submit'
-  | null
+  'memberMissing' | 'phoneMissing' | 'senderMissing' | 'submit' | null
 
 export type SendMembershipPaymentReminderCommand = {
   coveredMonth: CoveredMonth

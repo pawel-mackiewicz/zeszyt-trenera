@@ -3,10 +3,7 @@ import type { AppRouteName } from '@/ui/router'
 
 type ShellTitleTranslator = (key: string) => string
 type ShellBottomNavigationIconName =
-  | 'calendar_today'
-  | 'group'
-  | 'payments'
-  | 'terrain'
+  'calendar_today' | 'group' | 'payments' | 'terrain'
 
 export type ShellBottomNavigationItem = {
   id: 'attendance' | 'camps' | 'members' | 'payments'

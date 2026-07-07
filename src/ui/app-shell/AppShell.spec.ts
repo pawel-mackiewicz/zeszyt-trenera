@@ -577,8 +577,7 @@ describe('AppShell', () => {
 
   it('shows pending backup copy while export is in progress', async () => {
     let resolveBackupExport:
-      | ((value?: void | PromiseLike<void>) => void)
-      | undefined
+      ((value?: void | PromiseLike<void>) => void) | undefined
 
     mockExportDatabaseBackup.mockImplementationOnce(
       async () =>

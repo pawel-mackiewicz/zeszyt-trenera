@@ -32,8 +32,7 @@ export type CampParticipantPaymentRefund = {
 }
 
 export type CampParticipantPayment =
-  | CampParticipantPaymentActive
-  | CampParticipantPaymentRefund
+  CampParticipantPaymentActive | CampParticipantPaymentRefund
 
 export class ObserveCampParticipantPaymentQuery {
   public constructor(private readonly database: TrainerNotebookDb) {}

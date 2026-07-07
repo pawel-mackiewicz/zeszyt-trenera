@@ -15,8 +15,7 @@ import type {
 } from '@/ui/utils/memberSort'
 
 type CampDetailsParticipant =
-  | CampDetailsActiveParticipantListItem
-  | CampDetailsResignedParticipantListItem
+  CampDetailsActiveParticipantListItem | CampDetailsResignedParticipantListItem
 
 type UseCampDetailsOptions = {
   campId: Ref<string>
