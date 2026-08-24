@@ -29,15 +29,15 @@
     "deploy:staging": "pnpm run build && wrangler deploy --env staging"
   },
   "dependencies": {
-    "@lucide/vue": "^1.24.0",
-    "dexie": "^4.4.4",
+    "@lucide/vue": "^1.33.0",
+    "dexie": "^4.4.5",
     "dexie-export-import": "^4.4.0",
-    "libphonenumber-js": "^1.13.8",
+    "libphonenumber-js": "^1.13.11",
     "pinia": "^3.0.4",
-    "uuid": "^14.0.1",
-    "vue": "^3.5.39",
-    "vue-i18n": "^11.4.6",
-    "vue-router": "^5.1.0",
+    "uuid": "^14.0.2",
+    "vue": "^3.5.41",
+    "vue-i18n": "^11.4.8",
+    "vue-router": "^5.2.0",
     "workbox-window": "^7.4.1"
   },
   "devDependencies": {
