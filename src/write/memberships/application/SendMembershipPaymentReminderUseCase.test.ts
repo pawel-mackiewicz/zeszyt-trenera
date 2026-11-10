@@ -155,7 +155,7 @@ describe('SendMembershipPaymentReminderUseCase', () => {
 })
 
 function createMember(memberId: string, phoneNumber?: string): Member {
-  const [member] = Member.register(
+  const member = Member.register(
     {
       firstName: 'alex',
       lastName: 'silva',

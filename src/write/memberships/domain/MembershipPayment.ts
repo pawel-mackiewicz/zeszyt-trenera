@@ -1,4 +1,3 @@
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { copyDate } from '../../shared/DateUtils'
 import { Money, type MoneySnapshot } from '@/write/shared/vo/Money'
 
@@ -66,12 +65,10 @@ export class MembershipPayment {
   public static record(
     input: RecordMembershipPaymentInput,
     id: string
-  ): [MembershipPayment, MembershipPaymentRecordedDomainEvent] {
+  ): MembershipPayment {
     // Recording receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
     const payment = new MembershipPayment(input, id)
-    // Event payloads store snapshots so the offline ledger replays the exact recorded month without depending on a live aggregate instance.
-    const event = new MembershipPaymentRecordedDomainEvent(payment.toSnapshot())
-    return [payment, event]
+    return payment
   }
 
   public static restore(
@@ -90,14 +87,7 @@ export class MembershipPayment {
     )
   }
 
-  public static delete(
-    existingPayment: MembershipPayment
-  ): MembershipPaymentDeletedDomainEvent {
-    // Why: payment deletion removes the row, so the local-first event log needs the exact snapshot that disappeared.
-    return new MembershipPaymentDeletedDomainEvent(existingPayment.toSnapshot())
-  }
-
-  // Persistence adapters and event serializers share one snapshot so stored membership payment data cannot drift apart.
+  // Persistence adapters use one snapshot so stored membership payment data cannot drift apart.
   public toSnapshot(): MembershipPaymentSnapshot {
     return {
       id: this.id,
@@ -122,24 +112,6 @@ export class MembershipPayment {
 
   public get createdAt() {
     return copyDate(this._createdAt)
-  }
-}
-
-export class MembershipPaymentRecordedDomainEvent extends DomainEvent<MembershipPaymentSnapshot> {
-  public readonly eventName = 'membership-payment.recorded'
-
-  public constructor(payment: MembershipPaymentSnapshot) {
-    // The payload is the canonical replay contract so persistence adapters can store new event types without per-event translation logic.
-    super(payment)
-  }
-}
-
-export class MembershipPaymentDeletedDomainEvent extends DomainEvent<MembershipPaymentSnapshot> {
-  public readonly eventName = 'membership-payment.deleted'
-
-  public constructor(payment: MembershipPaymentSnapshot) {
-    // Delete events carry the removed snapshot so backup/replay paths can identify which month was corrected.
-    super(payment)
   }
 }
 

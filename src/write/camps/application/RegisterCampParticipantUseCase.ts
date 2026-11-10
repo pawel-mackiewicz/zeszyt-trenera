@@ -2,8 +2,6 @@ import type { CampRepoPort } from '@/write/camps/application/ports/CampRepoPort'
 import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { RegisterCampParticipantCommand } from '@/write/camps/application/requests/RegisterCampParticipantCommand'
 import { CampParticipant } from '@/write/camps/domain/CampParticipant'
-import type { DomainEvent } from '@/write/shared/events/DomainEvent'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UseCase } from '@/write/shared/UseCase'
@@ -14,15 +12,12 @@ export class RegisterCampParticipantUseCase implements UseCase<RegisterCampParti
     private readonly uow: UnitOfWork,
     private readonly campRepo: CampRepoPort,
     private readonly campParticipantRepo: CampParticipantRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
   public async handle(dto: RegisterCampParticipantCommand): Promise<void> {
     await this.uow.execute(async () => {
-      // eslint-disable-next-line prefer-const
-      let [participant, registeredEvent] = this.registerParticipant(dto)
-      const events: DomainEvent[] = [registeredEvent]
+      let participant = this.registerParticipant(dto)
 
       await this.ensureCampExists(participant.campId)
       await this.ensureParticipantIsNotRegistered(
@@ -31,33 +26,26 @@ export class RegisterCampParticipantUseCase implements UseCase<RegisterCampParti
       )
 
       if (dto.initialDiscount) {
-        const [discountedParticipant, discountEvent] =
-          participant.applyDiscount({
-            id: this.idGenerator.generate(),
-            amount: Money.create(dto.initialDiscount.amount),
-            reason: dto.initialDiscount.reason
-          })
+        const discountedParticipant = participant.applyDiscount({
+          id: this.idGenerator.generate(),
+          amount: Money.create(dto.initialDiscount.amount),
+          reason: dto.initialDiscount.reason
+        })
 
         participant = discountedParticipant
-        events.push(discountEvent)
       }
 
       if (dto.initialPayment) {
-        const [paidParticipant, paymentEvent] = participant.registerPayment({
+        const paidParticipant = participant.registerPayment({
           id: this.idGenerator.generate(),
           amount: Money.create(dto.initialPayment.amount),
           note: dto.initialPayment.note
         })
 
         participant = paidParticipant
-        events.push(paymentEvent)
       }
 
       await this.campParticipantRepo.save(participant)
-
-      for (const event of events) {
-        await this.eventRepo.save(event)
-      }
     })
   }
 

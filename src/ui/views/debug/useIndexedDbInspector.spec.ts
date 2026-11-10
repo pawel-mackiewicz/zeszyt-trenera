@@ -61,7 +61,7 @@ describe('inspectIndexedDb', () => {
   })
 
   it('captures schema metadata and rows for every declared Dexie table', async () => {
-    const [club, event] = Club.register(
+    const club = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -74,19 +74,10 @@ describe('inspectIndexedDb', () => {
       foundingDate: club.foundingDate,
       createdAt: club.createdAt
     })
-    await database.events.add({
-      eventId: event.eventId,
-      eventName: event.eventName,
-      occurredAt: event.occurredAt,
-      payload: event.payload
-    })
 
     const snapshot = await inspectIndexedDb(database)
     const clubsTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'clubs'
-    )
-    const eventsTable = snapshot.tableSnapshots.find(
-      (table) => table.name === 'events'
     )
     const trainersTable = snapshot.tableSnapshots.find(
       (table) => table.name === 'trainers'
@@ -109,8 +100,8 @@ describe('inspectIndexedDb', () => {
 
     expect(snapshot.databaseName).toBe(database.name)
     // What: pin the inspector to the current Dexie schema version. Why: the debug view should surface the exact schema revision the app is shipping, including the member-dependency lookup indexes.
-    expect(snapshot.schemaVersion).toBe(15)
-    expect(snapshot.tableSnapshots).toHaveLength(8)
+    expect(snapshot.schemaVersion).toBe(16)
+    expect(snapshot.tableSnapshots).toHaveLength(7)
     expect(clubsTable).toMatchObject({
       primaryKey: 'id',
       // The inspector should reflect that club writes no longer maintain an unused secondary index on local devices.
@@ -123,18 +114,6 @@ describe('inspectIndexedDb', () => {
       name: club.name,
       foundingDate: club.foundingDate,
       createdAt: club.createdAt
-    })
-    expect(eventsTable).toMatchObject({
-      primaryKey: 'eventId',
-      indexes: ['eventName', 'occurredAt'],
-      rowCount: 1,
-      columns: ['eventId', 'eventName', 'occurredAt', 'payload']
-    })
-    expect(eventsTable?.rows[0]).toMatchObject({
-      eventId: event.eventId,
-      eventName: 'club.created',
-      occurredAt: event.occurredAt,
-      payload: event.payload
     })
     expect(trainersTable).toMatchObject({
       primaryKey: 'id',
@@ -177,12 +156,12 @@ describe('inspectIndexedDb', () => {
   })
 
   it('clears rows from every store without removing the declared schema', async () => {
-    const [club, event] = Club.register(
+    const club = Club.register(
       'Skra Częstochowa',
       new Date('1926-01-01T00:00:00Z'),
       'club-2'
     )
-    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
+    const trainer = Trainer.register('Jane Doe', 'trainer-1')
     const member = {
       id: 'member-1',
       firstName: 'jan',
@@ -191,7 +170,7 @@ describe('inspectIndexedDb', () => {
       dateOfBirth: new Date('2010-01-01T00:00:00Z'),
       createdAt: new Date('2026-03-01T00:00:00Z')
     }
-    const [membershipPayment] = MembershipPayment.record(
+    const membershipPayment = MembershipPayment.record(
       {
         memberId: member.id,
         coveredMonth: '2026-03'
@@ -225,13 +204,6 @@ describe('inspectIndexedDb', () => {
       coveredMonth: membershipPayment.coveredMonth,
       createdAt: membershipPayment.createdAt
     })
-    await database.events.add({
-      eventId: event.eventId,
-      eventName: event.eventName,
-      occurredAt: event.occurredAt,
-      // The debug inspector should reflect the same raw snapshot payload shape the app stores for offline event replay.
-      payload: event.payload
-    })
 
     await clearIndexedDb(database)
 
@@ -240,7 +212,6 @@ describe('inspectIndexedDb', () => {
     // The debug route still needs table metadata after a reset, so the clear action must only remove rows.
     expect(snapshot.tableSnapshots).toMatchObject([
       { name: 'clubs', rowCount: 0 },
-      { name: 'events', rowCount: 0 },
       { name: 'trainers', rowCount: 0 },
       { name: 'members', rowCount: 0 },
       { name: 'membershipPayments', rowCount: 0 },
@@ -251,7 +222,6 @@ describe('inspectIndexedDb', () => {
     ])
     expect(snapshot.tableSnapshots.map((table) => table.name)).toEqual([
       'clubs',
-      'events',
       'trainers',
       'members',
       'membershipPayments',
@@ -269,18 +239,11 @@ describe('inspectIndexedDb', () => {
       foundingDate: new Date('1926-01-01T00:00:00.000Z'),
       createdAt: new Date('2026-03-01T00:00:00.000Z')
     })
-    await database.events.add({
-      eventId: 'event-1',
-      eventName: 'club.created',
-      occurredAt: new Date('2026-03-01T00:00:00.000Z'),
-      payload: { id: 'club-1' }
-    })
 
     // What: guarantee table-level reset is surgical. Why: mobile offline debugging should not destroy unrelated data while investigating one flow.
     await clearIndexedDbTable(database, 'clubs')
 
     expect(await database.clubs.count()).toBe(0)
-    expect(await database.events.count()).toBe(1)
   })
 
   it('reports an inspect error kind without leaking final copy', async () => {

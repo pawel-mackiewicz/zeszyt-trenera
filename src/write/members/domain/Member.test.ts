@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 import {
   Member,
-  MemberCreatedDomainEvent,
   InvalidMemberBirthDateError,
   InvalidMemberJoinDateError,
   InvalidMemberNameError,
@@ -29,7 +28,7 @@ describe('Member Model', () => {
     const phoneNumber = createPhoneNumber()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as the other models and does not generate identifiers on its own.
-    const [member, event] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -65,16 +64,10 @@ describe('Member Model', () => {
       archived: false,
       createdAt: member.createdAt
     })
-
-    expect(event).toBeDefined()
-    expect(event.eventId).toBeDefined()
-    expect(event).toBeInstanceOf(MemberCreatedDomainEvent)
-    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
-    expect(event.payload).toEqual(member.toSnapshot())
   })
 
   it('toSnapshot omits optional join date when the member does not have it', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -100,7 +93,7 @@ describe('Member Model', () => {
   })
 
   it('toSnapshot includes optional date fields when the member has them', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -126,7 +119,7 @@ describe('Member Model', () => {
   it('keeps date fields immutable when callers mutate shared references', () => {
     const dateOfBirth = createBirthDate()
     const joinedAt = new Date('2024-09-01T00:00:00Z')
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -162,7 +155,7 @@ describe('Member Model', () => {
   })
 
   it('allows registration without phone when birth date is provided', () => {
-    const [member, event] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -180,11 +173,10 @@ describe('Member Model', () => {
       archived: false,
       createdAt: member.createdAt
     })
-    expect(event.payload).toEqual(member.toSnapshot())
   })
 
   it('normalizes first and last names to lowercase during registration', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'JaNe  ',
         lastName: '  dOe',
@@ -199,7 +191,7 @@ describe('Member Model', () => {
   })
 
   it('throws when update input memberId does not match the loaded aggregate id', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -242,8 +234,8 @@ describe('Member Model', () => {
     })
   })
 
-  it('archives a member and emits a snapshot-based archived event', () => {
-    const [member] = Member.register(
+  it('archives a member while keeping their profile', () => {
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -252,18 +244,14 @@ describe('Member Model', () => {
       },
       'member-1'
     )
-
-    const [archivedMember, event] = member.archive()
+    const archivedMember = member.archive()
 
     expect(archivedMember.isArchived()).toBe(true)
     expect(archivedMember.archivedAt).toBeInstanceOf(Date)
-    expect(event.eventName).toBe('member.archived')
-    expect(event.payload).toEqual(archivedMember.toSnapshot())
-    expect(event.payload.archived).toBe(true)
   })
 
   it('unarchives a member and clears the archived timestamp', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -272,20 +260,15 @@ describe('Member Model', () => {
       },
       'member-1'
     )
-
-    const [archivedMember] = member.archive()
-    const [unarchivedMember, event] = archivedMember.unarchive()
+    const archivedMember = member.archive()
+    const unarchivedMember = archivedMember.unarchive()
 
     expect(unarchivedMember.isArchived()).toBe(false)
     expect(unarchivedMember.archivedAt).toBeUndefined()
-    expect(event.eventName).toBe('member.unarchived')
-    expect(event.payload).toEqual(unarchivedMember.toSnapshot())
-    expect(event.payload.archived).toBe(false)
-    expect('archivedAt' in event.payload).toBe(false)
   })
 
   it('allows updates that clear the phone number', () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -294,8 +277,7 @@ describe('Member Model', () => {
       },
       'member-1'
     )
-
-    const [updatedMember, updateEvent] = Member.update(member, {
+    const updatedMember = Member.update(member, {
       memberId: 'member-1',
       firstName: 'Jane',
       lastName: 'Doe',
@@ -303,12 +285,6 @@ describe('Member Model', () => {
     })
 
     expect(updatedMember.phoneNumber).toBeUndefined()
-    expect(updateEvent.payload).toEqual({
-      memberId: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      dateOfBirth: createBirthDate()
-    })
   })
 
   it('rejects registration if birth date is not in the past', () => {
@@ -482,23 +458,5 @@ describe('Member Model', () => {
         'member-1'
       )
     ).toThrow(InvalidMemberNameError)
-  })
-})
-
-describe('Member.delete', () => {
-  it('emits a member.deleted event with the removed member snapshot', () => {
-    const [member] = Member.register(
-      {
-        firstName: 'Jan',
-        lastName: 'Kowalski',
-        dateOfBirth: new Date('2000-01-01T00:00:00.000Z')
-      },
-      'member-1'
-    )
-
-    const event = Member.delete(member)
-
-    expect(event.eventName).toBe('member.deleted')
-    expect(event.payload).toEqual(member.toSnapshot())
   })
 })

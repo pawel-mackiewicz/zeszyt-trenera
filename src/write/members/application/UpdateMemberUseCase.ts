@@ -1,5 +1,4 @@
 import type { UseCase } from '@/write/shared/UseCase'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UpdateMemberCommand } from '@/write/members/application/requests/UpdateMemberCommand'
@@ -9,8 +8,7 @@ import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 export class UpdateMemberUseCase implements UseCase<UpdateMemberCommand> {
   public constructor(
     private readonly uow: UnitOfWork,
-    private readonly memberRepo: MemberRepoPort,
-    private readonly eventRepo: EventRepoPort
+    private readonly memberRepo: MemberRepoPort
   ) {}
 
   public async handle(dto: UpdateMemberCommand): Promise<void> {
@@ -22,8 +20,7 @@ export class UpdateMemberUseCase implements UseCase<UpdateMemberCommand> {
       if (!existingMember) {
         throw new MemberNotFoundError(dto.memberId)
       }
-
-      const [updatedMember, updatedEvent] = Member.update(existingMember, {
+      const updatedMember = Member.update(existingMember, {
         memberId: dto.memberId,
         firstName: dto.firstName,
         lastName: dto.lastName,
@@ -31,8 +28,6 @@ export class UpdateMemberUseCase implements UseCase<UpdateMemberCommand> {
         dateOfBirth: dto.dateOfBirth,
         joinedAt: dto.joinedAt
       })
-
-      await this.eventRepo.save(updatedEvent)
       await this.memberRepo.update(updatedMember)
     })
   }

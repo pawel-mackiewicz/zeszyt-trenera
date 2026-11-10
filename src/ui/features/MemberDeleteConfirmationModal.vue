@@ -112,7 +112,7 @@ async function confirmDeleteMember() {
   emit('error', '')
 
   try {
-    // What: member removal stays behind the application use case. Why: the UI must preserve tombstone events, dependency checks, and unit-of-work semantics.
+    // What: member removal stays behind the application use case. Why: the UI must preserve dependency checks and unit-of-work semantics.
     const result = await useCases.deleteMember.handle({
       memberId: props.member.id
     })

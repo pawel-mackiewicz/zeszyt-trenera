@@ -2,18 +2,21 @@ import Dexie from 'dexie'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { db, TrainerNotebookDb } from '@/db'
+import {
+  givenLegacyNotebook,
+  expectNotebookRowsToMatch
+} from '@/test/fixtures/legacyNotebook'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
 }
 
 describe('db', () => {
-  it('exposes a named Dexie instance with club, trainer, member, membership payment, attendance list, camp, camp participant, and event table schemas', () => {
+  it('stores all notebook records without an event log', () => {
     const clubsTable = db.tables.find((table) => table.name === 'clubs')
     const attendanceListsTable = db.tables.find(
       (table) => table.name === 'attendanceLists'
     )
-    const eventsTable = db.tables.find((table) => table.name === 'events')
     const trainersTable = db.tables.find((table) => table.name === 'trainers')
     const membersTable = db.tables.find((table) => table.name === 'members')
     const membershipPaymentsTable = db.tables.find(
@@ -25,8 +28,9 @@ describe('db', () => {
     )
 
     expect(db.name).toBe('trainer-notebook')
-    expect(db.verno).toBe(15)
-    expect(db.tables).toHaveLength(8)
+    expect(db.verno).toBe(16)
+    expect(db.tables).toHaveLength(7)
+    expect(db.tables.map((table) => table.name)).not.toContain('events')
     expect(clubsTable?.schema.primKey.name).toBe('id')
     // Setup only needs primary-key access for club data right now, so the schema should stay free of unused secondary indexes.
     expect(clubsTable?.schema.indexes.map((index) => index.name)).toEqual([])
@@ -34,11 +38,6 @@ describe('db', () => {
     expect(
       attendanceListsTable?.schema.indexes.map((index) => index.name)
     ).toEqual(['start', 'memberIds'])
-    expect(eventsTable?.schema.primKey.name).toBe('eventId')
-    expect(eventsTable?.schema.indexes.map((index) => index.name)).toEqual([
-      'eventName',
-      'occurredAt'
-    ])
     expect(trainersTable?.schema.primKey.name).toBe('id')
     expect(trainersTable?.schema.indexes.map((index) => index.name)).toEqual([])
     expect(membersTable?.schema.primKey.name).toBe('id')
@@ -60,6 +59,25 @@ describe('db', () => {
 
   afterEach(async () => {
     db.close()
+  })
+
+  it('keeps every notebook record after removing the old event log and reopening the database', async () => {
+    const databaseName = createTestDbName('db-without-events')
+    const { database: legacyDatabase, savedRows } =
+      await givenLegacyNotebook(databaseName)
+    legacyDatabase.close()
+    const upgradedDatabase = new TrainerNotebookDb(databaseName)
+
+    try {
+      await upgradedDatabase.open()
+      await expectNotebookRowsToMatch(upgradedDatabase, savedRows)
+
+      upgradedDatabase.close()
+      await upgradedDatabase.open()
+      await expectNotebookRowsToMatch(upgradedDatabase, savedRows)
+    } finally {
+      await upgradedDatabase.delete()
+    }
   })
 
   it('migrates legacy blank member phone values to a missing field', async () => {

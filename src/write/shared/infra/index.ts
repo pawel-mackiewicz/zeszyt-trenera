@@ -106,10 +106,3 @@ export type PersistedCampParticipant = {
   addedAt: Date
   updatedAt: Date
 }
-
-export type PersistedDomainEvent<TPayload> = {
-  eventId: string
-  eventName: string
-  occurredAt: Date
-  payload: TPayload
-}

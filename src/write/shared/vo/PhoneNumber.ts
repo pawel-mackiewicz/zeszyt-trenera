@@ -4,7 +4,7 @@ export class PhoneNumber {
   private constructor(public readonly value: string) {}
 
   public static create(rawPhoneNumber: string): PhoneNumber {
-    // One value object owns phone normalization so duplicate checks, stored snapshots, and emitted events all share the same canonical identity.
+    // One value object owns phone normalization so duplicate checks and stored snapshots share the same canonical identity.
     const parsedPhoneNumber = parsePhoneNumberFromString(rawPhoneNumber, {
       extract: false
     })

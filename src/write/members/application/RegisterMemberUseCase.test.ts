@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegisterMemberUseCase } from './RegisterMemberUseCase'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
@@ -9,8 +8,7 @@ import type { RegisterMemberCommand } from '@/write/members/application/requests
 import { InvalidPhoneNumberError } from '@/write/shared/vo/PhoneNumber'
 import {
   InvalidMemberBirthDateError,
-  MemberAlreadyExistsError,
-  MemberCreatedDomainEvent
+  MemberAlreadyExistsError
 } from '@/write/members/domain/Member'
 
 class FakeUnitOfWork implements UnitOfWork {
@@ -41,22 +39,19 @@ class FakeIdGenerator implements IdGeneratorPort {
 describe('RegisterMemberUseCase', () => {
   let uow: FakeUnitOfWork
   let memberRepo: FakeMemberRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterMemberUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     memberRepo = new FakeMemberRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
-
-    useCase = new RegisterMemberUseCase(uow, memberRepo, eventRepo, idGenerator)
+    useCase = new RegisterMemberUseCase(uow, memberRepo, idGenerator)
   })
 
-  it('registers a member via UoW, saving the member and the related domain event', async () => {
+  it('registers a member via UoW, saving the member', async () => {
     const dto: RegisterMemberCommand = {
       firstName: 'Jane',
       lastName: 'Doe',
@@ -86,15 +81,6 @@ describe('RegisterMemberUseCase', () => {
     // The fixed ID proves the workflow consumes the injected generator instead of letting the aggregate allocate infrastructure identifiers.
     expect(savedMember.id).toBe('member-generated-by-test')
     expect(idGenerator.generatedIds).toEqual(['member-generated-by-test'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent.eventName).toBe('member.created')
-    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
-    expect(savedEvent).toBeInstanceOf(MemberCreatedDomainEvent)
-    expect((savedEvent as MemberCreatedDomainEvent).payload).toEqual(
-      savedMember.toSnapshot()
-    )
   })
 
   it('throws when the phone number value object cannot normalize the input', async () => {
@@ -111,7 +97,6 @@ describe('RegisterMemberUseCase', () => {
     expect(uow.execute).not.toHaveBeenCalled()
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(memberRepo.savedMembers).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('throws before opening the unit of work when birth date is missing at runtime', async () => {
@@ -126,7 +111,6 @@ describe('RegisterMemberUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toEqual(['member-generated-by-test'])
     expect(memberRepo.savedMembers).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('registers a member without phone and still checks duplicates by birth date', async () => {
@@ -146,14 +130,6 @@ describe('RegisterMemberUseCase', () => {
     ])
     expect(memberRepo.savedMembers).toHaveLength(1)
     expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(
-      (eventRepo.savedEvents[0] as MemberCreatedDomainEvent).payload
-    ).toEqual(
-      expect.not.objectContaining({
-        phoneNumber: expect.anything()
-      })
-    )
   })
 
   it('treats an explicit null phone number as an absent phone', async () => {
@@ -173,14 +149,6 @@ describe('RegisterMemberUseCase', () => {
     ])
     expect(memberRepo.savedMembers).toHaveLength(1)
     expect(memberRepo.savedMembers[0]?.phoneNumber).toBeUndefined()
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(
-      (eventRepo.savedEvents[0] as MemberCreatedDomainEvent).payload
-    ).toEqual(
-      expect.not.objectContaining({
-        phoneNumber: expect.anything()
-      })
-    )
   })
 
   it('throws when trying to register the same member identity twice', async () => {
@@ -209,7 +177,6 @@ describe('RegisterMemberUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(1)
     expect(memberRepo.savedMembers).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('allows the same normalized name when the birth date differs', async () => {
@@ -228,7 +195,6 @@ describe('RegisterMemberUseCase', () => {
     })
 
     expect(memberRepo.savedMembers).toHaveLength(2)
-    expect(eventRepo.savedEvents).toHaveLength(2)
   })
 
   it('rejects a concurrent second registration for the same normalized identity', async () => {
@@ -260,6 +226,5 @@ describe('RegisterMemberUseCase', () => {
       )?.reason
     ).toBeInstanceOf(MemberAlreadyExistsError)
     expect(memberRepo.savedMembers).toHaveLength(1)
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 })

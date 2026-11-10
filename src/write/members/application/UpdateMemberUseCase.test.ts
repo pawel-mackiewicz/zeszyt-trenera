@@ -1,14 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { UpdateMemberUseCase } from '@/write/members/application/UpdateMemberUseCase'
 import type { UpdateMemberCommand } from '@/write/members/application/requests/UpdateMemberCommand'
-import {
-  MemberNotFoundError,
-  MemberUpdatedDomainEvent
-} from '@/write/members/domain/Member'
+import { MemberNotFoundError } from '@/write/members/domain/Member'
 import { Member, type MemberSnapshot } from '@/write/members/domain/Member'
 import { InvalidPhoneNumberError } from '@/write/shared/vo/PhoneNumber'
 
@@ -21,19 +16,13 @@ class FakeUnitOfWork implements UnitOfWork {
 describe('UpdateMemberUseCase', () => {
   let useCase: UpdateMemberUseCase
   let memberRepo: FakeMemberRepo
-  let eventRepo: FakeEventRepo
 
   beforeEach(() => {
     memberRepo = new FakeMemberRepo()
-    eventRepo = new FakeEventRepo()
-    useCase = new UpdateMemberUseCase(
-      new FakeUnitOfWork(),
-      memberRepo,
-      eventRepo
-    )
+    useCase = new UpdateMemberUseCase(new FakeUnitOfWork(), memberRepo)
   })
 
-  it('updates member identity and stores member.updated event', async () => {
+  it('saves the updated member identity', async () => {
     memberRepo.membersById.set('member-1', Member.rehydrate(memberSnapshot()))
 
     const input: UpdateMemberCommand = {
@@ -54,8 +43,6 @@ describe('UpdateMemberUseCase', () => {
       })
     ])
     expect(memberRepo.updates[0]?.phoneNumber?.value).toBe('+48123456789')
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(eventRepo.savedEvents[0]).toBeInstanceOf(MemberUpdatedDomainEvent)
   })
 
   it('throws when target member does not exist', async () => {
@@ -70,7 +57,6 @@ describe('UpdateMemberUseCase', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     expect(memberRepo.updates).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('allows updates when identity does not change', async () => {
@@ -101,15 +87,6 @@ describe('UpdateMemberUseCase', () => {
 
     expect(memberRepo.updates).toHaveLength(1)
     expect(memberRepo.updates[0]?.phoneNumber).toBeUndefined()
-    expect(eventRepo.savedEvents[0]).toBeInstanceOf(MemberUpdatedDomainEvent)
-    expect(
-      (eventRepo.savedEvents[0] as MemberUpdatedDomainEvent).payload
-    ).toEqual({
-      memberId: 'member-1',
-      firstName: 'jane',
-      lastName: 'doe',
-      dateOfBirth: new Date('2010-01-01T00:00:00Z')
-    })
   })
 
   it('rejects invalid non-empty phone numbers during update', async () => {
@@ -126,7 +103,6 @@ describe('UpdateMemberUseCase', () => {
     ).rejects.toThrow(InvalidPhoneNumberError)
 
     expect(memberRepo.updates).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })
 

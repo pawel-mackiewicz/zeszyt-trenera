@@ -1,5 +1,4 @@
 import type { UseCase } from '@/write/shared/UseCase'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { MembershipPaymentRepoPort } from '@/write/memberships/application/ports/MembershipPaymentRepoPort'
@@ -17,7 +16,6 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
     private readonly uow: UnitOfWork,
     private readonly memberRepo: MemberRepoPort,
     private readonly membershipPaymentRepo: MembershipPaymentRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -26,11 +24,9 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
       // The member and duplicate guards must share the same transaction as the writes so offline double-submits cannot interleave two paid-month records.
       await this.ensureMemberExists(dto.memberId)
       await this.ensurePaymentDoesNotExist(dto.memberId, dto.coveredMonth)
-
-      const [payment, event] = this.recordPayment(dto)
+      const payment = this.recordPayment(dto)
 
       await this.membershipPaymentRepo.save(payment)
-      await this.eventRepo.save(event)
     })
   }
 
@@ -55,7 +51,7 @@ export class RegisterMembershipPaymentUseCase implements UseCase<RegisterMembers
   }
 
   private recordPayment(dto: RegisterMembershipPaymentCommand) {
-    // The workflow owns ID allocation so the aggregate stays deterministic in tests and isolated from infrastructure concerns while the event log receives the same immutable snapshot the table persists.
+    // The workflow owns ID allocation so the aggregate stays deterministic in tests and isolated from infrastructure concerns.
     return MembershipPayment.record(
       {
         memberId: dto.memberId,

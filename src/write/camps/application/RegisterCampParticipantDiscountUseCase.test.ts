@@ -10,11 +10,9 @@ import type { RegisterCampParticipantDiscountCommand } from '@/write/camps/appli
 import {
   CampParticipant,
   CampParticipantCurrencyMismatchError,
-  CampParticipantDiscountAppliedDomainEvent,
   CampParticipantDiscountExceedsAmountDueError,
   CampParticipantDiscountNotAllowedError
 } from '@/write/camps/domain/CampParticipant'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { InvalidMoneyAmountMinorError, Money } from '@/write/shared/vo/Money'
@@ -38,7 +36,7 @@ class FakeIdGenerator implements IdGeneratorPort {
 const givenParticipantRegisteredForCamp = (
   campId = 'camp-1'
 ): CampParticipant => {
-  const [participant] = CampParticipant.register(
+  const participant = CampParticipant.register(
     {
       campId,
       person: {
@@ -61,7 +59,7 @@ const givenParticipantPaid = (
   participant: CampParticipant,
   amountMinor: number
 ): CampParticipant => {
-  const [paidParticipant] = participant.registerPayment({
+  const paidParticipant = participant.registerPayment({
     id: 'payment-1',
     amount: Money.create({
       amountMinor,
@@ -76,7 +74,7 @@ const givenParticipantPaid = (
 const givenParticipantResigned = (
   participant: CampParticipant
 ): CampParticipant => {
-  const [resignedParticipant] = participant.resign()
+  const resignedParticipant = participant.resign()
 
   return resignedParticipant
 }
@@ -97,14 +95,12 @@ const discountCommand = (
 describe('RegisterCampParticipantDiscountUseCase', () => {
   let uow: FakeUnitOfWork
   let campParticipantRepo: FakeCampParticipantRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterCampParticipantDiscountUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     campParticipantRepo = new FakeCampParticipantRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -112,12 +108,11 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     useCase = new RegisterCampParticipantDiscountUseCase(
       uow,
       campParticipantRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('registers a participant discount via UoW, updating the participant and saving the event', async () => {
+  it('registers a participant discount via UoW, updating the participant', async () => {
     campParticipantRepo.addParticipant(givenParticipantRegisteredForCamp())
 
     await useCase.handle(discountCommand())
@@ -143,14 +138,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
       currency: 'PLN'
     })
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent).toBeInstanceOf(CampParticipantDiscountAppliedDomainEvent)
-    expect(savedEvent.eventName).toBe('camp.participant.discount_applied')
-    expect(
-      (savedEvent as CampParticipantDiscountAppliedDomainEvent).payload
-    ).toEqual(updatedParticipant.toSnapshot())
   })
 
   it('marks the participant as fully paid when a discount makes the paid balance cover the amount due', async () => {
@@ -166,7 +153,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
       amountMinor: 0,
       currency: 'PLN'
     })
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects discount registration when the participant cannot be found', async () => {
@@ -180,7 +166,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -194,7 +179,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -213,7 +197,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     ).rejects.toThrow(InvalidMoneyAmountMinorError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -232,7 +215,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     ).rejects.toThrow(CampParticipantCurrencyMismatchError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('propagates excessive discounts without saving', async () => {
@@ -250,7 +232,6 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     ).rejects.toThrow(CampParticipantDiscountExceedsAmountDueError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('does not save partial changes when the domain rejects the discount', async () => {
@@ -263,6 +244,5 @@ describe('RegisterCampParticipantDiscountUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 })

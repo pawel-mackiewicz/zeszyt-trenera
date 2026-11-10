@@ -11,10 +11,8 @@ import {
   CampParticipant,
   CampParticipantCurrencyMismatchError,
   CampParticipantPaymentExceedsRemainingAmountError,
-  CampParticipantPaymentNotAllowedError,
-  CampParticipantPaymentRegisteredDomainEvent
+  CampParticipantPaymentNotAllowedError
 } from '@/write/camps/domain/CampParticipant'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { InvalidMoneyAmountMinorError, Money } from '@/write/shared/vo/Money'
@@ -38,7 +36,7 @@ class FakeIdGenerator implements IdGeneratorPort {
 const givenParticipantRegisteredForCamp = (
   campId = 'camp-1'
 ): CampParticipant => {
-  const [participant] = CampParticipant.register(
+  const participant = CampParticipant.register(
     {
       campId,
       person: {
@@ -60,7 +58,7 @@ const givenParticipantRegisteredForCamp = (
 const givenParticipantResigned = (
   participant: CampParticipant
 ): CampParticipant => {
-  const [resignedParticipant] = participant.resign()
+  const resignedParticipant = participant.resign()
 
   return resignedParticipant
 }
@@ -81,14 +79,12 @@ const paymentCommand = (
 describe('RegisterCampParticipantPaymentUseCase', () => {
   let uow: FakeUnitOfWork
   let campParticipantRepo: FakeCampParticipantRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterCampParticipantPaymentUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     campParticipantRepo = new FakeCampParticipantRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -96,12 +92,11 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     useCase = new RegisterCampParticipantPaymentUseCase(
       uow,
       campParticipantRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('registers a participant payment via UoW, updating the participant and saving the event', async () => {
+  it('registers a participant payment via UoW, updating the participant', async () => {
     campParticipantRepo.addParticipant(givenParticipantRegisteredForCamp())
 
     await useCase.handle(paymentCommand())
@@ -130,16 +125,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
       currency: 'PLN'
     })
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent).toBeInstanceOf(
-      CampParticipantPaymentRegisteredDomainEvent
-    )
-    expect(savedEvent.eventName).toBe('camp.participant.payment_registered')
-    expect(
-      (savedEvent as CampParticipantPaymentRegisteredDomainEvent).payload
-    ).toEqual(updatedParticipant.toSnapshot())
   })
 
   it('marks the participant as fully paid when the payment covers the amount due', async () => {
@@ -160,7 +145,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
       amountMinor: 0,
       currency: 'PLN'
     })
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('does not save partial changes when the payment is higher than the amount still due', async () => {
@@ -178,7 +162,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     ).rejects.toThrow(CampParticipantPaymentExceedsRemainingAmountError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('rejects payment registration when the participant cannot be found', async () => {
@@ -192,7 +175,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -206,7 +188,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -225,7 +206,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     ).rejects.toThrow(InvalidMoneyAmountMinorError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -244,7 +224,6 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     ).rejects.toThrow(CampParticipantCurrencyMismatchError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('does not save partial changes when the domain rejects the payment', async () => {
@@ -257,6 +236,5 @@ describe('RegisterCampParticipantPaymentUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 })

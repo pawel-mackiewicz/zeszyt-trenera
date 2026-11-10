@@ -1,7 +1,5 @@
 import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { AcceptCampParticipantResignationCommand } from '@/write/camps/application/requests/AcceptCampParticipantResignationCommand'
-import type { DomainEvent } from '@/write/shared/events/DomainEvent'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UseCase } from '@/write/shared/UseCase'
@@ -11,7 +9,6 @@ export class AcceptCampParticipantResignationUseCase implements UseCase<AcceptCa
   public constructor(
     private readonly uow: UnitOfWork,
     private readonly campParticipantRepo: CampParticipantRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -36,8 +33,7 @@ export class AcceptCampParticipantResignationUseCase implements UseCase<AcceptCa
         )
       }
 
-      // eslint-disable-next-line prefer-const
-      let [participant, resignedEvent] = existingParticipant.resign(
+      let participant = existingParticipant.resign(
         command.nonRefundableDepositValue
           ? {
               id: this.idGenerator.generate(),
@@ -46,24 +42,18 @@ export class AcceptCampParticipantResignationUseCase implements UseCase<AcceptCa
             }
           : undefined
       )
-      const events: DomainEvent[] = [resignedEvent]
 
       if (command.refundedValue) {
-        const [refundedParticipant, refundEvent] = participant.registerRefund({
+        const refundedParticipant = participant.registerRefund({
           id: this.idGenerator.generate(),
           amount: Money.create(command.refundedValue),
           note: ''
         })
 
         participant = refundedParticipant
-        events.push(refundEvent)
       }
 
       await this.campParticipantRepo.update(participant)
-
-      for (const event of events) {
-        await this.eventRepo.save(event)
-      }
     })
   }
 }

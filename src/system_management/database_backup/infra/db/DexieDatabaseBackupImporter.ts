@@ -1,8 +1,4 @@
-import {
-  importDB,
-  peakImportFile,
-  type ImportOptions
-} from 'dexie-export-import'
+import { importInto, peakImportFile } from 'dexie-export-import'
 
 import type { DatabaseBackupImportPort } from '@/system_management/database_backup/application/ports/DatabaseBackupImportPort'
 import type { TrainerNotebookDb } from '@/db'
@@ -32,13 +28,11 @@ export class DexieDatabaseBackupImporter implements DatabaseBackupImportPort {
       )
     }
 
-    const importOptions: ImportOptions = {
-      // Why: restore must fully replace stale local-first rows so the reopened shell always reflects one coherent backup snapshot.
-      clearTablesBeforeImport: true
-    }
-    const importedDatabase = await importDB(file, importOptions)
-
-    // Why: importDB creates a temporary Dexie instance for restore, so close it once the transaction is done to avoid duplicate open handles.
-    importedDatabase.close()
+    // Let the importer manage chunk reads and their transaction without nesting its waitFor calls.
+    await importInto(this.database, file, {
+      clearTablesBeforeImport: true,
+      acceptVersionDiff: backupMeta.data.databaseVersion < this.database.verno,
+      skipTables: ['events']
+    })
   }
 }

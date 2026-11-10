@@ -1,6 +1,5 @@
 import { copyDate } from '@/write/shared/DateUtils'
 import { CampParticipantLedger } from '@/write/camps/domain/CampParticipantLedger'
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import {
   isStandardizableName,
   standardizeName
@@ -245,12 +244,12 @@ export class CampParticipant {
   /**
    * Creates a new camp participant.
    * It checks the camp id and person data, starts with no discounts or
-   * payments, and returns the created participant with its domain event.
+   * payments, and returns the created participant.
    */
   public static register(
     input: RegisterCampParticipantInput,
     id: string
-  ): [CampParticipant, CampParticipantRegisteredDomainEvent] {
+  ): CampParticipant {
     const addedAt = new Date()
     const totalAmountDue = Money.create(input.totalAmountDue.toSnapshot())
     const campParticipant = new CampParticipant(
@@ -266,11 +265,7 @@ export class CampParticipant {
       id,
       addedAt
     )
-    const event = new CampParticipantRegisteredDomainEvent(
-      campParticipant.toSnapshot()
-    )
-
-    return [campParticipant, event]
+    return campParticipant
   }
 
   /**
@@ -301,9 +296,7 @@ export class CampParticipant {
    * currency as the camp price and does not reduce the amount due below zero.
    * The returned participant has a recalculated payment status.
    */
-  public applyDiscount(
-    input: DiscountInput
-  ): [CampParticipant, CampParticipantDiscountAppliedDomainEvent] {
+  public applyDiscount(input: DiscountInput): CampParticipant {
     assertCanApplyDiscount(this._status)
 
     const discount = createDiscount(input)
@@ -338,12 +331,7 @@ export class CampParticipant {
       this.id,
       this.addedAt
     )
-
-    const event = new CampParticipantDiscountAppliedDomainEvent(
-      updatedCampParticipant.toSnapshot()
-    )
-
-    return [updatedCampParticipant, event]
+    return updatedCampParticipant
   }
 
   /**
@@ -351,9 +339,7 @@ export class CampParticipant {
    * It checks the payment currency, adds the payment to the ledger and updates
    * the status to fully paid when the balance covers the amount due.
    */
-  public registerPayment(
-    input: PaymentInput
-  ): [CampParticipant, CampParticipantPaymentRegisteredDomainEvent] {
+  public registerPayment(input: PaymentInput): CampParticipant {
     assertCanRegisterPayment(this._status)
 
     const payment = createPayment(input)
@@ -390,12 +376,7 @@ export class CampParticipant {
       this.id,
       this.addedAt
     )
-
-    const event = new CampParticipantPaymentRegisteredDomainEvent(
-      updatedCampParticipant.toSnapshot()
-    )
-
-    return [updatedCampParticipant, event]
+    return updatedCampParticipant
   }
 
   /**
@@ -405,9 +386,7 @@ export class CampParticipant {
    * status matching their remaining balance; resigned participants become
    * refunded only when the balance is zero.
    */
-  public registerRefund(
-    input: RefundInput
-  ): [CampParticipant, CampParticipantRefundRegisteredDomainEvent] {
+  public registerRefund(input: RefundInput): CampParticipant {
     assertCanRegisterRefund(this._status)
 
     const refund = createRefund(input)
@@ -442,12 +421,7 @@ export class CampParticipant {
       this.id,
       this.addedAt
     )
-
-    const event = new CampParticipantRefundRegisteredDomainEvent(
-      updatedCampParticipant.toSnapshot()
-    )
-
-    return [updatedCampParticipant, event]
+    return updatedCampParticipant
   }
 
   /**
@@ -455,9 +429,7 @@ export class CampParticipant {
    * An optional non-refundable deposit can be kept from the paid balance. The
    * deposit must use the camp currency and cannot be higher than what was paid.
    */
-  public resign(
-    input?: NonRefundableDepositInput
-  ): [CampParticipant, CampParticipantResignedDomainEvent] {
+  public resign(input?: NonRefundableDepositInput): CampParticipant {
     assertCanResign(this._status)
 
     const nonRefundableDeposit = input
@@ -494,12 +466,7 @@ export class CampParticipant {
       this.id,
       this.addedAt
     )
-
-    const event = new CampParticipantResignedDomainEvent(
-      updatedCampParticipant.toSnapshot()
-    )
-
-    return [updatedCampParticipant, event]
+    return updatedCampParticipant
   }
 
   /**
@@ -510,7 +477,7 @@ export class CampParticipant {
    */
   public cancelResignation(
     generateReversalId: (deposit: NonRefundableDeposit) => string
-  ): [CampParticipant, CampParticipantResignationCanceledDomainEvent] {
+  ): CampParticipant {
     assertCanCancelResignation(this._status)
 
     const currentLedger = CampParticipantLedger.from(
@@ -552,12 +519,7 @@ export class CampParticipant {
       this.id,
       this.addedAt
     )
-
-    const event = new CampParticipantResignationCanceledDomainEvent(
-      updatedCampParticipant.toSnapshot()
-    )
-
-    return [updatedCampParticipant, event]
+    return updatedCampParticipant
   }
 
   public canApplyDiscount(): boolean {
@@ -655,54 +617,6 @@ export class CampParticipant {
 
   public get updatedAt() {
     return copyDate(this._updatedAt)
-  }
-}
-
-export class CampParticipantRegisteredDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.registered'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
-  }
-}
-
-export class CampParticipantDiscountAppliedDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.discount_applied'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
-  }
-}
-
-export class CampParticipantPaymentRegisteredDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.payment_registered'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
-  }
-}
-
-export class CampParticipantRefundRegisteredDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.refund_registered'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
-  }
-}
-
-export class CampParticipantResignedDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.resigned'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
-  }
-}
-
-export class CampParticipantResignationCanceledDomainEvent extends DomainEvent<CampParticipantSnapshot> {
-  public readonly eventName = 'camp.participant.resignation_canceled'
-
-  public constructor(campParticipant: CampParticipantSnapshot) {
-    super(campParticipant)
   }
 }
 

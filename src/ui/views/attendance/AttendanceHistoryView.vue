@@ -106,7 +106,7 @@ async function confirmDeleteSession() {
   deleteFailed.value = false
 
   try {
-    // What: delete through the shared application use case. Why: attendance history must not bypass domain tombstone events or the unit-of-work boundary from the UI.
+    // What: delete through the shared application use case. Why: attendance history must preserve application validation and the unit-of-work boundary.
     await useCases.deleteAttendanceList.handle({
       attendanceListId: selectedSession.id
     })

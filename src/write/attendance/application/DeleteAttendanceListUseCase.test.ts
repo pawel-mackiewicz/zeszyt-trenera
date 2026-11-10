@@ -2,11 +2,9 @@ import { beforeEach, describe, expect, it } from 'vitest'
 
 import { DeleteAttendanceListUseCase } from '@/write/attendance/application/DeleteAttendanceListUseCase'
 import { FakeAttendanceListRepo } from '@/write/attendance/application/ports/AttendanceListRepoPort'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import {
   AttendanceList,
-  AttendanceListDeletedDomainEvent,
   AttendanceListNotFoundError
 } from '@/write/attendance/domain/AttendanceList'
 
@@ -19,15 +17,12 @@ class FakeUnitOfWork implements UnitOfWork {
 describe('DeleteAttendanceListUseCase', () => {
   let useCase: DeleteAttendanceListUseCase
   let attendanceListRepo: FakeAttendanceListRepo
-  let eventRepo: FakeEventRepo
 
   beforeEach(() => {
     attendanceListRepo = new FakeAttendanceListRepo()
-    eventRepo = new FakeEventRepo()
     useCase = new DeleteAttendanceListUseCase(
       new FakeUnitOfWork(),
-      attendanceListRepo,
-      eventRepo
+      attendanceListRepo
     )
   })
 
@@ -50,14 +45,6 @@ describe('DeleteAttendanceListUseCase', () => {
     expect(
       attendanceListRepo.attendanceListsById.has('attendance-list-1')
     ).toBe(false)
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(eventRepo.savedEvents[0]).toBeInstanceOf(
-      AttendanceListDeletedDomainEvent
-    )
-    expect(eventRepo.savedEvents[0]).toMatchObject({
-      eventName: 'attendance-list.deleted',
-      payload: existingAttendanceList.toSnapshot()
-    })
   })
 
   it('deletes an empty attendance list', async () => {
@@ -75,7 +62,6 @@ describe('DeleteAttendanceListUseCase', () => {
     await useCase.handle({ attendanceListId: 'attendance-list-empty' })
 
     expect(attendanceListRepo.deleteCalls).toEqual(['attendance-list-empty'])
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('throws when the attendance list does not exist', async () => {
@@ -84,6 +70,5 @@ describe('DeleteAttendanceListUseCase', () => {
     ).rejects.toThrow(AttendanceListNotFoundError)
 
     expect(attendanceListRepo.deleteCalls).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

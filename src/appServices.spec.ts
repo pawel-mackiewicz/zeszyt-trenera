@@ -9,30 +9,16 @@ import {
   DEMO_MODE_ACTIVE_STORAGE_KEY,
   INSTALL_MODAL_SHOWN_STORAGE_KEY
 } from '@/appStorageKeys'
+import { AttendanceListAlreadyExistsError } from '@/write/attendance/domain/AttendanceList'
+import { ClubAlreadyExistsError } from '@/write/business_profile/domain/Club'
+import { MembershipPaymentAlreadyExistsError } from '@/write/memberships/domain/MembershipPayment'
 import {
-  AttendanceListAlreadyExistsError,
-  type AttendanceListSnapshot
-} from '@/write/attendance/domain/AttendanceList'
-import {
-  ClubAlreadyExistsError,
-  type ClubSnapshot
-} from '@/write/business_profile/domain/Club'
-import {
-  MembershipPaymentAlreadyExistsError,
-  type MembershipPaymentSnapshot
-} from '@/write/memberships/domain/MembershipPayment'
-import {
-  type MemberSnapshot,
   MemberAlreadyExistsError,
   MemberNotFoundError
 } from '@/write/members/domain/Member'
-import {
-  TrainerAlreadyExistsError,
-  type TrainerSnapshot
-} from '@/write/business_profile/domain/Trainer'
+import { TrainerAlreadyExistsError } from '@/write/business_profile/domain/Trainer'
 import { createAppServices } from '@/appServices'
 import { createDemoSeed } from '@/system_management/demo/infra/seed/createDemoSeed.ts'
-import type { PersistedCamp, PersistedDomainEvent } from '@/write/shared/infra'
 import { TrainerNotebookDb } from '@/db'
 
 function createTestDbName(prefix: string) {
@@ -190,7 +176,6 @@ describe('appServices', () => {
     await expect(database.members.count()).resolves.toBe(0)
     await expect(database.membershipPayments.count()).resolves.toBe(0)
     await expect(database.attendanceLists.count()).resolves.toBe(0)
-    await expect(database.events.count()).resolves.toBe(0)
     expect(window.localStorage.getItem(APP_LOCALE_STORAGE_KEY)).toBeNull()
     expect(
       window.localStorage.getItem(INSTALL_MODAL_SHOWN_STORAGE_KEY)
@@ -239,8 +224,7 @@ describe('appServices', () => {
       }
     ])
   })
-
-  it('assembles Dexie adapters that persist a club and matching event row', async () => {
+  it('assembles Dexie adapters that persist a club', async () => {
     const services = createAppServices(database)
     const useCase = services.useCases.registerClub
 
@@ -250,26 +234,17 @@ describe('appServices', () => {
     })
 
     const persistedClubs = await database.clubs.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedClub = persistedClubs[0]
-    const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<ClubSnapshot>
 
     expect(persistedClubs).toHaveLength(1)
-    expect(persistedEvents).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'club.created',
-      // Raw snapshot payloads keep the event log aligned with aggregate restore input so replay code does not have to unwrap adapter-specific keys.
-      payload: {
-        id: persistedClub.id,
-        name: persistedClub.name,
-        foundingDate: persistedClub.foundingDate,
-        createdAt: persistedClub.createdAt
-      }
+    expect(persistedClub).toEqual({
+      id: expect.any(String),
+      name: 'ZKS Włókniarz Częstochowa',
+      foundingDate: new Date('1946-01-01T00:00:00Z'),
+      createdAt: expect.any(Date)
     })
   })
-
-  it('assembles Dexie adapters that persist a camp and matching event row', async () => {
+  it('assembles Dexie adapters that persist a camp', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerCamp.handle({
@@ -284,10 +259,7 @@ describe('appServices', () => {
     })
 
     const persistedCamps = await database.camps.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedCamp = persistedCamps[0]
-    const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<PersistedCamp>
 
     expect(persistedCamps).toHaveLength(1)
     expect(persistedCamp).toMatchObject({
@@ -300,23 +272,8 @@ describe('appServices', () => {
         currency: 'PLN'
       }
     })
-    expect(persistedEvents).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'camp.registered',
-      payload: {
-        id: persistedCamp.id,
-        name: persistedCamp.name,
-        note: persistedCamp.note,
-        startDate: persistedCamp.startDate,
-        finishDate: persistedCamp.finishDate,
-        price: persistedCamp.price,
-        createdAt: persistedCamp.createdAt,
-        updatedAt: persistedCamp.updatedAt
-      }
-    })
   })
-
-  it('assembles Dexie adapters that persist an attendance list and matching event row', async () => {
+  it('assembles Dexie adapters that persist an attendance list', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerMember.handle({
@@ -341,26 +298,17 @@ describe('appServices', () => {
     })
 
     const persistedAttendanceLists = await database.attendanceLists.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedAttendanceList = persistedAttendanceLists[0]
-    const persistedEvent = persistedEvents.find(
-      (event) => event.eventName === 'attendance-list.recorded'
-    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
 
     expect(persistedAttendanceLists).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'attendance-list.recorded',
-      // The event payload mirrors the stored snapshot so offline replay can rebuild attendance sessions without adapter-specific mapping.
-      payload: {
-        id: persistedAttendanceList.id,
-        memberIds: persistedAttendanceList.memberIds,
-        start: persistedAttendanceList.start,
-        createdAt: persistedAttendanceList.createdAt
-      }
+    expect(persistedAttendanceList).toEqual({
+      id: expect.any(String),
+      memberIds: persistedMembers.map((member) => member.id),
+      start,
+      createdAt: expect.any(Date)
     })
   })
-
-  it('assembles the attendance deletion workflow for non-empty lists and matching event rows', async () => {
+  it('assembles the attendance deletion workflow for non-empty lists', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerMember.handle({
@@ -386,22 +334,7 @@ describe('appServices', () => {
       attendanceListId: persistedAttendanceList.id
     })
 
-    const persistedEvents = await database.events.toArray()
-    const deletedEvent = persistedEvents.find(
-      (event) => event.eventName === 'attendance-list.deleted'
-    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
-
     await expect(database.attendanceLists.toArray()).resolves.toEqual([])
-    expect(deletedEvent).toMatchObject({
-      eventName: 'attendance-list.deleted',
-      // Deleted attendance events keep the removed snapshot because the Dexie row is intentionally unavailable after this workflow commits.
-      payload: {
-        id: persistedAttendanceList.id,
-        memberIds: [persistedMember.id],
-        start,
-        createdAt: persistedAttendanceList.createdAt
-      }
-    })
   })
 
   it('assembles the month attendance query on top of the Dexie repo adapters', async () => {
@@ -494,21 +427,6 @@ describe('appServices', () => {
       id: persistedAttendanceList.id,
       memberIds: persistedMembers.map((member) => member.id),
       start: new Date('2026-03-27T19:00:00Z')
-    })
-
-    const persistedEvents = await database.events.toArray()
-    const updatedEvent = persistedEvents.find(
-      (event) => event.eventName === 'attendance-list.updated'
-    ) as PersistedDomainEvent<AttendanceListSnapshot> | undefined
-
-    expect(updatedEvent).toMatchObject({
-      eventName: 'attendance-list.updated',
-      // Updating attendance must persist the same snapshot payload as the stored row so replay and edit hydration keep one contract.
-      payload: {
-        id: persistedAttendanceList.id,
-        memberIds: persistedMembers.map((member) => member.id),
-        start: new Date('2026-03-27T19:00:00Z')
-      }
     })
   })
 
@@ -788,7 +706,6 @@ describe('appServices', () => {
     await expect(database.members.count()).resolves.toBe(0)
     await expect(database.membershipPayments.count()).resolves.toBe(0)
     await expect(database.attendanceLists.count()).resolves.toBe(0)
-    await expect(database.events.count()).resolves.toBe(0)
     expect(window.localStorage.getItem(DEMO_LIFECYCLE_STORAGE_KEY)).toBe(
       'dismissed'
     )
@@ -842,10 +759,8 @@ describe('appServices', () => {
     ).rejects.toThrow(ClubAlreadyExistsError)
 
     await expect(database.clubs.toArray()).resolves.toHaveLength(1)
-    await expect(database.events.toArray()).resolves.toHaveLength(1)
   })
-
-  it('assembles Dexie adapters that persist a trainer and matching event row', async () => {
+  it('assembles Dexie adapters that persist a trainer', async () => {
     const services = createAppServices(database)
     const useCase = services.useCases.registerTrainer
 
@@ -854,20 +769,13 @@ describe('appServices', () => {
     })
 
     const persistedTrainers = await database.trainers.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedTrainer = persistedTrainers[0]
-    const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<TrainerSnapshot>
 
     expect(persistedTrainers).toHaveLength(1)
-    expect(persistedEvents).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'trainer.created',
-      payload: {
-        id: persistedTrainer.id,
-        name: persistedTrainer.name,
-        createdAt: persistedTrainer.createdAt
-      }
+    expect(persistedTrainer).toEqual({
+      id: expect.any(String),
+      name: 'Jane Doe',
+      createdAt: expect.any(Date)
     })
   })
 
@@ -886,10 +794,8 @@ describe('appServices', () => {
     ).rejects.toThrow(TrainerAlreadyExistsError)
 
     await expect(database.trainers.toArray()).resolves.toHaveLength(1)
-    await expect(database.events.toArray()).resolves.toHaveLength(1)
   })
-
-  it('assembles Dexie adapters that persist a member and matching event row', async () => {
+  it('assembles Dexie adapters that persist a member', async () => {
     const services = createAppServices(database)
     const useCase = services.useCases.registerMember
 
@@ -902,24 +808,18 @@ describe('appServices', () => {
     })
 
     const persistedMembers = await database.members.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedMember = persistedMembers[0]
-    const persistedEvent =
-      persistedEvents[0] as PersistedDomainEvent<MemberSnapshot>
 
     expect(persistedMembers).toHaveLength(1)
-    expect(persistedEvents).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'member.created',
-      payload: {
-        id: persistedMember.id,
-        firstName: persistedMember.firstName,
-        lastName: persistedMember.lastName,
-        phoneNumber: '+48123456789',
-        dateOfBirth: persistedMember.dateOfBirth,
-        joinedAt: persistedMember.joinedAt,
-        createdAt: persistedMember.createdAt
-      }
+    expect(persistedMember).toEqual({
+      id: expect.any(String),
+      firstName: 'jane',
+      lastName: 'doe',
+      phoneNumber: '+48123456789',
+      dateOfBirth: new Date('2010-01-01T00:00:00Z'),
+      joinedAt: new Date('2024-09-01T00:00:00Z'),
+      archived: false,
+      createdAt: expect.any(Date)
     })
   })
 
@@ -944,10 +844,8 @@ describe('appServices', () => {
     ).rejects.toThrow(MemberAlreadyExistsError)
 
     await expect(database.members.toArray()).resolves.toHaveLength(1)
-    await expect(database.events.toArray()).resolves.toHaveLength(1)
   })
-
-  it('keeps a concurrent double-submit of the same member identity to one row and one event', async () => {
+  it('keeps a concurrent double-submit of the same member identity to one row', async () => {
     const services = createAppServices(database)
     const useCase = services.useCases.registerMember
 
@@ -979,7 +877,6 @@ describe('appServices', () => {
       )?.reason
     ).toBeInstanceOf(MemberAlreadyExistsError)
     await expect(database.members.toArray()).resolves.toHaveLength(1)
-    await expect(database.events.toArray()).resolves.toHaveLength(1)
   })
 
   it('allows registering many members when their identity differs', async () => {
@@ -1001,10 +898,8 @@ describe('appServices', () => {
     })
 
     await expect(database.members.toArray()).resolves.toHaveLength(2)
-    await expect(database.events.toArray()).resolves.toHaveLength(2)
   })
-
-  it('assembles Dexie adapters that persist a membership payment and matching event row', async () => {
+  it('assembles Dexie adapters that persist a membership payment', async () => {
     const services = createAppServices(database)
 
     await services.useCases.registerMember.handle({
@@ -1026,25 +921,15 @@ describe('appServices', () => {
     })
 
     const persistedPayments = await database.membershipPayments.toArray()
-    const persistedEvents = await database.events.toArray()
     const persistedPayment = persistedPayments[0]
-    const persistedEvent = persistedEvents.find(
-      (event) => event.eventName === 'membership-payment.recorded'
-    ) as PersistedDomainEvent<MembershipPaymentSnapshot> | undefined
 
     expect(persistedPayments).toHaveLength(1)
-    expect(persistedEvent).toMatchObject({
-      eventName: 'membership-payment.recorded',
-      payload: {
-        id: persistedPayment.id,
-        memberId: persistedPayment.memberId,
-        coveredMonth: persistedPayment.coveredMonth,
-        chargedAmount: {
-          amountMinor: 160_00,
-          currency: 'PLN'
-        },
-        createdAt: persistedPayment.createdAt
-      }
+    expect(persistedPayment).toEqual({
+      id: expect.any(String),
+      memberId: persistedMember.id,
+      coveredMonth: '2026-03',
+      chargedAmount: { amountMinor: 160_00, currency: 'PLN' },
+      createdAt: expect.any(Date)
     })
   })
 
@@ -1080,12 +965,7 @@ describe('appServices', () => {
       })
     ).rejects.toThrow(MembershipPaymentAlreadyExistsError)
 
-    const persistedPaymentEvents = (await database.events.toArray()).filter(
-      (event) => event.eventName === 'membership-payment.recorded'
-    )
-
     await expect(database.membershipPayments.toArray()).resolves.toHaveLength(1)
-    expect(persistedPaymentEvents).toHaveLength(1)
   })
 
   it('throws a domain error when trying to register a membership payment for an unknown member', async () => {
@@ -1103,7 +983,6 @@ describe('appServices', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     await expect(database.membershipPayments.toArray()).resolves.toHaveLength(0)
-    await expect(database.events.toArray()).resolves.toHaveLength(0)
   })
 
   it('throws a domain error when trying to register the same attendance start twice', async () => {
@@ -1131,12 +1010,7 @@ describe('appServices', () => {
       })
     ).rejects.toThrow(AttendanceListAlreadyExistsError)
 
-    const attendanceEvents = (await database.events.toArray()).filter(
-      (event) => event.eventName === 'attendance-list.recorded'
-    )
-
     await expect(database.attendanceLists.toArray()).resolves.toHaveLength(1)
-    expect(attendanceEvents).toHaveLength(1)
   })
 
   it('throws a domain error when trying to register an attendance list for an unknown member', async () => {
@@ -1150,7 +1024,6 @@ describe('appServices', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     await expect(database.attendanceLists.toArray()).resolves.toHaveLength(0)
-    await expect(database.events.toArray()).resolves.toHaveLength(0)
   })
 })
 

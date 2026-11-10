@@ -11,10 +11,8 @@ import {
 import {
   CampParticipantCurrencyMismatchError,
   CampParticipantDiscountExceedsAmountDueError,
-  CampParticipantRegisteredDomainEvent,
   InvalidCampParticipantCampIdError
 } from '@/write/camps/domain/CampParticipant'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { InvalidMoneyAmountMinorError } from '@/write/shared/vo/Money'
@@ -39,7 +37,6 @@ describe('RegisterCampParticipantUseCase', () => {
   let uow: FakeUnitOfWork
   let campRepo: FakeCampRepo
   let campParticipantRepo: FakeCampParticipantRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterCampParticipantUseCase
 
@@ -47,7 +44,6 @@ describe('RegisterCampParticipantUseCase', () => {
     uow = new FakeUnitOfWork()
     campRepo = new FakeCampRepo()
     campParticipantRepo = new FakeCampParticipantRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
     campRepo.existingCampIds.add('camp-1')
 
@@ -57,12 +53,11 @@ describe('RegisterCampParticipantUseCase', () => {
       uow,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('registers a camp participant via UoW, saving the participant and domain event', async () => {
+  it('registers a camp participant via UoW, saving the participant', async () => {
     const dto: RegisterCampParticipantCommand = {
       campId: ' camp-1 ',
       person: {
@@ -105,17 +100,9 @@ describe('RegisterCampParticipantUseCase', () => {
     expect(savedParticipant.status).toBe('REGISTERED')
 
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent).toBeInstanceOf(CampParticipantRegisteredDomainEvent)
-    expect(savedEvent.eventName).toBe('camp.participant.registered')
-    expect(
-      (savedEvent as CampParticipantRegisteredDomainEvent).payload
-    ).toEqual(savedParticipant.toSnapshot())
   })
 
-  it('applies an initial discount before an initial payment and saves all events in order', async () => {
+  it('applies an initial discount before an initial payment before saving the participant', async () => {
     await useCase.handle({
       campId: 'camp-1',
       person: {
@@ -172,11 +159,6 @@ describe('RegisterCampParticipantUseCase', () => {
       amountMinor: 800_00,
       currency: 'PLN'
     })
-    expect(eventRepo.savedEvents.map((event) => event.eventName)).toEqual([
-      'camp.participant.registered',
-      'camp.participant.discount_applied',
-      'camp.participant.payment_registered'
-    ])
     expect(idGenerator.generatedIds).toEqual([
       'generated-id-1',
       'generated-id-2',
@@ -184,7 +166,7 @@ describe('RegisterCampParticipantUseCase', () => {
     ])
   })
 
-  it('rejects a missing camp without saving the participant or events', async () => {
+  it('rejects a missing camp without saving the participant', async () => {
     await expect(
       useCase.handle({
         campId: 'missing-camp',
@@ -201,7 +183,6 @@ describe('RegisterCampParticipantUseCase', () => {
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
   })
 
@@ -226,7 +207,6 @@ describe('RegisterCampParticipantUseCase', () => {
     ).rejects.toThrow(CampParticipantAlreadyRegisteredError)
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
   })
 
@@ -246,7 +226,6 @@ describe('RegisterCampParticipantUseCase', () => {
     ).rejects.toThrow(InvalidCampParticipantCampIdError)
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('propagates invalid money input without saving', async () => {
@@ -265,7 +244,6 @@ describe('RegisterCampParticipantUseCase', () => {
     ).rejects.toThrow(InvalidMoneyAmountMinorError)
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('propagates invalid initial discount input without saving', async () => {
@@ -290,7 +268,6 @@ describe('RegisterCampParticipantUseCase', () => {
     ).rejects.toThrow(CampParticipantDiscountExceedsAmountDueError)
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('propagates initial payment currency mismatches without saving', async () => {
@@ -315,6 +292,5 @@ describe('RegisterCampParticipantUseCase', () => {
     ).rejects.toThrow(CampParticipantCurrencyMismatchError)
 
     expect(campParticipantRepo.savedParticipants).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

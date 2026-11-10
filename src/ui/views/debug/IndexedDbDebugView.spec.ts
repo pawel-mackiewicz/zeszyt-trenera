@@ -45,15 +45,14 @@ describe('IndexedDbDebugView', () => {
     expect(wrapper.text()).toContain(
       'IndexedDB tables, as they exist in this browser.'
     )
-    expect(wrapper.text()).toContain('events')
+    expect(wrapper.text()).not.toContain('events')
     expect(wrapper.text()).toContain('trainers')
     expect(wrapper.text()).toContain('No records stored in this table yet.')
   })
 
-  it('renders persisted rows and raw snapshot payloads', async () => {
+  it('renders persisted club fields', async () => {
     const foundingDate = new Date('1946-01-01T00:00:00.000Z')
     const createdAt = new Date('2025-03-17T14:00:00.000Z')
-    const occurredAt = new Date('2025-03-17T14:01:00.000Z')
 
     await database.open()
     await database.clubs.add({
@@ -61,17 +60,6 @@ describe('IndexedDbDebugView', () => {
       name: 'ZKS Włókniarz Częstochowa',
       foundingDate,
       createdAt
-    })
-    await database.events.add({
-      eventId: 'event-1',
-      eventName: 'club.created',
-      occurredAt,
-      payload: {
-        id: 'club-1',
-        name: 'ZKS Włókniarz Częstochowa',
-        foundingDate,
-        createdAt
-      }
     })
 
     const wrapper = mountView()
@@ -82,9 +70,8 @@ describe('IndexedDbDebugView', () => {
     })
 
     expect(wrapper.text()).toContain('ZKS Włókniarz Częstochowa')
-    expect(wrapper.text()).toContain('club.created')
     expect(wrapper.text()).toContain('1946-01-01T00:00:00.000Z')
-    expect(wrapper.text()).toContain('"foundingDate"')
+    expect(wrapper.text()).toContain('foundingDate')
   })
 
   it('clears persisted rows when the reset action is confirmed', async () => {
@@ -92,7 +79,6 @@ describe('IndexedDbDebugView', () => {
     vi.stubGlobal('confirm', confirmSpy)
     const foundingDate = new Date('1946-01-01T00:00:00.000Z')
     const createdAt = new Date('2025-03-17T14:00:00.000Z')
-    const occurredAt = new Date('2025-03-17T14:01:00.000Z')
 
     await database.open()
     await database.clubs.add({
@@ -100,15 +86,6 @@ describe('IndexedDbDebugView', () => {
       name: 'ZKS Włókniarz Częstochowa',
       foundingDate,
       createdAt
-    })
-    await database.events.add({
-      eventId: 'event-1',
-      eventName: 'club.created',
-      occurredAt,
-      payload: {
-        id: 'club-1',
-        name: 'ZKS Włókniarz Częstochowa'
-      }
     })
 
     const wrapper = mountView()
@@ -129,7 +106,6 @@ describe('IndexedDbDebugView', () => {
       'Clear all IndexedDB rows for this app in this browser? This cannot be undone.'
     )
     expect(await database.clubs.count()).toBe(0)
-    expect(await database.events.count()).toBe(0)
   })
 
   it('shows an error banner when the database snapshot cannot be read', async () => {
@@ -164,15 +140,6 @@ describe('IndexedDbDebugView', () => {
       foundingDate: new Date('1946-01-01T00:00:00.000Z'),
       createdAt: new Date('2025-03-17T14:00:00.000Z')
     })
-    await database.events.add({
-      eventId: 'event-1',
-      eventName: 'club.created',
-      occurredAt: new Date('2025-03-17T14:01:00.000Z'),
-      payload: {
-        id: 'club-1',
-        name: 'ZKS Włókniarz Częstochowa'
-      }
-    })
 
     const wrapper = mountView()
 
@@ -197,7 +164,6 @@ describe('IndexedDbDebugView', () => {
       'Clear only "clubs" rows in this browser? This cannot be undone.'
     )
     expect(await database.clubs.count()).toBe(0)
-    expect(await database.events.count()).toBe(1)
   })
 
   it('renders debug error copy from the local Polish dictionary', async () => {

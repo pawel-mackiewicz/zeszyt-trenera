@@ -1,4 +1,3 @@
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { copyDate } from '@/write/shared/DateUtils'
 import { Money, type MoneySnapshot } from '@/write/shared/vo/Money'
 
@@ -95,11 +94,7 @@ export class Camp {
     this._createdAt = copyDate(createdAt)
     this._updatedAt = copyDate(input.updatedAt ?? createdAt)
   }
-
-  public static register(
-    input: RegisterCampInput,
-    id: string
-  ): [Camp, CampRegisteredDomainEvent] {
+  public static register(input: RegisterCampInput, id: string): Camp {
     const createdAt = new Date()
     const camp = new Camp(
       {
@@ -113,9 +108,7 @@ export class Camp {
       id,
       createdAt
     )
-    const event = new CampRegisteredDomainEvent(camp.toSnapshot())
-
-    return [camp, event]
+    return camp
   }
 
   public static rehydrate(snapshot: CampSnapshot): Camp {
@@ -132,11 +125,7 @@ export class Camp {
       snapshot.createdAt
     )
   }
-
-  public static update(
-    existingCamp: Camp,
-    input: UpdateCampInput
-  ): [Camp, CampUpdatedDomainEvent] {
+  public static update(existingCamp: Camp, input: UpdateCampInput): Camp {
     if (input.campId !== existingCamp.id) {
       throw new CampIdMismatchError(existingCamp.id, input.campId)
     }
@@ -153,9 +142,7 @@ export class Camp {
       existingCamp.id,
       existingCamp.createdAt
     )
-    const event = new CampUpdatedDomainEvent(updatedCamp.toSnapshot())
-
-    return [updatedCamp, event]
+    return updatedCamp
   }
 
   public toSnapshot(): CampSnapshot {
@@ -197,22 +184,6 @@ export class Camp {
 
   public get updatedAt() {
     return copyDate(this._updatedAt)
-  }
-}
-
-export class CampRegisteredDomainEvent extends DomainEvent<CampSnapshot> {
-  public readonly eventName = 'camp.registered'
-
-  public constructor(camp: CampSnapshot) {
-    super(camp)
-  }
-}
-
-export class CampUpdatedDomainEvent extends DomainEvent<CampSnapshot> {
-  public readonly eventName = 'camp.updated'
-
-  public constructor(camp: CampSnapshot) {
-    super(camp)
   }
 }
 

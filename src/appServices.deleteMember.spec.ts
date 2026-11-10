@@ -17,8 +17,7 @@ describe('deleteMember app service', () => {
   afterEach(async () => {
     await database.delete()
   })
-
-  it('is wired and persists a delete event only when the member is clean', async () => {
+  it('deletes only members without payment or attendance dependencies', async () => {
     const services = createAppServices(database)
     await database.members.bulkAdd([
       createPersistedMember('blocked-member'),
@@ -38,9 +37,6 @@ describe('deleteMember app service', () => {
       deleted: false
     })
     expect(await database.members.get('blocked-member')).toBeDefined()
-    expect(
-      await database.events.where('eventName').equals('member.deleted').count()
-    ).toBe(0)
 
     await expect(
       services.useCases.deleteMember.handle({ memberId: 'clean-member' })
@@ -51,12 +47,6 @@ describe('deleteMember app service', () => {
     })
 
     expect(await database.members.get('clean-member')).toBeUndefined()
-    const deleteEvents = await database.events
-      .where('eventName')
-      .equals('member.deleted')
-      .toArray()
-    expect(deleteEvents).toHaveLength(1)
-    expect(deleteEvents[0].payload).toMatchObject({ id: 'clean-member' })
   })
 })
 

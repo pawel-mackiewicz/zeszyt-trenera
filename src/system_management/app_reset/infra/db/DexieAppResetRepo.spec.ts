@@ -53,12 +53,6 @@ describe('DexieAppResetRepo', () => {
       start: new Date('2026-01-01T18:00:00Z'),
       createdAt: new Date('2026-01-01T18:00:00Z')
     })
-    await database.events.add({
-      eventId: 'event-1',
-      eventName: 'club.created',
-      occurredAt: new Date('2026-01-01T00:00:00Z'),
-      payload: { id: 'club-1' }
-    })
 
     await repo.clearAllData()
 
@@ -67,6 +61,5 @@ describe('DexieAppResetRepo', () => {
     await expect(database.members.count()).resolves.toBe(0)
     await expect(database.membershipPayments.count()).resolves.toBe(0)
     await expect(database.attendanceLists.count()).resolves.toBe(0)
-    await expect(database.events.count()).resolves.toBe(0)
   })
 })

@@ -11,10 +11,8 @@ import {
   CampParticipant,
   CampParticipantCurrencyMismatchError,
   CampParticipantRefundExceedsRefundableBalanceError,
-  CampParticipantRefundNotAllowedError,
-  CampParticipantRefundRegisteredDomainEvent
+  CampParticipantRefundNotAllowedError
 } from '@/write/camps/domain/CampParticipant'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { InvalidMoneyAmountMinorError, Money } from '@/write/shared/vo/Money'
@@ -38,7 +36,7 @@ class FakeIdGenerator implements IdGeneratorPort {
 const givenParticipantRegisteredForCamp = (
   campId = 'camp-1'
 ): CampParticipant => {
-  const [participant] = CampParticipant.register(
+  const participant = CampParticipant.register(
     {
       campId,
       person: {
@@ -61,7 +59,7 @@ const givenParticipantPaid = (
   participant: CampParticipant,
   amountMinor = 500_00
 ): CampParticipant => {
-  const [paidParticipant] = participant.registerPayment({
+  const paidParticipant = participant.registerPayment({
     id: `payment-${amountMinor}`,
     amount: Money.create({
       amountMinor,
@@ -76,7 +74,7 @@ const givenParticipantPaid = (
 const givenParticipantResigned = (
   participant: CampParticipant
 ): CampParticipant => {
-  const [resignedParticipant] = participant.resign()
+  const resignedParticipant = participant.resign()
 
   return resignedParticipant
 }
@@ -84,7 +82,7 @@ const givenParticipantResigned = (
 const givenParticipantRefunded = (
   participant: CampParticipant
 ): CampParticipant => {
-  const [refundedParticipant] = participant.registerRefund({
+  const refundedParticipant = participant.registerRefund({
     id: 'refund-1',
     amount: Money.create({
       amountMinor: participant.financialBalance().amountMinor,
@@ -112,14 +110,12 @@ const refundCommand = (
 describe('RegisterCampParticipantRefundUseCase', () => {
   let uow: FakeUnitOfWork
   let campParticipantRepo: FakeCampParticipantRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterCampParticipantRefundUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     campParticipantRepo = new FakeCampParticipantRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -127,12 +123,11 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     useCase = new RegisterCampParticipantRefundUseCase(
       uow,
       campParticipantRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('registers a participant refund via UoW, updating the participant and saving the event', async () => {
+  it('registers a participant refund via UoW, updating the participant', async () => {
     campParticipantRepo.addParticipant(
       givenParticipantPaid(givenParticipantRegisteredForCamp())
     )
@@ -166,16 +161,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
       currency: 'PLN'
     })
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent).toBeInstanceOf(
-      CampParticipantRefundRegisteredDomainEvent
-    )
-    expect(savedEvent.eventName).toBe('camp.participant.refund_registered')
-    expect(
-      (savedEvent as CampParticipantRefundRegisteredDomainEvent).payload
-    ).toEqual(updatedParticipant.toSnapshot())
   })
 
   it('marks a fully paid active participant as registered when the refund leaves money still due', async () => {
@@ -191,7 +176,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
       amountMinor: 200_00,
       currency: 'PLN'
     })
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('closes a resigned participant story as refunded when the refundable balance reaches zero', async () => {
@@ -216,7 +200,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
       amountMinor: 0,
       currency: 'PLN'
     })
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects refund registration when the participant cannot be found', async () => {
@@ -230,7 +213,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
 
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -244,7 +226,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -265,7 +246,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     ).rejects.toThrow(InvalidMoneyAmountMinorError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 
@@ -286,7 +266,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     ).rejects.toThrow(CampParticipantCurrencyMismatchError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('does not save partial changes when the refund exceeds the refundable balance', async () => {
@@ -299,7 +278,6 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('does not save partial changes when the participant has already been refunded', async () => {
@@ -323,6 +301,5 @@ describe('RegisterCampParticipantRefundUseCase', () => {
     ).rejects.toThrow(CampParticipantRefundNotAllowedError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 })

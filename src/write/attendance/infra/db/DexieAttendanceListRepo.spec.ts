@@ -23,7 +23,7 @@ describe('DexieAttendanceListRepo', () => {
   })
 
   it('persists an attendance list into Dexie', async () => {
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1', 'member-2'],
         start: new Date('2026-03-27T18:00:00Z')
@@ -45,7 +45,7 @@ describe('DexieAttendanceListRepo', () => {
   })
 
   it('loads one attendance list back as a rehydrated aggregate', async () => {
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1', 'member-2'],
         start: new Date('2026-03-27T18:00:00Z')
@@ -74,8 +74,7 @@ describe('DexieAttendanceListRepo', () => {
     })
 
     await repository.save(existingAttendanceList)
-
-    const [updatedAttendanceList] = AttendanceList.update(
+    const updatedAttendanceList = AttendanceList.update(
       existingAttendanceList,
       {
         attendanceListId: 'attendance-list-1',
@@ -99,7 +98,7 @@ describe('DexieAttendanceListRepo', () => {
   })
 
   it('deletes an attendance list from Dexie', async () => {
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1', 'member-2'],
         start: new Date('2026-03-27T18:00:00Z')
@@ -127,7 +126,7 @@ describe('DexieAttendanceListRepo', () => {
 
   it('reports when an attendance list already exists for a training start', async () => {
     const start = new Date('2026-03-27T18:00:00Z')
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1'],
         start
@@ -141,7 +140,7 @@ describe('DexieAttendanceListRepo', () => {
   })
 
   it('does not treat a different training start as a duplicate', async () => {
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1'],
         start: new Date('2026-03-27T18:00:00Z')

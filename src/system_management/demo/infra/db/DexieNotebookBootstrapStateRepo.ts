@@ -16,14 +16,16 @@ export class DexieNotebookBootstrapStateRepo implements NotebookBootstrapStatePo
       memberCount,
       membershipPaymentCount,
       attendanceListCount,
-      eventCount
+      campCount,
+      campParticipantCount
     ] = await Promise.all([
       this.database.clubs.count(),
       this.database.trainers.count(),
       this.database.members.count(),
       this.database.membershipPayments.count(),
       this.database.attendanceLists.count(),
-      this.database.events.count()
+      this.database.camps.count(),
+      this.database.campParticipants.count()
     ])
 
     if (
@@ -32,7 +34,8 @@ export class DexieNotebookBootstrapStateRepo implements NotebookBootstrapStatePo
       memberCount === 0 &&
       membershipPaymentCount === 0 &&
       attendanceListCount === 0 &&
-      eventCount === 0
+      campCount === 0 &&
+      campParticipantCount === 0
     ) {
       return NOTEBOOK_BOOTSTRAP_STATES.EMPTY
     }

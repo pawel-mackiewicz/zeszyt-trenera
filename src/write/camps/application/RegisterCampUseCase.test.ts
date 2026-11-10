@@ -3,11 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { FakeCampRepo } from '@/write/camps/application/ports/CampRepoPort'
 import type { RegisterCampCommand } from '@/write/camps/application/requests/RegisterCampCommand'
 import { RegisterCampUseCase } from '@/write/camps/application/RegisterCampUseCase'
-import {
-  CampRegisteredDomainEvent,
-  InvalidCampNameError
-} from '@/write/camps/domain/Camp'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
+import { InvalidCampNameError } from '@/write/camps/domain/Camp'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { InvalidMoneyAmountMinorError } from '@/write/shared/vo/Money'
@@ -35,22 +31,19 @@ const futureFinishDate = (startDate: Date) =>
 describe('RegisterCampUseCase', () => {
   let uow: FakeUnitOfWork
   let campRepo: FakeCampRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterCampUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     campRepo = new FakeCampRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
-
-    useCase = new RegisterCampUseCase(uow, campRepo, eventRepo, idGenerator)
+    useCase = new RegisterCampUseCase(uow, campRepo, idGenerator)
   })
 
-  it('registers a camp via UoW, saving the camp and related domain event', async () => {
+  it('registers a camp via UoW, saving the camp', async () => {
     const startDate = futureDate()
     const dto: RegisterCampCommand = {
       name: ' Summer camp ',
@@ -79,14 +72,6 @@ describe('RegisterCampUseCase', () => {
       amountMinor: 1299_00,
       currency: 'PLN'
     })
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent.eventName).toBe('camp.registered')
-    expect(savedEvent).toBeInstanceOf(CampRegisteredDomainEvent)
-    expect((savedEvent as CampRegisteredDomainEvent).payload).toEqual(
-      savedCamp.toSnapshot()
-    )
   })
 
   it('rejects an empty camp name without saving', async () => {
@@ -107,7 +92,6 @@ describe('RegisterCampUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toEqual(['camp-generated-by-test'])
     expect(campRepo.savedCamps).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('registers a past camp for a completed camp record', async () => {
@@ -128,7 +112,6 @@ describe('RegisterCampUseCase', () => {
     expect(campRepo.savedCamps).toHaveLength(1)
     expect(campRepo.savedCamps[0].startDate).toEqual(dto.startDate)
     expect(campRepo.savedCamps[0].finishDate).toEqual(dto.finishDate)
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects an invalid money amount before generating an id', async () => {
@@ -149,6 +132,5 @@ describe('RegisterCampUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(campRepo.savedCamps).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

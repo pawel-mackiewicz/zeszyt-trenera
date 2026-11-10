@@ -8,10 +8,8 @@ import {
 import { FakeCampParticipantRepo } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import {
   CampParticipant,
-  CampParticipantResignationCanceledDomainEvent,
   CampParticipantResignationCancellationNotAllowedError
 } from '@/write/camps/domain/CampParticipant'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { Money } from '@/write/shared/vo/Money'
@@ -35,7 +33,7 @@ class FakeIdGenerator implements IdGeneratorPort {
 const givenParticipantRegisteredForCamp = (
   campId = 'camp-1'
 ): CampParticipant => {
-  const [participant] = CampParticipant.register(
+  const participant = CampParticipant.register(
     {
       campId,
       person: {
@@ -58,7 +56,7 @@ const givenParticipantPaid = (
   participant: CampParticipant,
   amountMinor = 1000_00
 ): CampParticipant => {
-  const [paidParticipant] = participant.registerPayment({
+  const paidParticipant = participant.registerPayment({
     id: 'payment-1',
     amount: Money.create({
       amountMinor,
@@ -74,7 +72,7 @@ const givenParticipantResigned = (
   participant: CampParticipant,
   depositAmountMinor?: number
 ): CampParticipant => {
-  const [resignedParticipant] = participant.resign(
+  const resignedParticipant = participant.resign(
     depositAmountMinor
       ? {
           id: 'deposit-1',
@@ -93,14 +91,12 @@ const givenParticipantResigned = (
 describe('CancelCampParticipantResignationUseCase', () => {
   let uow: FakeUnitOfWork
   let campParticipantRepo: FakeCampParticipantRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: CancelCampParticipantResignationUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     campParticipantRepo = new FakeCampParticipantRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -108,12 +104,11 @@ describe('CancelCampParticipantResignationUseCase', () => {
     useCase = new CancelCampParticipantResignationUseCase(
       uow,
       campParticipantRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('cancels a participant resignation via UoW, updating the participant and saving the event', async () => {
+  it('cancels a participant resignation via UoW, updating the participant', async () => {
     const participant = givenParticipantResigned(
       givenParticipantRegisteredForCamp()
     )
@@ -131,16 +126,6 @@ describe('CancelCampParticipantResignationUseCase', () => {
     expect(updatedParticipant.status).toBe('REGISTERED')
     expect(updatedParticipant.financialTransactions).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent).toBeInstanceOf(
-      CampParticipantResignationCanceledDomainEvent
-    )
-    expect(savedEvent.eventName).toBe('camp.participant.resignation_canceled')
-    expect(
-      (savedEvent as CampParticipantResignationCanceledDomainEvent).payload
-    ).toEqual(updatedParticipant.toSnapshot())
   })
 
   it('cancels resignation with a retained deposit by appending a deposit reversal', async () => {
@@ -205,7 +190,6 @@ describe('CancelCampParticipantResignationUseCase', () => {
       }
     ])
     expect(idGenerator.generatedIds).toEqual(['generated-id-1'])
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('rejects resignation cancellation when the participant cannot be found', async () => {
@@ -217,7 +201,6 @@ describe('CancelCampParticipantResignationUseCase', () => {
     ).rejects.toThrow(CampParticipantNotFoundForResignationCancellationError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('rejects resignation cancellation when the participant belongs to a different camp', async () => {
@@ -236,7 +219,6 @@ describe('CancelCampParticipantResignationUseCase', () => {
     )
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
   })
 
   it('does not save partial changes when the domain rejects the cancellation', async () => {
@@ -251,7 +233,6 @@ describe('CancelCampParticipantResignationUseCase', () => {
     ).rejects.toThrow(CampParticipantResignationCancellationNotAllowedError)
 
     expect(campParticipantRepo.updatedParticipants).toEqual([])
-    expect(eventRepo.savedEvents).toEqual([])
     expect(idGenerator.generatedIds).toEqual([])
   })
 })

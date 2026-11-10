@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   InvalidMembershipPaymentCoveredMonthError,
   MembershipPayment,
-  MembershipPaymentRecordedDomainEvent,
   toMembershipPaymentCoveredMonth
 } from '@/write/memberships/domain/MembershipPayment'
 import { Money } from '@/write/shared/vo/Money'
@@ -14,7 +13,7 @@ describe('MembershipPayment Model', () => {
     const beforeCreation = new Date()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as the other models and does not generate identifiers on its own.
-    const [payment, event] = MembershipPayment.record(
+    const payment = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03',
@@ -55,12 +54,6 @@ describe('MembershipPayment Model', () => {
       },
       createdAt: payment.createdAt
     })
-
-    expect(event).toBeDefined()
-    expect(event.eventId).toBeDefined()
-    expect(event).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
-    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
-    expect(event.payload).toEqual(payment.toSnapshot())
   })
 
   it('restores an existing membership payment from persisted state', () => {

@@ -1,6 +1,5 @@
 import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { CancelCampParticipantResignationCommand } from '@/write/camps/application/requests/CancelCampParticipantResignationCommand'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UseCase } from '@/write/shared/UseCase'
@@ -9,7 +8,6 @@ export class CancelCampParticipantResignationUseCase implements UseCase<CancelCa
   public constructor(
     private readonly uow: UnitOfWork,
     private readonly campParticipantRepo: CampParticipantRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -33,13 +31,11 @@ export class CancelCampParticipantResignationUseCase implements UseCase<CancelCa
           existingParticipant.campId
         )
       }
-
-      const [participant, event] = existingParticipant.cancelResignation(() =>
+      const participant = existingParticipant.cancelResignation(() =>
         this.idGenerator.generate()
       )
 
       await this.campParticipantRepo.update(participant)
-      await this.eventRepo.save(event)
     })
   }
 }

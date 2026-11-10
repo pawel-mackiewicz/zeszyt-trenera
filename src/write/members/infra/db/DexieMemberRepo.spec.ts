@@ -39,7 +39,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('persists a member into Dexie', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -67,7 +67,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('omits the persisted phone field when the member does not have one', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -92,7 +92,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('persists name in lower case regardless of input casing', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'JaNe',
         lastName: 'dOe',
@@ -122,7 +122,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('reports when the same name and birth date already exist', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -140,7 +140,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('does not treat a matching birth date with a different name as a duplicate', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -158,7 +158,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('does not treat the same normalized name with a different birth date as a duplicate', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -180,7 +180,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('reports when a member exists for the given id', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -196,7 +196,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('updates an existing member while preserving createdAt', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -206,8 +206,7 @@ describe('DexieMemberRepo', () => {
       'member-1'
     )
     await repository.save(member)
-
-    const [updatedMember] = Member.update(member, {
+    const updatedMember = Member.update(member, {
       memberId: member.id,
       firstName: 'Janet',
       lastName: 'Doe',
@@ -228,7 +227,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('rehydrates a member aggregate by id', async () => {
-    const [member] = Member.register(
+    const member = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',
@@ -263,7 +262,7 @@ describe('DexieMemberRepo', () => {
   })
 
   it('checks duplicate identity lookup by name and birth date', async () => {
-    const [memberOne] = Member.register(
+    const memberOne = Member.register(
       {
         firstName: 'Jane',
         lastName: 'Doe',

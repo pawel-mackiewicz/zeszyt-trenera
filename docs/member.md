@@ -12,8 +12,7 @@ checks before the feature ships:
 - back the method with an indexed Dexie lookup suitable for mobile-first
   local reads
 - include the returned ids in `DeleteMemberResult`
-- keep the member untouched and skip the `member.deleted` event whenever any
-  dependency list is non-empty
+- keep the member untouched whenever any dependency list is non-empty
 
 This keeps destructive member operations explicit and prevents orphaned
 local-first records.

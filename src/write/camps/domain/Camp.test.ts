@@ -3,8 +3,6 @@ import { describe, expect, it } from 'vitest'
 import {
   Camp,
   CampIdMismatchError,
-  CampRegisteredDomainEvent,
-  CampUpdatedDomainEvent,
   InvalidCampFinishDateError,
   InvalidCampNameError,
   InvalidCampStartDateError
@@ -25,14 +23,13 @@ const campPrice = () =>
   })
 
 describe('Camp', () => {
-  it('registers a camp with required properties and emits an event', () => {
+  it('registers a camp with required properties', () => {
     const id = 'camp-1'
     const startDate = futureDate()
     const finishDate = futureFinishDate(startDate)
     const price = campPrice()
     const beforeCreation = new Date()
-
-    const [camp, event] = Camp.register(
+    const camp = Camp.register(
       {
         name: '  Summer camp  ',
         note: '  Bring gloves  ',
@@ -58,15 +55,11 @@ describe('Camp', () => {
       afterCreation.getTime()
     )
     expect(camp.updatedAt).toEqual(camp.createdAt)
-
-    expect(event).toBeInstanceOf(CampRegisteredDomainEvent)
-    expect(event.eventName).toBe('camp.registered')
-    expect(event.payload).toEqual(camp.toSnapshot())
   })
 
   it('defaults missing note to an empty string', () => {
     const startDate = futureDate()
-    const [camp] = Camp.register(
+    const camp = Camp.register(
       {
         name: 'Summer camp',
         startDate,
@@ -82,8 +75,7 @@ describe('Camp', () => {
   it('registers a completed camp for historical records', () => {
     const startDate = pastDate()
     const finishDate = pastFinishDate(startDate)
-
-    const [camp] = Camp.register(
+    const camp = Camp.register(
       {
         name: 'Spring camp',
         startDate,
@@ -100,7 +92,7 @@ describe('Camp', () => {
   it('keeps dates and money immutable when callers mutate shared references', () => {
     const startDate = futureDate()
     const finishDate = futureFinishDate(startDate)
-    const [camp] = Camp.register(
+    const camp = Camp.register(
       {
         name: 'Summer camp',
         startDate,
@@ -165,8 +157,7 @@ describe('Camp', () => {
     const newStartDate = futureDate()
     const newFinishDate = futureFinishDate(newStartDate)
     const beforeUpdate = new Date()
-
-    const [updatedCamp, event] = Camp.update(existingCamp, {
+    const updatedCamp = Camp.update(existingCamp, {
       campId: 'camp-1',
       name: '  Winter camp  ',
       note: '  Advanced group  ',
@@ -192,9 +183,6 @@ describe('Camp', () => {
     expect(updatedCamp.updatedAt.getTime()).toBeLessThanOrEqual(
       afterUpdate.getTime()
     )
-    expect(event).toBeInstanceOf(CampUpdatedDomainEvent)
-    expect(event.eventName).toBe('camp.updated')
-    expect(event.payload).toEqual(updatedCamp.toSnapshot())
   })
 
   it('rejects blank camp names', () => {
@@ -259,7 +247,7 @@ describe('Camp', () => {
 
   it('applies the same name, start date, and finish date rules during updates', () => {
     const startDate = futureDate()
-    const [camp] = Camp.register(
+    const camp = Camp.register(
       {
         name: 'Summer camp',
         startDate,
@@ -299,7 +287,7 @@ describe('Camp', () => {
 
   it('rejects updates when the provided id does not match the loaded aggregate', () => {
     const startDate = futureDate()
-    const [camp] = Camp.register(
+    const camp = Camp.register(
       {
         name: 'Summer camp',
         startDate,

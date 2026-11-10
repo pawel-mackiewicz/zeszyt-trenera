@@ -12,7 +12,6 @@ import type {
   DemoLifecycleState,
   DemoLifecycleStorePort
 } from '@/system_management/demo/application/ports/DemoLifecycleStorePort'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { MembershipPaymentRepoPort } from '@/write/memberships/application/ports/MembershipPaymentRepoPort'
@@ -35,7 +34,6 @@ import {
 import { MembershipPayment } from '@/write/memberships/domain/MembershipPayment'
 import { Member } from '@/write/members/domain/Member'
 import { Trainer } from '@/write/business_profile/domain/Trainer'
-import type { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { Money } from '@/write/shared/vo/Money'
 import { PhoneNumber } from '@/write/shared/vo/PhoneNumber'
 
@@ -70,7 +68,6 @@ export class BootstrapDemoModeUseCase implements UseCase<
     private readonly attendanceListRepo: AttendanceListRepoPort,
     private readonly campRepo: CampRepoPort,
     private readonly campParticipantRepo: CampParticipantRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort,
     // Why: demo data shape generation belongs to an injected policy so the use case stays independent from infra module locations.
     private readonly demoSeedFactory: DemoSeedFactoryPort,
@@ -213,26 +210,24 @@ export class BootstrapDemoModeUseCase implements UseCase<
   }
 
   private async persistDemoClub(clubSeed: DemoSeed['club']): Promise<void> {
-    const [club, clubEvent] = Club.register(
+    const club = Club.register(
       clubSeed.name,
       clubSeed.foundingDate,
       this.idGenerator.generate()
     )
 
     await this.clubRepo.save(club)
-    await this.eventRepo.save(clubEvent)
   }
 
   private async persistDemoTrainer(
     trainerSeed: DemoSeed['trainer']
   ): Promise<void> {
-    const [trainer, trainerEvent] = Trainer.register(
+    const trainer = Trainer.register(
       trainerSeed.name,
       this.idGenerator.generate()
     )
 
     await this.trainerRepo.save(trainer)
-    await this.eventRepo.save(trainerEvent)
   }
 
   // Why: later demo records refer to members by index, so collecting the generated IDs in one place preserves that mapping instead of leaking it across the bootstrap flow.
@@ -242,7 +237,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
     const memberIds: string[] = []
 
     for (const memberSeed of memberSeeds) {
-      const [member, memberEvent] = Member.register(
+      const member = Member.register(
         {
           firstName: memberSeed.firstName,
           lastName: memberSeed.lastName,
@@ -255,7 +250,6 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
       memberIds.push(member.id)
       await this.memberRepo.save(member)
-      await this.eventRepo.save(memberEvent)
     }
 
     return memberIds
@@ -266,7 +260,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
     memberIds: string[]
   ): Promise<void> {
     for (const paymentSeed of paymentSeeds) {
-      const [payment, paymentEvent] = MembershipPayment.record(
+      const payment = MembershipPayment.record(
         {
           memberId: memberIds[paymentSeed.memberIndex] as string,
           coveredMonth: paymentSeed.coveredMonth,
@@ -276,7 +270,6 @@ export class BootstrapDemoModeUseCase implements UseCase<
       )
 
       await this.membershipPaymentRepo.save(payment)
-      await this.eventRepo.save(paymentEvent)
     }
   }
 
@@ -285,7 +278,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
     memberIds: string[]
   ): Promise<void> {
     for (const attendanceSeed of attendanceSeeds) {
-      const [attendanceList, attendanceEvent] = AttendanceList.record(
+      const attendanceList = AttendanceList.record(
         {
           memberIds: attendanceSeed.memberIndexes.map(
             (memberIndex) => memberIds[memberIndex] as string
@@ -296,7 +289,6 @@ export class BootstrapDemoModeUseCase implements UseCase<
       )
 
       await this.attendanceListRepo.save(attendanceList)
-      await this.eventRepo.save(attendanceEvent)
     }
   }
 
@@ -306,7 +298,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
     const campIds: string[] = []
 
     for (const campSeed of campSeeds) {
-      const [camp, campEvent] = Camp.register(
+      const camp = Camp.register(
         {
           name: campSeed.name,
           note: campSeed.note,
@@ -319,7 +311,6 @@ export class BootstrapDemoModeUseCase implements UseCase<
 
       campIds.push(camp.id)
       await this.campRepo.save(camp)
-      await this.eventRepo.save(campEvent)
     }
 
     return campIds
@@ -331,8 +322,7 @@ export class BootstrapDemoModeUseCase implements UseCase<
     memberIds: string[]
   ): Promise<void> {
     for (const participantSeed of participantSeeds) {
-      // eslint-disable-next-line prefer-const
-      let [participant, registeredEvent] = CampParticipant.register(
+      let participant = CampParticipant.register(
         {
           campId: campIds[participantSeed.campIndex] as string,
           person: this.resolveCampParticipantPerson(
@@ -343,35 +333,31 @@ export class BootstrapDemoModeUseCase implements UseCase<
         },
         this.idGenerator.generate()
       )
-      const events: DomainEvent[] = [registeredEvent]
 
       if (participantSeed.initialDiscount) {
-        const [discountedParticipant, discountEvent] =
-          participant.applyDiscount({
-            id: this.idGenerator.generate(),
-            amount: Money.create(participantSeed.initialDiscount.amount),
-            reason: participantSeed.initialDiscount.reason
-          })
+        const discountedParticipant = participant.applyDiscount({
+          id: this.idGenerator.generate(),
+          amount: Money.create(participantSeed.initialDiscount.amount),
+          reason: participantSeed.initialDiscount.reason
+        })
 
         participant = discountedParticipant
-        events.push(discountEvent)
       }
 
       if (participantSeed.initialPayment) {
-        const [paidParticipant, paymentEvent] = participant.registerPayment({
+        const paidParticipant = participant.registerPayment({
           id: this.idGenerator.generate(),
           amount: Money.create(participantSeed.initialPayment.amount),
           note: participantSeed.initialPayment.note
         })
 
         participant = paidParticipant
-        events.push(paymentEvent)
       }
 
       if (participantSeed.resignation) {
         const nonRefundableDeposit =
           participantSeed.resignation.nonRefundableDeposit
-        const [resignedParticipant, resignationEvent] = participant.resign(
+        const resignedParticipant = participant.resign(
           nonRefundableDeposit
             ? {
                 id: this.idGenerator.generate(),
@@ -382,14 +368,9 @@ export class BootstrapDemoModeUseCase implements UseCase<
         )
 
         participant = resignedParticipant
-        events.push(resignationEvent)
       }
 
       await this.campParticipantRepo.save(participant)
-
-      for (const event of events) {
-        await this.eventRepo.save(event)
-      }
     }
   }
 

@@ -1,4 +1,3 @@
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { copyDate } from '../../shared/DateUtils'
 
 const MAX_START_FUTURE_OFFSET_IN_MS = 24 * 60 * 60 * 1000
@@ -79,7 +78,7 @@ export class AttendanceList {
   public static record(
     input: RegisterAttendanceListInput,
     id: string
-  ): [AttendanceList, AttendanceListRecordedDomainEvent] {
+  ): AttendanceList {
     const now = new Date()
     const memberIds = assertUniqueMemberIds(input.memberIds)
     const start = assertValidStart(input.start, now)
@@ -92,16 +91,11 @@ export class AttendanceList {
       },
       id
     )
-    // Event payloads use the same snapshot contract as persistence so the offline event log can replay attendance without aggregate-specific mapping.
-    const event = new AttendanceListRecordedDomainEvent(
-      attendanceList.toSnapshot()
-    )
-
-    return [attendanceList, event]
+    return attendanceList
   }
 
   public static rehydrate(snapshot: AttendanceListSnapshot): AttendanceList {
-    // Why: update workflows need a real aggregate loaded from persistence so validation and event creation stay in the domain model instead of use-case glue.
+    // Why: update workflows need a real aggregate loaded from persistence so validation stays in the domain model instead of use-case glue.
     return new AttendanceList(
       {
         memberIds: snapshot.memberIds,
@@ -115,7 +109,7 @@ export class AttendanceList {
   public static update(
     existingAttendanceList: AttendanceList,
     input: UpdateAttendanceListInput
-  ): [AttendanceList, AttendanceListUpdatedDomainEvent] {
+  ): AttendanceList {
     if (input.attendanceListId !== existingAttendanceList.id) {
       throw new AttendanceListIdMismatchError(
         existingAttendanceList.id,
@@ -134,24 +128,10 @@ export class AttendanceList {
       existingAttendanceList.id,
       existingAttendanceList.createdAt
     )
-    // Why: update events must carry the same immutable snapshot contract as persistence so offline replay can rebuild edited sessions without event-specific mapping.
-    const event = new AttendanceListUpdatedDomainEvent(
-      updatedAttendanceList.toSnapshot()
-    )
-
-    return [updatedAttendanceList, event]
+    return updatedAttendanceList
   }
 
-  public static delete(
-    existingAttendanceList: AttendanceList
-  ): AttendanceListDeletedDomainEvent {
-    // Why: deletion needs the removed session snapshot because the persisted row is gone after the write, including non-empty member attendance.
-    return new AttendanceListDeletedDomainEvent(
-      existingAttendanceList.toSnapshot()
-    )
-  }
-
-  // Persistence adapters and event serializers share one snapshot so stored attendance data cannot drift apart.
+  // Persistence adapters use one snapshot so stored attendance data cannot drift apart.
   public toSnapshot(): AttendanceListSnapshot {
     return {
       id: this.id,
@@ -171,32 +151,6 @@ export class AttendanceList {
 
   public get createdAt() {
     return copyDate(this._createdAt)
-  }
-}
-
-export class AttendanceListRecordedDomainEvent extends DomainEvent<AttendanceListSnapshot> {
-  public readonly eventName = 'attendance-list.recorded'
-
-  public constructor(attendanceList: AttendanceListSnapshot) {
-    // The payload is the canonical replay contract so future adapters can persist this event type without event-specific translation.
-    super(attendanceList)
-  }
-}
-
-export class AttendanceListUpdatedDomainEvent extends DomainEvent<AttendanceListSnapshot> {
-  public readonly eventName = 'attendance-list.updated'
-
-  public constructor(attendanceList: AttendanceListSnapshot) {
-    super(attendanceList)
-  }
-}
-
-export class AttendanceListDeletedDomainEvent extends DomainEvent<AttendanceListSnapshot> {
-  public readonly eventName = 'attendance-list.deleted'
-
-  public constructor(attendanceList: AttendanceListSnapshot) {
-    // Why: delete events carry the full snapshot so local-first audits and future replay paths can identify exactly what was removed.
-    super(attendanceList)
   }
 }
 

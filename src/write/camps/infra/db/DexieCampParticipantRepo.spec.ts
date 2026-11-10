@@ -22,7 +22,7 @@ describe('DexieCampParticipantRepo', () => {
   it('saves a participant and finds it by camp and normalized person identity', async () => {
     database = new TrainerNotebookDb(createTestDbName('camp-participants'))
     const repo = new DexieCampParticipantRepo(database)
-    const [participant] = CampParticipant.register(
+    const participant = CampParticipant.register(
       {
         campId: ' camp-1 ',
         person: {

@@ -23,7 +23,7 @@ describe('DexieTrainerRepo', () => {
   })
 
   it('persists a trainer into Dexie', async () => {
-    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
+    const trainer = Trainer.register('Jane Doe', 'trainer-1')
 
     await repository.save(trainer)
 
@@ -42,7 +42,7 @@ describe('DexieTrainerRepo', () => {
   })
 
   it('reports when a trainer is already persisted', async () => {
-    const [trainer] = Trainer.register('Jane Doe', 'trainer-1')
+    const trainer = Trainer.register('Jane Doe', 'trainer-1')
 
     await repository.save(trainer)
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
-import { Club, type ClubSnapshot } from '@/write/business_profile/domain/Club'
-import type { PersistedClub, PersistedDomainEvent } from '@/write/shared/infra'
+import { Club } from '@/write/business_profile/domain/Club'
+import type { PersistedClub } from '@/write/shared/infra'
 import { DexieUnitOfWork } from '@/write/shared/infra/db/DexieUnitOfWork'
 import { TrainerNotebookDb as DexieDatabase } from '@/db'
 
@@ -24,7 +24,7 @@ describe('DexieUnitOfWork', () => {
   })
 
   it('rolls back writes across all tables when the transaction fails', async () => {
-    const [club, event] = Club.register(
+    const club = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -38,19 +38,17 @@ describe('DexieUnitOfWork', () => {
           foundingDate: club.foundingDate,
           createdAt: club.createdAt
         } satisfies PersistedClub)
-        await database.events.add({
-          eventId: event.eventId,
-          eventName: event.eventName,
-          occurredAt: event.occurredAt,
-          // The event row should mirror the same raw snapshot contract that replay code restores directly.
-          payload: event.payload
-        } satisfies PersistedDomainEvent<ClubSnapshot>)
+        await database.trainers.add({
+          id: 'trainer-1',
+          name: 'Jane Doe',
+          createdAt: new Date('2026-03-01T00:00:00Z')
+        })
 
         throw new Error('rollback')
       })
     ).rejects.toThrow('rollback')
 
     await expect(database.clubs.count()).resolves.toBe(0)
-    await expect(database.events.count()).resolves.toBe(0)
+    await expect(database.trainers.count()).resolves.toBe(0)
   })
 })

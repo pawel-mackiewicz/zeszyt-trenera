@@ -1,4 +1,3 @@
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { copyDate } from '../../shared/DateUtils'
 
 export type ClubSnapshot = {
@@ -26,16 +25,10 @@ export class Club {
     this._name = name
     this._foundingDate = copyDate(foundingDate)
   }
-
-  public static register(
-    name: string,
-    foundingDate: Date,
-    id: string
-  ): [Club, ClubCreatedDomainEvent] {
+  public static register(name: string, foundingDate: Date, id: string): Club {
     // Registration receives the ID from outside so the aggregate does not depend on external identifier generators.
     const club = new Club(name, foundingDate, id)
-    const event = new ClubCreatedDomainEvent(club.toSnapshot())
-    return [club, event]
+    return club
   }
 
   public static restore(snapshot: ClubSnapshot): Club {
@@ -47,7 +40,7 @@ export class Club {
     )
   }
 
-  // Persistence adapters and event serializers share one snapshot so stored club data cannot drift apart.
+  // Persistence adapters use one snapshot so stored club data cannot drift apart.
   public toSnapshot(): ClubSnapshot {
     return {
       id: this.id,
@@ -67,15 +60,6 @@ export class Club {
 
   public get createdAt() {
     return copyDate(this._createdAt)
-  }
-}
-
-export class ClubCreatedDomainEvent extends DomainEvent<ClubSnapshot> {
-  public readonly eventName = 'club.created'
-
-  public constructor(club: ClubSnapshot) {
-    // The payload is the canonical replay contract so persistence adapters can store new event types without per-event translation logic.
-    super(club)
   }
 }
 

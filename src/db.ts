@@ -5,7 +5,6 @@ import type {
   PersistedCamp,
   PersistedCampParticipant,
   PersistedClub,
-  PersistedDomainEvent,
   PersistedMember,
   PersistedMembershipPayment,
   PersistedTrainer
@@ -20,7 +19,6 @@ export class TrainerNotebookDb extends Dexie {
   public attendanceLists!: EntityTable<PersistedAttendanceList, 'id'>
   public camps!: EntityTable<PersistedCamp, 'id'>
   public campParticipants!: EntityTable<PersistedCampParticipant, 'id'>
-  public events!: EntityTable<PersistedDomainEvent<unknown>, 'eventId'>
 
   public constructor(databaseName = 'trainer-notebook') {
     super(databaseName)
@@ -193,6 +191,8 @@ export class TrainerNotebookDb extends Dexie {
       // Camp details need camp-level roster reads, while the compound key still keeps duplicate participant checks deterministic.
       campParticipants: 'id, campId, [campId+personKey]'
     })
+    // Snapshots already hold all notebook data; discard only the redundant event log.
+    this.version(16).stores({ events: null })
   }
 }
 

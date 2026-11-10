@@ -1,16 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RegisterMembershipPaymentUseCase } from './RegisterMembershipPaymentUseCase'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import { FakeMembershipPaymentRepo } from '@/write/memberships/application/ports/MembershipPaymentRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { RegisterMembershipPaymentCommand } from '@/write/memberships/application/requests/RegisterMembershipPaymentCommand'
-import {
-  MembershipPaymentAlreadyExistsError,
-  MembershipPaymentRecordedDomainEvent
-} from '@/write/memberships/domain/MembershipPayment'
+import { MembershipPaymentAlreadyExistsError } from '@/write/memberships/domain/MembershipPayment'
 import { MemberNotFoundError } from '@/write/members/domain/Member'
 class FakeUnitOfWork implements UnitOfWork {
   private current: Promise<void> = Promise.resolve()
@@ -41,7 +37,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
   let uow: FakeUnitOfWork
   let memberRepo: FakeMemberRepo
   let membershipPaymentRepo: FakeMembershipPaymentRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterMembershipPaymentUseCase
 
@@ -49,7 +44,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
     uow = new FakeUnitOfWork()
     memberRepo = new FakeMemberRepo()
     membershipPaymentRepo = new FakeMembershipPaymentRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -58,12 +52,11 @@ describe('RegisterMembershipPaymentUseCase', () => {
       uow,
       memberRepo,
       membershipPaymentRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('records a membership payment via UoW, saving the payment and related domain event', async () => {
+  it('records a membership payment via UoW, saving the payment', async () => {
     memberRepo.existingMemberIds.add('member-1')
 
     const dto: RegisterMembershipPaymentCommand = {
@@ -101,15 +94,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
     expect(idGenerator.generatedIds).toEqual([
       'membership-payment-generated-by-test'
     ])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent.eventName).toBe('membership-payment.recorded')
-    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
-    expect(savedEvent).toBeInstanceOf(MembershipPaymentRecordedDomainEvent)
-    expect(
-      (savedEvent as MembershipPaymentRecordedDomainEvent).payload
-    ).toEqual(savedPayment.toSnapshot())
   })
 
   it('throws when trying to record a membership payment for an unknown member', async () => {
@@ -129,7 +113,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(membershipPaymentRepo.savedPayments).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('throws when the same member and covered month already have a payment', async () => {
@@ -157,7 +140,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(membershipPaymentRepo.savedPayments).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('rejects a concurrent second payment registration for the same member and covered month', async () => {
@@ -190,7 +172,6 @@ describe('RegisterMembershipPaymentUseCase', () => {
       )?.reason
     ).toBeInstanceOf(MembershipPaymentAlreadyExistsError)
     expect(membershipPaymentRepo.savedPayments).toHaveLength(1)
-    expect(eventRepo.savedEvents).toHaveLength(1)
     expect(idGenerator.generatedIds).toEqual([
       'membership-payment-generated-by-test'
     ])

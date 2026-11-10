@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { ArchiveMemberUseCase } from './ArchiveMemberUseCase'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { ArchiveMemberCommand } from '@/write/members/application/requests/ArchiveMemberCommand'
 import {
   Member,
-  MemberArchivedDomainEvent,
   MemberNotFoundError,
   type MemberSnapshot
 } from '@/write/members/domain/Member'
@@ -21,19 +19,13 @@ class FakeUnitOfWork implements UnitOfWork {
 describe('ArchiveMemberUseCase', () => {
   let useCase: ArchiveMemberUseCase
   let memberRepo: FakeMemberRepo
-  let eventRepo: FakeEventRepo
 
   beforeEach(() => {
     memberRepo = new FakeMemberRepo()
-    eventRepo = new FakeEventRepo()
-    useCase = new ArchiveMemberUseCase(
-      new FakeUnitOfWork(),
-      memberRepo,
-      eventRepo
-    )
+    useCase = new ArchiveMemberUseCase(new FakeUnitOfWork(), memberRepo)
   })
 
-  it('archives a loaded member and stores member.archived event', async () => {
+  it('saves the archived member', async () => {
     memberRepo.membersById.set('member-1', Member.rehydrate(memberSnapshot()))
 
     const input: ArchiveMemberCommand = {
@@ -45,11 +37,6 @@ describe('ArchiveMemberUseCase', () => {
     expect(memberRepo.updates).toHaveLength(1)
     expect(memberRepo.updates[0]?.isArchived()).toBe(true)
     expect(memberRepo.updates[0]?.archivedAt).toBeInstanceOf(Date)
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(eventRepo.savedEvents[0]).toBeInstanceOf(MemberArchivedDomainEvent)
-    expect(
-      (eventRepo.savedEvents[0] as MemberArchivedDomainEvent).payload
-    ).toEqual(memberRepo.updates[0]?.toSnapshot())
   })
 
   it('throws when target member does not exist', async () => {
@@ -60,7 +47,6 @@ describe('ArchiveMemberUseCase', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     expect(memberRepo.updates).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })
 

@@ -1,6 +1,5 @@
 import type { UseCase } from '@/write/shared/UseCase'
 import type { AttendanceListRepoPort } from '@/write/attendance/application/ports/AttendanceListRepoPort'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UpdateAttendanceListCommand } from '@/write/attendance/application/requests/UpdateAttendanceListCommand'
@@ -15,8 +14,7 @@ export class UpdateAttendanceListUseCase implements UseCase<UpdateAttendanceList
   public constructor(
     private readonly uow: UnitOfWork,
     private readonly memberRepo: MemberRepoPort,
-    private readonly attendanceListRepo: AttendanceListRepoPort,
-    private readonly eventRepo: EventRepoPort
+    private readonly attendanceListRepo: AttendanceListRepoPort
   ) {}
 
   public async handle(dto: UpdateAttendanceListCommand): Promise<void> {
@@ -35,13 +33,10 @@ export class UpdateAttendanceListUseCase implements UseCase<UpdateAttendanceList
         dto.start
       )
       await this.ensureMembersExist(dto.memberIds)
-
-      const [updatedAttendanceList, updatedEvent] = AttendanceList.update(
+      const updatedAttendanceList = AttendanceList.update(
         existingAttendanceList,
         dto
       )
-
-      await this.eventRepo.save(updatedEvent)
       await this.attendanceListRepo.update(updatedAttendanceList)
     })
   }

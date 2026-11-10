@@ -1,8 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  Trainer,
-  TrainerCreatedDomainEvent
-} from '@/write/business_profile/domain/Trainer'
+import { Trainer } from '@/write/business_profile/domain/Trainer'
 
 describe('Trainer Model', () => {
   it('should create a trainer with all required properties', () => {
@@ -11,7 +8,7 @@ describe('Trainer Model', () => {
     const beforeCreation = new Date()
 
     // Passing the ID explicitly proves the aggregate follows the same boundary as Club and does not generate identifiers on its own.
-    const [trainer, event] = Trainer.register(name, id)
+    const trainer = Trainer.register(name, id)
 
     const afterCreation = new Date()
 
@@ -32,13 +29,6 @@ describe('Trainer Model', () => {
       name,
       createdAt: trainer.createdAt
     })
-
-    expect(event).toBeDefined()
-    expect(event.eventId).toBeDefined()
-    expect(event).toBeInstanceOf(TrainerCreatedDomainEvent)
-    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
-    expect(event.payload).toEqual(trainer.toSnapshot())
-    expect(event.payload).toEqual(trainer.toSnapshot())
   })
 
   it('restores an existing trainer from persisted state', () => {

@@ -67,7 +67,6 @@ import { DexieCampRepo } from '@/write/camps/infra/db/DexieCampRepo'
 import { DexieDatabaseBackupExporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupExporter'
 import { DexieDatabaseBackupImporter } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupImporter'
 import { DexieClubRepo } from '@/write/business_profile/infra/db/DexieClubRepo'
-import { DexieEventRepo } from '@/write/shared/infra/db/DexieEventRepo'
 import { DexieMemberRepo } from '@/write/members/infra/db/DexieMemberRepo'
 import { DexieMembershipPaymentRepo } from '@/write/memberships/infra/db/DexieMembershipPaymentRepo'
 import { DexieNotebookBootstrapStateRepo } from '@/system_management/demo/infra/db/DexieNotebookBootstrapStateRepo'
@@ -298,7 +297,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
   const resolveAppResetRepo = lazy(() => new DexieAppResetRepo(database))
   const resolveAppStateReset = lazy(() => new LocalStorageAppStateResetter())
   const resolveTrainerRepo = lazy(() => new DexieTrainerRepo(database))
-  const resolveEventRepo = lazy(() => new DexieEventRepo(database))
   // The composition root owns the concrete ID adapter so application and domain code depend only on the port.
   const resolveIdGenerator = lazy(() => new IdGenerator())
   const resolveDemoSeedFactory = lazy(() => new DemoSeedFactory())
@@ -335,7 +333,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveAttendanceListRepo(),
         resolveCampRepo(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator(),
         resolveDemoSeedFactory(),
         resolveClock(),
@@ -367,7 +364,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveMemberRepo(),
         resolveAttendanceListRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -376,7 +372,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterCampUseCase(
         resolveUnitOfWork(),
         resolveCampRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -386,7 +381,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveCampRepo(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -395,7 +389,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterCampParticipantDiscountUseCase(
         resolveUnitOfWork(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -404,7 +397,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterCampParticipantPaymentUseCase(
         resolveUnitOfWork(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -413,7 +405,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterCampParticipantRefundUseCase(
         resolveUnitOfWork(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -422,7 +413,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new AcceptCampParticipantResignationUseCase(
         resolveUnitOfWork(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -431,7 +421,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new CancelCampParticipantResignationUseCase(
         resolveUnitOfWork(),
         resolveCampParticipantRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -439,8 +428,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
     () =>
       new DeleteAttendanceListUseCase(
         resolveUnitOfWork(),
-        resolveAttendanceListRepo(),
-        resolveEventRepo()
+        resolveAttendanceListRepo()
       )
   )
   const resolveDeleteMember = lazy(
@@ -449,24 +437,17 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveMemberRepo(),
         resolveMembershipPaymentRepo(),
-        resolveAttendanceListRepo(),
-        resolveEventRepo()
+        resolveAttendanceListRepo()
       )
   )
   const resolveArchiveMember = lazy(
-    () =>
-      new ArchiveMemberUseCase(
-        resolveUnitOfWork(),
-        resolveMemberRepo(),
-        resolveEventRepo()
-      )
+    () => new ArchiveMemberUseCase(resolveUnitOfWork(), resolveMemberRepo())
   )
   const resolveDeleteMembershipPayment = lazy(
     () =>
       new DeleteMembershipPaymentUseCase(
         resolveUnitOfWork(),
-        resolveMembershipPaymentRepo(),
-        resolveEventRepo()
+        resolveMembershipPaymentRepo()
       )
   )
   const resolveUpdateAttendanceList = lazy(
@@ -474,8 +455,7 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new UpdateAttendanceListUseCase(
         resolveUnitOfWork(),
         resolveMemberRepo(),
-        resolveAttendanceListRepo(),
-        resolveEventRepo()
+        resolveAttendanceListRepo()
       )
   )
   const resolveGetAttendanceSessionById = lazy(
@@ -527,7 +507,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterClubUseCase(
         resolveUnitOfWork(),
         resolveClubRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -536,7 +515,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterMemberUseCase(
         resolveUnitOfWork(),
         resolveMemberRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -546,7 +524,6 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
         resolveUnitOfWork(),
         resolveMemberRepo(),
         resolveMembershipPaymentRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
@@ -555,25 +532,14 @@ export function createAppServices(database: TrainerNotebookDb): AppServices {
       new RegisterTrainerUseCase(
         resolveUnitOfWork(),
         resolveTrainerRepo(),
-        resolveEventRepo(),
         resolveIdGenerator()
       )
   )
   const resolveUpdateMember = lazy(
-    () =>
-      new UpdateMemberUseCase(
-        resolveUnitOfWork(),
-        resolveMemberRepo(),
-        resolveEventRepo()
-      )
+    () => new UpdateMemberUseCase(resolveUnitOfWork(), resolveMemberRepo())
   )
   const resolveUnarchiveMember = lazy(
-    () =>
-      new UnarchiveMemberUseCase(
-        resolveUnitOfWork(),
-        resolveMemberRepo(),
-        resolveEventRepo()
-      )
+    () => new UnarchiveMemberUseCase(resolveUnitOfWork(), resolveMemberRepo())
   )
   const resolveResetApplicationData = lazy(
     () =>

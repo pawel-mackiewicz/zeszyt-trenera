@@ -1,4 +1,3 @@
-import { DomainEvent } from '@/write/shared/events/DomainEvent'
 import { copyDate } from '../../shared/DateUtils'
 
 export type TrainerSnapshot = {
@@ -18,23 +17,17 @@ export class Trainer {
     this._createdAt = copyDate(createdAt)
     this._name = name
   }
-
-  public static register(
-    name: string,
-    id: string
-  ): [Trainer, TrainerCreatedDomainEvent] {
+  public static register(name: string, id: string): Trainer {
     // Registration receives the ID from outside so the aggregate stays independent from infrastructure ID generators.
     const trainer = new Trainer(name, id)
-    // Event payloads store snapshots so the offline log keeps an immutable copy even if the in-memory aggregate changes later.
-    const event = new TrainerCreatedDomainEvent(trainer.toSnapshot())
-    return [trainer, event]
+    return trainer
   }
 
   public static restore(snapshot: TrainerSnapshot): Trainer {
     return new Trainer(snapshot.name, snapshot.id, snapshot.createdAt)
   }
 
-  // Persistence adapters and event serializers share one snapshot so stored trainer data cannot drift apart.
+  // Persistence adapters use one snapshot so stored trainer data cannot drift apart.
   public toSnapshot(): TrainerSnapshot {
     return {
       id: this.id,
@@ -49,15 +42,6 @@ export class Trainer {
 
   public get createdAt() {
     return copyDate(this._createdAt)
-  }
-}
-
-export class TrainerCreatedDomainEvent extends DomainEvent<TrainerSnapshot> {
-  public readonly eventName = 'trainer.created'
-
-  public constructor(trainer: TrainerSnapshot) {
-    // The payload is the canonical replay contract so persistence adapters can store new event types without per-event translation logic.
-    super(trainer)
   }
 }
 

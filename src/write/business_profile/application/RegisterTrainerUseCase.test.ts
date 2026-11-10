@@ -1,15 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 import { RegisterTrainerUseCase } from './RegisterTrainerUseCase'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import { FakeTrainerRepo } from '@/write/business_profile/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { RegisterTrainerCommand } from '@/write/business_profile/application/commands/RegisterTrainerCommand'
 import {
   Trainer,
-  TrainerAlreadyExistsError,
-  TrainerCreatedDomainEvent
+  TrainerAlreadyExistsError
 } from '@/write/business_profile/domain/Trainer'
 
 class FakeUnitOfWork implements UnitOfWork {
@@ -31,27 +29,19 @@ class FakeIdGenerator implements IdGeneratorPort {
 describe('RegisterTrainerUseCase', () => {
   let uow: FakeUnitOfWork
   let trainerRepo: FakeTrainerRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterTrainerUseCase
 
   beforeEach(() => {
     uow = new FakeUnitOfWork()
     trainerRepo = new FakeTrainerRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
-
-    useCase = new RegisterTrainerUseCase(
-      uow,
-      trainerRepo,
-      eventRepo,
-      idGenerator
-    )
+    useCase = new RegisterTrainerUseCase(uow, trainerRepo, idGenerator)
   })
 
-  it('should register a new trainer via UoW, saving the trainer and the related domain event', async () => {
+  it('should register a new trainer via UoW, saving the trainer', async () => {
     const dto: RegisterTrainerCommand = {
       trainerName: 'Jane Doe'
     }
@@ -66,15 +56,6 @@ describe('RegisterTrainerUseCase', () => {
     // The fixed ID proves the workflow consumes the injected generator instead of letting the aggregate create infrastructure data itself.
     expect(savedTrainer.id).toBe('trainer-generated-by-test')
     expect(idGenerator.generatedIds).toEqual(['trainer-generated-by-test'])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent.eventName).toBe('trainer.created')
-    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
-    expect(savedEvent).toBeInstanceOf(TrainerCreatedDomainEvent)
-    expect((savedEvent as TrainerCreatedDomainEvent).payload).toEqual(
-      savedTrainer.toSnapshot()
-    )
   })
 
   it('should throw when trying to register a second trainer', async () => {
@@ -91,6 +72,5 @@ describe('RegisterTrainerUseCase', () => {
     await expect(useCase.handle(dto)).rejects.toThrow(TrainerAlreadyExistsError)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(trainerRepo.savedTrainers).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

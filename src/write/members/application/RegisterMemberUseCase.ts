@@ -1,5 +1,4 @@
 import type { UseCase } from '@/write/shared/UseCase'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
@@ -11,7 +10,6 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
   constructor(
     private readonly uow: UnitOfWork,
     private readonly memberRepo: MemberRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -20,7 +18,7 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
     const phoneNumber = this.normalizeOptionalPhoneNumber(dto.phoneNumber)
 
     await this.uow.execute(async () => {
-      const [member, event] = this.registerMember(dto, phoneNumber)
+      const member = this.registerMember(dto, phoneNumber)
       // The duplicate guard must share the same transaction as the write so a mobile double-submit cannot interleave two "member.created" commits offline.
       await this.ensureMemberDoesNotExist(
         member.firstName,
@@ -29,7 +27,6 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
       )
 
       await this.memberRepo.save(member)
-      await this.eventRepo.save(event)
     })
   }
 
@@ -54,7 +51,7 @@ export class RegisterMemberUseCase implements UseCase<RegisterMemberCommand> {
     dto: RegisterMemberCommand,
     phoneNumber: PhoneNumber | undefined
   ) {
-    // The use case owns cross-boundary concerns like ID allocation and phone canonicalization so the aggregate stays focused on member rules while the event log receives the same immutable snapshot that persistence stores.
+    // The use case owns ID allocation and phone canonicalization so the aggregate stays focused on member rules.
     return Member.register(
       {
         firstName: dto.firstName,

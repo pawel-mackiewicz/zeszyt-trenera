@@ -3,14 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { RegisterAttendanceListUseCase } from './RegisterAttendanceListUseCase'
 import type { RegisterAttendanceListCommand } from '@/write/attendance/application/requests/RegisterAttendanceListCommand'
 import { FakeAttendanceListRepo } from '@/write/attendance/application/ports/AttendanceListRepoPort'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
-import {
-  AttendanceListAlreadyExistsError,
-  AttendanceListRecordedDomainEvent
-} from '@/write/attendance/domain/AttendanceList'
+import { AttendanceListAlreadyExistsError } from '@/write/attendance/domain/AttendanceList'
 import { MemberNotFoundError } from '@/write/members/domain/Member'
 
 class FakeUnitOfWork implements UnitOfWork {
@@ -42,7 +38,6 @@ describe('RegisterAttendanceListUseCase', () => {
   let uow: FakeUnitOfWork
   let memberRepo: FakeMemberRepo
   let attendanceListRepo: FakeAttendanceListRepo
-  let eventRepo: FakeEventRepo
   let idGenerator: FakeIdGenerator
   let useCase: RegisterAttendanceListUseCase
 
@@ -50,7 +45,6 @@ describe('RegisterAttendanceListUseCase', () => {
     uow = new FakeUnitOfWork()
     memberRepo = new FakeMemberRepo()
     attendanceListRepo = new FakeAttendanceListRepo()
-    eventRepo = new FakeEventRepo()
     idGenerator = new FakeIdGenerator()
 
     vi.spyOn(uow, 'execute')
@@ -59,12 +53,11 @@ describe('RegisterAttendanceListUseCase', () => {
       uow,
       memberRepo,
       attendanceListRepo,
-      eventRepo,
       idGenerator
     )
   })
 
-  it('records an attendance list via UoW, saving the list and related domain event', async () => {
+  it('records an attendance list via UoW, saving the list', async () => {
     memberRepo.existingMemberIds.add('member-1')
     memberRepo.existingMemberIds.add('member-2')
     const start = new Date('2026-03-27T17:00:00Z')
@@ -91,15 +84,6 @@ describe('RegisterAttendanceListUseCase', () => {
     expect(idGenerator.generatedIds).toEqual([
       'attendance-list-generated-by-test'
     ])
-
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    const savedEvent = eventRepo.savedEvents[0]
-    expect(savedEvent.eventName).toBe('attendance-list.recorded')
-    // The assertion narrows to the concrete event type so the test documents that the event log stores a snapshot payload, not the mutable aggregate instance itself.
-    expect(savedEvent).toBeInstanceOf(AttendanceListRecordedDomainEvent)
-    expect((savedEvent as AttendanceListRecordedDomainEvent).payload).toEqual(
-      savedAttendanceList.toSnapshot()
-    )
   })
 
   it('allows creating an empty attendance list without member lookups', async () => {
@@ -114,7 +98,6 @@ describe('RegisterAttendanceListUseCase', () => {
     expect(memberRepo.existsByIdChecks).toEqual([])
     expect(attendanceListRepo.savedAttendanceLists).toHaveLength(1)
     expect(attendanceListRepo.savedAttendanceLists[0].memberIds).toEqual([])
-    expect(eventRepo.savedEvents).toHaveLength(1)
   })
 
   it('throws when trying to record attendance for an unknown member', async () => {
@@ -133,7 +116,6 @@ describe('RegisterAttendanceListUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(attendanceListRepo.savedAttendanceLists).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('throws when the same training start already has an attendance list', async () => {
@@ -152,7 +134,6 @@ describe('RegisterAttendanceListUseCase', () => {
     expect(uow.execute).toHaveBeenCalledTimes(1)
     expect(idGenerator.generatedIds).toHaveLength(0)
     expect(attendanceListRepo.savedAttendanceLists).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('rejects a concurrent second attendance registration for the same start', async () => {
@@ -182,7 +163,6 @@ describe('RegisterAttendanceListUseCase', () => {
       )?.reason
     ).toBeInstanceOf(AttendanceListAlreadyExistsError)
     expect(attendanceListRepo.savedAttendanceLists).toHaveLength(1)
-    expect(eventRepo.savedEvents).toHaveLength(1)
     expect(idGenerator.generatedIds).toEqual([
       'attendance-list-generated-by-test'
     ])

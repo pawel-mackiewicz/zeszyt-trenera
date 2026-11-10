@@ -56,7 +56,7 @@ async function unarchiveMember() {
   emit('error', '')
 
   try {
-    // What: archived roster restoration goes through the application use case. Why: local-first writes must keep domain events and persistence behind the write layer.
+    // What: archived roster restoration goes through the application use case. Why: local-first writes must keep validation and persistence behind the write layer.
     await useCases.unarchiveMember.handle({
       memberId: props.member.id
     })

@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { FakeAttendanceListRepo } from '@/write/attendance/application/ports/AttendanceListRepoPort'
-import { FakeEventRepo } from '@/write/shared/events/EventRepoPort'
 import { FakeMemberRepo } from '@/write/members/application/MemberRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import { UpdateAttendanceListUseCase } from '@/write/attendance/application/UpdateAttendanceListUseCase'
@@ -9,8 +8,7 @@ import type { UpdateAttendanceListCommand } from '@/write/attendance/application
 import {
   AttendanceList,
   AttendanceListAlreadyExistsError,
-  AttendanceListNotFoundError,
-  AttendanceListUpdatedDomainEvent
+  AttendanceListNotFoundError
 } from '@/write/attendance/domain/AttendanceList'
 import { MemberNotFoundError } from '@/write/members/domain/Member'
 class FakeUnitOfWork implements UnitOfWork {
@@ -23,17 +21,14 @@ describe('UpdateAttendanceListUseCase', () => {
   let useCase: UpdateAttendanceListUseCase
   let memberRepo: FakeMemberRepo
   let attendanceListRepo: FakeAttendanceListRepo
-  let eventRepo: FakeEventRepo
 
   beforeEach(() => {
     memberRepo = new FakeMemberRepo()
     attendanceListRepo = new FakeAttendanceListRepo()
-    eventRepo = new FakeEventRepo()
     useCase = new UpdateAttendanceListUseCase(
       new FakeUnitOfWork(),
       memberRepo,
-      attendanceListRepo,
-      eventRepo
+      attendanceListRepo
     )
   })
 
@@ -69,10 +64,6 @@ describe('UpdateAttendanceListUseCase', () => {
       start: new Date('2026-03-27T18:00:00Z'),
       createdAt: new Date('2026-03-01T10:00:00Z')
     })
-    expect(eventRepo.savedEvents).toHaveLength(1)
-    expect(eventRepo.savedEvents[0]).toBeInstanceOf(
-      AttendanceListUpdatedDomainEvent
-    )
   })
 
   it('does not run duplicate-start checks when the start stays unchanged', async () => {
@@ -107,7 +98,6 @@ describe('UpdateAttendanceListUseCase', () => {
     ).rejects.toThrow(AttendanceListNotFoundError)
 
     expect(attendanceListRepo.updateCalls).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('throws when the changed start collides with another attendance list', async () => {
@@ -134,7 +124,6 @@ describe('UpdateAttendanceListUseCase', () => {
     ).rejects.toThrow(AttendanceListAlreadyExistsError)
 
     expect(attendanceListRepo.updateCalls).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 
   it('throws when at least one selected member no longer exists', async () => {
@@ -159,6 +148,5 @@ describe('UpdateAttendanceListUseCase', () => {
     ).rejects.toThrow(MemberNotFoundError)
 
     expect(attendanceListRepo.updateCalls).toHaveLength(0)
-    expect(eventRepo.savedEvents).toHaveLength(0)
   })
 })

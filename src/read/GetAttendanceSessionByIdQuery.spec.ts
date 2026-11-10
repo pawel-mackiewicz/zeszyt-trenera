@@ -23,7 +23,7 @@ describe('GetAttendanceSessionByIdQuery', () => {
   })
 
   it('returns one saved attendance session for editor hydration', async () => {
-    const [attendanceList] = AttendanceList.record(
+    const attendanceList = AttendanceList.record(
       {
         memberIds: ['member-1', 'member-2'],
         start: new Date('2026-03-27T18:00:00Z')

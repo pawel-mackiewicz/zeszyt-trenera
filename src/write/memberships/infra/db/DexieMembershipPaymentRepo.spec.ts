@@ -25,7 +25,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('persists a membership payment into Dexie', async () => {
-    const [payment] = MembershipPayment.record(
+    const payment = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -53,7 +53,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('reports when the same member and covered month already have a payment', async () => {
-    const [payment] = MembershipPayment.record(
+    const payment = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'
@@ -69,7 +69,7 @@ describe('DexieMembershipPaymentRepo', () => {
   })
 
   it('does not treat a different covered month as a duplicate', async () => {
-    const [payment] = MembershipPayment.record(
+    const payment = MembershipPayment.record(
       {
         memberId: 'member-1',
         coveredMonth: '2026-03'

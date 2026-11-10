@@ -1,5 +1,4 @@
 import type { UseCase } from '@/write/shared/UseCase'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { TrainerRepoPort } from '@/write/business_profile/application/ports/TrainerRepoPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
@@ -13,7 +12,6 @@ export class RegisterTrainerUseCase implements UseCase<RegisterTrainerCommand> {
   constructor(
     private readonly uow: UnitOfWork,
     private readonly trainerRepo: TrainerRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -24,12 +22,11 @@ export class RegisterTrainerUseCase implements UseCase<RegisterTrainerCommand> {
       if (await this.trainerRepo.exists()) {
         throw new TrainerAlreadyExistsError()
       }
-      const [trainer, event] = Trainer.register(
+      const trainer = Trainer.register(
         dto.trainerName,
         this.idGenerator.generate()
       )
       await this.trainerRepo.save(trainer)
-      await this.eventRepo.save(event)
     })
   }
 }

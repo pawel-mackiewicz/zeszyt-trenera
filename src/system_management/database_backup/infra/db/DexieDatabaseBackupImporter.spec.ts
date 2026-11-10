@@ -3,12 +3,35 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { TrainerNotebookDb } from '@/db'
 import {
+  givenLegacyNotebook,
+  expectNotebookRowsToMatch
+} from '@/test/fixtures/legacyNotebook'
+import {
   BackupDatabaseNameMismatchError,
   DexieDatabaseBackupImporter
 } from '@/system_management/database_backup/infra/db/DexieDatabaseBackupImporter'
 
 function createTestDbName(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random()}`
+}
+
+async function givenLargeRosterBackup(database: TrainerNotebookDb) {
+  const createdAt = new Date('2026-03-01T10:00:00Z')
+  const members = Array.from({ length: 8000 }, (_, index) => ({
+    id: `member-${String(index).padStart(4, '0')}`,
+    firstName: 'jane',
+    lastName: 'doe',
+    dateOfBirth: new Date(Date.UTC(1990, 0, index + 1)),
+    archived: false,
+    createdAt
+  }))
+  await database.members.bulkAdd(members)
+  const backupBlob = await exportDB(database)
+
+  return {
+    backupFile: new File([backupBlob], 'large-roster-backup.json'),
+    members
+  }
 }
 
 describe('DexieDatabaseBackupImporter', () => {
@@ -94,6 +117,40 @@ describe('DexieDatabaseBackupImporter', () => {
         name: 'Safe Local Club'
       }
     ])
+  })
+
+  it('restores every record from an older backup while discarding its event log', async () => {
+    await targetDatabase.delete()
+    const { database: legacyDatabase, savedRows } = await givenLegacyNotebook(
+      targetDatabase.name
+    )
+    const backupBlob = await exportDB(legacyDatabase)
+    legacyDatabase.close()
+    await targetDatabase.open()
+    await targetDatabase.clubs.put({
+      id: 'stale-club',
+      name: 'Stale club',
+      foundingDate: new Date(),
+      createdAt: new Date()
+    })
+
+    await backupImporter.importBackupFile(
+      new File([backupBlob], 'old-backup.json')
+    )
+
+    await expectNotebookRowsToMatch(targetDatabase, savedRows)
+  })
+
+  it('restores every member from a large backup and removes stale local records', async () => {
+    const { backupFile, members } = await givenLargeRosterBackup(targetDatabase)
+    // The file must exceed the importer's default 1 MiB chunk to exercise multiple reads.
+    expect(backupFile.size).toBeGreaterThan(1024 * 1024)
+    await targetDatabase.members.clear()
+    await targetDatabase.members.add({ ...members[0], id: 'stale-member' })
+
+    await backupImporter.importBackupFile(backupFile)
+
+    await expect(targetDatabase.members.toArray()).resolves.toEqual(members)
   })
 
   it('rejects a backup exported from another database name', async () => {

@@ -8,8 +8,7 @@ describe('Club Model', () => {
     const foundingDate = new Date('2023-01-01')
     const beforeCreation = new Date()
 
-    // The contract now returns both the aggregate and its event so callers can persist local-first state and the replay log from one registration step.
-    const [club, event] = Club.register(name, foundingDate, id)
+    const club = Club.register(name, foundingDate, id)
 
     const afterCreation = new Date()
 
@@ -26,12 +25,6 @@ describe('Club Model', () => {
     expect(club.createdAt.getTime()).toBeLessThanOrEqual(
       afterCreation.getTime()
     )
-
-    expect(event).toBeDefined()
-    expect(event.eventId).toBeDefined()
-    // The raw payload is now the canonical event contract so future persistence adapters can store the snapshot without wrapper-specific mapping.
-    expect(event.payload).toEqual(club.toSnapshot())
-    expect(event.payload).toEqual(club.toSnapshot())
   })
 
   it('restores an existing club from persisted state', () => {

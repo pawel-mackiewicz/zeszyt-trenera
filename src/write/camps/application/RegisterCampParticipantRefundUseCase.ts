@@ -1,6 +1,5 @@
 import type { CampParticipantRepoPort } from '@/write/camps/application/ports/CampParticipantRepoPort'
 import type { RegisterCampParticipantRefundCommand } from '@/write/camps/application/requests/RegisterCampParticipantRefundCommand'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { IdGeneratorPort } from '@/write/shared/IdGeneratorPort'
 import type { UnitOfWork } from '@/write/shared/UnitOfWork'
 import type { UseCase } from '@/write/shared/UseCase'
@@ -10,7 +9,6 @@ export class RegisterCampParticipantRefundUseCase implements UseCase<RegisterCam
   public constructor(
     private readonly uow: UnitOfWork,
     private readonly campParticipantRepo: CampParticipantRepoPort,
-    private readonly eventRepo: EventRepoPort,
     private readonly idGenerator: IdGeneratorPort
   ) {}
 
@@ -36,14 +34,13 @@ export class RegisterCampParticipantRefundUseCase implements UseCase<RegisterCam
       }
 
       const amount = Money.create(command.amount)
-      const [participant, event] = existingParticipant.registerRefund({
+      const participant = existingParticipant.registerRefund({
         id: this.idGenerator.generate(),
         amount,
         note: command.note
       })
 
       await this.campParticipantRepo.update(participant)
-      await this.eventRepo.save(event)
     })
   }
 }

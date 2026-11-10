@@ -23,7 +23,7 @@ describe('DexieClubRepo', () => {
   })
 
   it('persists a club into Dexie', async () => {
-    const [club] = Club.register(
+    const club = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'
@@ -47,7 +47,7 @@ describe('DexieClubRepo', () => {
   })
 
   it('reports when a club is already persisted', async () => {
-    const [club] = Club.register(
+    const club = Club.register(
       'ZKS Włókniarz Częstochowa',
       new Date('1946-01-01T00:00:00Z'),
       'club-1'

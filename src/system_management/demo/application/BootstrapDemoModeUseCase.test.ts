@@ -3,7 +3,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BootstrapDemoModeUseCase } from '@/system_management/demo/application/BootstrapDemoModeUseCase'
 import type { DemoSeedFactoryPort } from '@/system_management/demo/application/ports/DemoSeedFactoryPort'
 import type { DemoLifecycleStorePort } from '@/system_management/demo/application/ports/DemoLifecycleStorePort'
-import type { EventRepoPort } from '@/write/shared/events/EventRepoPort'
 import type { MemberRepoPort } from '@/write/members/application/MemberRepoPort'
 import type { MembershipPaymentRepoPort } from '@/write/memberships/application/ports/MembershipPaymentRepoPort'
 import {
@@ -32,7 +31,6 @@ describe('BootstrapDemoModeUseCase', () => {
   let attendanceListRepo: AttendanceListRepoPort
   let campRepo: CampRepoPort
   let campParticipantRepo: CampParticipantRepoPort
-  let eventRepo: EventRepoPort
   let notebookBootstrapStateRepo: NotebookBootstrapStatePort
   let idGenerator: IdGeneratorPort
   let demoSeedFactory: DemoSeedFactoryPort
@@ -103,9 +101,6 @@ describe('BootstrapDemoModeUseCase', () => {
       findById: vi.fn().mockResolvedValue(null),
       existsByCampIdAndPerson: vi.fn().mockResolvedValue(false)
     }
-    eventRepo = {
-      save: vi.fn().mockResolvedValue(undefined)
-    }
     idGenerator = {
       generate: vi.fn(() => `generated-id-${generatedIdIndex++}`)
     }
@@ -141,7 +136,6 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator,
       demoSeedFactory,
       clock,
@@ -165,25 +159,6 @@ describe('BootstrapDemoModeUseCase', () => {
     expect(campRepo.save).toHaveBeenCalledTimes(expectedDemoSeed.camps.length)
     expect(campParticipantRepo.save).toHaveBeenCalledTimes(
       expectedDemoSeed.campParticipants.length
-    )
-    const expectedCampParticipantEventCount =
-      expectedDemoSeed.campParticipants.reduce(
-        (eventCount, participantSeed) =>
-          eventCount +
-          1 +
-          (participantSeed.initialDiscount ? 1 : 0) +
-          (participantSeed.initialPayment ? 1 : 0) +
-          (participantSeed.resignation ? 1 : 0),
-        0
-      )
-
-    expect(eventRepo.save).toHaveBeenCalledTimes(
-      2 +
-        expectedDemoSeed.members.length +
-        expectedDemoSeed.membershipPayments.length +
-        expectedDemoSeed.attendanceLists.length +
-        expectedDemoSeed.camps.length +
-        expectedCampParticipantEventCount
     )
     const savedCampParticipants = vi
       .mocked(campParticipantRepo.save)
@@ -243,7 +218,6 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator,
       demoSeedFactory,
       clock,
@@ -280,7 +254,6 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator,
       demoSeedFactory,
       clock,
@@ -314,7 +287,6 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator,
       demoSeedFactory,
       clock,
@@ -344,7 +316,6 @@ describe('BootstrapDemoModeUseCase', () => {
       attendanceListRepo,
       campRepo,
       campParticipantRepo,
-      eventRepo,
       idGenerator,
       demoSeedFactory,
       clock,
