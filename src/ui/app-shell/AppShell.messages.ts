@@ -18,6 +18,9 @@ export const APP_SHELL_MESSAGES = {
     },
     menu: {
       debugIndexedDb: 'Debug IndexedDB',
+      github: 'GitHub',
+      emailContact: 'Kontakt e-mail: {email}',
+      opensInNewTab: '(otwiera się w nowej karcie)',
       languageLabel: 'Język',
       exportBackup: {
         action: 'Eksportuj kopię danych',
@@ -110,6 +113,9 @@ export const APP_SHELL_MESSAGES = {
     },
     menu: {
       debugIndexedDb: 'Debug IndexedDB',
+      github: 'GitHub',
+      emailContact: 'Email contact: {email}',
+      opensInNewTab: '(opens in a new tab)',
       languageLabel: 'Language',
       exportBackup: {
         action: 'Export backup',

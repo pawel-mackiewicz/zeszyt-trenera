@@ -4,6 +4,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import AppButton from '@/ui/components/AppButton.vue'
+import AppIcon from '@/ui/components/AppIcon.vue'
 import {
   SHELL_LOCALE_OPTIONS,
   SHELL_NAVIGATION_LABEL_KEYS,
@@ -131,16 +132,46 @@ function navigationLabel(item: NavigationItem) {
     <div
       class="relative w-72 max-w-[85vw] h-full bg-surface border-r border-on-surface/10 shadow-[0_24px_60px_rgba(17,41,39,0.2)] flex flex-col pt-16"
     >
-      <div class="p-6 border-b border-on-surface/10 bg-surface-container-low">
-        <h2 class="font-headline uppercase font-bold text-lg">
-          {{ appName }}
-        </h2>
-        <p class="font-mono text-xs text-secondary mt-1">v{{ appVersion }}</p>
-      </div>
-      <nav
-        v-if="navigationItems.length > 0"
-        class="flex-1 overflow-y-auto py-4"
+      <div
+        class="flex items-start justify-between gap-3 p-6 border-b border-on-surface/10 bg-surface-container-low"
       >
+        <div class="min-w-0">
+          <h2 class="font-headline uppercase font-bold text-lg">
+            {{ appName }}
+          </h2>
+          <p class="font-mono text-xs text-secondary mt-1">v{{ appVersion }}</p>
+        </div>
+        <div class="flex shrink-0 items-center">
+          <a
+            href="mailto:zeszytTrenera@mackiewicz.info"
+            title="zeszytTrenera@mackiewicz.info"
+            class="inline-flex size-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-surface"
+            @click="closeSidebar"
+          >
+            <AppIcon name="mail" />
+            <span class="sr-only">
+              {{
+                t('menu.emailContact', {
+                  email: 'zeszytTrenera@mackiewicz.info'
+                })
+              }}
+            </span>
+          </a>
+          <a
+            href="https://github.com/pawel-mackiewicz/zeszyt-trenera"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex size-11 items-center justify-center rounded-full text-on-surface transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-surface"
+            @click="closeSidebar"
+          >
+            <AppIcon name="github" />
+            <span class="sr-only">
+              {{ t('menu.github') }} {{ t('menu.opensInNewTab') }}
+            </span>
+          </a>
+        </div>
+      </div>
+      <nav class="flex-1 overflow-y-auto py-4">
         <RouterLink
           v-for="item in navigationItems"
           :key="item.name"
